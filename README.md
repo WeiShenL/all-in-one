@@ -1,21 +1,22 @@
-# G4T1_SPM
+# all-in-one
 
-## 🚀 Local Development with Supabase
-This is a minimal Docker Compose setup for self-hosting Supabase. Follow the steps [here](https://supabase.com/docs/guides/hosting/docker) to get started.
-This project uses the official Supabase Docker setup to provide a complete local development environment that mirrors production, including the Supabase Studio dashboard.
+A Next.js application with Supabase backend, designed for local development with Docker.
+
+## 🚀 Quick Start
 
 ### Prerequisites
+- [Docker](https://docs.docker.com/get-docker/)
+- [Docker Compose](https://docs.docker.com/compose/install/)
+- [Node.js](https://nodejs.org/) (18.17 or later)
 
-  * [Docker](https://docs.docker.com/get-docker/)
-  * [Docker Compose](https://docs.docker.com/compose/install/)
+### Local Development Setup
 
-### Local Setup
+1. **Clone the repository**
 
-1.  **Clone the repository.**
 
     ```bash
-    git clone https://github.com/WeiShenL/G4T1_SPM
-    cd G4T1_SPM
+    git clone https://github.com/WeiShenL/all-in-one
+    cd all-in-one
     ```
 
 2.  **Set up Environment Variables**
@@ -44,13 +45,58 @@ This project uses the official Supabase Docker setup to provide a complete local
 
     This command explicitly tells Docker to use the `.env` file from the project root, ensuring a reliable startup. The first run may take several minutes to download all the necessary container images.
 
-4.  **Access Supabase Studio**
-    Once the containers are running, you can access the local Supabase dashboard in your browser at:
-    **[http://localhost:8000](https://www.google.com/search?q=http://localhost:8000)**
+4. **Install Next.js Dependencies**
+    In a new terminal, from the project root:
 
-5.  **Stopping the Services**
+    ```bash
+        npm install
+    ```
+
+
+5. **Start the Next.js Development Server**
+    ```bash
+        npm run dev
+    ```
+6.  **Accessing the Services**
+    - **Next.js App**: [http://localhost:3000](http://localhost:3000)
+    - **Supabase Studio**: [http://localhost:8000](http://localhost:8000)
+
+7.  **Stopping the Services**
     To stop all running containers, make sure you are still inside the `supabase` directory and run:
 
     ```bash
     docker compose --env-file ../.env down
     ```
+
+## 🛠️ Tech Stack
+- **Frontend**: Next.js 15 with TypeScript, App Router, Turbopack
+- **Backend**: Supabase (PostgreSQL, Auth, Storage, Realtime)
+- **Development**: Docker, Docker Compose
+
+### Project Structure
+all-in-one/                   
+├── src/app/          # Next.js app directory
+├── supabase/         # Supabase Docker configuration
+├── .env.example      # Environment variables template
+└── package.json      # Node.js dependencies
+
+You can start editing by modifying `src/app/page.tsx`. The page auto-updates as you edit.
+
+## 📚 Learn More
+
+### Next.js Resources
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API
+- [Learn Next.js](https://nextjs.org/learn) - interactive Next.js tutorial
+
+### Supabase Resources
+- [Supabase Documentation](https://supabase.com/docs)
+- [Self-Hosting with Docker](https://supabase.com/docs/guides/hosting/docker)
+
+## 🚀 Deployment
+
+### Next.js Deployment
+Deploy your Next.js app using the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme).
+
+### Supabase Production
+For production Supabase deployment, see the [hosting documentation](https://supabase.com/docs/guides/hosting/docker#securing-your-services) and ensure you update all default credentials.
+
