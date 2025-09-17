@@ -1,0 +1,7 @@
+.env
+test.http
+docker-compose.override.yml
+
+# Supabase local data
+supabase/volumes/db/data/
+supabase/volumes/storage/
