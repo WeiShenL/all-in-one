@@ -39,3 +39,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Supabase local data
+supabase/volumes/db/data/
+supabase/volumes/storage/
+
+# HTTP testing files
+test.http
+*.http
+
+# Docker override files
+docker-compose.override.yml
