@@ -28,7 +28,6 @@ const eslintConfig = [
         argsIgnorePattern: "^_",
         varsIgnorePattern: "^_" 
       }],
-      "@typescript-eslint/prefer-const": "error",
       "@typescript-eslint/no-explicit-any": "warn",
       
       // React specific rules
