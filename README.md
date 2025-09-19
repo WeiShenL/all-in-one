@@ -79,12 +79,36 @@ A Next.js application with Supabase backend, designed for local development with
     - **Next.js App**: [http://localhost:3000](http://localhost:3000)
     - **Supabase Studio**: [http://localhost:8000](http://localhost:8000)(Use credentials from `.env` file if prompted)
 
-9.  **Stopping the Services**
-    To stop all running containers, make sure you are still inside the `supabase` directory and run:
+### When You Pull New Changes
 
-    ```bash
-    docker compose --env-file ../.env down
-    ```
+If someone else has made database changes:
+
+```bash
+# Apply new migrations
+npx prisma migrate deploy
+
+# Regenerate Prisma Client
+npx prisma generate
+
+# Start development
+npm run dev
+```
+
+### Making Database Schema Changes
+
+1. **Edit** `prisma/schema.prisma`
+2. **Create migration**:
+   ```bash
+   npx prisma migrate dev --name your_change_description
+   ```
+3. **Commit** the generated migration files to Git
+
+### Stopping the Services
+
+```bash
+cd supabase
+docker compose --env-file ../.env down
+```
 
 ## 🛠️ Tech Stack
 - **Frontend**: Next.js 15 with TypeScript, App Router
@@ -117,7 +141,7 @@ You can start editing by modifying `src/app/page.tsx`. The page auto-updates as 
 - [Self-Hosting with Docker](https://supabase.com/docs/guides/hosting/docker)
 
 ### Prisma Resources
-  - [Prisma Documentation](https://www.prisma.io/docs/orm/prisma-schema/overview)
+- [Prisma Documentation](https://www.prisma.io/docs/orm/prisma-schema/overview)
 
 ## 🚀 Deployment
 
