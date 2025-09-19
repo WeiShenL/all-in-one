@@ -50,3 +50,5 @@ test.http
 
 # Docker override files
 docker-compose.override.yml
+
+/src/generated/prisma
