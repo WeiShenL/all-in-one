@@ -110,6 +110,27 @@ cd supabase
 docker compose --env-file ../.env down
 ```
 
+## 🌱 Database Seeding
+
+### Seed Data Structure
+
+Sample data is organized in `prisma/data/` directory:
+- `1_departments.json` - Department structure
+- `2_users.json` - Sample users (Staff, Manager, HR/Admin)
+- `3_projects.json` - Sample projects
+- `4_tasks.json` - Sample tasks with different priorities and statuses
+- `5_task_assignments.json` - Task-user assignments
+- `6_tags.json` - Task tags
+- `7_task_tags.json` - Task-tag relationships
+- `8_comments.json` - Sample comments on tasks
+- `9_task_logs.json` - Task activity logs
+
+### Running the Seed
+
+To populate your database with sample data:
+```bash
+npx prisma db seed
+
 ## 🛠️ Tech Stack
 - **Frontend**: Next.js 15 with TypeScript, App Router
 - **Backend**: Supabase (PostgreSQL, Auth, Storage, Realtime)
