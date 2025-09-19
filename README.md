@@ -63,7 +63,14 @@ A Next.js application with Supabase backend, designed for local development with
     npx prisma migrate dev --name init
     ```
 
-6.  **Seed the Database (Optional)**
+    **Verify Database Connection (Optional)**
+    Test your Prisma Client setup:
+
+      ```bash
+      npx prisma studio
+      ```
+
+6.  **Seed the Database**
     To populate your database with initial data (e.g., user roles), run the seed script.
 
     ```bash
@@ -78,6 +85,13 @@ A Next.js application with Supabase backend, designed for local development with
 8.  **Accessing the Services**
     - **Next.js App**: [http://localhost:3000](http://localhost:3000)
     - **Supabase Studio**: [http://localhost:8000](http://localhost:8000)(Use credentials from `.env` file if prompted)
+    - **Prisma Studio**: [http://localhost:5555](http://localhost:5555)(You'll need to run `npx prisma studio`)
+
+9. **Stopping the Services**
+   ```bash
+   cd supabase
+   docker compose --env-file ../.env down
+   ```
 
 ### When You Pull New Changes
 
@@ -96,19 +110,13 @@ npm run dev
 
 ### Making Database Schema Changes
 
+If you want to make changes to the database:
 1. **Edit** `prisma/schema.prisma`
 2. **Create migration**:
    ```bash
    npx prisma migrate dev --name your_change_description
    ```
 3. **Commit** the generated migration files to Git
-
-### Stopping the Services
-
-```bash
-cd supabase
-docker compose --env-file ../.env down
-```
 
 ## 🌱 Database Seeding
 
@@ -130,6 +138,7 @@ Sample data is organized in `prisma/data/` directory:
 To populate your database with sample data:
 ```bash
 npx prisma db seed
+```
 
 ## 🛠️ Tech Stack
 - **Frontend**: Next.js 15 with TypeScript, App Router
@@ -140,13 +149,16 @@ npx prisma db seed
 ### Project Structure
 ```
 all-in-one/
-├── prisma/               # Prisma schema and seed script
+├── prisma/
+│   ├── schema.prisma      # Database schema
+│   ├── seed.ts            # Seed script
+│   ├── data/              # Seed data JSON files
+│   └── migrations/        # Migration history
 ├── src/
 │   ├── app/              # Next.js app directory
-│   └── generated/        # Auto-generated files (e.g., Prisma Client)
+│   └── generated/        # Auto-generated Prisma Client
 ├── supabase/             # Supabase Docker configuration
-├── .env.example          # Environment variables template
-└── package.json          # Node.js dependencies
+└── .env.example          # Environment template
 ```
 
 You can start editing by modifying `src/app/page.tsx`. The page auto-updates as you edit.
