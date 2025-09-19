@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { TRPCProvider } from './components/TRPCProvider'
 
 export const metadata: Metadata = {
   title: 'All-in-One Project',
@@ -12,7 +13,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <TRPCProvider>
+          {children}
+        </TRPCProvider>
+      </body>
     </html>
   )
 }
+/*
+NOTE: children has been wrapped by Provider for tRPC
+*/
