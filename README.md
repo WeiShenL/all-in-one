@@ -43,42 +43,123 @@ A Next.js application with Supabase backend, designed for local development with
     docker compose --env-file ../.env up -d
     ```
 
-    This command explicitly tells Docker to use the `.env` file from the project root, ensuring a reliable startup. The first run may take several minutes to download all the necessary container images.
+    The first run may take several minutes to download all the necessary container images. Once done, navigate back to the project root:
+
+    ```bash
+    cd ..
+    ```
 
 4. **Install Next.js Dependencies**
     In a new terminal, from the project root:
 
     ```bash
-        npm install
+    npm install
     ```
 
+5.  **Run the Database Migration**
+    With the Supabase database running, apply the schema to your database using Prisma Migrate. This command reads your `prisma/schema.prisma` file and creates the corresponding tables.
 
-5. **Start the Next.js Development Server**
     ```bash
-        npm run dev
+    npx prisma migrate dev --name init
     ```
-6.  **Accessing the Services**
+
+    **Verify Database Connection (Optional)**
+    Test your Prisma Client setup:
+
+      ```bash
+      npx prisma studio
+      ```
+
+6.  **Seed the Database**
+    To populate your database with initial data (e.g., user roles), run the seed script.
+
+    ```bash
+    npx prisma db seed
+    ```
+
+7. **Start the Next.js Development Server**
+    ```bash
+    npm run dev
+    ```
+
+8.  **Accessing the Services**
     - **Next.js App**: [http://localhost:3000](http://localhost:3000)
-    - **Supabase Studio**: [http://localhost:8000](http://localhost:8000)
+    - **Supabase Studio**: [http://localhost:8000](http://localhost:8000)(Use credentials from `.env` file if prompted)
+    - **Prisma Studio**: [http://localhost:5555](http://localhost:5555)(You'll need to run `npx prisma studio`)
 
-7.  **Stopping the Services**
-    To stop all running containers, make sure you are still inside the `supabase` directory and run:
+9. **Stopping the Services**
+   ```bash
+   cd supabase
+   docker compose --env-file ../.env down
+   ```
 
-    ```bash
-    docker compose --env-file ../.env down
-    ```
+### When You Pull New Changes
+
+If someone else has made database changes:
+
+```bash
+# Apply new migrations
+npx prisma migrate deploy
+
+# Regenerate Prisma Client
+npx prisma generate
+
+# Start development
+npm run dev
+```
+
+### Making Database Schema Changes
+
+If you want to make changes to the database:
+1. **Edit** `prisma/schema.prisma`
+2. **Create migration**:
+   ```bash
+   npx prisma migrate dev --name your_change_description
+   ```
+3. **Commit** the generated migration files to Git
+
+## 🌱 Database Seeding
+
+### Seed Data Structure
+
+Sample data is organized in `prisma/data/` directory:
+- `1_departments.json` - Department structure
+- `2_users.json` - Sample users (Staff, Manager, HR/Admin)
+- `3_projects.json` - Sample projects
+- `4_tasks.json` - Sample tasks with different priorities and statuses
+- `5_task_assignments.json` - Task-user assignments
+- `6_tags.json` - Task tags
+- `7_task_tags.json` - Task-tag relationships
+- `8_comments.json` - Sample comments on tasks
+- `9_task_logs.json` - Task activity logs
+
+### Running the Seed
+
+To populate your database with sample data:
+```bash
+npx prisma db seed
+```
 
 ## 🛠️ Tech Stack
-- **Frontend**: Next.js 15 with TypeScript, App Router, Turbopack
+- **Frontend**: Next.js 15 with TypeScript, App Router
 - **Backend**: Supabase (PostgreSQL, Auth, Storage, Realtime)
+- **Database ORM**: Prisma
 - **Development**: Docker, Docker Compose
 
 ### Project Structure
-all-in-one/                   
-├── src/app/          # Next.js app directory
-├── supabase/         # Supabase Docker configuration
-├── .env.example      # Environment variables template
-└── package.json      # Node.js dependencies
+```
+all-in-one/
+├── prisma/
+│   ├── schema.prisma      # Database schema
+│   ├── seed.ts            # Seed script
+│   ├── data/              # Seed data JSON files
+│   └── migrations/        # Migration history
+├── src/
+│   ├── app/              # Next.js app directory
+│   └── generated/        # Auto-generated Prisma Client
+├── supabase/             # Supabase Docker configuration
+└── .env.example          # Environment template
+```
 
 You can start editing by modifying `src/app/page.tsx`. The page auto-updates as you edit.
 
@@ -92,6 +173,9 @@ You can start editing by modifying `src/app/page.tsx`. The page auto-updates as 
 - [Supabase Documentation](https://supabase.com/docs)
 - [Self-Hosting with Docker](https://supabase.com/docs/guides/hosting/docker)
 
+### Prisma Resources
+- [Prisma Documentation](https://www.prisma.io/docs/orm/prisma-schema/overview)
+
 ## 🚀 Deployment
 
 ### Next.js Deployment
@@ -99,4 +183,3 @@ Deploy your Next.js app using the [Vercel Platform](https://vercel.com/new?utm_m
 
 ### Supabase Production
 For production Supabase deployment, see the [hosting documentation](https://supabase.com/docs/guides/hosting/docker#securing-your-services) and ensure you update all default credentials.
-
