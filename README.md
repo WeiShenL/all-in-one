@@ -149,6 +149,7 @@ npx prisma db seed
 - **Frontend**: Next.js 15 with TypeScript, App Router
 - **Backend**: Supabase (PostgreSQL, Auth, Storage, Realtime)
 - **Database ORM**: Prisma
+- **Database ORM**: Prisma
 - **Development**: Docker, Docker Compose
 - **Code Quality**: ESLint, Prettier, Husky pre-commit hooks
 
