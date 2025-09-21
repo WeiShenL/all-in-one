@@ -1,0 +1,29 @@
+[
+  {
+    "id": "user-staff-001",
+    "email": "john.doe@allinone.com",
+    "name": "John Doe",
+    "role": "STAFF",
+    "departmentId": "dept-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-manager-001",
+    "email": "philip.lee@allinone.com",
+    "name": "Philip Lee",
+    "role": "MANAGER",
+    "departmentId": "dept-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-hradmin-001",
+    "email": "sally.loh@allinone.com",
+    "name": "Sally Loh",
+    "role": "HR_ADMIN",
+    "departmentId": "dept-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  }
+]

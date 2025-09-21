@@ -1,0 +1,47 @@
+[
+  {
+    "id": "task-001",
+    "title": "Design UI mockups",
+    "description": "Create comprehensive UI/UX designs for the new customer portal homepage",
+    "priority": "HIGH",
+    "dueDate": "2025-10-15T00:00:00.000Z",
+    "status": "IN_PROGRESS",
+    "ownerId": "user-manager-001",
+    "projectId": "proj-001",
+    "departmentId": "dept-001",
+    "parentTaskId": null,
+    "createdAt": "2025-01-05T00:00:00.000Z",
+    "updatedAt": "2025-01-05T00:00:00.000Z",
+    "isArchived": false
+  },
+  {
+    "id": "task-002",
+    "title": "Implement authentication module",
+    "description": "Develop secure user authentication system with email/password and social login",
+    "priority": "HIGH",
+    "dueDate": "2025-09-30T00:00:00.000Z",
+    "status": "TO_DO",
+    "ownerId": "user-staff-001",
+    "projectId": "proj-001",
+    "departmentId": "dept-001",
+    "parentTaskId": null,
+    "createdAt": "2025-01-06T00:00:00.000Z",
+    "updatedAt": "2025-01-06T00:00:00.000Z",
+    "isArchived": false
+  },
+  {
+    "id": "task-003",
+    "title": "Review security compliance",
+    "description": "Audit all security measures to ensure compliance with industry standards",
+    "priority": "MEDIUM",
+    "dueDate": "2025-11-01T00:00:00.000Z",
+    "status": "BLOCKED",
+    "ownerId": "user-hradmin-001",
+    "projectId": "proj-001",
+    "departmentId": "dept-001",
+    "parentTaskId": null,
+    "createdAt": "2025-01-07T00:00:00.000Z",
+    "updatedAt": "2025-01-07T00:00:00.000Z",
+    "isArchived": false
+  }
+]

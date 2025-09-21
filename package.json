@@ -2,6 +2,9 @@
   "name": "all-in-one",
   "version": "0.1.0",
   "private": true,
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
@@ -11,16 +14,18 @@
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md,css,scss,yml,yaml}\"",
     "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,md,css,scss,yml,yaml}\"",
     "type-check": "tsc --noEmit",
-    "prepare": "husky"
+    "prepare": "husky",
+    "seed": "npx prisma db seed"
   },
   "dependencies": {
+    "@prisma/client": "^6.16.2",
     "next": "15.5.3",
     "react": "19.1.0",
     "react-dom": "19.1.0"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
-      "eslint --fix",
+      "eslint --fix --ignore-pattern 'prisma/seed.ts'",
       "prettier --write"
     ],
     "*.{json,md,css,scss,yml,yaml}": [
@@ -40,7 +45,9 @@
     "husky": "^9.1.7",
     "lint-staged": "^16.1.6",
     "prettier": "^3.6.2",
+    "prisma": "^6.16.2",
     "tailwindcss": "^4",
+    "tsx": "^4.20.5",
     "typescript": "^5"
   }
 }
