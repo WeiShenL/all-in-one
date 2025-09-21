@@ -1,0 +1,34 @@
+[
+  {
+    "id": "log-001",
+    "taskId": "task-001",
+    "userId": "user-manager-001",
+    "action": "created",
+    "changes": { "status": "TO_DO", "priority": "HIGH" },
+    "timestamp": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "id": "log-002",
+    "taskId": "task-001",
+    "userId": "user-manager-001",
+    "action": "status_changed",
+    "changes": { "from": "TO_DO", "to": "IN_PROGRESS" },
+    "timestamp": "2025-01-05T09:00:00.000Z"
+  },
+  {
+    "id": "log-003",
+    "taskId": "task-002",
+    "userId": "user-staff-001",
+    "action": "created",
+    "changes": { "status": "TO_DO", "priority": "HIGH" },
+    "timestamp": "2025-01-06T00:00:00.000Z"
+  },
+  {
+    "id": "log-004",
+    "taskId": "task-003",
+    "userId": "user-hradmin-001",
+    "action": "created",
+    "changes": { "status": "TO_DO", "priority": "MEDIUM" },
+    "timestamp": "2025-01-07T00:00:00.000Z"
+  }
+]
