@@ -15,10 +15,10 @@ services:
     healthcheck:
       test:
         [
-          "CMD",
-          "node",
-          "-e",
-          "fetch('http://studio:3000/api/platform/profile').then((r) => {if (r.status !== 200) throw new Error(r.status)})"
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://studio:3000/api/platform/profile').then((r) => {if (r.status !== 200) throw new Error(r.status)})",
         ]
       timeout: 10s
       interval: 5s
@@ -56,7 +56,7 @@ services:
       # https://github.com/supabase/supabase/issues/12661
       - ./volumes/api/kong.yml:/home/kong/temp.yml:ro,z
     environment:
-      KONG_DATABASE: "off"
+      KONG_DATABASE: 'off'
       KONG_DECLARATIVE_CONFIG: /home/kong/kong.yml
       # https://github.com/supabase/cli/issues/14
       KONG_DNS_ORDER: LAST,A,CNAME
@@ -77,12 +77,12 @@ services:
     healthcheck:
       test:
         [
-          "CMD",
-          "wget",
-          "--no-verbose",
-          "--tries=1",
-          "--spider",
-          "http://localhost:9999/health"
+          'CMD',
+          'wget',
+          '--no-verbose',
+          '--tries=1',
+          '--spider',
+          'http://localhost:9999/health',
         ]
       timeout: 5s
       interval: 5s
@@ -164,13 +164,10 @@ services:
       PGRST_DB_SCHEMAS: ${PGRST_DB_SCHEMAS}
       PGRST_DB_ANON_ROLE: anon
       PGRST_JWT_SECRET: ${JWT_SECRET}
-      PGRST_DB_USE_LEGACY_GUCS: "false"
+      PGRST_DB_USE_LEGACY_GUCS: 'false'
       PGRST_APP_SETTINGS_JWT_SECRET: ${JWT_SECRET}
       PGRST_APP_SETTINGS_JWT_EXP: ${JWT_EXPIRY}
-    command:
-      [
-        "postgrest"
-      ]
+    command: ['postgrest']
 
   realtime:
     # This container name looks inconsistent but is correct because realtime constructs tenant id by parsing the subdomain
@@ -184,15 +181,15 @@ services:
     healthcheck:
       test:
         [
-          "CMD",
-          "curl",
-          "-sSfL",
-          "--head",
-          "-o",
-          "/dev/null",
-          "-H",
-          "Authorization: Bearer ${ANON_KEY}",
-          "http://localhost:4000/api/tenants/realtime-dev/health"
+          'CMD',
+          'curl',
+          '-sSfL',
+          '--head',
+          '-o',
+          '/dev/null',
+          '-H',
+          'Authorization: Bearer ${ANON_KEY}',
+          'http://localhost:4000/api/tenants/realtime-dev/health',
         ]
       timeout: 5s
       interval: 5s
@@ -210,7 +207,7 @@ services:
       SECRET_KEY_BASE: ${SECRET_KEY_BASE}
       ERL_AFLAGS: -proto_dist inet_tcp
       DNS_NODES: "''"
-      RLIMIT_NOFILE: "10000"
+      RLIMIT_NOFILE: '10000'
       APP_NAME: realtime
       SEED_SELF_HOST: true
       RUN_JANITOR: true
@@ -225,12 +222,12 @@ services:
     healthcheck:
       test:
         [
-          "CMD",
-          "wget",
-          "--no-verbose",
-          "--tries=1",
-          "--spider",
-          "http://storage:5000/status"
+          'CMD',
+          'wget',
+          '--no-verbose',
+          '--tries=1',
+          '--spider',
+          'http://storage:5000/status',
         ]
       timeout: 5s
       interval: 5s
@@ -256,7 +253,7 @@ services:
       # TODO: https://github.com/supabase/storage-api/issues/55
       REGION: stub
       GLOBAL_S3_BUCKET: stub
-      ENABLE_IMAGE_TRANSFORMATION: "true"
+      ENABLE_IMAGE_TRANSFORMATION: 'true'
       IMGPROXY_URL: http://imgproxy:5001
 
   imgproxy:
@@ -266,19 +263,14 @@ services:
     volumes:
       - ./volumes/storage:/var/lib/storage:z
     healthcheck:
-      test:
-        [
-          "CMD",
-          "imgproxy",
-          "health"
-        ]
+      test: ['CMD', 'imgproxy', 'health']
       timeout: 5s
       interval: 5s
       retries: 3
     environment:
-      IMGPROXY_BIND: ":5001"
+      IMGPROXY_BIND: ':5001'
       IMGPROXY_LOCAL_FILESYSTEM_ROOT: /
-      IMGPROXY_USE_ETAG: "true"
+      IMGPROXY_USE_ETAG: 'true'
       IMGPROXY_ENABLE_WEBP_DETECTION: ${IMGPROXY_ENABLE_WEBP_DETECTION}
 
   meta:
@@ -310,13 +302,8 @@ services:
       SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY}
       SUPABASE_DB_URL: postgresql://postgres:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
       # TODO: Allow configuring VERIFY_JWT per function. This PR might help: https://github.com/supabase/cli/pull/786
-      VERIFY_JWT: "${FUNCTIONS_VERIFY_JWT}"
-    command:
-      [
-        "start",
-        "--main-service",
-        "/home/deno/functions/main"
-      ]
+      VERIFY_JWT: '${FUNCTIONS_VERIFY_JWT}'
+    command: ['start', '--main-service', '/home/deno/functions/main']
 
   # Comment out everything below this point if you are using an external Postgres database
   db:
@@ -342,15 +329,7 @@ services:
       # Use named volume to persist pgsodium decryption key between restarts
       - db-config:/etc/postgresql-custom
     healthcheck:
-      test:
-        [
-        "CMD",
-        "pg_isready",
-        "-U",
-        "postgres",
-        "-h",
-        "localhost"
-        ]
+      test: ['CMD', 'pg_isready', '-U', 'postgres', '-h', 'localhost']
       interval: 5s
       timeout: 5s
       retries: 10
@@ -366,13 +345,12 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXP: ${JWT_EXPIRY}
-    command:
-      [
-        "postgres",
-        "-c",
-        "config_file=/etc/postgresql/postgresql.conf",
-        "-c",
-        "log_min_messages=fatal" # prevents Realtime polling queries from appearing in logs
+    command: [
+        'postgres',
+        '-c',
+        'config_file=/etc/postgresql/postgresql.conf',
+        '-c',
+        'log_min_messages=fatal', # prevents Realtime polling queries from appearing in logs
       ]
 
   # Update the DATABASE_URL if you are using an external Postgres database

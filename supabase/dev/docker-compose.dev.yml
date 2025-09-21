@@ -1,4 +1,4 @@
-version: "3.8"
+version: '3.8'
 
 services:
   studio:
@@ -28,6 +28,7 @@ services:
       - 5555:8080
     depends_on:
       - db
+
   db:
     restart: 'no'
     volumes:
@@ -36,7 +37,7 @@ services:
       # Seed data should be inserted last (alphabetical order)
       - ./dev/data.sql:/docker-entrypoint-initdb.d/seed.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
       interval: 5s
       timeout: 5s
       retries: 5
