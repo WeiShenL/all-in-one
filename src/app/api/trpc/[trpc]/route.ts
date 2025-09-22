@@ -2,18 +2,20 @@
 
 // this is the handler for API URL
 
-import { appRouter } from "@/app/server/routers/_app";
-import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
+import { appRouter } from '@/app/server/routers/_app';
+import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
+// this is improtant to connect with prisma
+import { prisma } from '@/app/lib/prisma';
 
 const handler = (req: Request) => {
-    return fetchRequestHandler({
-        endpoint: "/api/trpc",
-        router: appRouter,
-        req,
-        createContext: () => ({}),
-    });
+  return fetchRequestHandler({
+    endpoint: '/api/trpc',
+    router: appRouter,
+    req,
+    createContext: () => ({
+      prisma,
+    }),
+  });
 };
 
-export {handler as GET, handler as POST};
-
-
+export { handler as GET, handler as POST };
