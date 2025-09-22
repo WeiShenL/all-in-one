@@ -5,5 +5,5 @@ export default function Home() {
       <p>Next.js application with TypeScript, ESLint, and App Router.</p>
       <p>Ready for development!</p>
     </main>
-  )
+  );
 }
