@@ -1,0 +1,214 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  STAFF
+  MANAGER
+  HR_ADMIN
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum TaskStatus {
+  TO_DO
+  IN_PROGRESS
+  COMPLETED
+  BLOCKED
+}
+
+// This extends the Supabase auth.users table
+model UserProfile {
+  id            String   @id // This will be the same UUID from auth.users
+  email         String   @unique
+  name          String?
+  role          UserRole @default(STAFF)
+  departmentId  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  department         Department?        @relation(fields: [departmentId], references: [id])
+  ownedTasks         Task[]            @relation("TaskOwner")
+  assignedTasks      TaskAssignment[]
+  taskLogs           TaskLog[]
+  comments           Comment[]
+  managedDepartments Department[]      @relation("DepartmentManager")
+  
+  @@map("user_profiles")
+  @@index([email])
+  @@index([role])
+  @@index([departmentId])
+}
+
+model Department {
+  id          String   @id @default(uuid())
+  name        String
+  parentId    String?  // For hierarchical departments
+  managerId   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  parent      Department?     @relation("DepartmentHierarchy", fields: [parentId], references: [id])
+  children    Department[]    @relation("DepartmentHierarchy")
+  manager     UserProfile?    @relation("DepartmentManager", fields: [managerId], references: [id])
+  members     UserProfile[]
+  tasks       Task[]
+  projects    Project[]
+
+  @@index([parentId])
+  @@index([managerId])
+}
+
+model Project {
+  id            String   @id @default(uuid())
+  name          String
+  description   String?
+  departmentId  String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  isArchived    Boolean  @default(false)
+
+  // Relations
+  department    Department @relation(fields: [departmentId], references: [id])
+  tasks         Task[]
+
+  @@index([departmentId])
+  @@index([isArchived])
+}
+
+model Task {
+  id            String       @id @default(uuid())
+  title         String
+  description   String       @db.Text // Using Text for longer descriptions
+  priority      TaskPriority
+  dueDate       DateTime
+  status        TaskStatus   @default(TO_DO)
+  ownerId       String       // Task creator (never changes)
+  projectId     String?
+  departmentId  String
+  parentTaskId  String?      // For subtasks
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  isArchived    Boolean      @default(false)
+
+  // Relations
+  owner         UserProfile       @relation("TaskOwner", fields: [ownerId], references: [id])
+  project       Project?          @relation(fields: [projectId], references: [id])
+  department    Department        @relation(fields: [departmentId], references: [id])
+  parentTask    Task?             @relation("TaskSubtasks", fields: [parentTaskId], references: [id])
+  subtasks      Task[]            @relation("TaskSubtasks")
+  assignments   TaskAssignment[]
+  tags          TaskTag[]
+  comments      Comment[]
+  files         TaskFile[]
+  logs          TaskLog[]
+
+  @@index([ownerId])
+  @@index([projectId])
+  @@index([departmentId])
+  @@index([parentTaskId])
+  @@index([status])
+  @@index([dueDate])
+  @@index([isArchived])
+}
+
+model TaskAssignment {
+  id        String   @id @default(uuid())
+  taskId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  // Relations
+  task      Task        @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, userId])
+  @@index([taskId])
+  @@index([userId])
+}
+
+model Tag {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  // Relations
+  tasks     TaskTag[]
+}
+
+model TaskTag {
+  id     String @id @default(uuid())
+  taskId String
+  tagId  String
+
+  // Relations
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, tagId])
+  @@index([taskId])
+  @@index([tagId])
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  content   String   @db.Text
+  taskId    String
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  task      Task        @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      UserProfile @relation(fields: [userId], references: [id])
+
+  @@index([taskId])
+  @@index([userId])
+}
+
+// You'll need this to track file metadata from Supabase Storage
+model TaskFile {
+  id            String   @id @default(uuid())
+  taskId        String
+  fileName      String
+  fileSize      Int      // in bytes
+  fileType      String
+  storagePath   String   // Path in Supabase Storage bucket
+  uploadedById  String
+  uploadedAt    DateTime @default(now())
+
+  // Relations
+  task          Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+}
+
+model TaskLog {
+  id         String   @id @default(uuid())
+  taskId     String
+  userId     String
+  action     String   // "created", "updated", "status_changed", "comment_added", "file_uploaded", "assignment_changed", "description_changed"
+  changes    Json?    // Store what changed
+  timestamp  DateTime @default(now())
+
+  // Relations
+  task       Task        @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user       UserProfile @relation(fields: [userId], references: [id])
+
+  @@index([taskId])
+  @@index([userId])
+  @@index([timestamp])
+  @@index([action])
+}
