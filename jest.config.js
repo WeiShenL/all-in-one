@@ -1,14 +1,17 @@
+// integrate jest with next.js
 const nextJest = require('next/jest')
-
-// Providing the path to your Next.js app which will enable loading next.config.js and .env files
-const createJestConfig = nextJest({ dir: './' })
+const createJestConfig = nextJest({ 
+  dir: './' 
+})
 
 const customJestConfig = {
-  // Test environment setup
+
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+
+  // jsdom env for testing react components
   testEnvironment: 'jest-environment-jsdom',
   
-  // Module path mapping (matches your tsconfig paths)
+  // path mapping to match tsconfig.json paths
   moduleNameMapping: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
@@ -17,7 +20,7 @@ const customJestConfig = {
   collectCoverageFrom: [
     'src/**/*.{js,jsx,ts,tsx}',
     '!src/**/*.d.ts',
-    '!src/app/layout.tsx', // Exclude layout files
+    '!src/app/layout.tsx',
   ],
   coverageReporters: ['text', 'lcov', 'html'],
   coverageDirectory: 'coverage',
@@ -29,6 +32,5 @@ const customJestConfig = {
   ],
 }
 
-// Export Jest config
 module.exports = createJestConfig(customJestConfig)
 
