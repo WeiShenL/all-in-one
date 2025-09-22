@@ -198,36 +198,6 @@ all-in-one/
 
 You can start editing by modifying `src/app/page.tsx`. The page auto-updates as you edit.
 
-## 🔧 Troubleshooting
-
-### Windows Pre-commit Hook Issues
-
-If you encounter this error when committing on Windows:
-
-````
-WSL (xxxxx) ERROR: CreateProcessCommon:559: execvpe(/bin/bash) failed: No such file or directory
-husky - pre-commit script failed (code 1)
-
-**Solution: Configure WSL**
-
-If the above doesn't work, you may need to set up WSL:
-
-1. Install WSL if not already installed:
-   ```powershell
-   wsl --install
-````
-
-2. Check available distros:
-
-   ```powershell
-   wsl --list
-   ```
-
-3. Set default distro (e.g., Ubuntu):
-   ```powershell
-   wsl --setdefault Ubuntu
-   ```
-
 ## 📚 Learn More
 
 ### Next.js Resources
