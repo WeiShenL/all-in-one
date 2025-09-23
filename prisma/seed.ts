@@ -1,74 +1,74 @@
 import { PrismaClient } from '@prisma/client';
+import departments from './data/1_departments.json';
+import users from './data/2_users.json';
+import projects from './data/3_projects.json';
+import tasks from './data/4_tasks.json';
+import taskAssignments from './data/5_task_assignments.json';
+import tags from './data/6_tags.json';
+import taskTags from './data/7_task_tags.json';
+import comments from './data/8_comments.json';
+import taskLogs from './data/9_task_logs.json';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Starting database seed...');
+  console.warn('🌱 Starting database seed...');
 
   // 1. Departments
-  console.log('📁 Seeding departments...');
-  const departments = require('./data/1_departments.json');
+  console.warn('📁 Seeding departments...');
   await prisma.department.createMany({
     data: departments,
   });
 
   // 2. Users
-  console.log('👤 Seeding users...');
-  const users = require('./data/2_users.json');
+  console.warn('👤 Seeding users...');
   await prisma.userProfile.createMany({
     data: users,
   });
 
   // 3. Projects
-  console.log('📋 Seeding projects...');
-  const projects = require('./data/3_projects.json');
+  console.warn('📋 Seeding projects...');
   await prisma.project.createMany({
     data: projects,
   });
 
   // 4. Tasks
-  console.log('✓ Seeding tasks...');
-  const tasks = require('./data/4_tasks.json');
+  console.warn('✓ Seeding tasks...');
   await prisma.task.createMany({
     data: tasks,
   });
 
   // 5. Task Assignments
-  console.log('🔗 Seeding task assignments...');
-  const taskAssignments = require('./data/5_task_assignments.json');
+  console.warn('🔗 Seeding task assignments...');
   await prisma.taskAssignment.createMany({
     data: taskAssignments,
   });
 
   // 6. Tags
-  console.log('🏷️  Seeding tags...');
-  const tags = require('./data/6_tags.json');
+  console.warn('🏷️  Seeding tags...');
   await prisma.tag.createMany({
     data: tags,
   });
 
   // 7. Task Tags
-  console.log('🔖 Seeding task tags...');
-  const taskTags = require('./data/7_task_tags.json');
+  console.warn('🔖 Seeding task tags...');
   await prisma.taskTag.createMany({
     data: taskTags,
   });
 
   // 8. Comments
-  console.log('💬 Seeding comments...');
-  const comments = require('./data/8_comments.json');
+  console.warn('💬 Seeding comments...');
   await prisma.comment.createMany({
     data: comments,
   });
 
   // 9. Task Logs
-  console.log('📝 Seeding task logs...');
-  const taskLogs = require('./data/9_task_logs.json');
+  console.warn('📝 Seeding task logs...');
   await prisma.taskLog.createMany({
     data: taskLogs,
   });
 
-  console.log('✅ Database seeded successfully!');
+  console.warn('✅ Database seeded successfully!');
 }
 
 main()
