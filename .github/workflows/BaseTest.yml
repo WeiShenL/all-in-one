@@ -25,12 +25,10 @@ jobs:
       - name: Run Unit Tests
         run: npm run test:ci
 
-      # To view coverage report
-      - name: Upload Coverage to Codecov
-        uses: codecov/codecov-action@v3
+      # Post coverage comment to PR
+      - name: Coverage Comment
+        uses: romeovs/lcov-reporter-action@v0.3.1
         with:
-          file: ./coverage/lcov.info
-          flags: unittests
-          name: codecov-umbrella
-          fail_ci_if_error: true
-          comment: true
+          lcov-file: ./coverage/lcov.info
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          delete-old-comments: true
