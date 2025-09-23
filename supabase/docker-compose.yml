@@ -217,8 +217,8 @@ services:
     container_name: supabase-storage
     image: supabase/storage-api:v1.25.7
     restart: unless-stopped
-    volumes:
-      - ./volumes/storage:/var/lib/storage:z
+    # volumes:
+    #   - ./volumes/storage:/var/lib/storage:z  # Commented out for ephemeral storage
     healthcheck:
       test:
         [
@@ -260,8 +260,8 @@ services:
     container_name: supabase-imgproxy
     image: darthsim/imgproxy:v3.8.0
     restart: unless-stopped
-    volumes:
-      - ./volumes/storage:/var/lib/storage:z
+    # volumes:
+    #   - ./volumes/storage:/var/lib/storage:z  # Commented out for ephemeral storage
     healthcheck:
       test: ['CMD', 'imgproxy', 'health']
       timeout: 5s
@@ -319,7 +319,7 @@ services:
       # Initialize the database settings with JWT_SECRET and JWT_EXP
       - ./volumes/db/jwt.sql:/docker-entrypoint-initdb.d/init-scripts/99-jwt.sql:Z
       # PGDATA directory is persisted between restarts
-      - ./volumes/db/data:/var/lib/postgresql/data:Z
+      # - ./volumes/db/data:/var/lib/postgresql/data:Z  # Commented out for ephemeral DB
       # Changes required for internal supabase data such as _analytics
       - ./volumes/db/_supabase.sql:/docker-entrypoint-initdb.d/migrations/97-_supabase.sql:Z
       # Changes required for Analytics support
@@ -327,7 +327,7 @@ services:
       # Changes required for Pooler support
       - ./volumes/db/pooler.sql:/docker-entrypoint-initdb.d/migrations/99-pooler.sql:Z
       # Use named volume to persist pgsodium decryption key between restarts
-      - db-config:/etc/postgresql-custom
+      # - db-config:/etc/postgresql-custom  # Commented out for ephemeral DB
     healthcheck:
       test: ['CMD', 'pg_isready', '-U', 'postgres', '-h', 'localhost']
       interval: 5s
@@ -354,6 +354,5 @@ services:
       ]
 
   # Update the DATABASE_URL if you are using an external Postgres database
-
-volumes:
-  db-config:
+# volumes:
+# db-config:  # Commented out for ephemeral DB

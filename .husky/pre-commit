@@ -1,12 +1,19 @@
+#!/usr/bin/env bash
 echo "🔍 Running pre-commit hooks..."
 
-# Run lint-staged to check and fix staged files
-npx lint-staged
-
-# If lint-staged succeeds, show success message
-if [ $? -eq 0 ]; then
-  echo "✅ Pre-commit checks passed!"
+# Cross-platform approach - use the local binary directly
+if [ -f "./node_modules/.bin/lint-staged" ]; then
+    ./node_modules/.bin/lint-staged
+elif command -v npx >/dev/null 2>&1; then
+    npx lint-staged
 else
-  echo "❌ Pre-commit checks failed. Please fix the issues above."
-  exit 1
+    echo "❌ Could not find lint-staged. Please run 'npm install' first."
+    exit 1
+fi
+
+if [ $? -eq 0 ]; then
+    echo "✅ Pre-commit checks passed!"
+else
+    echo "❌ Pre-commit checks failed. Please fix the issues above."
+    exit 1
 fi

@@ -1,4 +1,5 @@
-import { PrismaClient } from '../src/generated/prisma';
+/* eslint-disable @typescript-eslint/no-require-imports, no-console */
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
