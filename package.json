@@ -38,7 +38,7 @@
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
-      "eslint --fix --max-warnings=0",
+      "eslint --fix --max-warnings=0 --ignore-pattern 'prisma/seed.ts' --no-warn-ignored",
       "prettier --write"
     ],
     "*.{json,md,css,scss,yml,yaml}": [

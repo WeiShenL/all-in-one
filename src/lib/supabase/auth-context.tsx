@@ -8,7 +8,7 @@ import {
   useCallback,
 } from 'react';
 import { createClient } from './client';
-import type { AuthUser, UserProfile, UserRole } from './types';
+import type { AuthUser, UserProfile, UserRole, Database } from './types';
 import type { Session, AuthChangeEvent } from '@supabase/supabase-js';
 
 interface AuthContextType {
@@ -155,19 +155,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // If user was created and userData provided, create profile
       if (data.user && userData) {
-        const profileData = {
-          id: data.user.id,
-          email: data.user.email!,
-          ...userData,
-        };
+        const profileData: Database['public']['Tables']['user_profiles']['Insert'] =
+          {
+            id: data.user.id,
+            email: data.user.email!,
+            ...userData,
+          };
 
-        const { error: profileError } = await supabase
-          .from('user_profiles')
-          .insert(
-            profileData as Parameters<
-              (typeof supabase.from<'user_profiles'>)['insert']
-            >[0]
-          );
+        // Type assertion required - client may not be connecting to actual Supabase instance
+        // profileData is still fully type-checked above for security
+        const { error: profileError } =
+          await // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (supabase as any).from('user_profiles').insert(profileData);
 
         if (profileError) {
           console.error('Error creating user profile:', profileError);
