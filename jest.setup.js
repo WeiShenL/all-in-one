@@ -1,4 +1,4 @@
-import '@testing-library/jest-dom'
+import '@testing-library/jest-dom';
 
 // Mock Next.js router
 jest.mock('next/navigation', () => ({
@@ -7,12 +7,12 @@ jest.mock('next/navigation', () => ({
       push: jest.fn(),
       replace: jest.fn(),
       prefetch: jest.fn(),
-    }
+    };
   },
   useSearchParams() {
-    return new URLSearchParams()
+    return new URLSearchParams();
   },
   usePathname() {
-    return ''
+    return '';
   },
-}))
+}));
