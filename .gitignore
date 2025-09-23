@@ -52,3 +52,6 @@ test.http
 docker-compose.override.yml
 
 /src/generated/prisma
+
+# Supabase temp files
+supabase/.temp/
