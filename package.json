@@ -5,9 +5,6 @@
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
-  },
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
@@ -18,12 +15,19 @@
     "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,md,css,scss,yml,yaml}\"",
     "type-check": "tsc --noEmit",
     "prepare": "husky",
+    "lint-staged": "lint-staged",
     "seed": "npx prisma db seed"
   },
   "dependencies": {
     "@prisma/client": "^6.16.2",
+    "@tanstack/react-query": "^5.89.0",
+    "@trpc/client": "^11.5.1",
+    "@trpc/next": "^11.5.1",
+    "@trpc/react-query": "^11.5.1",
+    "@trpc/server": "^11.5.1",
     "next": "15.5.3",
     "react": "19.1.0",
+    "zod": "^4.1.9",
     "react-dom": "19.1.0"
   },
   "lint-staged": {
@@ -36,8 +40,6 @@
     ]
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3",
-    "@tailwindcss/postcss": "^4",
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.8.0",

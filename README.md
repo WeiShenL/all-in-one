@@ -149,7 +149,6 @@ npx prisma db seed
 - **Frontend**: Next.js 15 with TypeScript, App Router
 - **Backend**: Supabase (PostgreSQL, Auth, Storage, Realtime)
 - **Database ORM**: Prisma
-- **Database ORM**: Prisma
 - **Development**: Docker, Docker Compose
 - **Code Quality**: ESLint, Prettier, Husky pre-commit hooks
 
@@ -219,11 +218,49 @@ The linting and formatting tools are automatically installed when you run `npm i
 ### Manual Commands
 
 ```bash
-npm run lint        # Check for linting issues
+# Linting
+npm run lint        # Check for linting issues across all files
 npm run lint:fix    # Fix auto-fixable linting issues
+
+# Formatting
 npm run format      # Format all files with Prettier
 npm run format:check # Check formatting without fixing
+
+# Type Checking
+npm run type-check  # Check TypeScript types without building
+
+# Build & Test
+npm run build       # Build the application (includes linting & type checking)
 ```
+
+### Troubleshooting Linting Issues
+
+If you encounter linting errors during development or deployment:
+
+1. **Run the linter manually** to see all issues:
+
+   ```bash
+   npm run lint
+   ```
+
+2. **Auto-fix common issues**:
+
+   ```bash
+   npm run lint:fix
+   ```
+
+3. **Format all files**:
+
+   ```bash
+   npm run format
+   ```
+
+4. **Check if build passes** (this runs all checks):
+   ```bash
+   npm run build
+   ```
+
+**Note**: The build process (used in deployment) will fail if there are any linting errors or type issues. Always run these commands before committing to ensure your code will deploy successfully.
 
 ### Project Structure
 
