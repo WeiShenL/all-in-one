@@ -1,5 +1,5 @@
-import type { Metadata } from 'next'
-import { TRPCProvider } from './components/TRPCProvider'
+import type { Metadata } from 'next';
+import { TRPCProvider } from './components/TRPCProvider';
 
 export const metadata: Metadata = {
   title: 'All-in-One Project',
@@ -12,11 +12,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang='en'>
       <body>
-        <TRPCProvider>
-          {children}
-        </TRPCProvider>
+        <TRPCProvider>{children}</TRPCProvider>
       </body>
     </html>
   );

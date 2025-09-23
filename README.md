@@ -152,6 +152,51 @@ npx prisma db seed
 - **Development**: Docker, Docker Compose
 - **Code Quality**: ESLint, Prettier, Husky pre-commit hooks
 
+## 🧪 Testing
+
+This project uses Jest and React Testing Library for comprehensive unit and integration testing.
+
+### Running Tests
+
+```bash
+npm test
+```
+
+### Run tests in watch mode (automatically re-run on file changes)
+
+```bash
+npm run test:watch
+```
+
+### Run tests with coverage report
+
+```bash
+npm run test:coverage
+```
+
+### Coverage Reports
+
+Coverage reports are generated in the `coverage/` directory when running `npm run test:coverage`:
+
+- **Text summary**: Displayed in terminal
+- **HTML report**: Open `coverage/index.html` in your browser for detailed visual coverage
+- **LCOV format**: `coverage/lcov.info` for integration with external tools
+
+### Test Structure
+
+- **Test files**: Located in `__tests__` folders or use `.test.tsx` suffix
+- **Component tests**: Focus on user interactions, rendering, and accessibility
+- **Coverage goal**: Aim for comprehensive coverage of business logic and critical components
+
+### Writing Tests
+
+This project follows React Testing Library best practices for writing maintainable, user-focused tests.
+
+**Test file structure:**
+
+- Place test files in `__tests__` folders or use `.test.tsx` suffix
+- Test files should mirror your component structure (e.g., `components/Button.tsx` → `components/__tests__/Button.test.tsx`)
+
 ## 🧹 Code Quality & Development Standards
 
 This project enforces consistent code style and quality through automated tooling:
