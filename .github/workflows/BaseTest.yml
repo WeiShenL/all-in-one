@@ -26,6 +26,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Run unit tests (Jest)
+      - name: Run Unit Tests
+        run: npm run test:ci
+
       # Check if coverage file exists
       - name: Check Coverage File
         run: |
