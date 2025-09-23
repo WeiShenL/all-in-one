@@ -1,0 +1,8 @@
+{
+  "files.eol": "\n",
+  "prettier.endOfLine": "lf",
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": true
+}
