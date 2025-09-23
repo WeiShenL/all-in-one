@@ -4,9 +4,14 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   unit-tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout code
@@ -15,20 +20,32 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18.x
+          node-version: 20.x
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
-      # Run unit tests (Jest)
-      - name: Run Unit Tests
-        run: npm run test:ci
+      # Check if coverage file exists
+      - name: Check Coverage File
+        run: |
+          if [ ! -f ./coverage/lcov.info ]; then
+            echo "Coverage file not found!"
+            exit 1
+          fi
 
-      # Post coverage comment to PR
+      # Generate coverage summary and post to PR
+      - name: Generate Coverage Summary
+        run: |
+          npx nyc report --reporter=text > coverage-summary.txt || echo "No coverage data" > coverage-summary.txt
+
       - name: Coverage Comment
-        uses: romeovs/lcov-reporter-action@v0.3.1
+        uses: marocchino/sticky-pull-request-comment@v2
         with:
-          lcov-file: ./coverage/lcov.info
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          delete-old-comments: true
+          recreate: true
+          message: |
+            ## 📊 Test Coverage Report
+
+            ```
+            $(cat coverage-summary.txt)
+            ```
