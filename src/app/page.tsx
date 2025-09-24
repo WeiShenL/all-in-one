@@ -16,7 +16,7 @@ export default async function Home() {
 
       <div style={{ marginTop: '2rem' }}>
         <a
-          href='/login'
+          href='/auth/login'
           style={{
             backgroundColor: '#007bff',
             color: 'white',

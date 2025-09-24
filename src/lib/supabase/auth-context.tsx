@@ -24,6 +24,7 @@ interface AuthContextType {
     userData?: Partial<UserProfile>
   ) => Promise<{ error: unknown }>;
   signOut: () => Promise<{ error: unknown }>;
+  changePassword: (newPassword: string) => Promise<{ error: unknown }>;
   refreshProfile: () => Promise<void>;
 }
 
@@ -188,6 +189,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const changePassword = async (newPassword: string) => {
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+      return { error };
+    } catch (error) {
+      return { error };
+    }
+  };
+
   const value: AuthContextType = {
     user,
     userProfile,
@@ -197,6 +209,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signIn,
     signUp,
     signOut,
+    changePassword,
     refreshProfile,
   };
 

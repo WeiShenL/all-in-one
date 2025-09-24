@@ -1,4 +1,4 @@
-import { PasswordStrength } from '../lib/passwordValidation';
+import { PasswordStrength } from '../../lib/passwordValidation';
 
 interface PasswordStrengthBarProps {
   strengthLevel: number; // 0-3

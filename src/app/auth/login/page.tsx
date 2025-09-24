@@ -15,13 +15,11 @@ export default function LoginPage() {
 
   const handleCreateAccount = () => {
     // Redirect to signup page
-    window.location.href = '/signup';
+    window.location.href = '/auth/signup';
   };
 
   const handlePasswordReset = () => {
-    alert(
-      'Password reset functionality will be implemented to call Supabase Auth in the future.'
-    );
+    window.location.href = '/auth/reset-password';
   };
 
   return (

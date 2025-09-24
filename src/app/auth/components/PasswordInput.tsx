@@ -4,7 +4,7 @@ import { useState } from 'react';
 import {
   validatePassword,
   PasswordValidationResult,
-} from '../lib/passwordValidation';
+} from '../../lib/passwordValidation';
 import { PasswordStrengthBar } from './PasswordStrengthBar';
 
 interface PasswordInputProps {

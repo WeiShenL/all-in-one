@@ -4,8 +4,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { PasswordInput } from '../components/PasswordInput';
 import { EmailInput } from '../components/EmailInput';
-import { validatePassword } from '../lib/passwordValidation';
-import { validateEmail } from '../lib/emailValidation';
+import { validatePassword } from '../../lib/passwordValidation';
+import { validateEmail } from '../../lib/emailValidation';
 
 export default function SignupPage() {
   const [formData, setFormData] = useState({

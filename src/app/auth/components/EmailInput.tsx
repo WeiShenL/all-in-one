@@ -1,7 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { validateEmail, EmailValidationResult } from '../lib/emailValidation';
+import {
+  validateEmail,
+  EmailValidationResult,
+} from '../../lib/emailValidation';
 
 interface EmailInputProps {
   value: string;
