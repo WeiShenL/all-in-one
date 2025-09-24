@@ -24,6 +24,8 @@
   },
   "dependencies": {
     "@prisma/client": "^6.16.2",
+    "@supabase/ssr": "^0.7.0",
+    "@supabase/supabase-js": "^2.57.4",
     "@tanstack/react-query": "^5.89.0",
     "@trpc/client": "^11.5.1",
     "@trpc/next": "^11.5.1",
@@ -31,12 +33,12 @@
     "@trpc/server": "^11.5.1",
     "next": "15.5.3",
     "react": "19.1.0",
-    "zod": "^4.1.9",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "zod": "^4.1.9"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
-      "eslint --fix --ignore-pattern 'prisma/seed.ts'",
+      "eslint --fix --max-warnings=0 --ignore-pattern 'prisma/seed.ts' --no-warn-ignored",
       "prettier --write"
     ],
     "*.{json,md,css,scss,yml,yaml}": [

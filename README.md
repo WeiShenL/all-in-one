@@ -197,6 +197,57 @@ This project follows React Testing Library best practices for writing maintainab
 - Place test files in `__tests__` folders or use `.test.tsx` suffix
 - Test files should mirror your component structure (e.g., `components/Button.tsx` → `components/__tests__/Button.test.tsx`)
 
+## 🔐 Authentication System
+
+### Overview
+
+The application uses **Supabase Authentication** with role-based access control supporting three user roles:
+
+- **STAFF** - Basic users with limited permissions
+- **MANAGER** - Department managers with team oversight capabilities
+- **HR_ADMIN** - System administrators with full access
+
+### Authentication Features
+
+- **Session Management**: Automatic session refresh via middleware
+- **Role-Based Access**: Different permissions based on user role
+- **Type Safety**: Full TypeScript support for user data and permissions
+- **SSR Support**: Works with both client and server components
+- **Real-time Updates**: Authentication state updates across the app
+
+### Using Authentication in Components
+
+```typescript
+'use client'
+import { useAuth } from '@/lib/supabase/auth-context'
+
+export function MyComponent() {
+  const { user, userProfile, userRole, signIn, signOut, loading } = useAuth()
+
+  if (loading) return <div>Loading...</div>
+  if (!user) return <LoginForm />
+
+  return (
+    <div>
+      <p>Welcome, {userProfile?.name}</p>
+      <p>Role: {userRole}</p>
+      <button onClick={signOut}>Logout</button>
+    </div>
+  )
+}
+```
+
+### Production Deployment
+
+For production, update environment variables to point to your cloud Supabase instance:
+
+```bash
+NEXT_PUBLIC_API_EXTERNAL_URL=https://your-project.supabase.co
+NEXT_PUBLIC_ANON_KEY=your-production-anon-key
+```
+
+The authentication code automatically adapts to the environment.
+
 ## 🧹 Code Quality & Development Standards
 
 This project enforces consistent code style and quality through automated tooling:

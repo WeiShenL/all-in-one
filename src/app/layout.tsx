@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { TRPCProvider } from './components/TRPCProvider';
+import { AuthProvider } from '../lib/supabase/auth-context';
 
 export const metadata: Metadata = {
   title: 'All-in-One Project',
@@ -14,7 +15,9 @@ export default function RootLayout({
   return (
     <html lang='en'>
       <body>
-        <TRPCProvider>{children}</TRPCProvider>
+        <AuthProvider>
+          <TRPCProvider>{children}</TRPCProvider>
+        </AuthProvider>
       </body>
     </html>
   );
