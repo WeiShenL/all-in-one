@@ -3,6 +3,7 @@
 This guide explains how to set up and work with Supabase databases for our Next.js application in both staging and production environments.
 
 ## Table of Contents
+
 1. [Overview](#overview)
 2. [Initial Setup](#initial-setup)
 3. [Environment Variables](#environment-variables)
@@ -14,6 +15,7 @@ This guide explains how to set up and work with Supabase databases for our Next.
 ## Overview
 
 Our application uses Supabase as a managed PostgreSQL database provider with two separate projects:
+
 - **Staging Database**: For development and testing
 - **Production Database**: For live production data
 
@@ -30,12 +32,14 @@ Our application uses Supabase as a managed PostgreSQL database provider with two
 ### 2. Get Connection Strings
 
 For each project:
+
 1. Navigate to **Settings** → **Database**
 2. Copy the following values:
    - **Connection string** (URI format)
    - **Direct connection string** (for migrations)
 
 Also get the API keys:
+
 1. Navigate to **Settings** → **API**
 2. Copy:
    - **Project URL**
@@ -66,6 +70,7 @@ NEXT_PUBLIC_ENV="development"  # or "production"
 ```
 
 ### Important Notes
+
 - Variables prefixed with `NEXT_PUBLIC_` are exposed to the browser
 - Service role keys should NEVER be prefixed with `NEXT_PUBLIC_`
 - The `.env.local` file is gitignored and should never be committed
@@ -79,6 +84,7 @@ Migrations are SQL files that define database schema changes. They're stored in 
 To create a new migration:
 
 1. Create a new SQL file in `supabase/migrations/` with a sequential number:
+
    ```
    supabase/migrations/002_add_posts_table.sql
    ```
@@ -99,6 +105,7 @@ To create a new migration:
 #### Using Supabase CLI (Recommended)
 
 First, install the Supabase CLI:
+
 - **Windows**: Download from [Supabase CLI Releases](https://github.com/supabase/cli/releases)
 - **Mac**: `brew install supabase/tap/supabase`
 - **Linux**: See [installation guide](https://supabase.com/docs/guides/cli/getting-started)
@@ -116,6 +123,7 @@ supabase db push --db-url "$PRODUCTION_DATABASE_URL"
 #### Manual Application
 
 Alternatively, you can run migrations manually:
+
 1. Go to Supabase Dashboard → SQL Editor
 2. Copy and paste your migration SQL
 3. Execute the query
@@ -137,73 +145,71 @@ Alternatively, you can run migrations manually:
 3. Add all the environment variables from your `.env.local`
 4. Set the appropriate values for each environment:
    - **Development**: Staging database values
-   - **Preview**: Staging database values  
+   - **Preview**: Staging database values
    - **Production**: Production database values
 
 ### Environment-Specific Variables
 
 Vercel allows you to set different values per environment:
 
-| Variable | Development/Preview | Production |
-|----------|-------------------|------------|
-| `NEXT_PUBLIC_ENV` | `staging` | `production` |
-| `STAGING_DATABASE_URL` | ✓ Set | ✓ Set |
-| `PRODUCTION_DATABASE_URL` | Optional | ✓ Set |
-| `NEXT_PUBLIC_SUPABASE_URL_*` | Use staging values | Use production values |
+| Variable                     | Development/Preview | Production            |
+| ---------------------------- | ------------------- | --------------------- |
+| `NEXT_PUBLIC_ENV`            | `staging`           | `production`          |
+| `STAGING_DATABASE_URL`       | ✓ Set               | ✓ Set                 |
+| `PRODUCTION_DATABASE_URL`    | Optional            | ✓ Set                 |
+| `NEXT_PUBLIC_SUPABASE_URL_*` | Use staging values  | Use production values |
 
 ## Using Supabase in Code
 
 ### Client-Side Usage
 
 ```typescript
-import { supabase } from '@/lib/supabase/client'
+import { supabase } from '@/lib/supabase/client';
 
 // Example: Fetch data
 const { data, error } = await supabase
   .from('posts')
   .select('*')
-  .order('created_at', { ascending: false })
+  .order('created_at', { ascending: false });
 
 // Example: Insert data
 const { data, error } = await supabase
   .from('posts')
-  .insert({ title: 'New Post', content: 'Content here' })
+  .insert({ title: 'New Post', content: 'Content here' });
 ```
 
 ### Server-Side Usage (API Routes)
 
 ```typescript
-import { supabaseAdmin } from '@/lib/supabase/server'
+import { supabaseAdmin } from '@/lib/supabase/server';
 
 export async function POST(request: Request) {
   // Admin client bypasses RLS
-  const { data, error } = await supabaseAdmin
-    .from('users')
-    .select('*')
-  
-  return Response.json({ data })
+  const { data, error } = await supabaseAdmin.from('users').select('*');
+
+  return Response.json({ data });
 }
 ```
 
 ### Authentication
 
 ```typescript
-import { supabase } from '@/lib/supabase/client'
+import { supabase } from '@/lib/supabase/client';
 
 // Sign up
 const { data, error } = await supabase.auth.signUp({
   email: 'user@example.com',
   password: 'password123',
-})
+});
 
 // Sign in
 const { data, error } = await supabase.auth.signInWithPassword({
   email: 'user@example.com',
   password: 'password123',
-})
+});
 
 // Sign out
-await supabase.auth.signOut()
+await supabase.auth.signOut();
 ```
 
 ## Troubleshooting
@@ -211,43 +217,48 @@ await supabase.auth.signOut()
 ### Common Issues
 
 #### 1. "Missing environment variables" error
+
 - **Solution**: Ensure all required environment variables are set in `.env.local` and Vercel
 
 #### 2. "Permission denied" database errors
+
 - **Solution**: Check Row Level Security (RLS) policies in your database
 
 #### 3. "Connection refused" errors
+
 - **Solution**: Verify your database URL is correct and the project is active
 
 #### 4. Migrations not applying
+
 - **Solution**: Check that you're using the correct database URL for your environment
 
 ### Debugging Tips
 
 1. **Check environment variables**:
+
    ```typescript
    // Add to any page/component temporarily
-   console.log('Environment:', process.env.NEXT_PUBLIC_ENV)
-   console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL_STAGING)
+   console.log('Environment:', process.env.NEXT_PUBLIC_ENV);
+   console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL_STAGING);
    ```
 
 2. **Validate environment setup**:
+
    ```typescript
-   import { validateEnvVars } from '@/lib/supabase/server'
-   
-   const { isValid, missing } = validateEnvVars()
+   import { validateEnvVars } from '@/lib/supabase/server';
+
+   const { isValid, missing } = validateEnvVars();
    if (!isValid) {
-     console.error('Missing env vars:', missing)
+     console.error('Missing env vars:', missing);
    }
    ```
 
 3. **Test database connection**:
+
    ```typescript
-   const { data, error } = await supabase
-     .from('users')
-     .select('count')
-   
-   if (error) console.error('Database error:', error)
+   const { data, error } = await supabase.from('users').select('count');
+
+   if (error) console.error('Database error:', error);
    ```
 
 ## Additional Resources
@@ -260,6 +271,7 @@ await supabase.auth.signOut()
 ## Support
 
 For issues or questions:
+
 1. Check this documentation first
 2. Review the Supabase dashboard logs
 3. Ask in the team Slack channel
