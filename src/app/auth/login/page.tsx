@@ -1,16 +1,46 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/supabase/auth-context';
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   });
-  const handleLogin = (e: React.FormEvent) => {
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const router = useRouter();
+  const { signIn, user } = useAuth();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      router.push('/dashboard');
+    }
+  }, [user, router]);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert('Login functionality will be connected to Supabase Auth later');
+    if (loading) {
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    const { error } = await signIn(formData.email, formData.password);
+
+    if (error) {
+      setError('Invalid email or password. Please try again.');
+    } else {
+      router.push('/dashboard');
+    }
+
+    setLoading(false);
   };
 
   const handleCreateAccount = () => {
@@ -29,6 +59,21 @@ export default function LoginPage() {
       </h1>
 
       <form onSubmit={handleLogin}>
+        {error && (
+          <div
+            style={{
+              backgroundColor: '#fee2e2',
+              color: '#dc2626',
+              padding: '0.75rem',
+              borderRadius: '4px',
+              marginBottom: '1rem',
+              fontSize: '0.875rem',
+            }}
+          >
+            {error}
+          </div>
+        )}
+
         <div style={{ marginBottom: '1rem' }}>
           <label
             style={{
@@ -45,12 +90,14 @@ export default function LoginPage() {
             onChange={e => setFormData({ ...formData, email: e.target.value })}
             placeholder='Enter your email'
             required
+            disabled={loading}
             style={{
               width: '100%',
               padding: '0.75rem',
               border: '2px solid #ccc',
               borderRadius: '4px',
               fontSize: '1rem',
+              opacity: loading ? 0.6 : 1,
             }}
           />
         </div>
@@ -73,34 +120,40 @@ export default function LoginPage() {
             }
             placeholder='Enter your password'
             required
+            disabled={loading}
             style={{
               width: '100%',
               padding: '0.75rem',
               border: '2px solid #ccc',
               borderRadius: '4px',
               fontSize: '1rem',
+              opacity: loading ? 0.6 : 1,
             }}
           />
         </div>
 
         <button
           type='submit'
-          disabled={!formData.email || !formData.password}
+          disabled={!formData.email || !formData.password || loading}
           style={{
             width: '100%',
             padding: '0.75rem',
             backgroundColor:
-              formData.email && formData.password ? '#007bff' : '#ccc',
+              formData.email && formData.password && !loading
+                ? '#007bff'
+                : '#ccc',
             color: 'white',
             border: 'none',
             borderRadius: '4px',
             fontSize: '1rem',
             cursor:
-              formData.email && formData.password ? 'pointer' : 'not-allowed',
+              formData.email && formData.password && !loading
+                ? 'pointer'
+                : 'not-allowed',
             marginBottom: '1rem',
           }}
         >
-          Sign In
+          {loading ? 'Signing in...' : 'Sign In'}
         </button>
       </form>
 
