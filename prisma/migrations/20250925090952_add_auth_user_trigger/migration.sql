@@ -1,4 +1,4 @@
--- This is an empty migration.
+
 DO $$
 BEGIN
   IF EXISTS (SELECT FROM pg_namespace WHERE nspname = 'auth') THEN
