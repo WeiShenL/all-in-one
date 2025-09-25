@@ -1,13 +1,16 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import type { Database } from './types';
+import { createClient as createAdminClient } from '@supabase/supabase-js';
+
+// Environment switching happens at .env level - just use whatever is uncommented
 
 export const createClient = async () => {
   const cookieStore = await cookies();
 
   return createServerClient<Database>(
-    process.env.API_EXTERNAL_URL!,
-    process.env.ANON_KEY!,
+    process.env.NEXT_PUBLIC_API_EXTERNAL_URL!,
+    process.env.NEXT_PUBLIC_ANON_KEY!,
     {
       cookies: {
         getAll() {
@@ -28,3 +31,18 @@ export const createClient = async () => {
     }
   );
 };
+
+export const supabaseAdmin = createAdminClient(
+  process.env.NEXT_PUBLIC_API_EXTERNAL_URL!,
+  process.env.SERVICE_ROLE_KEY!,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  }
+);
+
+export function getDatabaseUrl(): string {
+  return process.env.DATABASE_URL!;
+}

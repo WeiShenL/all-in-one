@@ -26,7 +26,16 @@ A Next.js application with Supabase backend, designed for local development with
    cp .env.example .env
    ```
 
-   The default placeholders in the `.env` file will work for local development.
+   **⚠️ IMPORTANT: Environment Switching**
+
+   The `.env` file uses **comment-based environment switching**:
+   - **Local Development (default)**: Database and Supabase sections are uncommented
+   - **Staging**: Comment out Local sections, uncomment STAGING sections
+   - **Production**: Comment out other sections, uncomment PRODUCTION sections
+
+   **Always ensure only ONE environment is uncommented at a time.**
+
+   The default configuration will work for local development.
 
 3. **Start the Supabase Stack**
    All Docker commands must be run from _inside_ the `supabase` directory.
@@ -101,6 +110,7 @@ If someone else has made database changes:
 ```bash
 # Apply new migrations
 npx prisma migrate deploy
+# OR use our script: npm run db:migrate
 
 # Regenerate Prisma Client
 npx prisma generate
@@ -119,6 +129,30 @@ If you want to make changes to the database:
    npx prisma migrate dev --name your_change_description
    ```
 3. **Commit** the generated migration files to Git
+
+### Deploying to Different Environments
+
+To deploy migrations to staging or production:
+
+1. **Switch environment in `.env`**:
+
+   ```bash
+   # Comment out local development section:
+   # DATABASE_URL="postgresql://postgres:postgres@localhost:5433/postgres"
+   # NEXT_PUBLIC_API_EXTERNAL_URL=http://localhost:8000
+
+   # Uncomment staging section:
+   DATABASE_URL="postgresql://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres?pgbouncer=true"
+   NEXT_PUBLIC_API_EXTERNAL_URL=https://[PROJECT-REF].supabase.co
+   ```
+
+2. **Run migration**:
+
+   ```bash
+   npm run db:migrate
+   ```
+
+3. **Switch back to local development** when done
 
 ## 🌱 Database Seeding
 
