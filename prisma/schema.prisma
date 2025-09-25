@@ -43,7 +43,7 @@ model UserProfile {
   taskLogs           TaskLog[]
   comments           Comment[]
   managedDepartments Department[]      @relation("DepartmentManager")
-  
+
   @@map("user_profiles")
   @@index([email])
   @@index([role])
