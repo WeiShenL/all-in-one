@@ -23,6 +23,9 @@
     "test:coverage": "jest --coverage",
     "test:ci": "jest --coverage --watchAll=false --passWithNoTests"
   },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
   "dependencies": {
     "@prisma/client": "^6.16.2",
     "@supabase/ssr": "^0.7.0",
