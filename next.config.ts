@@ -2,15 +2,9 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   env: {
-    NEXT_PUBLIC_SUPABASE_URL_STAGING:
-      process.env.NEXT_PUBLIC_SUPABASE_URL_STAGING,
-    NEXT_PUBLIC_SUPABASE_ANON_KEY_STAGING:
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY_STAGING,
-    NEXT_PUBLIC_SUPABASE_URL_PRODUCTION:
-      process.env.NEXT_PUBLIC_SUPABASE_URL_PRODUCTION,
-    NEXT_PUBLIC_SUPABASE_ANON_KEY_PRODUCTION:
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY_PRODUCTION,
-    NEXT_PUBLIC_ENV: process.env.NEXT_PUBLIC_ENV,
+    // Environment switching happens at .env level - just expose the active variables
+    NEXT_PUBLIC_API_EXTERNAL_URL: process.env.NEXT_PUBLIC_API_EXTERNAL_URL,
+    NEXT_PUBLIC_ANON_KEY: process.env.NEXT_PUBLIC_ANON_KEY,
   },
   /* config options here */
 };

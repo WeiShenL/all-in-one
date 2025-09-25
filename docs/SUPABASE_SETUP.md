@@ -48,92 +48,130 @@ Also get the API keys:
 
 ## Environment Variables
 
-### Local Development
+### Environment Configuration
 
-Create a `.env.local` file in the project root with your actual values:
+Copy `.env.example` to `.env` and update with your actual values:
 
 ```bash
-# Staging Database
-STAGING_DATABASE_URL="postgresql://postgres:[YOUR-PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres"
-NEXT_PUBLIC_SUPABASE_URL_STAGING="https://[PROJECT-REF].supabase.co"
-NEXT_PUBLIC_SUPABASE_ANON_KEY_STAGING="[YOUR-ANON-KEY]"
-SUPABASE_SERVICE_ROLE_KEY_STAGING="[YOUR-SERVICE-ROLE-KEY]"
+############
+# Database Connection - Local Development (uncommented = active)
+############
+DATABASE_URL="postgresql://postgres:postgres@localhost:5433/postgres"
+DIRECT_URL="postgresql://postgres:postgres@localhost:5433/postgres"
 
-# Production Database
-PRODUCTION_DATABASE_URL="postgresql://postgres:[YOUR-PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres"
-NEXT_PUBLIC_SUPABASE_URL_PRODUCTION="https://[PROJECT-REF].supabase.co"
-NEXT_PUBLIC_SUPABASE_ANON_KEY_PRODUCTION="[YOUR-ANON-KEY]"
-SUPABASE_SERVICE_ROLE_KEY_PRODUCTION="[YOUR-SERVICE-ROLE-KEY]"
+############
+# Database Connection - STAGING (comment out local, uncomment staging)
+############
+# DATABASE_URL="postgresql://postgres:[YOUR-PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres?pgbouncer=true"
+# DIRECT_URL="postgresql://postgres:[YOUR-PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres"
 
-# Environment flag
-NEXT_PUBLIC_ENV="development"  # or "production"
+############
+# Supabase Connection - Local Development (uncommented = active)
+############
+API_EXTERNAL_URL=http://localhost:8000
+NEXT_PUBLIC_API_EXTERNAL_URL=http://localhost:8000
+NEXT_PUBLIC_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+############
+# Supabase Connection - STAGING (comment out local, uncomment staging)
+############
+# API_EXTERNAL_URL=https://[PROJECT-REF].supabase.co
+# NEXT_PUBLIC_API_EXTERNAL_URL=https://[PROJECT-REF].supabase.co
+# NEXT_PUBLIC_ANON_KEY=[STAGING_ANON_KEY]
 ```
+
+### Switching Environments
+
+To switch between environments, comment/uncomment the appropriate sections:
+
+**For Local Development (default):**
+
+- Database and Supabase sections are uncommented
+- Uses local Supabase instance
+
+**For Staging:**
+
+- Comment out Local sections (add `#` to each line)
+- Uncomment STAGING sections (remove `#`)
+- Replace placeholders with actual staging values
+
+**For Production:**
+
+- Comment out other environments
+- Uncomment PRODUCTION sections
+- Replace placeholders with actual production values
 
 ### Important Notes
 
 - Variables prefixed with `NEXT_PUBLIC_` are exposed to the browser
 - Service role keys should NEVER be prefixed with `NEXT_PUBLIC_`
-- The `.env.local` file is gitignored and should never be committed
+- The `.env` file is gitignored and should never be committed
+- No environment detection logic in code - switching happens at the `.env` level
 
 ## Database Migrations
 
 ### Creating Migrations
 
-Migrations are SQL files that define database schema changes. They're stored in `supabase/migrations/`.
+We use **Prisma** for database schema management and migrations. Migrations are stored in `prisma/migrations/`.
 
-To create a new migration:
+#### Create a New Migration
 
-1. Create a new SQL file in `supabase/migrations/` with a sequential number:
+1. Modify your `prisma/schema.prisma` file:
 
+   ```prisma
+   model Post {
+     id        String   @id @default(cuid())
+     title     String
+     content   String?
+     authorId  String
+     author    User     @relation(fields: [authorId], references: [id])
+     createdAt DateTime @default(now())
+     updatedAt DateTime @updatedAt
+   }
    ```
-   supabase/migrations/002_add_posts_table.sql
+
+2. Generate the migration:
+
+   ```bash
+   npx prisma migrate dev --name add_posts_table
    ```
 
-2. Write your SQL commands:
-   ```sql
-   CREATE TABLE posts (
-     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-     title VARCHAR(255) NOT NULL,
-     content TEXT,
-     author_id UUID REFERENCES users(id),
-     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-   );
-   ```
+3. This creates a new migration in `prisma/migrations/[timestamp]_add_posts_table/`
 
 ### Applying Migrations
 
-#### Using Supabase CLI (Recommended)
+#### Using Our Scripts
 
-First, install the Supabase CLI:
+**Step 1**: Switch environment in `.env` file
 
-- **Windows**: Download from [Supabase CLI Releases](https://github.com/supabase/cli/releases)
-- **Mac**: `brew install supabase/tap/supabase`
-- **Linux**: See [installation guide](https://supabase.com/docs/guides/cli/getting-started)
+- Comment out current environment section
+- Uncomment target environment section (staging/production)
 
-Then apply migrations:
+**Step 2**: Run migration
 
 ```bash
-# For staging
-supabase db push --db-url "$STAGING_DATABASE_URL"
+# Apply migrations to whatever environment is active in .env
+npm run db:migrate
 
-# For production
-supabase db push --db-url "$PRODUCTION_DATABASE_URL"
+# OR push schema directly (for development)
+npm run db:push
+
+# Alternative: Direct Prisma commands
+npx prisma migrate deploy
+npx prisma db push
 ```
 
 #### Manual Application
 
-Alternatively, you can run migrations manually:
-
-1. Go to Supabase Dashboard → SQL Editor
-2. Copy and paste your migration SQL
-3. Execute the query
+1. Switch environment in `.env` file (comment/uncomment appropriate sections)
+2. Run: `npx prisma migrate deploy`
 
 ### Migration Best Practices
 
 1. **Always test migrations on staging first**
-2. **Keep migrations idempotent** (use `IF NOT EXISTS`, etc.)
-3. **Version control all migrations** in the `supabase/migrations/` folder
-4. **Document breaking changes** in migration files
+2. **Keep migrations safe** - Prisma handles this automatically
+3. **Version control all migrations** in the `prisma/migrations/` folder
+4. **Document breaking changes** in migration commit messages
 5. **Never modify existing migration files** - create new ones instead
 
 ## Vercel Deployment
