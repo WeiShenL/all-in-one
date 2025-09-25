@@ -22,6 +22,7 @@ export function PasswordInput({
 }: PasswordInputProps) {
   const [showValidation, setShowValidation] = useState(false);
   const validation: PasswordValidationResult = validatePassword(value);
+  const inputId = `password-input-${Math.random().toString(36).substr(2, 9)}`;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
@@ -35,12 +36,14 @@ export function PasswordInput({
   return (
     <div style={{ marginBottom: '1rem' }}>
       <label
+        htmlFor={inputId}
         style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}
       >
         {label}
       </label>
 
       <input
+        id={inputId}
         type='password'
         value={value}
         onChange={handleChange}

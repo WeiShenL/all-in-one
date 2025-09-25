@@ -23,6 +23,7 @@ export function EmailInput({
 }: EmailInputProps) {
   const [showValidation, setShowValidation] = useState(false);
   const validation: EmailValidationResult = validateEmail(value);
+  const inputId = `email-input-${Math.random().toString(36).substr(2, 9)}`;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
@@ -30,18 +31,22 @@ export function EmailInput({
 
     if (newValue.length > 0) {
       setShowValidation(true);
+    } else {
+      setShowValidation(false);
     }
   };
 
   return (
     <div style={{ marginBottom: '1rem' }}>
       <label
+        htmlFor={inputId}
         style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}
       >
         {label}
       </label>
 
       <input
+        id={inputId}
         type='email'
         value={value}
         onChange={handleChange}

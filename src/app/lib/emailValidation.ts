@@ -5,13 +5,16 @@ export interface EmailValidationResult {
 }
 
 export function validateEmail(email: string): EmailValidationResult {
-  const hasAtSymbol = email.includes('@');
+  // Handle null/undefined inputs
+  const safeEmail = email || '';
+
+  const hasAtSymbol = safeEmail.includes('@');
 
   // Basic email validation - just checking for @ symbol for now
-  const isValid = hasAtSymbol && email.length > 0;
+  const isValid = hasAtSymbol && safeEmail.length > 0;
 
   let error: string | undefined;
-  if (email.length > 0 && !hasAtSymbol) {
+  if (safeEmail.length > 0 && !hasAtSymbol) {
     error = 'Email must contain @ symbol';
   }
 

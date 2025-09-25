@@ -15,12 +15,15 @@ export interface PasswordValidationResult {
 export function validatePassword(password: string): PasswordValidationResult {
   const errors: string[] = [];
 
-  const minLength = password.length >= 8;
-  const hasUppercase = /[A-Z]/.test(password);
-  const hasLowercase = /[a-z]/.test(password);
-  const hasNumber = /[0-9]/.test(password);
+  // Handle null/undefined inputs
+  const safePassword = password || '';
+
+  const minLength = safePassword.length >= 8;
+  const hasUppercase = /[A-Z]/.test(safePassword);
+  const hasLowercase = /[a-z]/.test(safePassword);
+  const hasNumber = /[0-9]/.test(safePassword);
   const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(
-    password
+    safePassword
   );
 
   if (!minLength) {
@@ -49,13 +52,13 @@ export function validatePassword(password: string): PasswordValidationResult {
     strength = 'strong';
 
     // 10+ characters = Very Strong (Level 2)
-    if (password.length >= 10) {
+    if (safePassword.length >= 10) {
       strengthLevel = 2;
       strength = 'very-strong';
     }
 
     // 12+ characters = Excellent (Level 3)
-    if (password.length >= 12) {
+    if (safePassword.length >= 12) {
       strengthLevel = 3;
       strength = 'excellent';
     }
