@@ -9,7 +9,7 @@ permissions:
   pull-requests: write
 
 jobs:
-  unit-tests:
+  base-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -38,18 +38,10 @@ jobs:
             exit 1
           fi
 
-      # Generate coverage summary and post to PR
-      - name: Generate Coverage Summary
-        run: |
-          npx nyc report --reporter=text > coverage-summary.txt || echo "No coverage data" > coverage-summary.txt
-
-      - name: Coverage Comment
-        uses: marocchino/sticky-pull-request-comment@v2
+      # Upload coverage to Codecov
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
         with:
-          recreate: true
-          message: |
-            ## 📊 Test Coverage Report
-
-            ```
-            $(cat coverage-summary.txt)
-            ```
+          file: ./coverage/lcov.info
+          flags: unittests
+          name: codecov-umbrella
