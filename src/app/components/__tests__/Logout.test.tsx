@@ -1,5 +1,11 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  act,
+} from '@testing-library/react';
 import { useRouter } from 'next/navigation';
 import AuthNavbar from '../AuthNavbar';
 import { useAuth } from '@/lib/supabase/auth-context';
@@ -43,10 +49,14 @@ describe('Logout Functionality', () => {
       const logoutButton = screen.getByText('Sign Out');
       expect(logoutButton).toBeInTheDocument();
 
-      fireEvent.click(logoutButton);
+      await act(async () => {
+        fireEvent.click(logoutButton);
+      });
 
-      // Verify logout function was called
-      expect(mockSignOut).toHaveBeenCalledTimes(1);
+      // Wait for all async operations to complete
+      await waitFor(() => {
+        expect(mockSignOut).toHaveBeenCalledTimes(1);
+      });
     });
 
     test('user is redirected to login page after successful logout', async () => {
@@ -55,7 +65,10 @@ describe('Logout Functionality', () => {
       render(<AuthNavbar />);
 
       const logoutButton = screen.getByText('Sign Out');
-      fireEvent.click(logoutButton);
+
+      await act(async () => {
+        fireEvent.click(logoutButton);
+      });
 
       // Wait for redirect to happen
       await waitFor(() => {
@@ -69,10 +82,15 @@ describe('Logout Functionality', () => {
       render(<AuthNavbar />);
 
       const logoutButton = screen.getByText('Sign Out');
-      fireEvent.click(logoutButton);
 
-      // Verify signOut was called (this invalidates the session token)
-      expect(mockSignOut).toHaveBeenCalledTimes(1);
+      await act(async () => {
+        fireEvent.click(logoutButton);
+      });
+
+      // Wait for async operations to complete
+      await waitFor(() => {
+        expect(mockSignOut).toHaveBeenCalledTimes(1);
+      });
     });
   });
 
@@ -84,7 +102,10 @@ describe('Logout Functionality', () => {
       render(<AuthNavbar />);
 
       const logoutButton = screen.getByText('Sign Out');
-      fireEvent.click(logoutButton);
+
+      await act(async () => {
+        fireEvent.click(logoutButton);
+      });
 
       await waitFor(() => {
         expect(mockPush).toHaveBeenCalledWith('/auth/login');
@@ -104,7 +125,10 @@ describe('Logout Functionality', () => {
       render(<AuthNavbar />);
 
       const logoutButton = screen.getByText('Sign Out');
-      fireEvent.click(logoutButton);
+
+      await act(async () => {
+        fireEvent.click(logoutButton);
+      });
 
       await waitFor(() => {
         expect(mockPush).toHaveBeenCalledWith('/auth/login');
