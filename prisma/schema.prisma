@@ -26,6 +26,35 @@ enum TaskStatus {
   BLOCKED
 }
 
+enum ProjectStatus {
+  ACTIVE
+  COMPLETED
+  ON_HOLD
+  CANCELLED
+}
+
+enum NotificationType {
+  TASK_ASSIGNED
+  TASK_UPDATED
+  COMMENT_ADDED
+  DEADLINE_REMINDER
+  TASK_OVERDUE
+  TASK_DELETED
+  TASK_REASSIGNED
+}
+
+enum LogAction {
+  CREATED
+  UPDATED
+  STATUS_CHANGED
+  COMMENT_ADDED
+  FILE_UPLOADED
+  ASSIGNMENT_CHANGED
+  DESCRIPTION_CHANGED
+  ARCHIVED
+  DELETED
+}
+
 // DEPARTMENT
 model Department {
   id        String   @id @default(uuid())
@@ -43,6 +72,10 @@ model Department {
   projects Project[]
   tasks    Task[]
   teams    Team[]
+
+  @@index([parentId])
+  @@index([managerId])
+  @@index([isActive])
 }
 
 // USER PROFILE
@@ -51,13 +84,14 @@ model UserProfile {
   email        String   @unique
   name         String?
   role         UserRole @default(STAFF)
-  departmentId String?
+  departmentId String
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   department         Department?      @relation(fields: [departmentId], references: [id])
   managedDepartments Department[]     @relation("DepartmentManager")
+  ledTeams           Team[]           @relation("TeamLeader")
   teamMembers        TeamMember[]
   createdProjects    Project[]        @relation("CreatedProjects")
   ownedTasks         Task[]           @relation("TaskOwner")
@@ -65,8 +99,14 @@ model UserProfile {
   assignedByTasks    TaskAssignment[] @relation("AssignmentAssigner")
   comments           Comment[]
   taskLogs           TaskLog[]
-  uploadedFiles      TaskFile[]
+  uploadedFiles      TaskFile[]       @relation("FileUploader")
   notifications      Notification[]
+  calendarEvents     CalendarEvent[]
+
+  @@index([email])
+  @@index([role])
+  @@index([departmentId])
+  @@index([isActive])
 }
 
 // TEAM
@@ -75,42 +115,55 @@ model Team {
   name         String
   description  String?
   departmentId String
+  leaderId     String?
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   department Department   @relation(fields: [departmentId], references: [id])
+  leader     UserProfile? @relation("TeamLeader", fields: [leaderId], references: [id])
   members    TeamMember[]
+
+  @@index([departmentId])
+  @@index([leaderId])
+  @@index([isActive])
 }
 
 // TEAM MEMBER (bridge)
 model TeamMember {
-  id       String   @id @default(uuid())
   teamId   String
   userId   String
   joinedAt DateTime @default(now())
 
-  team Team        @relation(fields: [teamId], references: [id])
-  user UserProfile @relation(fields: [userId], references: [id])
+  team Team        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([teamId, userId])
 }
 
 // PROJECT
 model Project {
-  id           String       @id @default(uuid())
+  id           String        @id @default(uuid())
   name         String
-  description  String?
-  priority     TaskPriority @default(MEDIUM)
+  description  String?       @db.Text
+  priority     TaskPriority  @default(MEDIUM)
   dueDate      DateTime?
-  status       TaskStatus   @default(TO_DO)
+  status       ProjectStatus @default(ACTIVE)
   departmentId String
-  createdById  String
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-  isArchived   Boolean      @default(false)
+  creatorId    String
+  isArchived   Boolean       @default(false)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
   department Department  @relation(fields: [departmentId], references: [id])
-  createdBy  UserProfile @relation("CreatedProjects", fields: [createdById], references: [id])
+  creator    UserProfile @relation("CreatedProjects", fields: [creatorId], references: [id])
   tasks      Task[]
+
+  @@index([departmentId])
+  @@index([creatorId])
+  @@index([status])
+  @@index([isArchived])
+  @@index([dueDate])
 }
 
 // TASK
@@ -149,20 +202,22 @@ model Task {
   @@index([status])
   @@index([dueDate])
   @@index([isArchived])
+  @@index([createdAt])
 }
 
 // TASK ASSIGNMENT
 model TaskAssignment {
-  id           String @id @default(uuid())
   taskId       String
   userId       String
   assignedById String
+  assignedAt   DateTime @default(now())
 
   task       Task        @relation(fields: [taskId], references: [id], onDelete: Cascade)
   user       UserProfile @relation("AssignedUser", fields: [userId], references: [id], onDelete: Cascade)
   assignedBy UserProfile @relation("AssignmentAssigner", fields: [assignedById], references: [id])
 
-  createdAt DateTime @default(now())
+  @@id([taskId, userId])
+  @@index([assignedById])
 }
 
 // COMMENT
@@ -176,21 +231,29 @@ model Comment {
 
   task Task        @relation(fields: [taskId], references: [id], onDelete: Cascade)
   user UserProfile @relation(fields: [userId], references: [id])
+
+  @@index([taskId])
+  @@index([userId])
+  @@index([createdAt])
 }
 
 // TASK FILE
 model TaskFile {
-  id          String   @id @default(uuid())
-  taskId      String
-  userId      String
-  fileName    String
-  fileSize    Int
-  fileType    String
-  storagePath String
-  uploadedAt  DateTime @default(now())
+  id           String   @id @default(uuid())
+  taskId       String
+  fileName     String
+  fileSize     Int
+  fileType     String
+  storagePath  String   @unique
+  uploadedById String
+  uploadedAt   DateTime @default(now())
 
-  task Task        @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  user UserProfile @relation(fields: [userId], references: [id])
+  task       Task        @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  uploadedBy UserProfile @relation("FileUploader", fields: [uploadedById], references: [id])
+
+  @@index([taskId])
+  @@index([uploadedById])
+  @@index([uploadedAt])
 }
 
 // TAG
@@ -204,50 +267,70 @@ model Tag {
 
 // TASK TAG (bridge)
 model TaskTag {
-  id     String @id @default(uuid())
   taskId String
   tagId  String
 
   task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
   tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
-  @@unique([taskId, tagId])
+  @@id([taskId, tagId])
 }
 
 // TASK LOG
 model TaskLog {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   taskId    String
   userId    String
-  action    String // e.g. "created", "updated", etc.
+  action    LogAction
   changes   Json?
-  timestamp DateTime @default(now())
+  metadata  Json?
+  timestamp DateTime  @default(now())
 
   task Task        @relation(fields: [taskId], references: [id], onDelete: Cascade)
   user UserProfile @relation(fields: [userId], references: [id])
+
+  @@index([taskId])
+  @@index([userId])
+  @@index([timestamp])
+  @@index([action])
 }
 
 // NOTIFICATION
 model Notification {
-  id        String   @id @default(uuid())
-  taskId    String
+  id        String           @id @default(uuid())
   userId    String
-  type      String
-  message   String
-  isRead    Boolean  @default(false)
-  createdAt DateTime @default(now())
+  type      NotificationType
+  title     String
+  message   String           @db.Text
+  taskId    String?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
 
-  task Task        @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  user UserProfile @relation(fields: [userId], references: [id])
+  user UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task Task?       @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@index([type])
+  @@index([taskId])
 }
 
 // CALENDAR EVENT
 model CalendarEvent {
   id          String   @id @default(uuid())
   taskId      String
+  userId      String
+  title       String
   eventDate   DateTime
   isCompleted Boolean  @default(false)
   createdAt   DateTime @default(now())
 
-  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  task Task        @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([eventDate])
+  @@index([taskId])
+  @@index([isCompleted])
 }

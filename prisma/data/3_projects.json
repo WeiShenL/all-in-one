@@ -3,10 +3,13 @@
     "id": "proj-001",
     "name": "Customer Portal Redesign",
     "description": "Modernize the customer-facing portal with new UI/UX",
+    "priority": "HIGH",
+    "dueDate": "2025-06-30T00:00:00.000Z",
+    "status": "ACTIVE",
     "departmentId": "dept-001",
-    "createdAt": "2025-01-01T00:00:00.000Z",
-    "updatedAt": "2025-01-01T00:00:00.000Z",
+    "creatorId": "user-manager-001",
     "isArchived": false,
-    "createdById": "user-manager-001"
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
   }
 ]

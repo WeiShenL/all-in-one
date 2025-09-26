@@ -1,16 +1,13 @@
 [
   {
-    "id": "tasktag-001",
     "taskId": "task-001",
     "tagId": "tag-001"
   },
   {
-    "id": "tasktag-002",
     "taskId": "task-001",
     "tagId": "tag-002"
   },
   {
-    "id": "tasktag-003",
     "taskId": "task-003",
     "tagId": "tag-003"
   }
