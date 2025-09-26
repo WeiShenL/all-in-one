@@ -14,6 +14,7 @@ jobs:
   staging-deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    environment: Preview # This tells GitHub to use the Preview environment secrets
 
     steps:
       - name: Checkout code
