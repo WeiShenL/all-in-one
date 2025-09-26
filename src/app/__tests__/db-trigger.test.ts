@@ -14,13 +14,13 @@ describe('Postgres trigger for public."UserProfile"', () => {
     await client.end();
   });
 
-  // afterEach(async () => {
-  //   // Clean up test records if they exist
-  //   await client.query('DELETE FROM public."UserProfile" WHERE id = $1', [
-  //     TEST_USER_ID,
-  //   ]);
-  //   await client.query('DELETE FROM auth.users WHERE id = $1', [TEST_USER_ID]);
-  // });
+  afterEach(async () => {
+    // Clean up test records if they exist
+    await client.query('DELETE FROM public."UserProfile" WHERE id = $1', [
+      TEST_USER_ID,
+    ]);
+    await client.query('DELETE FROM auth.users WHERE id = $1', [TEST_USER_ID]);
+  });
 
   it('should sync new auth user into public."UserProfile"', async () => {
     await client.query(
