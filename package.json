@@ -3,9 +3,6 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
-  },
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
@@ -18,10 +15,15 @@
     "prepare": "husky",
     "lint-staged": "lint-staged",
     "seed": "npx prisma db seed",
+    "db:migrate": "node scripts/run-migrations.js",
+    "db:push": "node scripts/push-db.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:ci": "jest --coverage --watchAll=false --passWithNoTests"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.16.2",
@@ -32,6 +34,7 @@
     "@trpc/next": "^11.5.1",
     "@trpc/react-query": "^11.5.1",
     "@trpc/server": "^11.5.1",
+    "dotenv": "^17.2.2",
     "next": "15.5.3",
     "pg": "^8.16.3",
     "react": "19.1.0",
@@ -49,12 +52,13 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@eslint/js": "^9",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.8.0",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
     "@types/jest": "^30.0.0",
-    "@types/node": "^20.19.17",
+    "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
@@ -67,6 +71,7 @@
     "lint-staged": "^16.1.6",
     "prettier": "^3.6.2",
     "prisma": "^6.16.2",
+    "supabase": "^2.40.7",
     "tailwindcss": "^4",
     "ts-jest": "^29.4.4",
     "tsx": "^4.20.5",

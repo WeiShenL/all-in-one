@@ -8,8 +8,8 @@ export async function updateSession(request: NextRequest) {
   });
 
   const supabase = createServerClient<Database>(
-    process.env.API_EXTERNAL_URL!,
-    process.env.ANON_KEY!,
+    process.env.NEXT_PUBLIC_API_EXTERNAL_URL!,
+    process.env.NEXT_PUBLIC_ANON_KEY!,
     {
       cookies: {
         getAll() {
