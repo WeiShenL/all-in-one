@@ -12,7 +12,7 @@
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md,css,scss,yml,yaml}\"",
     "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,md,css,scss,yml,yaml}\"",
     "type-check": "tsc --noEmit",
-    "prepare": "[ \"$VERCEL\" = \"1\" ] && echo 'Skipping husky on Vercel' || husky",
+    "prepare": "node -e \"if (process.env.VERCEL !== '1') { require('child_process').execSync('npx husky', {stdio: 'inherit'}) }\"",
     "lint-staged": "lint-staged",
     "seed": "npx prisma db seed",
     "db:migrate": "node scripts/run-migrations.js",
