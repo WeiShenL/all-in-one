@@ -28,8 +28,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build check
-        run: npm run build
+      # need add secrets based on staging env
+      # - name: Build check
+      #   run: npm run build
 
       - name: Run database migration to staging
         env:
