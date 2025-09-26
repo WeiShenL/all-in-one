@@ -32,6 +32,13 @@ jobs:
       # - name: Build check
       #   run: npm run build
 
+      - name: Debug DATABASE_URL
+        env:
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+        run: |
+          echo "DATABASE_URL length: ${#DATABASE_URL}"
+          echo "DATABASE_URL starts with: ${DATABASE_URL:0:20}..."
+
       - name: Run database migration to staging
         env:
           DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
