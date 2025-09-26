@@ -5,12 +5,14 @@ BEGIN
     CREATE OR REPLACE FUNCTION public.handle_new_user()
     RETURNS trigger AS $func$
     BEGIN
-      INSERT INTO public.user_profile (id, email, name, role)
+      INSERT INTO public."UserProfile" (id, email, name, role, "createdAt", "updatedAt")
       VALUES (
         NEW.id,
         NEW.email,
         COALESCE(NEW.raw_user_meta_data->>'name', ''),
-        'STAFF'
+        'STAFF',
+        NOW(),         -- set createdAt to current timestamp
+        NOW()
       )
       ON CONFLICT (id) DO NOTHING;
       RETURN NEW;

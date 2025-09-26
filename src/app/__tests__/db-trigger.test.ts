@@ -1,12 +1,12 @@
 import { Client } from 'pg';
 
-const TEST_USER_ID = 'test-user-trigger-123456';
+const TEST_USER_ID = '123e4567-e89b-12d3-a456-426614174000';
 
-describe('Postgres trigger for public.user_profile', () => {
+describe('Postgres trigger for public."UserProfile"', () => {
   let client: Client;
 
   beforeAll(async () => {
-    client = new Client({ connectionString: process.env.TEST_DATABASE_URL });
+    client = new Client({ connectionString: process.env.DATABASE_URL });
     await client.connect();
   });
 
@@ -14,25 +14,25 @@ describe('Postgres trigger for public.user_profile', () => {
     await client.end();
   });
 
-  afterEach(async () => {
-    // Clean up test records if they exist
-    await client.query('DELETE FROM public.user_profile WHERE id = $1', [
-      TEST_USER_ID,
-    ]);
-    await client.query('DELETE FROM auth.users WHERE id = $1', [TEST_USER_ID]);
-  });
+  // afterEach(async () => {
+  //   // Clean up test records if they exist
+  //   await client.query('DELETE FROM public."UserProfile" WHERE id = $1', [
+  //     TEST_USER_ID,
+  //   ]);
+  //   await client.query('DELETE FROM auth.users WHERE id = $1', [TEST_USER_ID]);
+  // });
 
-  it('should sync new auth user into public.user_profile', async () => {
+  it('should sync new auth user into public."UserProfile"', async () => {
     await client.query(
       `
-      INSERT INTO auth.users (id, email, raw_user_meta_data)
-      VALUES ($1, $2, '{"name": "TriggerTest"}')
+    INSERT INTO auth.users (id, email, raw_user_meta_data)
+    VALUES ($1, $2, $3)
     `,
-      [TEST_USER_ID, 'trigger-test@example.com']
+      [TEST_USER_ID, 'trigger-test@example.com', '{"name": "TriggerTest"}']
     );
 
     const result = await client.query(
-      'SELECT * FROM public.user_profile WHERE id = $1',
+      'SELECT * FROM public."UserProfile" WHERE id = $1',
       [TEST_USER_ID]
     );
 
