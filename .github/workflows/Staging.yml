@@ -32,7 +32,6 @@ jobs:
           HUSKY: 0
         run: |
           npm ci
-          npm install --save-dev @types/react @types/react-dom
 
       # need add secrets based on staging env
       # - name: Build check
