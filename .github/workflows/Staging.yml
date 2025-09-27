@@ -43,7 +43,7 @@ jobs:
           DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
         run: npx prisma migrate deploy
 
-      # need add script for integration test
+      # need add script for integration test. To aboid scope creep, this will be done in another sprint together with E2E testing
       # - name: Run integration tests
       #   env:
       #     DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
