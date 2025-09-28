@@ -60,6 +60,8 @@ jobs:
 
       # Run unit tests (Jest)
       - name: Run Unit Tests
+        env:
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
         run: npm run test:ci
 
       # Check if coverage file exists
