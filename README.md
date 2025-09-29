@@ -119,64 +119,7 @@ npx prisma generate
 npm run dev
 ```
 
-### Making Database Schema Changes
-
-If you want to make changes to the database:
-
-1. **Edit** `prisma/schema.prisma`
-2. **Create migration**:
-   ```bash
-   npx prisma migrate dev --name your_change_description
-   ```
-3. **Commit** the generated migration files to Git
-
-### Deploying to Different Environments
-
-To deploy migrations to staging or production:
-
-1. **Switch environment in `.env`**:
-
-   ```bash
-   # Comment out local development section:
-   # DATABASE_URL="postgresql://postgres:postgres@localhost:5433/postgres"
-   # NEXT_PUBLIC_API_EXTERNAL_URL=http://localhost:8000
-
-   # Uncomment staging section:
-   DATABASE_URL="postgresql://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres?pgbouncer=true"
-   NEXT_PUBLIC_API_EXTERNAL_URL=https://[PROJECT-REF].supabase.co
-   ```
-
-2. **Run migration**:
-
-   ```bash
-   npm run db:migrate
-   ```
-
-3. **Switch back to local development** when done
-
-## 🌱 Database Seeding
-
-### Seed Data Structure
-
-Sample data is organized in `prisma/data/` directory:
-
-- `1_departments.json` - Department structure
-- `2_users.json` - Sample users (Staff, Manager, HR/Admin)
-- `3_projects.json` - Sample projects
-- `4_tasks.json` - Sample tasks with different priorities and statuses
-- `5_task_assignments.json` - Task-user assignments
-- `6_tags.json` - Task tags
-- `7_task_tags.json` - Task-tag relationships
-- `8_comments.json` - Sample comments on tasks
-- `9_task_logs.json` - Task activity logs
-
-### Running the Seed
-
-To populate your database with sample data:
-
-```bash
-npx prisma db seed
-```
+For more advanced database management and development practices, see [DEVELOPMENT.md](./DEVELOPMENT.md).
 
 ## 🛠️ Tech Stack
 
@@ -188,182 +131,30 @@ npx prisma db seed
 
 ## 🧪 Testing
 
-This project uses Jest and React Testing Library for comprehensive unit and integration testing.
+This project uses Jest and React Testing Library for testing.
 
-### Running Tests
+### Quick Start
 
 ```bash
+# Run all tests
 npm test
-```
 
-### Run tests in watch mode (automatically re-run on file changes)
+# Run only unit tests (fast, isolated)
+npm run test:unit
 
-```bash
+# Run only integration tests (requires database)
+npm run test:integration
+
+# Run tests with coverage
+npm run test:coverage
+
+# Run tests in watch mode
 npm run test:watch
 ```
 
-### Run tests with coverage report
+For detailed testing guidelines, best practices, and examples, see [DEVELOPMENT.md](./DEVELOPMENT.md).
 
-```bash
-npm run test:coverage
-```
-
-### Coverage Reports
-
-Coverage reports are generated in the `coverage/` directory when running `npm run test:coverage`:
-
-- **Text summary**: Displayed in terminal
-- **HTML report**: Open `coverage/index.html` in your browser for detailed visual coverage
-- **LCOV format**: `coverage/lcov.info` for integration with external tools
-
-### Test Structure
-
-- **Test files**: Located in `__tests__` folders or use `.test.tsx` suffix
-- **Component tests**: Focus on user interactions, rendering, and accessibility
-- **Coverage goal**: Aim for comprehensive coverage of business logic and critical components
-
-### Writing Tests
-
-This project follows React Testing Library best practices for writing maintainable, user-focused tests.
-
-**Test file structure:**
-
-- Place test files in `__tests__` folders or use `.test.tsx` suffix
-- Test files should mirror your component structure (e.g., `components/Button.tsx` → `components/__tests__/Button.test.tsx`)
-
-## 🔐 Authentication System
-
-### Overview
-
-The application uses **Supabase Authentication** with role-based access control supporting three user roles:
-
-- **STAFF** - Basic users with limited permissions
-- **MANAGER** - Department managers with team oversight capabilities
-- **HR_ADMIN** - System administrators with full access
-
-### Authentication Features
-
-- **Session Management**: Automatic session refresh via middleware
-- **Role-Based Access**: Different permissions based on user role
-- **Type Safety**: Full TypeScript support for user data and permissions
-- **SSR Support**: Works with both client and server components
-- **Real-time Updates**: Authentication state updates across the app
-
-### Using Authentication in Components
-
-```typescript
-'use client'
-import { useAuth } from '@/lib/supabase/auth-context'
-
-export function MyComponent() {
-  const { user, userProfile, userRole, signIn, signOut, loading } = useAuth()
-
-  if (loading) return <div>Loading...</div>
-  if (!user) return <LoginForm />
-
-  return (
-    <div>
-      <p>Welcome, {userProfile?.name}</p>
-      <p>Role: {userRole}</p>
-      <button onClick={signOut}>Logout</button>
-    </div>
-  )
-}
-```
-
-### Production Deployment
-
-For production, update environment variables to point to your cloud Supabase instance:
-
-```bash
-NEXT_PUBLIC_API_EXTERNAL_URL=https://your-project.supabase.co
-NEXT_PUBLIC_ANON_KEY=your-production-anon-key
-```
-
-The authentication code automatically adapts to the environment.
-
-## 🧹 Code Quality & Development Standards
-
-This project enforces consistent code style and quality through automated tooling:
-
-### Automated Code Formatting & Linting
-
-- **ESLint**: Configured for TypeScript and Next.js best practices
-- **Prettier**: Handles code formatting for JS/TS, JSON, Markdown, and CSS files
-- **Pre-commit Hooks**: Automatically runs linting and formatting on staged files before commits
-
-### Setup for New Developers
-
-The linting and formatting tools are automatically installed when you run `npm install`. Pre-commit hooks will:
-
-- Auto-fix code style issues where possible
-- Block commits that contain unfixable lint errors
-- Ensure consistent code formatting across the team
-
-### Manual Commands
-
-```bash
-# Linting
-npm run lint        # Check for linting issues across all files
-npm run lint:fix    # Fix auto-fixable linting issues
-
-# Formatting
-npm run format      # Format all files with Prettier
-npm run format:check # Check formatting without fixing
-
-# Type Checking
-npm run type-check  # Check TypeScript types without building
-
-# Build & Test
-npm run build       # Build the application (includes linting & type checking)
-```
-
-### Troubleshooting Linting Issues
-
-If you encounter linting errors during development or deployment:
-
-1. **Run the linter manually** to see all issues:
-
-   ```bash
-   npm run lint
-   ```
-
-2. **Auto-fix common issues**:
-
-   ```bash
-   npm run lint:fix
-   ```
-
-3. **Format all files**:
-
-   ```bash
-   npm run format
-   ```
-
-4. **Check if build passes** (this runs all checks):
-   ```bash
-   npm run build
-   ```
-
-**Note**: The build process (used in deployment) will fail if there are any linting errors or type issues. Always run these commands before committing to ensure your code will deploy successfully.
-
-### Project Structure
-
-```
-all-in-one/
-├── prisma/
-│   ├── schema.prisma      # Database schema
-│   ├── seed.ts            # Seed script
-│   ├── data/              # Seed data JSON files
-│   └── migrations/        # Migration history
-├── src/
-│   ├── app/              # Next.js app directory
-│   └── generated/        # Auto-generated Prisma Client
-├── supabase/             # Supabase Docker configuration
-└── .env.example          # Environment template
-```
-
-You can start editing by modifying `src/app/page.tsx`. The page auto-updates as you edit.
+For development practices, code quality standards, authentication details, and project structure, see [DEVELOPMENT.md](./DEVELOPMENT.md).
 
 ## 📚 Learn More
 
