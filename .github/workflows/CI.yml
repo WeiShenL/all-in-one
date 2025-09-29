@@ -143,6 +143,9 @@ jobs:
 
       # need add secrets based on staging env
       - name: Build check
+        env:
+          NEXT_PUBLIC_API_EXTERNAL_URL: ${{ secrets.NEXT_PUBLIC_API_EXTERNAL_URL }}
+          NEXT_PUBLIC_ANON_KEY: ${{ secrets.NEXT_PUBLIC_ANON_KEY }}
         run: npm run build
 
       - name: Run database migration to staging
