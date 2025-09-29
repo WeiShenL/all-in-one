@@ -6,7 +6,7 @@ import {
   act,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { PasswordChangeForm } from '../PasswordChangeForm';
+import { PasswordChangeForm } from '../../../../src/app/auth/components/PasswordChangeForm';
 
 describe('PasswordChangeForm Integration Tests', () => {
   const mockOnSuccess = jest.fn();

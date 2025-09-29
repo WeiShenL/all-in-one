@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-require-imports, no-console */
+/* eslint-disable no-console */
 import {
   PrismaClient,
   UserRole,

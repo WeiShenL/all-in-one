@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { PasswordInput } from '../PasswordInput';
+import { PasswordInput } from '../../../../src/app/auth/components/PasswordInput';
 
 describe('PasswordInput Component', () => {
   const mockOnChange = jest.fn();
