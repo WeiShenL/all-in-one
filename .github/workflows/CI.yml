@@ -141,7 +141,6 @@ jobs:
           npm ci
           npm install --save-dev @types/react
 
-      # need add secrets based on staging env
       - name: Build check
         env:
           NEXT_PUBLIC_API_EXTERNAL_URL: ${{ secrets.NEXT_PUBLIC_API_EXTERNAL_URL }}
