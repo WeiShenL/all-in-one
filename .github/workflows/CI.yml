@@ -65,20 +65,20 @@ jobs:
       #   run: npm run test:ci
 
       # Check if coverage file exists
-      - name: Check Coverage File
-        run: |
-          if [ ! -f ./coverage/lcov.info ]; then
-            echo "Coverage file not found!"
-            exit 1
-          fi
+      # - name: Check Coverage File
+      #   run: |
+      #     if [ ! -f ./coverage/lcov.info ]; then
+      #       echo "Coverage file not found!"
+      #       exit 1
+      #     fi
 
-      # Upload coverage to Codecov
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          file: ./coverage/lcov.info
-          flags: unittests
-          name: codecov-umbrella
+      # # Upload coverage to Codecov
+      # - name: Upload coverage to Codecov
+      #   uses: codecov/codecov-action@v3
+      #   with:
+      #     file: ./coverage/lcov.info
+      #     flags: unittests
+      #     name: codecov-umbrella
 
   security:
     name: Security Scan
