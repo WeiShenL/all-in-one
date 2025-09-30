@@ -52,8 +52,6 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
           npx vercel --token $VERCEL_TOKEN --prod=true --yes
-          PROD_DOMAIN=$(npx vercel ls --token $VERCEL_TOKEN --prod | grep -E '^\s+Production' | awk '{print $2}')
-          echo "VERCEL_URL=https://${PROD_DOMAIN}" >> $GITHUB_OUTPUT
 
       - name: Notify deployment success
         if: steps.vercel-deploy.outcome == 'success'
@@ -62,7 +60,7 @@ jobs:
           script: |
             const deploymentUrl = '${{ steps.vercel-deploy.outputs.VERCEL_URL }}';
             console.log(`🚀 Production deployment successful!`);
-            console.log(`Production URL: ${deploymentUrl}`);
+            console.log(`Production URL: https://all-in-one-wheat-omega.vercel.app/`);
             console.log(`✅ Database migration completed`);
             console.log(`✅ Vercel production deployed`);
 
