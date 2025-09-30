@@ -178,7 +178,9 @@ describe('LoginPage Component', () => {
 
       // Use fireEvent.submit which is the correct way to test form submissions
       // and is properly wrapped in act() by the testing library.
-      fireEvent.submit(form);
+      if (form) {
+        fireEvent.submit(form);
+      }
 
       expect(mockSignIn).not.toHaveBeenCalled();
     });
