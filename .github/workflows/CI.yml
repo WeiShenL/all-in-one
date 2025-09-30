@@ -159,10 +159,12 @@ jobs:
           NEXT_PUBLIC_ANON_KEY: ${{ secrets.NEXT_PUBLIC_ANON_KEY }}
         run: npm run build
 
-      - name: Run database migration to staging
+      - name: Reset and migrate staging database
         env:
           DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
-        run: npx prisma migrate deploy
+        run: |
+          npx prisma migrate reset --force --skip-seed
+          npx prisma migrate deploy
 
       - name: Seed staging database
         env:
