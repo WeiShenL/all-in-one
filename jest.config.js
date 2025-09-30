@@ -32,9 +32,6 @@ const customJestConfig = {
     '<rootDir>/src/**/__tests__/**/*.{js,jsx,ts,tsx}',
     '<rootDir>/src/**/*.{test,spec}.{js,jsx,ts,tsx}',
   ],
-
-  // Default environment (jsdom for React components)
-  testEnvironment: 'jest-environment-jsdom',
 };
 
 export default createJestConfig(customJestConfig);

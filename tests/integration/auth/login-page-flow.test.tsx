@@ -1,15 +1,21 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  act,
+} from '@testing-library/react';
 import { useRouter } from 'next/navigation';
-import LoginPage from '../../../../src/app/auth/login/page';
-import { useAuth } from '../../../../src/lib/supabase/auth-context';
+import LoginPage from '@/app/auth/login/page';
+import { useAuth } from '@/lib/supabase/auth-context';
 
 // Mock dependencies
 jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
 }));
 
-jest.mock('../../../../src/lib/supabase/auth-context', () => ({
+jest.mock('@/lib/supabase/auth-context', () => ({
   useAuth: jest.fn(),
 }));
 
@@ -169,12 +175,10 @@ describe('LoginPage Component', () => {
       const form = screen
         .getByRole('button', { name: /sign in/i })
         .closest('form');
-      const submitEvent = new Event('submit', {
-        bubbles: true,
-        cancelable: true,
-      });
 
-      form?.dispatchEvent(submitEvent);
+      // Use fireEvent.submit which is the correct way to test form submissions
+      // and is properly wrapped in act() by the testing library.
+      fireEvent.submit(form);
 
       expect(mockSignIn).not.toHaveBeenCalled();
     });
@@ -231,11 +235,18 @@ describe('LoginPage Component', () => {
       });
     });
 
-    it('should show loading state during submission', async () => {
+    it('should show loading state during a failed submission', async () => {
+      // 1. Use fake timers
+      jest.useFakeTimers();
+
+      // 2. Mock a FAILED sign-in that takes 100ms
       mockSignIn.mockImplementation(
         () =>
           new Promise(resolve =>
-            setTimeout(() => resolve({ error: null }), 100)
+            setTimeout(
+              () => resolve({ error: { message: 'Invalid credentials' } }),
+              100
+            )
           )
       );
 
@@ -246,19 +257,29 @@ describe('LoginPage Component', () => {
       const submitButton = screen.getByRole('button', { name: /sign in/i });
 
       fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-      fireEvent.change(passwordInput, { target: { value: 'Test123!@#' } });
+      fireEvent.change(passwordInput, { target: { value: 'wrong-password' } });
       fireEvent.click(submitButton);
 
-      // Check for loading state
+      // 3. Assert that the button is in its loading state
       expect(
         screen.getByRole('button', { name: /signing in/i })
-      ).toBeInTheDocument();
+      ).toBeDisabled();
 
-      await waitFor(() => {
-        expect(
-          screen.getByRole('button', { name: /sign in/i })
-        ).toBeInTheDocument();
+      // 4. Advance timers and flush promises within act
+      await act(async () => {
+        jest.advanceTimersByTime(100); // Fast-forward
+        await Promise.resolve(); // Flush any pending promise microtasks
       });
+
+      // 5. Assert that the button has reverted and the error message is shown
+      const finalButton = await screen.findByRole('button', {
+        name: /sign in/i,
+      });
+      expect(finalButton).not.toBeDisabled();
+      expect(screen.getByText(/invalid credentials/i)).toBeInTheDocument();
+
+      // 6. Restore real timers
+      jest.useRealTimers();
     });
   });
 

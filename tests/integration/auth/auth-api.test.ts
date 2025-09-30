@@ -11,8 +11,8 @@ describe('Login Integration Tests', () => {
   beforeAll(async () => {
     // Initialize Supabase client
     supabaseClient = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      process.env.NEXT_PUBLIC_API_EXTERNAL_URL!,
+      process.env.NEXT_PUBLIC_ANON_KEY!
     );
 
     // Initialize PostgreSQL client for direct database operations
@@ -26,7 +26,7 @@ describe('Login Integration Tests', () => {
 
   beforeEach(async () => {
     // Clean up any existing test user
-    await pgClient.query('DELETE FROM public."UserProfile" WHERE email = $1', [
+    await pgClient.query('DELETE FROM public."user_profile" WHERE email = $1', [
       TEST_USER_EMAIL,
     ]);
     await pgClient.query('DELETE FROM auth.users WHERE email = $1', [
@@ -39,7 +39,7 @@ describe('Login Integration Tests', () => {
     await supabaseClient.auth.signOut();
 
     // Clean up test user
-    await pgClient.query('DELETE FROM public."UserProfile" WHERE email = $1', [
+    await pgClient.query('DELETE FROM public."user_profile" WHERE email = $1', [
       TEST_USER_EMAIL,
     ]);
     await pgClient.query('DELETE FROM auth.users WHERE email = $1', [
@@ -76,7 +76,7 @@ describe('Login Integration Tests', () => {
 
       // Verify user profile was created via trigger
       const profileResult = await pgClient.query(
-        'SELECT * FROM public."UserProfile" WHERE email = $1',
+        'SELECT * FROM public."user_profile" WHERE email = $1',
         [TEST_USER_EMAIL]
       );
 
@@ -127,7 +127,7 @@ describe('Login Integration Tests', () => {
 
       // Fetch profile from database
       const profileResult = await pgClient.query(
-        'SELECT * FROM public."UserProfile" WHERE id = $1',
+        'SELECT * FROM public."user_profile" WHERE id = $1',
         [loginData.user?.id]
       );
 
@@ -260,7 +260,7 @@ describe('Login Integration Tests', () => {
       });
 
       const profileResult = await pgClient.query(
-        'SELECT role FROM public."UserProfile" WHERE email = $1',
+        'SELECT role FROM public."user_profile" WHERE email = $1',
         [TEST_USER_EMAIL]
       );
 
@@ -275,7 +275,7 @@ describe('Login Integration Tests', () => {
       });
 
       await pgClient.query(
-        'UPDATE public."UserProfile" SET role = $1 WHERE id = $2',
+        'UPDATE public."user_profile" SET role = $1 WHERE id = $2',
         ['MANAGER', signupData.user?.id]
       );
 
@@ -289,7 +289,7 @@ describe('Login Integration Tests', () => {
 
       // Check role is still MANAGER
       const profileResult = await pgClient.query(
-        'SELECT role FROM public."UserProfile" WHERE email = $1',
+        'SELECT role FROM public."user_profile" WHERE email = $1',
         [TEST_USER_EMAIL]
       );
 
