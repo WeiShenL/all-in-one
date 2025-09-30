@@ -75,6 +75,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path-to-lcov: ./coverage/lcov.info
+          comment: true
 
   security:
     name: Security Scan
