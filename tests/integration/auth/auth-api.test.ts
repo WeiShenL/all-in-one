@@ -1,21 +1,30 @@
 import { createClient } from '@supabase/supabase-js';
 import { Client } from 'pg';
 
-const TEST_USER_EMAIL = 'Shahul200627@gmail.com';
+const TEST_USER_EMAIL = 'login-test@example.com';
 const TEST_USER_PASSWORD = 'Test123!@#';
+
+// Define metadata type instead of using `any`
+interface UserMetadata {
+  name?: string;
+  [key: string]: string | number | boolean | undefined;
+}
 
 describe('Login Integration Tests', () => {
   let supabaseClient: ReturnType<typeof createClient>;
   let pgClient: Client;
+  const serviceRoleKey = process.env.SERVICE_ROLE_KEY;
+
+  if (!serviceRoleKey) {
+    throw new Error('SERVICE_ROLE_KEY is required for integration tests');
+  }
 
   beforeAll(async () => {
-    // Initialize Supabase client
     supabaseClient = createClient(
       process.env.NEXT_PUBLIC_API_EXTERNAL_URL!,
       process.env.NEXT_PUBLIC_ANON_KEY!
     );
 
-    // Initialize PostgreSQL client for direct database operation
     pgClient = new Client({ connectionString: process.env.DATABASE_URL });
     await pgClient.connect();
   });
@@ -25,7 +34,6 @@ describe('Login Integration Tests', () => {
   });
 
   beforeEach(async () => {
-    // Clean up any existing test user
     await pgClient.query('DELETE FROM public."user_profile" WHERE email = $1', [
       TEST_USER_EMAIL,
     ]);
@@ -35,10 +43,7 @@ describe('Login Integration Tests', () => {
   });
 
   afterEach(async () => {
-    // Sign out after each test
     await supabaseClient.auth.signOut();
-
-    // Clean up test user
     await pgClient.query('DELETE FROM public."user_profile" WHERE email = $1', [
       TEST_USER_EMAIL,
     ]);
@@ -47,22 +52,39 @@ describe('Login Integration Tests', () => {
     ]);
   });
 
+  // -----------------------------
+  // Helper to create test user
+  // -----------------------------
+  async function createTestUser(
+    email: string,
+    password: string,
+    metadata?: UserMetadata
+  ) {
+    const adminClient = createClient(
+      process.env.NEXT_PUBLIC_API_EXTERNAL_URL!,
+      serviceRoleKey! // non-null assertion
+    );
+
+    const { data, error } = await adminClient.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: metadata,
+    });
+
+    if (error) {
+      throw error;
+    }
+    return data.user!;
+  }
+
+  // -----------------------------
+  // Successful login tests
+  // -----------------------------
   describe('Successful login', () => {
     it('should login with valid credentials and create user profile', async () => {
-      // First, create a test user via signup
-      const { data: signupData, error: signupError } =
-        await supabaseClient.auth.signUp({
-          email: TEST_USER_EMAIL,
-          password: TEST_USER_PASSWORD,
-        });
+      const user = await createTestUser(TEST_USER_EMAIL, TEST_USER_PASSWORD);
 
-      expect(signupError).toBeNull();
-      expect(signupData.user).toBeTruthy();
-
-      // Sign out to prepare for login test
-      await supabaseClient.auth.signOut();
-
-      // Attempt login
       const { data, error } = await supabaseClient.auth.signInWithPassword({
         email: TEST_USER_EMAIL,
         password: TEST_USER_PASSWORD,
@@ -74,10 +96,9 @@ describe('Login Integration Tests', () => {
       expect(data.session).toBeTruthy();
       expect(data.session?.access_token).toBeTruthy();
 
-      // Verify user profile was created via trigger
       const profileResult = await pgClient.query(
-        'SELECT * FROM public."user_profile" WHERE email = $1',
-        [TEST_USER_EMAIL]
+        'SELECT * FROM public."user_profile" WHERE id = $1',
+        [user.id]
       );
 
       expect(profileResult.rows.length).toBe(1);
@@ -86,14 +107,8 @@ describe('Login Integration Tests', () => {
     });
 
     it('should return session with correct token', async () => {
-      // Create test user
-      await supabaseClient.auth.signUp({
-        email: TEST_USER_EMAIL,
-        password: TEST_USER_PASSWORD,
-      });
-      await supabaseClient.auth.signOut();
+      await createTestUser(TEST_USER_EMAIL, TEST_USER_PASSWORD);
 
-      // Login
       const { data, error } = await supabaseClient.auth.signInWithPassword({
         email: TEST_USER_EMAIL,
         password: TEST_USER_PASSWORD,
@@ -107,28 +122,18 @@ describe('Login Integration Tests', () => {
     });
 
     it('should fetch user profile after login', async () => {
-      // Create test user with metadata
-      await supabaseClient.auth.signUp({
-        email: TEST_USER_EMAIL,
-        password: TEST_USER_PASSWORD,
-        options: {
-          data: {
-            name: 'Test User',
-          },
-        },
+      const user = await createTestUser(TEST_USER_EMAIL, TEST_USER_PASSWORD, {
+        name: 'Test User',
       });
-      await supabaseClient.auth.signOut();
 
-      // Login
-      const { data: loginData } = await supabaseClient.auth.signInWithPassword({
+      await supabaseClient.auth.signInWithPassword({
         email: TEST_USER_EMAIL,
         password: TEST_USER_PASSWORD,
       });
 
-      // Fetch profile from database
       const profileResult = await pgClient.query(
         'SELECT * FROM public."user_profile" WHERE id = $1',
-        [loginData.user?.id]
+        [user.id]
       );
 
       expect(profileResult.rows.length).toBe(1);
@@ -137,6 +142,9 @@ describe('Login Integration Tests', () => {
     });
   });
 
+  // -----------------------------
+  // Failed login attempts
+  // -----------------------------
   describe('Failed login attempts', () => {
     it('should fail with invalid email', async () => {
       const { data, error } = await supabaseClient.auth.signInWithPassword({
@@ -151,14 +159,8 @@ describe('Login Integration Tests', () => {
     });
 
     it('should fail with incorrect password', async () => {
-      // Create test user
-      await supabaseClient.auth.signUp({
-        email: TEST_USER_EMAIL,
-        password: TEST_USER_PASSWORD,
-      });
-      await supabaseClient.auth.signOut();
+      await createTestUser(TEST_USER_EMAIL, TEST_USER_PASSWORD);
 
-      // Attempt login with wrong password
       const { data, error } = await supabaseClient.auth.signInWithPassword({
         email: TEST_USER_EMAIL,
         password: 'WrongPassword123!',
@@ -193,20 +195,18 @@ describe('Login Integration Tests', () => {
     });
   });
 
+  // -----------------------------
+  // Session management
+  // -----------------------------
   describe('Session management', () => {
     it('should retrieve existing session after login', async () => {
-      // Create and login test user
-      await supabaseClient.auth.signUp({
-        email: TEST_USER_EMAIL,
-        password: TEST_USER_PASSWORD,
-      });
-      await supabaseClient.auth.signOut();
+      await createTestUser(TEST_USER_EMAIL, TEST_USER_PASSWORD);
+
       await supabaseClient.auth.signInWithPassword({
         email: TEST_USER_EMAIL,
         password: TEST_USER_PASSWORD,
       });
 
-      // Get current session
       const {
         data: { session },
       } = await supabaseClient.auth.getSession();
@@ -224,27 +224,20 @@ describe('Login Integration Tests', () => {
     });
 
     it('should clear session after logout', async () => {
-      // Create and login test user
-      await supabaseClient.auth.signUp({
-        email: TEST_USER_EMAIL,
-        password: TEST_USER_PASSWORD,
-      });
-      await supabaseClient.auth.signOut();
+      await createTestUser(TEST_USER_EMAIL, TEST_USER_PASSWORD);
+
       await supabaseClient.auth.signInWithPassword({
         email: TEST_USER_EMAIL,
         password: TEST_USER_PASSWORD,
       });
 
-      // Verify session exists
       let {
         data: { session },
       } = await supabaseClient.auth.getSession();
       expect(session).toBeTruthy();
 
-      // Logout
       await supabaseClient.auth.signOut();
 
-      // Verify session is cleared
       ({
         data: { session },
       } = await supabaseClient.auth.getSession());
@@ -252,45 +245,37 @@ describe('Login Integration Tests', () => {
     });
   });
 
+  // -----------------------------
+  // User role assignment
+  // -----------------------------
   describe('User role assignment', () => {
     it('should assign default STAFF role to new users', async () => {
-      await supabaseClient.auth.signUp({
-        email: TEST_USER_EMAIL,
-        password: TEST_USER_PASSWORD,
-      });
+      const user = await createTestUser(TEST_USER_EMAIL, TEST_USER_PASSWORD);
 
       const profileResult = await pgClient.query(
-        'SELECT role FROM public."user_profile" WHERE email = $1',
-        [TEST_USER_EMAIL]
+        'SELECT role FROM public."user_profile" WHERE id = $1',
+        [user.id]
       );
 
       expect(profileResult.rows[0].role).toBe('STAFF');
     });
 
     it('should maintain role across login sessions', async () => {
-      // Create user and update role to MANAGER
-      const { data: signupData } = await supabaseClient.auth.signUp({
-        email: TEST_USER_EMAIL,
-        password: TEST_USER_PASSWORD,
-      });
+      const user = await createTestUser(TEST_USER_EMAIL, TEST_USER_PASSWORD);
 
       await pgClient.query(
         'UPDATE public."user_profile" SET role = $1 WHERE id = $2',
-        ['MANAGER', signupData.user?.id]
+        ['MANAGER', user.id]
       );
 
-      await supabaseClient.auth.signOut();
-
-      // Login again
       await supabaseClient.auth.signInWithPassword({
         email: TEST_USER_EMAIL,
         password: TEST_USER_PASSWORD,
       });
 
-      // Check role is still MANAGER
       const profileResult = await pgClient.query(
-        'SELECT role FROM public."user_profile" WHERE email = $1',
-        [TEST_USER_EMAIL]
+        'SELECT role FROM public."user_profile" WHERE id = $1',
+        [user.id]
       );
 
       expect(profileResult.rows[0].role).toBe('MANAGER');
