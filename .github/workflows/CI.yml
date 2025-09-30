@@ -70,12 +70,30 @@ jobs:
             exit 1
           fi
 
-      # Upload coverage to Coveralls
-      - uses: coverallsapp/github-action@v2
+      # Upload coverage to Coveralls and capture the job URL
+      - name: Upload coverage to Coveralls
+        id: coveralls
+        run: |
+          # Upload coverage and capture stdout
+          COVERALLS_OUTPUT=$(npx coveralls < ./coverage/lcov.info)
+          echo "$COVERALLS_OUTPUT"
+
+          # Extract the job URL from stdout
+          COVERALLS_URL=$(echo "$COVERALLS_OUTPUT" | grep -o 'https://coveralls.io/jobs/[0-9]*')
+          echo "coveralls-url=$COVERALLS_URL" >> $GITHUB_OUTPUT
+
+      # Comment PR with Coveralls URL
+      - name: Comment PR with Coveralls URL
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          path-to-lcov: ./coverage/lcov.info
-          comment: true
+          script: |
+            const coverallsUrl = "${{ steps.coveralls.outputs.coveralls-url }}";
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `🚀 Coverage report uploaded to Coveralls: ${coverallsUrl}`
 
   security:
     name: Security Scan
