@@ -70,27 +70,27 @@ jobs:
             exit 1
           fi
 
-      # Upload coverage to Coveralls
-      - uses: coverallsapp/github-action@v2
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          path-to-lcov: ./coverage/lcov.info
+      # # Upload coverage to Coveralls
+      # - uses: coverallsapp/github-action@v2
+      #   with:
+      #     github-token: ${{ secrets.GITHUB_TOKEN }}
+      #     path-to-lcov: ./coverage/lcov.info
 
-      # Comment Coverage URL on PR
-      - name: Comment Coverage URL
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const result = JSON.parse('${{ steps.coveralls.outputs.coveralls-api-result }}');
-            const jobUrl = result.url || `https://coveralls.io/jobs/${result.id}`;
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `📊 **Coverage Report**: ${jobUrl}`
-            })
+      # # Comment Coverage URL on PR
+      # - name: Comment Coverage URL
+      #   if: github.event_name == 'pull_request'
+      #   uses: actions/github-script@v7
+      #   with:
+      #     github-token: ${{ secrets.GITHUB_TOKEN }}
+      #     script: |
+      #       const result = JSON.parse('${{ steps.coveralls.outputs.coveralls-api-result }}');
+      #       const jobUrl = result.url || `https://coveralls.io/jobs/${result.id}`;
+      #       github.rest.issues.createComment({
+      #         issue_number: context.issue.number,
+      #         owner: context.repo.owner,
+      #         repo: context.repo.repo,
+      #         body: `📊 **Coverage Report**: ${jobUrl}`
+      #       })
 
   security:
     name: Security Scan
