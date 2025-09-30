@@ -37,7 +37,13 @@ export function PasswordInput({
     <div style={{ marginBottom: '1rem' }}>
       <label
         htmlFor={inputId}
-        style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}
+        style={{
+          display: 'block',
+          marginBottom: '0.5rem',
+          fontWeight: '600',
+          color: '#2d3748',
+          fontSize: '0.875rem',
+        }}
       >
         {label}
       </label>
@@ -51,9 +57,26 @@ export function PasswordInput({
         style={{
           width: '100%',
           padding: '0.75rem',
-          border: `2px solid ${validation.isValid && value.length > 0 ? 'green' : showValidation && !validation.isValid ? 'red' : '#ccc'}`,
-          borderRadius: '4px',
+          border: `1px solid ${validation.isValid && value.length > 0 ? '#48bb78' : showValidation && !validation.isValid ? '#fc8181' : '#e2e8f0'}`,
+          borderRadius: '8px',
           fontSize: '1rem',
+          transition: 'border-color 0.2s',
+          outline: 'none',
+          boxSizing: 'border-box',
+        }}
+        onFocus={e => {
+          if (!showValidation || validation.isValid) {
+            e.target.style.borderColor = '#3182ce';
+          }
+        }}
+        onBlur={e => {
+          if (validation.isValid && value.length > 0) {
+            e.target.style.borderColor = '#48bb78';
+          } else if (showValidation && !validation.isValid) {
+            e.target.style.borderColor = '#fc8181';
+          } else {
+            e.target.style.borderColor = '#e2e8f0';
+          }
         }}
       />
 
@@ -71,7 +94,7 @@ export function PasswordInput({
               <div
                 style={{
                   fontSize: '0.875rem',
-                  color: validation.minLength ? 'green' : 'red',
+                  color: validation.minLength ? '#38a169' : '#c53030',
                 }}
               >
                 {validation.minLength ? '✓' : '✗'} Minimum 8 characters
@@ -80,7 +103,7 @@ export function PasswordInput({
               <div
                 style={{
                   fontSize: '0.875rem',
-                  color: validation.hasUppercase ? 'green' : 'red',
+                  color: validation.hasUppercase ? '#38a169' : '#c53030',
                 }}
               >
                 {validation.hasUppercase ? '✓' : '✗'} At least one uppercase
@@ -90,7 +113,7 @@ export function PasswordInput({
               <div
                 style={{
                   fontSize: '0.875rem',
-                  color: validation.hasLowercase ? 'green' : 'red',
+                  color: validation.hasLowercase ? '#38a169' : '#c53030',
                 }}
               >
                 {validation.hasLowercase ? '✓' : '✗'} At least one lowercase
@@ -100,7 +123,7 @@ export function PasswordInput({
               <div
                 style={{
                   fontSize: '0.875rem',
-                  color: validation.hasNumber ? 'green' : 'red',
+                  color: validation.hasNumber ? '#38a169' : '#c53030',
                 }}
               >
                 {validation.hasNumber ? '✓' : '✗'} At least one number
@@ -109,7 +132,7 @@ export function PasswordInput({
               <div
                 style={{
                   fontSize: '0.875rem',
-                  color: validation.hasSpecialChar ? 'green' : 'red',
+                  color: validation.hasSpecialChar ? '#38a169' : '#c53030',
                 }}
               >
                 {validation.hasSpecialChar ? '✓' : '✗'} At least one special

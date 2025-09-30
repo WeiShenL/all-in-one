@@ -132,7 +132,7 @@ jobs:
   staging-deploy:
     name: Staging Deployment
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
     environment: Preview
     needs: [code-quality, base-tests, security] # Now this will work!
     steps:
@@ -159,14 +159,23 @@ jobs:
           NEXT_PUBLIC_ANON_KEY: ${{ secrets.NEXT_PUBLIC_ANON_KEY }}
         run: npm run build
 
-      - name: Run database migration to staging
+      - name: Reset and migrate staging database
         env:
           DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
-        run: npx prisma migrate deploy
+        run: |
+          npx prisma migrate reset --force --skip-seed
+          npx prisma migrate deploy
 
-      # need add script for integration test. To aboid scope creep, this will be done in another sprint together with E2E testing
+      - name: Seed staging database
+        env:
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+        run: npx prisma db seed
+
       - name: Run integration tests
         env:
+          NEXT_PUBLIC_API_EXTERNAL_URL: ${{ secrets.NEXT_PUBLIC_API_EXTERNAL_URL }}
+          NEXT_PUBLIC_ANON_KEY: ${{ secrets.NEXT_PUBLIC_ANON_KEY }}
+          SERVICE_ROLE_KEY: ${{ secrets.SERVICE_ROLE_KEY }}
           DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
         run: npm run test:integration
 

@@ -4,7 +4,7 @@
     "email": "john.doe@allinone.com",
     "name": "John Doe",
     "role": "STAFF",
-    "departmentId": "dept-001",
+    "departmentId": "dept-developers-001",
     "createdAt": "2025-01-01T00:00:00.000Z",
     "updatedAt": "2025-01-01T00:00:00.000Z"
   },
@@ -13,7 +13,7 @@
     "email": "philip.lee@allinone.com",
     "name": "Philip Lee",
     "role": "MANAGER",
-    "departmentId": "dept-001",
+    "departmentId": "dept-eng-op-001",
     "createdAt": "2025-01-01T00:00:00.000Z",
     "updatedAt": "2025-01-01T00:00:00.000Z"
   },
@@ -22,7 +22,7 @@
     "email": "sally.loh@allinone.com",
     "name": "Sally Loh",
     "role": "HR_ADMIN",
-    "departmentId": "dept-001",
+    "departmentId": "dept-hr-admin-001",
     "createdAt": "2025-01-01T00:00:00.000Z",
     "updatedAt": "2025-01-01T00:00:00.000Z"
   }

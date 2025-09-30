@@ -76,6 +76,7 @@ model Department {
   @@index([parentId])
   @@index([managerId])
   @@index([isActive])
+  @@map("department")
 }
 
 // USER PROFILE
@@ -88,6 +89,8 @@ model UserProfile {
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  @@map("user_profile")
 
   department         Department?      @relation(fields: [departmentId], references: [id])
   managedDepartments Department[]     @relation("DepartmentManager")
@@ -127,6 +130,7 @@ model Team {
   @@index([departmentId])
   @@index([leaderId])
   @@index([isActive])
+  @@map("team")
 }
 
 // TEAM MEMBER (bridge)
@@ -139,6 +143,7 @@ model TeamMember {
   user UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([teamId, userId])
+  @@map("team_member")
 }
 
 // PROJECT
@@ -164,6 +169,7 @@ model Project {
   @@index([status])
   @@index([isArchived])
   @@index([dueDate])
+  @@map("project")
 }
 
 // TASK
@@ -203,6 +209,7 @@ model Task {
   @@index([dueDate])
   @@index([isArchived])
   @@index([createdAt])
+  @@map("task")
 }
 
 // TASK ASSIGNMENT
@@ -218,6 +225,7 @@ model TaskAssignment {
 
   @@id([taskId, userId])
   @@index([assignedById])
+  @@map("task_assignment")
 }
 
 // COMMENT
@@ -235,6 +243,7 @@ model Comment {
   @@index([taskId])
   @@index([userId])
   @@index([createdAt])
+  @@map("comment")
 }
 
 // TASK FILE
@@ -254,6 +263,7 @@ model TaskFile {
   @@index([taskId])
   @@index([uploadedById])
   @@index([uploadedAt])
+  @@map("task_file")
 }
 
 // TAG
@@ -263,6 +273,8 @@ model Tag {
   createdAt DateTime @default(now())
 
   tasks TaskTag[]
+
+  @@map("tag")
 }
 
 // TASK TAG (bridge)
@@ -274,6 +286,7 @@ model TaskTag {
   tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
   @@id([taskId, tagId])
+  @@map("task_tag")
 }
 
 // TASK LOG
@@ -293,6 +306,7 @@ model TaskLog {
   @@index([userId])
   @@index([timestamp])
   @@index([action])
+  @@map("task_log")
 }
 
 // NOTIFICATION
@@ -314,6 +328,7 @@ model Notification {
   @@index([createdAt])
   @@index([type])
   @@index([taskId])
+  @@map("notification")
 }
 
 // CALENDAR EVENT
@@ -333,4 +348,5 @@ model CalendarEvent {
   @@index([eventDate])
   @@index([taskId])
   @@index([isCompleted])
+  @@map("calendar_event")
 }
