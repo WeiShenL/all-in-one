@@ -167,6 +167,8 @@ jobs:
       # need add script for integration test. To aboid scope creep, this will be done in another sprint together with E2E testing
       - name: Run integration tests
         env:
+          NEXT_PUBLIC_API_EXTERNAL_URL: ${{ secrets.NEXT_PUBLIC_API_EXTERNAL_URL }}
+          NEXT_PUBLIC_ANON_KEY: ${{ secrets.NEXT_PUBLIC_ANON_KEY }}
           DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
         run: npm run test:integration
 
