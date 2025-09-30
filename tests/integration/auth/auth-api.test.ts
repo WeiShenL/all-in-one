@@ -15,7 +15,7 @@ describe('Login Integration Tests', () => {
       process.env.NEXT_PUBLIC_ANON_KEY!
     );
 
-    // Initialize PostgreSQL client for direct database operations
+    // Initialize PostgreSQL client for direct database operation
     pgClient = new Client({ connectionString: process.env.DATABASE_URL });
     await pgClient.connect();
   });
