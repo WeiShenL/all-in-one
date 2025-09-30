@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { Client } from 'pg';
 
-const TEST_USER_EMAIL = 'hameedzr.2023@scis.edu.sg';
+const TEST_USER_EMAIL = 'Shahul200627@gmail.com';
 const TEST_USER_PASSWORD = 'Test123!@#';
 
 describe('Login Integration Tests', () => {
