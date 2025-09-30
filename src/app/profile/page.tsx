@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/supabase/auth-context';
-import AuthNavbar from '../components/AuthNavbar';
+import Navbar from '../components/Navbar';
 
 export default function ProfilePage() {
   const { user, userProfile, loading } = useAuth();
@@ -36,7 +36,7 @@ export default function ProfilePage() {
 
   return (
     <div>
-      <AuthNavbar />
+      <Navbar />
       <main style={{ padding: '2rem' }}>
         <h1
           style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '1rem' }}

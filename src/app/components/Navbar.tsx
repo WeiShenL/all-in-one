@@ -1,39 +1,25 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/supabase/auth-context';
+import { useSecureLogout } from '@/lib/hooks/useSecureLogout';
 
-export default function AuthNavbar() {
-  const { user, userProfile, signOut } = useAuth();
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const router = useRouter();
+export default function Navbar() {
+  const { user, userProfile } = useAuth();
+  const { handleSecureLogout, isLoggingOut } = useSecureLogout();
 
-  const handleSignOut = async () => {
-    if (isLoggingOut) {
-      return;
+  // Get dashboard route based on user role
+  const getDashboardRoute = () => {
+    if (!userProfile?.role) {
+      return '/dashboard';
     }
 
-    setIsLoggingOut(true);
+    const roleRoutes = {
+      STAFF: '/dashboard/staff',
+      MANAGER: '/dashboard/manager',
+      HR_ADMIN: '/dashboard/hr',
+    };
 
-    try {
-      // Call Supabase signOut - this invalidates session token automatically
-      const { error } = await signOut();
-
-      if (error) {
-        console.error('Logout error:', error);
-        // Still redirect even if there's an error to be safe
-      }
-
-      // Redirect to login page
-      router.push('/auth/login');
-    } catch (error) {
-      console.error('Unexpected logout error:', error);
-      // Still redirect to login page for security
-      router.push('/auth/login');
-    } finally {
-      setIsLoggingOut(false);
-    }
+    return roleRoutes[userProfile.role] || '/dashboard';
   };
 
   return (
@@ -72,7 +58,7 @@ export default function AuthNavbar() {
           }}
         >
           <a
-            href='/dashboard'
+            href={getDashboardRoute()}
             style={{
               color: '#495057',
               textDecoration: 'none',
@@ -110,7 +96,7 @@ export default function AuthNavbar() {
             {userProfile?.name || user?.email}
           </span>
           <button
-            onClick={handleSignOut}
+            onClick={handleSecureLogout}
             disabled={isLoggingOut}
             style={{
               backgroundColor: isLoggingOut ? '#6c757d' : '#dc3545',

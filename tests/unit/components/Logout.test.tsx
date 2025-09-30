@@ -7,7 +7,7 @@ import {
   act,
 } from '@testing-library/react';
 import { useRouter } from 'next/navigation';
-import AuthNavbar from '../AuthNavbar';
+import Navbar from '@/app/components/Navbar';
 import { useAuth } from '@/lib/supabase/auth-context';
 
 // Mock external dependencies
@@ -43,7 +43,7 @@ describe('Logout Functionality', () => {
     test('logout button is accessible and calls signOut when clicked', async () => {
       mockSignOut.mockResolvedValue({ error: null });
 
-      render(<AuthNavbar />);
+      render(<Navbar />);
 
       // click the logout button
       const logoutButton = screen.getByText('Sign Out');
@@ -62,7 +62,7 @@ describe('Logout Functionality', () => {
     test('user is redirected to login page after successful logout', async () => {
       mockSignOut.mockResolvedValue({ error: null });
 
-      render(<AuthNavbar />);
+      render(<Navbar />);
 
       const logoutButton = screen.getByText('Sign Out');
 
@@ -79,7 +79,7 @@ describe('Logout Functionality', () => {
     test('session token invalidation happens immediately (signOut called)', async () => {
       mockSignOut.mockResolvedValue({ error: null });
 
-      render(<AuthNavbar />);
+      render(<Navbar />);
 
       const logoutButton = screen.getByText('Sign Out');
 
@@ -99,7 +99,7 @@ describe('Logout Functionality', () => {
       mockSignOut.mockResolvedValue({ error: 'Network error' });
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
 
-      render(<AuthNavbar />);
+      render(<Navbar />);
 
       const logoutButton = screen.getByText('Sign Out');
 
@@ -122,7 +122,7 @@ describe('Logout Functionality', () => {
       mockSignOut.mockRejectedValue(new Error('Unexpected error'));
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
 
-      render(<AuthNavbar />);
+      render(<Navbar />);
 
       const logoutButton = screen.getByText('Sign Out');
 
