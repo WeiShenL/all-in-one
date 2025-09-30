@@ -1,4 +1,4 @@
-import { validatePassword } from '../../../src/app/lib/passwordValidation';
+import { validatePassword } from '@/app/lib/passwordValidation';
 
 describe('Password Validation', () => {
   describe('Individual Requirement Testing', () => {

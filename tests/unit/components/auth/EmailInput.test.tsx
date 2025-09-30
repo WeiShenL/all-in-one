@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { EmailInput } from '../../../../src/app/auth/components/EmailInput';
+import { EmailInput } from '@/app/auth/components/EmailInput';
 
 describe('EmailInput Component', () => {
   const mockOnChange = jest.fn();

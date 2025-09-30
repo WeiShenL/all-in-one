@@ -17,7 +17,7 @@ CREATE TYPE "public"."NotificationType" AS ENUM ('TASK_ASSIGNED', 'TASK_UPDATED'
 CREATE TYPE "public"."LogAction" AS ENUM ('CREATED', 'UPDATED', 'STATUS_CHANGED', 'COMMENT_ADDED', 'FILE_UPLOADED', 'ASSIGNMENT_CHANGED', 'DESCRIPTION_CHANGED', 'ARCHIVED', 'DELETED');
 
 -- CreateTable
-CREATE TABLE "public"."Department" (
+CREATE TABLE "public"."department" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "parentId" TEXT,
@@ -26,11 +26,11 @@ CREATE TABLE "public"."Department" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "Department_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "department_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "public"."UserProfile" (
+CREATE TABLE "public"."user_profile" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "name" TEXT,
@@ -40,11 +40,11 @@ CREATE TABLE "public"."UserProfile" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "UserProfile_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "user_profile_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "public"."Team" (
+CREATE TABLE "public"."team" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT,
@@ -54,20 +54,20 @@ CREATE TABLE "public"."Team" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "Team_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "team_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "public"."TeamMember" (
+CREATE TABLE "public"."team_member" (
     "teamId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "joinedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "TeamMember_pkey" PRIMARY KEY ("teamId","userId")
+    CONSTRAINT "team_member_pkey" PRIMARY KEY ("teamId","userId")
 );
 
 -- CreateTable
-CREATE TABLE "public"."Project" (
+CREATE TABLE "public"."project" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT,
@@ -80,11 +80,11 @@ CREATE TABLE "public"."Project" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "Project_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "project_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "public"."Task" (
+CREATE TABLE "public"."task" (
     "id" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "description" TEXT NOT NULL,
@@ -99,21 +99,21 @@ CREATE TABLE "public"."Task" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "Task_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "task_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "public"."TaskAssignment" (
+CREATE TABLE "public"."task_assignment" (
     "taskId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "assignedById" TEXT NOT NULL,
     "assignedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "TaskAssignment_pkey" PRIMARY KEY ("taskId","userId")
+    CONSTRAINT "task_assignment_pkey" PRIMARY KEY ("taskId","userId")
 );
 
 -- CreateTable
-CREATE TABLE "public"."Comment" (
+CREATE TABLE "public"."comment" (
     "id" TEXT NOT NULL,
     "content" TEXT NOT NULL,
     "taskId" TEXT NOT NULL,
@@ -121,11 +121,11 @@ CREATE TABLE "public"."Comment" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "Comment_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "comment_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "public"."TaskFile" (
+CREATE TABLE "public"."task_file" (
     "id" TEXT NOT NULL,
     "taskId" TEXT NOT NULL,
     "fileName" TEXT NOT NULL,
@@ -135,28 +135,28 @@ CREATE TABLE "public"."TaskFile" (
     "uploadedById" TEXT NOT NULL,
     "uploadedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "TaskFile_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "task_file_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "public"."Tag" (
+CREATE TABLE "public"."tag" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "Tag_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "tag_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "public"."TaskTag" (
+CREATE TABLE "public"."task_tag" (
     "taskId" TEXT NOT NULL,
     "tagId" TEXT NOT NULL,
 
-    CONSTRAINT "TaskTag_pkey" PRIMARY KEY ("taskId","tagId")
+    CONSTRAINT "task_tag_pkey" PRIMARY KEY ("taskId","tagId")
 );
 
 -- CreateTable
-CREATE TABLE "public"."TaskLog" (
+CREATE TABLE "public"."task_log" (
     "id" TEXT NOT NULL,
     "taskId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
@@ -165,11 +165,11 @@ CREATE TABLE "public"."TaskLog" (
     "metadata" JSONB,
     "timestamp" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "TaskLog_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "task_log_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "public"."Notification" (
+CREATE TABLE "public"."notification" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "type" "public"."NotificationType" NOT NULL,
@@ -179,11 +179,11 @@ CREATE TABLE "public"."Notification" (
     "isRead" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "Notification_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "notification_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "public"."CalendarEvent" (
+CREATE TABLE "public"."calendar_event" (
     "id" TEXT NOT NULL,
     "taskId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
@@ -192,227 +192,227 @@ CREATE TABLE "public"."CalendarEvent" (
     "isCompleted" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "CalendarEvent_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "calendar_event_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
-CREATE INDEX "Department_parentId_idx" ON "public"."Department"("parentId");
+CREATE INDEX "department_parentId_idx" ON "public"."department"("parentId");
 
 -- CreateIndex
-CREATE INDEX "Department_managerId_idx" ON "public"."Department"("managerId");
+CREATE INDEX "department_managerId_idx" ON "public"."department"("managerId");
 
 -- CreateIndex
-CREATE INDEX "Department_isActive_idx" ON "public"."Department"("isActive");
+CREATE INDEX "department_isActive_idx" ON "public"."department"("isActive");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "UserProfile_email_key" ON "public"."UserProfile"("email");
+CREATE UNIQUE INDEX "user_profile_email_key" ON "public"."user_profile"("email");
 
 -- CreateIndex
-CREATE INDEX "UserProfile_email_idx" ON "public"."UserProfile"("email");
+CREATE INDEX "user_profile_email_idx" ON "public"."user_profile"("email");
 
 -- CreateIndex
-CREATE INDEX "UserProfile_role_idx" ON "public"."UserProfile"("role");
+CREATE INDEX "user_profile_role_idx" ON "public"."user_profile"("role");
 
 -- CreateIndex
-CREATE INDEX "UserProfile_departmentId_idx" ON "public"."UserProfile"("departmentId");
+CREATE INDEX "user_profile_departmentId_idx" ON "public"."user_profile"("departmentId");
 
 -- CreateIndex
-CREATE INDEX "UserProfile_isActive_idx" ON "public"."UserProfile"("isActive");
+CREATE INDEX "user_profile_isActive_idx" ON "public"."user_profile"("isActive");
 
 -- CreateIndex
-CREATE INDEX "Team_departmentId_idx" ON "public"."Team"("departmentId");
+CREATE INDEX "team_departmentId_idx" ON "public"."team"("departmentId");
 
 -- CreateIndex
-CREATE INDEX "Team_leaderId_idx" ON "public"."Team"("leaderId");
+CREATE INDEX "team_leaderId_idx" ON "public"."team"("leaderId");
 
 -- CreateIndex
-CREATE INDEX "Team_isActive_idx" ON "public"."Team"("isActive");
+CREATE INDEX "team_isActive_idx" ON "public"."team"("isActive");
 
 -- CreateIndex
-CREATE INDEX "Project_departmentId_idx" ON "public"."Project"("departmentId");
+CREATE INDEX "project_departmentId_idx" ON "public"."project"("departmentId");
 
 -- CreateIndex
-CREATE INDEX "Project_creatorId_idx" ON "public"."Project"("creatorId");
+CREATE INDEX "project_creatorId_idx" ON "public"."project"("creatorId");
 
 -- CreateIndex
-CREATE INDEX "Project_status_idx" ON "public"."Project"("status");
+CREATE INDEX "project_status_idx" ON "public"."project"("status");
 
 -- CreateIndex
-CREATE INDEX "Project_isArchived_idx" ON "public"."Project"("isArchived");
+CREATE INDEX "project_isArchived_idx" ON "public"."project"("isArchived");
 
 -- CreateIndex
-CREATE INDEX "Project_dueDate_idx" ON "public"."Project"("dueDate");
+CREATE INDEX "project_dueDate_idx" ON "public"."project"("dueDate");
 
 -- CreateIndex
-CREATE INDEX "Task_ownerId_idx" ON "public"."Task"("ownerId");
+CREATE INDEX "task_ownerId_idx" ON "public"."task"("ownerId");
 
 -- CreateIndex
-CREATE INDEX "Task_projectId_idx" ON "public"."Task"("projectId");
+CREATE INDEX "task_projectId_idx" ON "public"."task"("projectId");
 
 -- CreateIndex
-CREATE INDEX "Task_departmentId_idx" ON "public"."Task"("departmentId");
+CREATE INDEX "task_departmentId_idx" ON "public"."task"("departmentId");
 
 -- CreateIndex
-CREATE INDEX "Task_parentTaskId_idx" ON "public"."Task"("parentTaskId");
+CREATE INDEX "task_parentTaskId_idx" ON "public"."task"("parentTaskId");
 
 -- CreateIndex
-CREATE INDEX "Task_status_idx" ON "public"."Task"("status");
+CREATE INDEX "task_status_idx" ON "public"."task"("status");
 
 -- CreateIndex
-CREATE INDEX "Task_dueDate_idx" ON "public"."Task"("dueDate");
+CREATE INDEX "task_dueDate_idx" ON "public"."task"("dueDate");
 
 -- CreateIndex
-CREATE INDEX "Task_isArchived_idx" ON "public"."Task"("isArchived");
+CREATE INDEX "task_isArchived_idx" ON "public"."task"("isArchived");
 
 -- CreateIndex
-CREATE INDEX "Task_createdAt_idx" ON "public"."Task"("createdAt");
+CREATE INDEX "task_createdAt_idx" ON "public"."task"("createdAt");
 
 -- CreateIndex
-CREATE INDEX "TaskAssignment_assignedById_idx" ON "public"."TaskAssignment"("assignedById");
+CREATE INDEX "task_assignment_assignedById_idx" ON "public"."task_assignment"("assignedById");
 
 -- CreateIndex
-CREATE INDEX "Comment_taskId_idx" ON "public"."Comment"("taskId");
+CREATE INDEX "comment_taskId_idx" ON "public"."comment"("taskId");
 
 -- CreateIndex
-CREATE INDEX "Comment_userId_idx" ON "public"."Comment"("userId");
+CREATE INDEX "comment_userId_idx" ON "public"."comment"("userId");
 
 -- CreateIndex
-CREATE INDEX "Comment_createdAt_idx" ON "public"."Comment"("createdAt");
+CREATE INDEX "comment_createdAt_idx" ON "public"."comment"("createdAt");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "TaskFile_storagePath_key" ON "public"."TaskFile"("storagePath");
+CREATE UNIQUE INDEX "task_file_storagePath_key" ON "public"."task_file"("storagePath");
 
 -- CreateIndex
-CREATE INDEX "TaskFile_taskId_idx" ON "public"."TaskFile"("taskId");
+CREATE INDEX "task_file_taskId_idx" ON "public"."task_file"("taskId");
 
 -- CreateIndex
-CREATE INDEX "TaskFile_uploadedById_idx" ON "public"."TaskFile"("uploadedById");
+CREATE INDEX "task_file_uploadedById_idx" ON "public"."task_file"("uploadedById");
 
 -- CreateIndex
-CREATE INDEX "TaskFile_uploadedAt_idx" ON "public"."TaskFile"("uploadedAt");
+CREATE INDEX "task_file_uploadedAt_idx" ON "public"."task_file"("uploadedAt");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Tag_name_key" ON "public"."Tag"("name");
+CREATE UNIQUE INDEX "tag_name_key" ON "public"."tag"("name");
 
 -- CreateIndex
-CREATE INDEX "TaskLog_taskId_idx" ON "public"."TaskLog"("taskId");
+CREATE INDEX "task_log_taskId_idx" ON "public"."task_log"("taskId");
 
 -- CreateIndex
-CREATE INDEX "TaskLog_userId_idx" ON "public"."TaskLog"("userId");
+CREATE INDEX "task_log_userId_idx" ON "public"."task_log"("userId");
 
 -- CreateIndex
-CREATE INDEX "TaskLog_timestamp_idx" ON "public"."TaskLog"("timestamp");
+CREATE INDEX "task_log_timestamp_idx" ON "public"."task_log"("timestamp");
 
 -- CreateIndex
-CREATE INDEX "TaskLog_action_idx" ON "public"."TaskLog"("action");
+CREATE INDEX "task_log_action_idx" ON "public"."task_log"("action");
 
 -- CreateIndex
-CREATE INDEX "Notification_userId_idx" ON "public"."Notification"("userId");
+CREATE INDEX "notification_userId_idx" ON "public"."notification"("userId");
 
 -- CreateIndex
-CREATE INDEX "Notification_isRead_idx" ON "public"."Notification"("isRead");
+CREATE INDEX "notification_isRead_idx" ON "public"."notification"("isRead");
 
 -- CreateIndex
-CREATE INDEX "Notification_createdAt_idx" ON "public"."Notification"("createdAt");
+CREATE INDEX "notification_createdAt_idx" ON "public"."notification"("createdAt");
 
 -- CreateIndex
-CREATE INDEX "Notification_type_idx" ON "public"."Notification"("type");
+CREATE INDEX "notification_type_idx" ON "public"."notification"("type");
 
 -- CreateIndex
-CREATE INDEX "Notification_taskId_idx" ON "public"."Notification"("taskId");
+CREATE INDEX "notification_taskId_idx" ON "public"."notification"("taskId");
 
 -- CreateIndex
-CREATE INDEX "CalendarEvent_userId_idx" ON "public"."CalendarEvent"("userId");
+CREATE INDEX "calendar_event_userId_idx" ON "public"."calendar_event"("userId");
 
 -- CreateIndex
-CREATE INDEX "CalendarEvent_eventDate_idx" ON "public"."CalendarEvent"("eventDate");
+CREATE INDEX "calendar_event_eventDate_idx" ON "public"."calendar_event"("eventDate");
 
 -- CreateIndex
-CREATE INDEX "CalendarEvent_taskId_idx" ON "public"."CalendarEvent"("taskId");
+CREATE INDEX "calendar_event_taskId_idx" ON "public"."calendar_event"("taskId");
 
 -- CreateIndex
-CREATE INDEX "CalendarEvent_isCompleted_idx" ON "public"."CalendarEvent"("isCompleted");
+CREATE INDEX "calendar_event_isCompleted_idx" ON "public"."calendar_event"("isCompleted");
 
 -- AddForeignKey
-ALTER TABLE "public"."Department" ADD CONSTRAINT "Department_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "public"."Department"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "public"."department" ADD CONSTRAINT "department_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "public"."department"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."Department" ADD CONSTRAINT "Department_managerId_fkey" FOREIGN KEY ("managerId") REFERENCES "public"."UserProfile"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "public"."department" ADD CONSTRAINT "department_managerId_fkey" FOREIGN KEY ("managerId") REFERENCES "public"."user_profile"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."UserProfile" ADD CONSTRAINT "UserProfile_departmentId_fkey" FOREIGN KEY ("departmentId") REFERENCES "public"."Department"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."user_profile" ADD CONSTRAINT "user_profile_departmentId_fkey" FOREIGN KEY ("departmentId") REFERENCES "public"."department"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."Team" ADD CONSTRAINT "Team_departmentId_fkey" FOREIGN KEY ("departmentId") REFERENCES "public"."Department"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."team" ADD CONSTRAINT "team_departmentId_fkey" FOREIGN KEY ("departmentId") REFERENCES "public"."department"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."Team" ADD CONSTRAINT "Team_leaderId_fkey" FOREIGN KEY ("leaderId") REFERENCES "public"."UserProfile"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "public"."team" ADD CONSTRAINT "team_leaderId_fkey" FOREIGN KEY ("leaderId") REFERENCES "public"."user_profile"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."TeamMember" ADD CONSTRAINT "TeamMember_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "public"."Team"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "public"."team_member" ADD CONSTRAINT "team_member_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "public"."team"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."TeamMember" ADD CONSTRAINT "TeamMember_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."UserProfile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "public"."team_member" ADD CONSTRAINT "team_member_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."user_profile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."Project" ADD CONSTRAINT "Project_departmentId_fkey" FOREIGN KEY ("departmentId") REFERENCES "public"."Department"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."project" ADD CONSTRAINT "project_departmentId_fkey" FOREIGN KEY ("departmentId") REFERENCES "public"."department"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."Project" ADD CONSTRAINT "Project_creatorId_fkey" FOREIGN KEY ("creatorId") REFERENCES "public"."UserProfile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."project" ADD CONSTRAINT "project_creatorId_fkey" FOREIGN KEY ("creatorId") REFERENCES "public"."user_profile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."Task" ADD CONSTRAINT "Task_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "public"."UserProfile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."task" ADD CONSTRAINT "task_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "public"."user_profile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."Task" ADD CONSTRAINT "Task_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "public"."Project"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "public"."task" ADD CONSTRAINT "task_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "public"."project"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."Task" ADD CONSTRAINT "Task_departmentId_fkey" FOREIGN KEY ("departmentId") REFERENCES "public"."Department"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."task" ADD CONSTRAINT "task_departmentId_fkey" FOREIGN KEY ("departmentId") REFERENCES "public"."department"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."Task" ADD CONSTRAINT "Task_parentTaskId_fkey" FOREIGN KEY ("parentTaskId") REFERENCES "public"."Task"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "public"."task" ADD CONSTRAINT "task_parentTaskId_fkey" FOREIGN KEY ("parentTaskId") REFERENCES "public"."task"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."TaskAssignment" ADD CONSTRAINT "TaskAssignment_taskId_fkey" FOREIGN KEY ("taskId") REFERENCES "public"."Task"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "public"."task_assignment" ADD CONSTRAINT "task_assignment_taskId_fkey" FOREIGN KEY ("taskId") REFERENCES "public"."task"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."TaskAssignment" ADD CONSTRAINT "TaskAssignment_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."UserProfile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "public"."task_assignment" ADD CONSTRAINT "task_assignment_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."user_profile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."TaskAssignment" ADD CONSTRAINT "TaskAssignment_assignedById_fkey" FOREIGN KEY ("assignedById") REFERENCES "public"."UserProfile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."task_assignment" ADD CONSTRAINT "task_assignment_assignedById_fkey" FOREIGN KEY ("assignedById") REFERENCES "public"."user_profile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."Comment" ADD CONSTRAINT "Comment_taskId_fkey" FOREIGN KEY ("taskId") REFERENCES "public"."Task"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "public"."comment" ADD CONSTRAINT "comment_taskId_fkey" FOREIGN KEY ("taskId") REFERENCES "public"."task"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."Comment" ADD CONSTRAINT "Comment_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."UserProfile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."comment" ADD CONSTRAINT "comment_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."user_profile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."TaskFile" ADD CONSTRAINT "TaskFile_taskId_fkey" FOREIGN KEY ("taskId") REFERENCES "public"."Task"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "public"."task_file" ADD CONSTRAINT "task_file_taskId_fkey" FOREIGN KEY ("taskId") REFERENCES "public"."task"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."TaskFile" ADD CONSTRAINT "TaskFile_uploadedById_fkey" FOREIGN KEY ("uploadedById") REFERENCES "public"."UserProfile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."task_file" ADD CONSTRAINT "task_file_uploadedById_fkey" FOREIGN KEY ("uploadedById") REFERENCES "public"."user_profile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."TaskTag" ADD CONSTRAINT "TaskTag_taskId_fkey" FOREIGN KEY ("taskId") REFERENCES "public"."Task"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "public"."task_tag" ADD CONSTRAINT "task_tag_taskId_fkey" FOREIGN KEY ("taskId") REFERENCES "public"."task"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."TaskTag" ADD CONSTRAINT "TaskTag_tagId_fkey" FOREIGN KEY ("tagId") REFERENCES "public"."Tag"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "public"."task_tag" ADD CONSTRAINT "task_tag_tagId_fkey" FOREIGN KEY ("tagId") REFERENCES "public"."tag"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."TaskLog" ADD CONSTRAINT "TaskLog_taskId_fkey" FOREIGN KEY ("taskId") REFERENCES "public"."Task"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "public"."task_log" ADD CONSTRAINT "task_log_taskId_fkey" FOREIGN KEY ("taskId") REFERENCES "public"."task"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."TaskLog" ADD CONSTRAINT "TaskLog_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."UserProfile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."task_log" ADD CONSTRAINT "task_log_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."user_profile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."Notification" ADD CONSTRAINT "Notification_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."UserProfile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "public"."notification" ADD CONSTRAINT "notification_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."user_profile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."Notification" ADD CONSTRAINT "Notification_taskId_fkey" FOREIGN KEY ("taskId") REFERENCES "public"."Task"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "public"."notification" ADD CONSTRAINT "notification_taskId_fkey" FOREIGN KEY ("taskId") REFERENCES "public"."task"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."CalendarEvent" ADD CONSTRAINT "CalendarEvent_taskId_fkey" FOREIGN KEY ("taskId") REFERENCES "public"."Task"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "public"."calendar_event" ADD CONSTRAINT "calendar_event_taskId_fkey" FOREIGN KEY ("taskId") REFERENCES "public"."task"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."CalendarEvent" ADD CONSTRAINT "CalendarEvent_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."UserProfile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "public"."calendar_event" ADD CONSTRAINT "calendar_event_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."user_profile"("id") ON DELETE CASCADE ON UPDATE CASCADE;

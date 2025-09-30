@@ -1,6 +1,12 @@
 import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
 import { TRPCProvider } from './components/TRPCProvider';
 import { AuthProvider } from '../lib/supabase/auth-context';
+
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'All-in-One Project',
@@ -14,7 +20,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang='en'>
-      <body>
+      <body className={inter.className}>
         <AuthProvider>
           <TRPCProvider>{children}</TRPCProvider>
         </AuthProvider>

@@ -3,13 +3,13 @@ import { User } from '@supabase/supabase-js';
 export type Database = {
   public: {
     Tables: {
-      user_profiles: {
+      UserProfile: {
         Row: {
           id: string;
           email: string;
           name: string | null;
           role: 'STAFF' | 'MANAGER' | 'HR_ADMIN';
-          departmentId: string | null;
+          departmentId: string;
           createdAt: string;
           updatedAt: string;
         };
@@ -18,7 +18,7 @@ export type Database = {
           email: string;
           name?: string | null;
           role?: 'STAFF' | 'MANAGER' | 'HR_ADMIN';
-          departmentId?: string | null;
+          departmentId: string;
           createdAt?: string;
           updatedAt?: string;
         };
@@ -27,7 +27,7 @@ export type Database = {
           email?: string;
           name?: string | null;
           role?: 'STAFF' | 'MANAGER' | 'HR_ADMIN';
-          departmentId?: string | null;
+          departmentId?: string;
           createdAt?: string;
           updatedAt?: string;
         };
@@ -48,7 +48,7 @@ export type Database = {
 };
 
 // Auth types
-export type UserProfile = Database['public']['Tables']['user_profiles']['Row'];
+export type UserProfile = Database['public']['Tables']['UserProfile']['Row'];
 export type UserRole = Database['public']['Enums']['UserRole'];
 export type TaskPriority = Database['public']['Enums']['TaskPriority'];
 export type TaskStatus = Database['public']['Enums']['TaskStatus'];

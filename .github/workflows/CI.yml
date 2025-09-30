@@ -1,0 +1,213 @@
+name: CI Pipeline
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+  actions: read
+  checks: write
+  security-events: write
+
+jobs:
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # type checking
+      - name: TypeScript Type Check
+        run: npx tsc --noEmit
+
+      # format checking
+      - name: Run Prettier Check
+        run: npm run format:check
+
+      # lint checking
+      - name: Run ESLint
+        run: npm run lint
+
+  base-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Run unit tests (Jest)
+      - name: Run Unit Tests
+        run: npm run test:unit -- --coverage
+
+      # Check if coverage file exists
+      - name: Check Coverage File
+        run: |
+          if [ ! -f ./coverage/lcov.info ]; then
+            echo "Coverage file not found!"
+            exit 1
+          fi
+
+      # # Upload coverage to Coveralls
+      # - uses: coverallsapp/github-action@v2
+      #   with:
+      #     github-token: ${{ secrets.GITHUB_TOKEN }}
+      #     path-to-lcov: ./coverage/lcov.info
+
+      # # Comment Coverage URL on PR
+      # - name: Comment Coverage URL
+      #   if: github.event_name == 'pull_request'
+      #   uses: actions/github-script@v7
+      #   with:
+      #     github-token: ${{ secrets.GITHUB_TOKEN }}
+      #     script: |
+      #       const result = JSON.parse('${{ steps.coveralls.outputs.coveralls-api-result }}');
+      #       const jobUrl = result.url || `https://coveralls.io/jobs/${result.id}`;
+      #       github.rest.issues.createComment({
+      #         issue_number: context.issue.number,
+      #         owner: context.repo.owner,
+      #         repo: context.repo.repo,
+      #         body: `📊 **Coverage Report**: ${jobUrl}`
+      #       })
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # check dependcy vulnerability
+      - name: Run npm audit
+        run: npm audit --audit-level=high
+
+      # Secrets leak detection
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_COMMENTS: true
+          GITLEAKS_ENABLE_SUMMARY: true
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: true
+        with:
+          args: --source=. --verbose --redact --report-format=sarif --report-path=results.sarif
+
+      # SAST (Static Application Security Testing)
+      # done by codeQL default
+
+  staging-deploy:
+    name: Staging Deployment
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: Preview
+    needs: [code-quality, base-tests, security] # Now this will work!
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        # Dont install husky to avoid build error
+        env:
+          HUSKY: 0
+        run: |
+          npm ci
+          npm install --save-dev @types/react
+
+      - name: Build check
+        env:
+          NEXT_PUBLIC_API_EXTERNAL_URL: ${{ secrets.NEXT_PUBLIC_API_EXTERNAL_URL }}
+          NEXT_PUBLIC_ANON_KEY: ${{ secrets.NEXT_PUBLIC_ANON_KEY }}
+        run: npm run build
+
+      - name: Reset and migrate staging database
+        env:
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+        run: |
+          npx prisma migrate reset --force --skip-seed
+          npx prisma migrate deploy
+
+      - name: Seed staging database
+        env:
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+        run: npx prisma db seed
+
+      - name: Run integration tests
+        env:
+          NEXT_PUBLIC_API_EXTERNAL_URL: ${{ secrets.NEXT_PUBLIC_API_EXTERNAL_URL }}
+          NEXT_PUBLIC_ANON_KEY: ${{ secrets.NEXT_PUBLIC_ANON_KEY }}
+          SERVICE_ROLE_KEY: ${{ secrets.SERVICE_ROLE_KEY }}
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+        run: npm run test:integration
+
+      - name: Deploy to Vercel Preview
+        id: vercel-deploy
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          npx vercel --token $VERCEL_TOKEN --prod=false --yes > deployment-url.txt
+          echo "VERCEL_URL=$(cat deployment-url.txt | grep -o 'https://[^[:space:]]*')" >> $GITHUB_OUTPUT
+
+      - name: Comment PR with preview URL
+        if: github.event_name == 'pull_request' && steps.vercel-deploy.outcome == 'success'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const deploymentUrl = '${{ steps.vercel-deploy.outputs.VERCEL_URL }}';
+            const comment = `🚀 **Staging Preview Deployed!**
+
+            Preview URL: ${deploymentUrl}
+
+            ✅ Database migration completed
+            ✅ Integration tests passed
+            ✅ Vercel preview deployed
+
+            The preview will be available at the URL above.`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });

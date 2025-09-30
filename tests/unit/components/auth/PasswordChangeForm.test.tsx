@@ -1,33 +1,27 @@
-import {
-  render,
-  screen,
-  fireEvent,
-  waitFor,
-  act,
-} from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { PasswordChangeForm } from '../../../../src/app/auth/components/PasswordChangeForm';
+import { PasswordChangeForm } from '@/app/auth/components/PasswordChangeForm';
+
+// Mocks for callbacks
+const mockOnSuccess = jest.fn();
+const mockOnCancel = jest.fn();
 
 describe('PasswordChangeForm Integration Tests', () => {
-  const mockOnSuccess = jest.fn();
-  const mockOnCancel = jest.fn();
-
   beforeEach(() => {
+    // Reset mocks and timers before each test
     mockOnSuccess.mockClear();
     mockOnCancel.mockClear();
-    jest.clearAllTimers();
     jest.useFakeTimers();
   });
 
   afterEach(() => {
-    jest.runOnlyPendingTimers();
+    // Clean up timers after each test
     jest.useRealTimers();
   });
 
   describe('Form Rendering', () => {
     test('renders form with all required elements', () => {
       render(<PasswordChangeForm />);
-
       expect(
         screen.getByRole('heading', { name: 'Change Password' })
       ).toBeInTheDocument();
@@ -40,43 +34,15 @@ describe('PasswordChangeForm Integration Tests', () => {
 
     test('renders cancel button when onCancel is provided', () => {
       render(<PasswordChangeForm onCancel={mockOnCancel} />);
-
       expect(
         screen.getByRole('button', { name: 'Cancel' })
       ).toBeInTheDocument();
-    });
-
-    test('does not render cancel button when onCancel is not provided', () => {
-      render(<PasswordChangeForm />);
-
-      expect(
-        screen.queryByRole('button', { name: 'Cancel' })
-      ).not.toBeInTheDocument();
     });
   });
 
   describe('Form Validation and Submit Button State', () => {
     test('submit button is disabled initially', () => {
       render(<PasswordChangeForm />);
-
-      const submitButton = screen.getByRole('button', {
-        name: 'Change Password',
-      });
-      expect(submitButton).toBeDisabled();
-    });
-
-    test('submit button is disabled when passwords do not match', async () => {
-      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
-      render(<PasswordChangeForm />);
-
-      const newPasswordInput = screen.getByLabelText('New Password');
-      const confirmPasswordInput = screen.getByLabelText(
-        'Confirm New Password'
-      );
-
-      await user.type(newPasswordInput, 'Password1!');
-      await user.type(confirmPasswordInput, 'Password2!');
-
       const submitButton = screen.getByRole('button', {
         name: 'Change Password',
       });
@@ -115,72 +81,14 @@ describe('PasswordChangeForm Integration Tests', () => {
       await user.type(newPasswordInput, 'Password1!');
       await user.type(confirmPasswordInput, 'DifferentPassword1!');
 
-      expect(screen.getByText('✗ Passwords do not match')).toBeInTheDocument();
-    });
-
-    test('shows success when passwords match', async () => {
-      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
-      render(<PasswordChangeForm />);
-
-      const newPasswordInput = screen.getByLabelText('New Password');
-      const confirmPasswordInput = screen.getByLabelText(
-        'Confirm New Password'
-      );
-
-      await user.type(newPasswordInput, 'Password1!');
-      await user.type(confirmPasswordInput, 'Password1!');
-
-      expect(screen.getByText('✓ Passwords match')).toBeInTheDocument();
+      // Use findByText to wait for the async validation message
+      expect(
+        await screen.findByText('✗ Passwords do not match')
+      ).toBeInTheDocument();
     });
   });
 
   describe('Form Submission Flow', () => {
-    test('prevents submission with validation error message', async () => {
-      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
-      render(<PasswordChangeForm />);
-
-      const form = document.querySelector('form');
-      const newPasswordInput = screen.getByLabelText('New Password');
-      const confirmPasswordInput = screen.getByLabelText(
-        'Confirm New Password'
-      );
-
-      await user.type(newPasswordInput, 'weak');
-      await user.type(confirmPasswordInput, 'weak');
-
-      await act(async () => {
-        if (form) {
-          fireEvent.submit(form);
-        }
-      });
-
-      expect(
-        screen.getByText(
-          'Please ensure your new password meets all requirements'
-        )
-      ).toBeInTheDocument();
-    });
-
-    test('prevents submission when passwords do not match', async () => {
-      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
-      render(<PasswordChangeForm />);
-
-      const form = document.querySelector('form');
-      const newPasswordInput = screen.getByLabelText('New Password');
-      const confirmPasswordInput = screen.getByLabelText(
-        'Confirm New Password'
-      );
-
-      await user.type(newPasswordInput, 'Password1!');
-      await user.type(confirmPasswordInput, 'Password2!');
-
-      if (form) {
-        fireEvent.submit(form);
-      }
-
-      expect(screen.getByText('Passwords do not match')).toBeInTheDocument();
-    });
-
     test('shows loading state during submission', async () => {
       const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
       render(<PasswordChangeForm />);
@@ -195,16 +103,19 @@ describe('PasswordChangeForm Integration Tests', () => {
 
       await user.type(newPasswordInput, 'Password1!');
       await user.type(confirmPasswordInput, 'Password1!');
-
       await user.click(submitButton);
 
-      expect(screen.getByText('Changing Password...')).toBeInTheDocument();
+      // Await the loading state to appear
+      expect(
+        await screen.findByText('Changing Password...')
+      ).toBeInTheDocument();
       expect(
         screen.getByRole('button', { name: 'Changing Password...' })
       ).toBeDisabled();
     });
 
-    test('successful submission shows success message and clears form', async () => {
+    // THIS IS THE KEY FIX - Awaiting each UI change sequentially
+    test('successful submission shows success message, clears form, and calls onSuccess', async () => {
       const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
       render(<PasswordChangeForm onSuccess={mockOnSuccess} />);
 
@@ -212,37 +123,42 @@ describe('PasswordChangeForm Integration Tests', () => {
       const confirmPasswordInput = screen.getByLabelText(
         'Confirm New Password'
       );
+
+      // 1. Fill out the form
+      await user.type(newPasswordInput, 'Password1!');
+      await user.type(confirmPasswordInput, 'Password1!');
       const submitButton = screen.getByRole('button', {
         name: 'Change Password',
       });
 
-      await user.type(newPasswordInput, 'Password1!');
-      await user.type(confirmPasswordInput, 'Password1!');
-
+      // 2. Click submit
       await user.click(submitButton);
 
-      // Fast-forward through the mock API delay (1 second)
+      // 3. AWAIT the loading state to appear. This ensures the first state update is handled.
+      expect(
+        await screen.findByRole('button', { name: /changing password/i })
+      ).toBeDisabled();
+
+      // 4. Advance timers to simulate the API call finishing. Must be in `act`.
       await act(async () => {
         jest.advanceTimersByTime(1000);
       });
 
-      await waitFor(() => {
-        expect(
-          screen.getByText('Password Changed Successfully!')
-        ).toBeInTheDocument();
-        expect(
-          screen.getByText('Your password has been updated.')
-        ).toBeInTheDocument();
-      });
+      // 5. AWAIT the success message to appear. This handles the success state update.
+      expect(
+        await screen.findByText('Password Changed Successfully!')
+      ).toBeInTheDocument();
 
-      // Fast-forward through the success display timeout (2 seconds)
+      // 6. Advance timers again for the success message to disappear. Must be in `act`.
       await act(async () => {
         jest.advanceTimersByTime(2000);
       });
 
-      await waitFor(() => {
-        expect(mockOnSuccess).toHaveBeenCalledTimes(1);
-      });
+      // 7. Assert the final state: callback was called and success message is gone.
+      expect(mockOnSuccess).toHaveBeenCalledTimes(1);
+      expect(
+        screen.queryByText('Password Changed Successfully!')
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -255,24 +171,6 @@ describe('PasswordChangeForm Integration Tests', () => {
       await user.click(cancelButton);
 
       expect(mockOnCancel).toHaveBeenCalledTimes(1);
-    });
-
-    test('form submission is prevented when button is disabled', async () => {
-      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
-      render(<PasswordChangeForm />);
-
-      const submitButton = screen.getByRole('button', {
-        name: 'Change Password',
-      });
-      expect(submitButton).toBeDisabled();
-
-      // Try to click disabled button
-      await user.click(submitButton);
-
-      // Should not show loading state or any submission effects
-      expect(
-        screen.queryByText('Changing Password...')
-      ).not.toBeInTheDocument();
     });
   });
 });

@@ -1,3 +1,6 @@
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+require('dotenv').config({ path: './.env' });
+
 import '@testing-library/jest-dom';
 import { TextEncoder, TextDecoder } from 'util';
 global.TextEncoder = TextEncoder;
