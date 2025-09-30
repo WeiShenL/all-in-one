@@ -59,26 +59,24 @@ jobs:
         run: npm ci
 
       # Run unit tests (Jest)
-      # - name: Run Unit Tests
-      #   env:
-      #     DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
-      #   run: npm run test:ci
+      - name: Run Unit Tests
+        run: npm run test:unit
 
       # Check if coverage file exists
-      # - name: Check Coverage File
-      #   run: |
-      #     if [ ! -f ./coverage/lcov.info ]; then
-      #       echo "Coverage file not found!"
-      #       exit 1
-      #     fi
+      - name: Check Coverage File
+        run: |
+          if [ ! -f ./coverage/lcov.info ]; then
+            echo "Coverage file not found!"
+            exit 1
+          fi
 
-      # # Upload coverage to Codecov
-      # - name: Upload coverage to Codecov
-      #   uses: codecov/codecov-action@v3
-      #   with:
-      #     file: ./coverage/lcov.info
-      #     flags: unittests
-      #     name: codecov-umbrella
+      # Upload coverage to Codecov
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage/lcov.info
+          flags: unittests
+          name: codecov-umbrella
 
   security:
     name: Security Scan
@@ -153,10 +151,10 @@ jobs:
         run: npx prisma migrate deploy
 
       # need add script for integration test. To aboid scope creep, this will be done in another sprint together with E2E testing
-      # - name: Run integration tests
-      #   env:
-      #     DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
-      #   run: npm run test:integration
+      - name: Run integration tests
+        env:
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+        run: npm run test:integration
 
       - name: Deploy to Vercel Preview
         id: vercel-deploy
