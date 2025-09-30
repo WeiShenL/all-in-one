@@ -1,4 +1,4 @@
-import { validateEmail } from '../emailValidation';
+import { validateEmail } from '../../../src/app/lib/emailValidation';
 
 describe('Email Validation', () => {
   describe('Valid emails', () => {

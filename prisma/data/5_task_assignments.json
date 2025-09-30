@@ -1,20 +1,20 @@
 [
   {
-    "id": "assign-001",
     "taskId": "task-001",
     "userId": "user-manager-001",
-    "createdAt": "2025-01-05T00:00:00.000Z"
+    "assignedById": "user-manager-001",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
   },
   {
-    "id": "assign-002",
     "taskId": "task-002",
     "userId": "user-staff-001",
-    "createdAt": "2025-01-06T00:00:00.000Z"
+    "assignedById": "user-manager-001",
+    "assignedAt": "2025-01-06T00:00:00.000Z"
   },
   {
-    "id": "assign-003",
     "taskId": "task-003",
     "userId": "user-hradmin-001",
-    "createdAt": "2025-01-07T00:00:00.000Z"
+    "assignedById": "user-manager-001",
+    "assignedAt": "2025-01-07T00:00:00.000Z"
   }
 ]

@@ -1,6 +1,6 @@
 // integrate jest with next.js
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const nextJest = require('next/jest');
+
+import nextJest from 'next/jest.js';
 const createJestConfig = nextJest({
   dir: './',
 });
@@ -8,12 +8,13 @@ const createJestConfig = nextJest({
 const customJestConfig = {
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
 
-  // jsdom env for testing react components
+  // Default test environment for React components
   testEnvironment: 'jest-environment-jsdom',
 
   // path mapping to match tsconfig.json paths
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    '^@tests/(.*)$': '<rootDir>/tests/$1',
   },
 
   // Coverage configuration
@@ -25,11 +26,15 @@ const customJestConfig = {
   coverageReporters: ['text', 'lcov', 'html'],
   coverageDirectory: 'coverage',
 
-  // Test file patterns
+  // Test file patterns - including new tests structure
   testMatch: [
+    '<rootDir>/tests/**/*.{test,spec}.{js,jsx,ts,tsx}',
     '<rootDir>/src/**/__tests__/**/*.{js,jsx,ts,tsx}',
     '<rootDir>/src/**/*.{test,spec}.{js,jsx,ts,tsx}',
   ],
+
+  // Default environment (jsdom for React components)
+  testEnvironment: 'jest-environment-jsdom',
 };
 
-module.exports = createJestConfig(customJestConfig);
+export default createJestConfig(customJestConfig);
