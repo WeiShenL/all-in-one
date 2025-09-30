@@ -1,7 +1,12 @@
 name: Production Deployment
 
+# revert back after test
+# on:
+#   push:
+#     branches: [main]
+
 on:
-  push:
+  pull_request:
     branches: [main]
 
 permissions:
