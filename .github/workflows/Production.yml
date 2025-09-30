@@ -51,8 +51,9 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          npx vercel --token $VERCEL_TOKEN --prod=true --yes > deployment-url.txt
-          echo "VERCEL_URL=$(cat deployment-url.txt | grep -o 'https://[^[:space:]]*')" >> $GITHUB_OUTPUT
+          npx vercel --token $VERCEL_TOKEN --prod=true --yes
+          PROD_DOMAIN=$(npx vercel ls --token $VERCEL_TOKEN --prod | grep -E '^\s+Production' | awk '{print $2}')
+          echo "VERCEL_URL=https://${PROD_DOMAIN}" >> $GITHUB_OUTPUT
 
       - name: Notify deployment success
         if: steps.vercel-deploy.outcome == 'success'
