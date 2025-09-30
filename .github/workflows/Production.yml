@@ -1,0 +1,68 @@
+name: Production Deployment
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read # Read repository contents
+  actions: read # Read workflow run status
+  checks: write # Update check status
+
+jobs:
+  production-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: Production # This tells GitHub to use the Production environment secrets
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        # Dont install husky to avoid build error
+        env:
+          HUSKY: 0
+        run: |
+          npm ci
+          npm install --save-dev @types/react
+
+      - name: Run database migration to production
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npx prisma migrate deploy
+
+      - name: Deploy to Vercel Production
+        id: vercel-deploy
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          npx vercel --token $VERCEL_TOKEN --prod=true --yes
+
+      - name: Notify deployment success
+        if: steps.vercel-deploy.outcome == 'success'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const deploymentUrl = '${{ steps.vercel-deploy.outputs.VERCEL_URL }}';
+            console.log(`🚀 Production deployment successful!`);
+            console.log(`Production URL: https://all-in-one-wheat-omega.vercel.app/`);
+            console.log(`✅ Database migration completed`);
+            console.log(`✅ Vercel production deployed`);
+
+      - name: Notify deployment failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            console.log(`❌ Production deployment failed!`);
+            console.log(`Please check the workflow logs for details.`);
+            core.setFailed('Production deployment failed');
