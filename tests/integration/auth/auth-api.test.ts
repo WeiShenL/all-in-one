@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { Client } from 'pg';
 
-const TEST_USER_EMAIL = 'login-test@example.com';
+const TEST_USER_EMAIL = 'hameedzr.2023@scis.edu.sg';
 const TEST_USER_PASSWORD = 'Test123!@#';
 
 describe('Login Integration Tests', () => {
@@ -59,14 +59,6 @@ describe('Login Integration Tests', () => {
       expect(signupError).toBeNull();
       expect(signupData.user).toBeTruthy();
 
-      // ⭐ ADD THIS: Confirm email for staging environment
-      if (signupData.user?.id) {
-        await pgClient.query(
-          'UPDATE auth.users SET email_confirmed_at = NOW() WHERE id = $1',
-          [signupData.user.id]
-        );
-      }
-
       // Sign out to prepare for login test
       await supabaseClient.auth.signOut();
 
@@ -95,19 +87,10 @@ describe('Login Integration Tests', () => {
 
     it('should return session with correct token', async () => {
       // Create test user
-      const { data: signupData } = await supabaseClient.auth.signUp({
+      await supabaseClient.auth.signUp({
         email: TEST_USER_EMAIL,
         password: TEST_USER_PASSWORD,
       });
-
-      // ⭐ ADD THIS: Confirm email for staging environment
-      if (signupData.user?.id) {
-        await pgClient.query(
-          'UPDATE auth.users SET email_confirmed_at = NOW() WHERE id = $1',
-          [signupData.user.id]
-        );
-      }
-
       await supabaseClient.auth.signOut();
 
       // Login
@@ -125,7 +108,7 @@ describe('Login Integration Tests', () => {
 
     it('should fetch user profile after login', async () => {
       // Create test user with metadata
-      const { data: signupData } = await supabaseClient.auth.signUp({
+      await supabaseClient.auth.signUp({
         email: TEST_USER_EMAIL,
         password: TEST_USER_PASSWORD,
         options: {
@@ -134,15 +117,6 @@ describe('Login Integration Tests', () => {
           },
         },
       });
-
-      // ⭐ ADD THIS: Confirm email for staging environment
-      if (signupData.user?.id) {
-        await pgClient.query(
-          'UPDATE auth.users SET email_confirmed_at = NOW() WHERE id = $1',
-          [signupData.user.id]
-        );
-      }
-
       await supabaseClient.auth.signOut();
 
       // Login
@@ -178,19 +152,10 @@ describe('Login Integration Tests', () => {
 
     it('should fail with incorrect password', async () => {
       // Create test user
-      const { data: signupData } = await supabaseClient.auth.signUp({
+      await supabaseClient.auth.signUp({
         email: TEST_USER_EMAIL,
         password: TEST_USER_PASSWORD,
       });
-
-      // ⭐ ADD THIS: Confirm email for staging environment
-      if (signupData.user?.id) {
-        await pgClient.query(
-          'UPDATE auth.users SET email_confirmed_at = NOW() WHERE id = $1',
-          [signupData.user.id]
-        );
-      }
-
       await supabaseClient.auth.signOut();
 
       // Attempt login with wrong password
@@ -231,19 +196,10 @@ describe('Login Integration Tests', () => {
   describe('Session management', () => {
     it('should retrieve existing session after login', async () => {
       // Create and login test user
-      const { data: signupData } = await supabaseClient.auth.signUp({
+      await supabaseClient.auth.signUp({
         email: TEST_USER_EMAIL,
         password: TEST_USER_PASSWORD,
       });
-
-      // ⭐ ADD THIS: Confirm email for staging environment
-      if (signupData.user?.id) {
-        await pgClient.query(
-          'UPDATE auth.users SET email_confirmed_at = NOW() WHERE id = $1',
-          [signupData.user.id]
-        );
-      }
-
       await supabaseClient.auth.signOut();
       await supabaseClient.auth.signInWithPassword({
         email: TEST_USER_EMAIL,
@@ -269,19 +225,10 @@ describe('Login Integration Tests', () => {
 
     it('should clear session after logout', async () => {
       // Create and login test user
-      const { data: signupData } = await supabaseClient.auth.signUp({
+      await supabaseClient.auth.signUp({
         email: TEST_USER_EMAIL,
         password: TEST_USER_PASSWORD,
       });
-
-      // ⭐ ADD THIS: Confirm email for staging environment
-      if (signupData.user?.id) {
-        await pgClient.query(
-          'UPDATE auth.users SET email_confirmed_at = NOW() WHERE id = $1',
-          [signupData.user.id]
-        );
-      }
-
       await supabaseClient.auth.signOut();
       await supabaseClient.auth.signInWithPassword({
         email: TEST_USER_EMAIL,
@@ -307,18 +254,10 @@ describe('Login Integration Tests', () => {
 
   describe('User role assignment', () => {
     it('should assign default STAFF role to new users', async () => {
-      const { data: signupData } = await supabaseClient.auth.signUp({
+      await supabaseClient.auth.signUp({
         email: TEST_USER_EMAIL,
         password: TEST_USER_PASSWORD,
       });
-
-      // ⭐ ADD THIS: Confirm email for staging environment
-      if (signupData.user?.id) {
-        await pgClient.query(
-          'UPDATE auth.users SET email_confirmed_at = NOW() WHERE id = $1',
-          [signupData.user.id]
-        );
-      }
 
       const profileResult = await pgClient.query(
         'SELECT role FROM public."user_profile" WHERE email = $1',
@@ -334,14 +273,6 @@ describe('Login Integration Tests', () => {
         email: TEST_USER_EMAIL,
         password: TEST_USER_PASSWORD,
       });
-
-      // ⭐ ADD THIS: Confirm email for staging environment
-      if (signupData.user?.id) {
-        await pgClient.query(
-          'UPDATE auth.users SET email_confirmed_at = NOW() WHERE id = $1',
-          [signupData.user.id]
-        );
-      }
 
       await pgClient.query(
         'UPDATE public."user_profile" SET role = $1 WHERE id = $2',
