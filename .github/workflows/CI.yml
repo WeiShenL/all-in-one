@@ -60,7 +60,7 @@ jobs:
 
       # Run unit tests (Jest)
       - name: Run Unit Tests
-        run: npm run test:unit
+        run: npm run test:unit -- --coverage
 
       # Check if coverage file exists
       - name: Check Coverage File
@@ -70,13 +70,11 @@ jobs:
             exit 1
           fi
 
-      # Upload coverage to Codecov
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+      # Upload coverage to Coveralls
+      - uses: coverallsapp/github-action@v2
         with:
-          file: ./coverage/lcov.info
-          flags: unittests
-          name: codecov-umbrella
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: ./coverage/lcov.info
 
   security:
     name: Security Scan
