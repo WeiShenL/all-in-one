@@ -7,7 +7,7 @@ BEGIN
     BEGIN
       -- Note: departmentId is required but we need a default department
       -- First ensure a default department exists
-      INSERT INTO public."Department" (id, name, "isActive", "createdAt", "updatedAt")
+      INSERT INTO public."department" (id, name, "isActive", "createdAt", "updatedAt")
       VALUES (
         'default-dept-id',
         'Default Department',
@@ -18,13 +18,13 @@ BEGIN
       ON CONFLICT (id) DO NOTHING;
 
       -- Insert new user profile
-      INSERT INTO public."UserProfile" (id, email, name, role, "departmentId", "createdAt", "updatedAt")
+      INSERT INTO public."user_profile" (id, email, name, role, "departmentId", "createdAt", "updatedAt")
       VALUES (
         NEW.id,
         NEW.email,
         COALESCE(NEW.raw_user_meta_data->>'name', ''),
-        'STAFF',
-        'default-dept-id',
+        COALESCE(NEW.raw_user_meta_data->>'role', 'STAFF')::public."UserRole",
+        COALESCE(NEW.raw_user_meta_data->>'departmentId', 'default-dept-id'),
         NOW(),
         NOW()
       )

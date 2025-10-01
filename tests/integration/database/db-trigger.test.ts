@@ -2,7 +2,7 @@ import { Client } from 'pg';
 
 const TEST_USER_ID = '123e4567-e89b-12d3-a456-426614174000';
 
-describe('Postgres trigger for public."UserProfile"', () => {
+describe('Postgres trigger for public."user_profile"', () => {
   let client: Client;
 
   beforeAll(async () => {
@@ -16,13 +16,13 @@ describe('Postgres trigger for public."UserProfile"', () => {
 
   afterEach(async () => {
     // Clean up test records if they exist
-    await client.query('DELETE FROM public."UserProfile" WHERE id = $1', [
+    await client.query('DELETE FROM public."user_profile" WHERE id = $1', [
       TEST_USER_ID,
     ]);
     await client.query('DELETE FROM auth.users WHERE id = $1', [TEST_USER_ID]);
   });
 
-  it('should sync new auth user into public."UserProfile"', async () => {
+  it('should sync new auth user into public."user_profile"', async () => {
     await client.query(
       `
     INSERT INTO auth.users (id, email, raw_user_meta_data)
@@ -32,7 +32,7 @@ describe('Postgres trigger for public."UserProfile"', () => {
     );
 
     const result = await client.query(
-      'SELECT * FROM public."UserProfile" WHERE id = $1',
+      'SELECT * FROM public."user_profile" WHERE id = $1',
       [TEST_USER_ID]
     );
 

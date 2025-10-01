@@ -1,176 +1,468 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { PasswordInput } from '../components/PasswordInput';
 import { EmailInput } from '../components/EmailInput';
+import { DepartmentSelect } from '../components/DepartmentSelect';
 import { validatePassword } from '../../lib/passwordValidation';
 import { validateEmail } from '../../lib/emailValidation';
+import { useAuth } from '@/lib/supabase/auth-context';
+import { trpc } from '@/app/lib/trpc';
 
 export default function SignupPage() {
+  const router = useRouter();
+  const { signUp, user, userProfile, loading: authLoading } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     confirmPassword: '',
     name: '',
+    role: 'STAFF' as 'STAFF' | 'MANAGER' | 'HR_ADMIN',
+    departmentId: '',
   });
+  const [error, setError] = useState<string>('');
+  const [loading, setLoading] = useState(false);
 
   const passwordValidation = validatePassword(formData.password);
   const emailValidation = validateEmail(formData.email);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Load departments using tRPC
+  const { data: departments = [] } = trpc.department.getAll.useQuery();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!authLoading && user && userProfile) {
+      const roleRoutes = {
+        STAFF: '/dashboard/staff',
+        MANAGER: '/dashboard/manager',
+        HR_ADMIN: '/dashboard/hr',
+      };
+      router.push(roleRoutes[userProfile.role]);
+    }
+  }, [user, userProfile, authLoading, router]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
 
     if (!emailValidation.isValid) {
-      alert('Please enter a valid email address');
+      setError('Please enter a valid email address');
       return;
     }
 
     if (!passwordValidation.isValid) {
-      alert('Please fix password validation errors before submitting');
+      setError('Please fix password validation errors before submitting');
       return;
     }
 
     if (formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match');
+      setError('Passwords do not match');
       return;
     }
 
-    alert(
-      'Password validation passed! (Supabase integration will be added later)'
-    );
+    if (!formData.departmentId) {
+      setError('Please select a department');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { error: signUpError } = await signUp(
+        formData.email,
+        formData.password,
+        {
+          name: formData.name || undefined,
+          role: formData.role,
+          departmentId: formData.departmentId,
+        }
+      );
+
+      if (signUpError) {
+        setError(
+          typeof signUpError === 'string'
+            ? signUpError
+            : (signUpError as Error).message || 'Failed to create account'
+        );
+        setLoading(false);
+        return;
+      }
+
+      // Success - auth context will handle redirect
+    } catch {
+      setError('An unexpected error occurred. Please try again.');
+      setLoading(false);
+    }
   };
 
+  if (authLoading) {
+    return (
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+        }}
+      >
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
   return (
-    <div style={{ maxWidth: '400px', margin: '2rem auto', padding: '2rem' }}>
-      <h1 style={{ textAlign: 'center', marginBottom: '2rem' }}>
-        Create Account
-      </h1>
-
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '1rem' }}>
-          <label
-            style={{
-              display: 'block',
-              marginBottom: '0.5rem',
-              fontWeight: 'bold',
-            }}
-          >
-            Name
-          </label>
-          <input
-            type='text'
-            value={formData.name}
-            onChange={e => setFormData({ ...formData, name: e.target.value })}
-            placeholder='Enter your name'
-            style={{
-              width: '100%',
-              padding: '0.75rem',
-              border: '2px solid #ccc',
-              borderRadius: '4px',
-              fontSize: '1rem',
-            }}
-          />
-        </div>
-
-        <EmailInput
-          value={formData.email}
-          onChange={value => setFormData({ ...formData, email: value })}
-          label='Email'
-          placeholder='Enter your email'
-          required
-        />
-
-        <PasswordInput
-          value={formData.password}
-          onChange={value => setFormData({ ...formData, password: value })}
-          label='Password'
-          placeholder='Create a password'
-        />
-
-        <div style={{ marginBottom: '1rem' }}>
-          <label
-            style={{
-              display: 'block',
-              marginBottom: '0.5rem',
-              fontWeight: 'bold',
-            }}
-          >
-            Confirm Password
-          </label>
-          <input
-            type='password'
-            value={formData.confirmPassword}
-            onChange={e =>
-              setFormData({ ...formData, confirmPassword: e.target.value })
-            }
-            placeholder='Confirm your password'
-            style={{
-              width: '100%',
-              padding: '0.75rem',
-              border: `2px solid ${
-                formData.confirmPassword &&
-                formData.password === formData.confirmPassword
-                  ? 'green'
-                  : formData.confirmPassword &&
-                      formData.password !== formData.confirmPassword
-                    ? 'red'
-                    : '#ccc'
-              }`,
-              borderRadius: '4px',
-              fontSize: '1rem',
-            }}
-          />
-          {formData.confirmPassword &&
-            formData.password !== formData.confirmPassword && (
-              <div
-                style={{
-                  fontSize: '0.875rem',
-                  color: 'red',
-                  marginTop: '0.25rem',
-                }}
-              >
-                Passwords do not match
-              </div>
-            )}
-        </div>
-
-        <button
-          type='submit'
-          disabled={
-            !emailValidation.isValid ||
-            !passwordValidation.isValid ||
-            formData.password !== formData.confirmPassword
-          }
+    <div
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#f7fafc',
+        padding: '1rem',
+      }}
+    >
+      <div
+        style={{
+          maxWidth: '450px',
+          width: '100%',
+          padding: '2.5rem',
+          backgroundColor: '#ffffff',
+          borderRadius: '12px',
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+        }}
+      >
+        <h1
           style={{
-            width: '100%',
-            padding: '0.75rem',
-            backgroundColor:
-              emailValidation.isValid &&
-              passwordValidation.isValid &&
-              formData.password === formData.confirmPassword
-                ? '#007bff'
-                : '#ccc',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            fontSize: '1rem',
-            cursor:
-              emailValidation.isValid &&
-              passwordValidation.isValid &&
-              formData.password === formData.confirmPassword
-                ? 'pointer'
-                : 'not-allowed',
+            textAlign: 'center',
+            marginBottom: '0.5rem',
+            color: '#1a202c',
+            fontSize: '1.875rem',
+            fontWeight: '700',
           }}
         >
           Create Account
-        </button>
-      </form>
+        </h1>
+        <p
+          style={{
+            textAlign: 'center',
+            marginBottom: '2rem',
+            color: '#718096',
+            fontSize: '0.875rem',
+          }}
+        >
+          Sign up to get started
+        </p>
 
-      <div style={{ textAlign: 'center', marginTop: '1rem' }}>
-        <Link href='/' style={{ color: '#007bff', textDecoration: 'none' }}>
-          ← Back to Home
-        </Link>
+        {error && (
+          <div
+            style={{
+              backgroundColor: '#fed7d7',
+              border: '1px solid #fc8181',
+              borderRadius: '8px',
+              padding: '0.75rem',
+              marginBottom: '1rem',
+              color: '#c53030',
+              fontSize: '0.875rem',
+            }}
+          >
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: '1rem' }}>
+            <label
+              htmlFor='name'
+              style={{
+                display: 'block',
+                marginBottom: '0.5rem',
+                fontWeight: '600',
+                color: '#2d3748',
+                fontSize: '0.875rem',
+              }}
+            >
+              Name (Optional)
+            </label>
+            <input
+              id='name'
+              type='text'
+              value={formData.name}
+              onChange={e => setFormData({ ...formData, name: e.target.value })}
+              placeholder='Enter your name'
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                fontSize: '1rem',
+                transition: 'border-color 0.2s',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+              onFocus={e => (e.target.style.borderColor = '#3182ce')}
+              onBlur={e => (e.target.style.borderColor = '#e2e8f0')}
+            />
+          </div>
+
+          <EmailInput
+            value={formData.email}
+            onChange={value => {
+              setFormData({ ...formData, email: value });
+              setError('');
+            }}
+            label='Email'
+            placeholder='Enter your email'
+            required
+          />
+
+          <div style={{ marginBottom: '1rem' }}>
+            <label
+              htmlFor='role'
+              style={{
+                display: 'block',
+                marginBottom: '0.5rem',
+                fontWeight: '600',
+                color: '#2d3748',
+                fontSize: '0.875rem',
+              }}
+            >
+              Role
+            </label>
+            <select
+              id='role'
+              value={formData.role}
+              onChange={e =>
+                setFormData({
+                  ...formData,
+                  role: e.target.value as 'STAFF' | 'MANAGER' | 'HR_ADMIN',
+                })
+              }
+              required
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                fontSize: '1rem',
+                transition: 'border-color 0.2s',
+                outline: 'none',
+                boxSizing: 'border-box',
+                backgroundColor: '#ffffff',
+              }}
+              onFocus={e => (e.target.style.borderColor = '#3182ce')}
+              onBlur={e => (e.target.style.borderColor = '#e2e8f0')}
+            >
+              <option value='STAFF'>Staff</option>
+              <option value='MANAGER'>Manager</option>
+              <option value='HR_ADMIN'>HR Admin</option>
+            </select>
+          </div>
+
+          <div style={{ marginBottom: '1rem' }}>
+            <label
+              htmlFor='department'
+              style={{
+                display: 'block',
+                marginBottom: '0.5rem',
+                fontWeight: '600',
+                color: '#2d3748',
+                fontSize: '0.875rem',
+              }}
+            >
+              Department
+            </label>
+            <DepartmentSelect
+              departments={departments}
+              value={formData.departmentId}
+              onChange={value =>
+                setFormData({ ...formData, departmentId: value })
+              }
+              required
+            />
+          </div>
+
+          <PasswordInput
+            value={formData.password}
+            onChange={value => {
+              setFormData({ ...formData, password: value });
+              setError('');
+            }}
+            label='Password'
+            placeholder='Create a password'
+          />
+
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label
+              htmlFor='confirmPassword'
+              style={{
+                display: 'block',
+                marginBottom: '0.5rem',
+                fontWeight: '600',
+                color: '#2d3748',
+                fontSize: '0.875rem',
+              }}
+            >
+              Confirm Password
+            </label>
+            <input
+              id='confirmPassword'
+              type='password'
+              value={formData.confirmPassword}
+              onChange={e =>
+                setFormData({ ...formData, confirmPassword: e.target.value })
+              }
+              placeholder='Confirm your password'
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                border: `1px solid ${
+                  formData.confirmPassword &&
+                  formData.password === formData.confirmPassword
+                    ? '#48bb78'
+                    : formData.confirmPassword &&
+                        formData.password !== formData.confirmPassword
+                      ? '#fc8181'
+                      : '#e2e8f0'
+                }`,
+                borderRadius: '8px',
+                fontSize: '1rem',
+                transition: 'border-color 0.2s',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+              onFocus={e => {
+                if (
+                  !formData.confirmPassword ||
+                  formData.password === formData.confirmPassword
+                ) {
+                  e.target.style.borderColor = '#3182ce';
+                }
+              }}
+              onBlur={e => {
+                if (
+                  formData.confirmPassword &&
+                  formData.password === formData.confirmPassword
+                ) {
+                  e.target.style.borderColor = '#48bb78';
+                } else if (formData.confirmPassword) {
+                  e.target.style.borderColor = '#fc8181';
+                } else {
+                  e.target.style.borderColor = '#e2e8f0';
+                }
+              }}
+            />
+            {formData.confirmPassword &&
+              formData.password !== formData.confirmPassword && (
+                <div
+                  style={{
+                    fontSize: '0.875rem',
+                    color: '#c53030',
+                    marginTop: '0.25rem',
+                  }}
+                >
+                  Passwords do not match
+                </div>
+              )}
+          </div>
+
+          <button
+            type='submit'
+            disabled={
+              !emailValidation.isValid ||
+              !passwordValidation.isValid ||
+              formData.password !== formData.confirmPassword ||
+              !formData.departmentId ||
+              loading
+            }
+            style={{
+              width: '100%',
+              padding: '0.875rem',
+              backgroundColor:
+                emailValidation.isValid &&
+                passwordValidation.isValid &&
+                formData.password === formData.confirmPassword &&
+                formData.departmentId &&
+                !loading
+                  ? '#48bb78'
+                  : '#cbd5e0',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '1rem',
+              fontWeight: '600',
+              cursor:
+                emailValidation.isValid &&
+                passwordValidation.isValid &&
+                formData.password === formData.confirmPassword &&
+                formData.departmentId &&
+                !loading
+                  ? 'pointer'
+                  : 'not-allowed',
+              transition: 'background-color 0.2s',
+            }}
+            onMouseEnter={e => {
+              if (
+                emailValidation.isValid &&
+                passwordValidation.isValid &&
+                formData.password === formData.confirmPassword &&
+                formData.departmentId &&
+                !loading
+              ) {
+                e.currentTarget.style.backgroundColor = '#38a169';
+              }
+            }}
+            onMouseLeave={e => {
+              if (
+                emailValidation.isValid &&
+                passwordValidation.isValid &&
+                formData.password === formData.confirmPassword &&
+                formData.departmentId &&
+                !loading
+              ) {
+                e.currentTarget.style.backgroundColor = '#48bb78';
+              }
+            }}
+          >
+            {loading ? 'Creating Account...' : 'Create Account'}
+          </button>
+        </form>
+
+        <div
+          style={{
+            textAlign: 'center',
+            marginTop: '1.5rem',
+            color: '#718096',
+            fontSize: '0.875rem',
+          }}
+        >
+          Already have an account?{' '}
+          <Link
+            href='/auth/login'
+            style={{
+              color: '#3182ce',
+              textDecoration: 'none',
+              fontWeight: '600',
+            }}
+          >
+            Sign In
+          </Link>
+        </div>
+
+        <div style={{ textAlign: 'center', marginTop: '0.75rem' }}>
+          <Link
+            href='/'
+            style={{
+              color: '#3182ce',
+              textDecoration: 'none',
+              fontSize: '0.875rem',
+              fontWeight: '500',
+            }}
+          >
+            ← Back to Home
+          </Link>
+        </div>
       </div>
     </div>
   );

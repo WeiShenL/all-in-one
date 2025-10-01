@@ -6,7 +6,7 @@
     "priority": "HIGH",
     "dueDate": "2025-06-30T00:00:00.000Z",
     "status": "ACTIVE",
-    "departmentId": "dept-001",
+    "departmentId": "dept-developers-001",
     "creatorId": "user-manager-001",
     "isArchived": false,
     "createdAt": "2025-01-01T00:00:00.000Z",

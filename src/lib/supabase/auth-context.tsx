@@ -8,7 +8,7 @@ import {
   useCallback,
 } from 'react';
 import { createClient } from './client';
-import type { AuthUser, UserProfile, UserRole, Database } from './types';
+import type { AuthUser, UserProfile, UserRole } from './types';
 import type { Session, AuthChangeEvent } from '@supabase/supabase-js';
 
 interface AuthContextType {
@@ -42,24 +42,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchUserProfile = useCallback(
     async (userId: string): Promise<UserProfile | null> => {
       try {
-        const { data, error } = await supabase
-          .from('user_profiles')
-          .select('*')
-          .eq('id', userId)
-          .single();
-
-        if (error) {
-          console.error('Error fetching user profile:', error);
-          return null;
+        // Call tRPC API endpoint via fetch
+        const response = await fetch(
+          `/api/trpc/userProfile.getById?input=${encodeURIComponent(JSON.stringify({ id: userId }))}`
+        );
+        if (!response.ok) {
+          throw new Error('Failed to fetch user profile');
         }
-
-        return data;
+        const data = await response.json();
+        return data.result.data;
       } catch (error) {
         console.error('Error fetching user profile:', error);
         return null;
       }
     },
-    [supabase]
+    []
   );
 
   const refreshProfile = async () => {
@@ -90,7 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setSession(initialSession);
         }
       } catch (error) {
-        console.error('Error initializing auth:', error);
+        console.error('[Auth Context] Error initializing auth:', error);
       } finally {
         setLoading(false);
       }
@@ -101,7 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(
-      async (event: AuthChangeEvent, session: Session | null) => {
+      async (_event: AuthChangeEvent, session: Session | null) => {
         setSession(session);
 
         if (session?.user) {
@@ -145,34 +142,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     userData?: Partial<UserProfile>
   ) => {
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          data: userData,
+        },
       });
 
       if (error) {
         return { error };
       }
 
-      // If user was created and userData provided, create profile
-      if (data.user && userData) {
-        const profileData: Database['public']['Tables']['user_profiles']['Insert'] =
-          {
-            id: data.user.id,
-            email: data.user.email!,
-            ...userData,
-          };
-
-        // Type assertion required - client may not be connecting to actual Supabase instance
-        // profileData is still fully type-checked above for security
-        const { error: profileError } =
-          await // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (supabase as any).from('user_profiles').insert(profileData);
-
-        if (profileError) {
-          console.error('Error creating user profile:', profileError);
-        }
-      }
+      // Profile will be automatically created by database trigger
+      // No need to manually insert into UserProfile table
 
       return { error: null };
     } catch (error) {
