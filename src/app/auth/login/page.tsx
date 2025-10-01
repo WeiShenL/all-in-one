@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/supabase/auth-context';
-
+// dummy commit
 export default function LoginPage() {
   const router = useRouter();
   const { signIn, user, userProfile, loading: authLoading } = useAuth();
