@@ -45,7 +45,12 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          npx vercel --token $VERCEL_TOKEN --prod=true --yes
+          npx vercel \
+            --token $VERCEL_TOKEN \
+            --org $VERCEL_ORG_ID \
+            --project $VERCEL_PROJECT_ID \
+            --prod=true \
+            --yes
 
       - name: Notify deployment success
         if: steps.vercel-deploy.outcome == 'success'
