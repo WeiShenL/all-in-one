@@ -190,6 +190,10 @@ jobs:
           npx vercel \
             --token $VERCEL_TOKEN \
             --prod=false \
+            --env NEXT_PUBLIC_API_EXTERNAL_URL=${{ secrets.NEXT_PUBLIC_API_EXTERNAL_URL }} \
+            --env NEXT_PUBLIC_ANON_KEY=${{ secrets.NEXT_PUBLIC_ANON_KEY }} \
+            --env SERVICE_ROLE_KEY=${{ secrets.SERVICE_ROLE_KEY }} \
+            --env DATABASE_URL=${{ secrets.STAGING_DATABASE_URL }}
             --yes > deployment-url.txt
           echo "VERCEL_URL=$(cat deployment-url.txt | grep -o 'https://[^[:space:]]*')" >> $GITHUB_OUTPUT
 
