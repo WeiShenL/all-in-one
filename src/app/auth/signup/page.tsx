@@ -45,6 +45,7 @@ export default function SignupPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.warn('🔍 Starting sign up...');
     setError('');
 
     if (!emailValidation.isValid) {
@@ -68,8 +69,13 @@ export default function SignupPage() {
     }
 
     setLoading(true);
+    console.warn('🔍 About to call signUp function');
 
     try {
+      console.warn('🔍 Calling signUp with:', {
+        email: formData.email,
+        role: formData.role,
+      });
       const { error: signUpError } = await signUp(
         formData.email,
         formData.password,
@@ -79,7 +85,7 @@ export default function SignupPage() {
           departmentId: formData.departmentId,
         }
       );
-
+      console.error('🔍 SignUp response:', { error: signUpError });
       if (signUpError) {
         setError(
           typeof signUpError === 'string'
@@ -89,9 +95,10 @@ export default function SignupPage() {
         setLoading(false);
         return;
       }
-
+      console.error('🔍 SignUp response:', { error: signUpError });
       // Success - auth context will handle redirect
-    } catch {
+    } catch (err) {
+      console.error('🔍 SignUp error:', err);
       setError('An unexpected error occurred. Please try again.');
       setLoading(false);
     }
