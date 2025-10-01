@@ -45,10 +45,9 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          npx vercel \
-            --token $VERCEL_TOKEN \
-            --prod=true \
-            --yes
+          # Pull environment variables and deploy in one go
+          npx vercel pull --yes --environment=production --token=$VERCEL_TOKEN
+          npx vercel deploy --prod --token=$VERCEL_TOKEN --yes
 
       - name: Notify deployment success
         if: steps.vercel-deploy.outcome == 'success'
