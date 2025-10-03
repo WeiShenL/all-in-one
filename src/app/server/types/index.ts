@@ -1,0 +1,139 @@
+/**
+ * Shared TypeScript types for the server layer
+ */
+
+// Department Types
+export interface DepartmentWithLevel {
+  id: string;
+  name: string;
+  parentId: string | null;
+  level: number;
+}
+
+export interface CreateDepartmentInput {
+  name: string;
+  parentId?: string;
+  managerId?: string;
+}
+
+export interface UpdateDepartmentInput {
+  name?: string;
+  parentId?: string | null;
+  managerId?: string | null;
+  isActive?: boolean;
+}
+
+// UserProfile Types
+export interface CreateUserProfileInput {
+  email: string;
+  name?: string;
+  role?: 'STAFF' | 'MANAGER' | 'HR_ADMIN';
+  departmentId: string;
+}
+
+export interface UpdateUserProfileInput {
+  email?: string;
+  name?: string;
+  role?: 'STAFF' | 'MANAGER' | 'HR_ADMIN';
+  departmentId?: string;
+  isActive?: boolean;
+}
+
+// Team Types
+export interface CreateTeamInput {
+  name: string;
+  description?: string;
+  departmentId: string;
+  leaderId?: string;
+}
+
+export interface UpdateTeamInput {
+  name?: string;
+  description?: string;
+  departmentId?: string;
+  leaderId?: string;
+  isActive?: boolean;
+}
+
+// Project Types
+export interface CreateProjectInput {
+  name: string;
+  description?: string;
+  priority?: 'LOW' | 'MEDIUM' | 'HIGH';
+  dueDate?: Date;
+  departmentId: string;
+  creatorId: string;
+}
+
+export interface UpdateProjectInput {
+  name?: string;
+  description?: string;
+  priority?: 'LOW' | 'MEDIUM' | 'HIGH';
+  dueDate?: Date;
+  status?: 'ACTIVE' | 'COMPLETED' | 'ON_HOLD' | 'CANCELLED';
+  isArchived?: boolean;
+}
+
+export interface ProjectFilters {
+  departmentId?: string;
+  creatorId?: string;
+  status?: 'ACTIVE' | 'COMPLETED' | 'ON_HOLD' | 'CANCELLED';
+  isArchived?: boolean;
+}
+
+// Task Types
+export interface CreateTaskInput {
+  title: string;
+  description: string;
+  priority?: 'LOW' | 'MEDIUM' | 'HIGH';
+  dueDate: Date;
+  ownerId: string;
+  departmentId: string;
+  projectId?: string;
+  parentTaskId?: string;
+}
+
+export interface UpdateTaskInput {
+  title?: string;
+  description?: string;
+  priority?: 'LOW' | 'MEDIUM' | 'HIGH';
+  dueDate?: Date;
+  status?: 'TO_DO' | 'IN_PROGRESS' | 'COMPLETED' | 'BLOCKED';
+  isArchived?: boolean;
+}
+
+export interface TaskFilters {
+  ownerId?: string;
+  projectId?: string;
+  departmentId?: string;
+  status?: 'TO_DO' | 'IN_PROGRESS' | 'COMPLETED' | 'BLOCKED';
+  isArchived?: boolean;
+  parentTaskId?: string;
+}
+
+// Comment Types
+export interface CreateCommentInput {
+  content: string;
+  taskId: string;
+  userId: string;
+}
+
+export interface UpdateCommentInput {
+  content: string;
+}
+
+// Notification Types
+export interface CreateNotificationInput {
+  userId: string;
+  type:
+    | 'TASK_ASSIGNED'
+    | 'TASK_UPDATED'
+    | 'COMMENT_ADDED'
+    | 'DEADLINE_REMINDER'
+    | 'TASK_OVERDUE'
+    | 'TASK_DELETED'
+    | 'TASK_REASSIGNED';
+  title: string;
+  message: string;
+  taskId?: string;
+}
