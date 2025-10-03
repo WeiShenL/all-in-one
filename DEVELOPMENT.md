@@ -445,15 +445,30 @@ all-in-one/
 │   ├── seed.ts            # Seed script
 │   ├── data/              # Seed data JSON files
 │   └── migrations/        # Migration history
-├── src/
-│   ├── app/              # Next.js app directory
-│   └── generated/        # Auto-generated Prisma Client
+├── src/app/
+│   ├── server/           # Backend API Layer
+│   │   ├── services/     # OOP Service Classes (business logic)
+│   │   ├── routers/      # tRPC routers (thin wrappers)
+│   │   ├── types/        # Shared TypeScript types
+│   │   └── trpc.ts       # tRPC configuration
+│   └── ...               # Next.js app directory
 ├── tests/                # Test suite organization
-│   ├── unit/             # Unit tests (components, utilities)
+│   ├── unit/             # Unit tests (components, utilities, services)
 │   ├── integration/      # Integration tests (database, API)
 │   └── e2e/             # End-to-end tests (future)
 ├── supabase/             # Supabase Docker configuration
+├── OOP.md                # OOP Architecture documentation
 └── .env.example          # Environment template
 ```
+
+### Backend Architecture (OOP)
+
+This project uses an **Object-Oriented Programming architecture** for the backend API layer:
+
+- **Service Layer** (`src/app/server/services/`): TypeScript classes encapsulating business logic
+- **Router Layer** (`src/app/server/routers/`): Thin tRPC wrappers delegating to services
+- **OOP Principles**: Encapsulation, Inheritance, Single Responsibility, Dependency Injection
+
+For complete architecture details, implementation guide, and examples, see [OOP.md](./OOP.md).
 
 You can start editing by modifying `src/app/page.tsx`. The page auto-updates as you edit.

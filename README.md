@@ -124,10 +124,23 @@ For more advanced database management and development practices, see [DEVELOPMEN
 ## 🛠️ Tech Stack
 
 - **Frontend**: Next.js 15 with TypeScript, App Router
-- **Backend**: Supabase (PostgreSQL, Auth, Storage, Realtime)
+- **Backend**: Supabase (PostgreSQL, Auth, Storage, Realtime), tRPC
+- **API Layer**: tRPC with OOP Service Architecture
 - **Database ORM**: Prisma
 - **Development**: Docker, Docker Compose
 - **Code Quality**: ESLint, Prettier, Husky pre-commit hooks
+
+## 🏗️ Architecture
+
+This project uses an **Object-Oriented Programming (OOP) architecture** for the backend:
+
+- **Service Layer Pattern**: Business logic encapsulated in TypeScript classes
+- **Full CRUD Operations**: Complete service classes for all entities
+- **OOP Principles**: Encapsulation, Inheritance, Single Responsibility, Dependency Injection
+- **tRPC Integration**: Thin router wrappers delegate to service classes
+- **Fully Tested**: Comprehensive unit and integration test coverage
+
+For detailed architecture documentation and implementation guide, see [OOP.md](./OOP.md).
 
 ## 🧪 Testing
 
