@@ -70,6 +70,7 @@ jobs:
             exit 1
           fi
 
+      # retrigger job
       # # Upload coverage to Coveralls
       # - uses: coverallsapp/github-action@v2
       #   with:
@@ -186,7 +187,8 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          npx vercel --token $VERCEL_TOKEN --prod=false --yes > deployment-url.txt
+          npx vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
+          npx vercel deploy --token=$VERCEL_TOKEN --yes > deployment-url.txt
           echo "VERCEL_URL=$(cat deployment-url.txt | grep -o 'https://[^[:space:]]*')" >> $GITHUB_OUTPUT
 
       - name: Comment PR with preview URL
