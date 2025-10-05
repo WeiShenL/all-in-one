@@ -13,7 +13,7 @@ describe('Task - Tags', () => {
   describe('addTag() - Adding Tags', () => {
     it('should add a single tag to empty set', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         tags: new Set(),
       });
 
@@ -26,7 +26,7 @@ describe('Task - Tags', () => {
 
     it('should add multiple tags sequentially', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         tags: new Set(),
       });
 
@@ -43,7 +43,7 @@ describe('Task - Tags', () => {
 
     it('should not add duplicate tags', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         tags: new Set(['urgent']),
       });
 
@@ -56,7 +56,7 @@ describe('Task - Tags', () => {
 
     it('should preserve existing tags when adding new one', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         tags: new Set(['bug', 'urgent']),
       });
 
@@ -71,7 +71,7 @@ describe('Task - Tags', () => {
 
     it('should update timestamp when tag is added', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         tags: new Set(),
       });
 
@@ -91,7 +91,7 @@ describe('Task - Tags', () => {
   describe('removeTag() - Removing Tags', () => {
     it('should remove an existing tag', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         tags: new Set(['bug', 'urgent', 'backend']),
       });
 
@@ -106,7 +106,7 @@ describe('Task - Tags', () => {
 
     it('should handle removing non-existent tag gracefully', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         tags: new Set(['bug']),
       });
 
@@ -119,7 +119,7 @@ describe('Task - Tags', () => {
 
     it('should remove all tags individually', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         tags: new Set(['bug', 'urgent']),
       });
 
@@ -132,7 +132,7 @@ describe('Task - Tags', () => {
 
     it('should update timestamp when tag is removed', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         tags: new Set(['urgent']),
       });
 
@@ -150,7 +150,7 @@ describe('Task - Tags', () => {
   describe('Edge Cases', () => {
     it('should work when task has multiple assignees', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1', 'user-2', 'user-3']),
+        assignments: new Set(['user-1', 'user-2', 'user-3']),
         tags: new Set(['bug']),
       });
 
@@ -161,7 +161,7 @@ describe('Task - Tags', () => {
 
     it('should preserve other task properties when managing tags', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         title: 'Important Task',
         tags: new Set(['bug']),
         priorityBucket: 7,

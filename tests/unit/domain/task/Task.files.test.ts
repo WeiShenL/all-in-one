@@ -30,7 +30,7 @@ describe('Task - Files', () => {
   describe('addFile() - Authorization', () => {
     it('should allow assigned user to add file', async () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
       });
 
       const file = createMockFile();
@@ -43,7 +43,7 @@ describe('Task - Files', () => {
 
     it('should throw UnauthorizedError when user is not assigned', async () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
       });
 
       const file = createMockFile();
@@ -56,7 +56,7 @@ describe('Task - Files', () => {
   describe('addFile() - File Type Validation (TM005)', () => {
     it('should accept PDF files', async () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
       });
 
       const file = createMockFile({ fileType: 'application/pdf' });
@@ -67,7 +67,7 @@ describe('Task - Files', () => {
 
     it('should accept image files (PNG, JPG, JPEG)', async () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
       });
 
       await task.addFile(
@@ -84,7 +84,7 @@ describe('Task - Files', () => {
 
     it('should accept Word documents', async () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
       });
 
       const file = createMockFile({
@@ -99,7 +99,7 @@ describe('Task - Files', () => {
 
     it('should accept Excel spreadsheets', async () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
       });
 
       const file = createMockFile({
@@ -114,7 +114,7 @@ describe('Task - Files', () => {
 
     it('should throw InvalidFileTypeError for executable files', async () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
       });
 
       const file = createMockFile({
@@ -129,7 +129,7 @@ describe('Task - Files', () => {
 
     it('should throw InvalidFileTypeError for video files', async () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
       });
 
       const file = createMockFile({
@@ -146,7 +146,7 @@ describe('Task - Files', () => {
   describe('addFile() - Size Limit (TM044)', () => {
     it('should accept files under 50MB total', async () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
       });
 
       const file1 = createMockFile({
@@ -166,7 +166,7 @@ describe('Task - Files', () => {
 
     it('should throw FileSizeLimitExceededError when exceeding 50MB', async () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
       });
 
       const file1 = createMockFile({
@@ -188,7 +188,7 @@ describe('Task - Files', () => {
 
     it('should accept exactly 50MB total (boundary)', async () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
       });
 
       const file = createMockFile({
@@ -205,7 +205,7 @@ describe('Task - Files', () => {
   describe('addFile() - State Updates', () => {
     it('should update task timestamp when file is added', async () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
       });
 
       const oldTimestamp = task.getUpdatedAt();
@@ -223,7 +223,7 @@ describe('Task - Files', () => {
   describe('removeFile() - Authorization', () => {
     it('should allow assigned user to remove file', async () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
       });
 
       const file = createMockFile({ id: 'file-123' });
@@ -236,7 +236,7 @@ describe('Task - Files', () => {
 
     it('should throw UnauthorizedError when user is not assigned', async () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
       });
 
       const file = createMockFile({ id: 'file-123' });
@@ -251,7 +251,7 @@ describe('Task - Files', () => {
   describe('removeFile() - Removing Files', () => {
     it('should remove an existing file', async () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
       });
 
       const file1 = createMockFile({ id: 'file-1', fileName: 'doc1.pdf' });
@@ -269,7 +269,7 @@ describe('Task - Files', () => {
 
     it('should handle removing non-existent file gracefully', async () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
       });
 
       const file = createMockFile({ id: 'file-1' });
@@ -282,7 +282,7 @@ describe('Task - Files', () => {
 
     it('should update task timestamp when file is removed', async () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
       });
 
       const file = createMockFile({ id: 'file-123' });
@@ -302,7 +302,7 @@ describe('Task - Files', () => {
   describe('Edge Cases', () => {
     it('should work when task has multiple assignees', async () => {
       const task = createTestTask({
-        assignees: new Set(['user-1', 'user-2', 'user-3']),
+        assignments: new Set(['user-1', 'user-2', 'user-3']),
       });
 
       const file = createMockFile();
@@ -313,7 +313,7 @@ describe('Task - Files', () => {
 
     it('should preserve other task properties when managing files', async () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         title: 'Important Task',
         priorityBucket: 10,
       });

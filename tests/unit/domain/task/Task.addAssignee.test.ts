@@ -15,7 +15,7 @@ describe('Task - addAssignee()', () => {
   describe('Authorization', () => {
     it('should allow assigned user to add new assignee', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
       });
 
       task.addAssignee('user-2', 'user-1');
@@ -28,7 +28,7 @@ describe('Task - addAssignee()', () => {
 
     it('should throw UnauthorizedError when actor is not assigned', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
       });
 
       expect(() => task.addAssignee('user-2', 'user-999')).toThrow(
@@ -40,7 +40,7 @@ describe('Task - addAssignee()', () => {
   describe('Adding Assignees', () => {
     it('should add a new assignee to task with 1 assignee', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
       });
 
       task.addAssignee('user-2', 'user-1');
@@ -52,7 +52,7 @@ describe('Task - addAssignee()', () => {
 
     it('should add multiple assignees up to 5 total', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
       });
 
       task.addAssignee('user-2', 'user-1');
@@ -66,7 +66,7 @@ describe('Task - addAssignee()', () => {
 
     it('should not add duplicate assignee', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1', 'user-2']),
+        assignments: new Set(['user-1', 'user-2']),
       });
 
       task.addAssignee('user-2', 'user-1'); // Try to add existing
@@ -77,7 +77,7 @@ describe('Task - addAssignee()', () => {
 
     it('should preserve existing assignees when adding new one', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1', 'user-2']),
+        assignments: new Set(['user-1', 'user-2']),
       });
 
       task.addAssignee('user-3', 'user-1');
@@ -92,7 +92,13 @@ describe('Task - addAssignee()', () => {
   describe('Max 5 Assignees Constraint (TM023)', () => {
     it('should throw MaxAssigneesReachedError when trying to add 6th assignee', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1', 'user-2', 'user-3', 'user-4', 'user-5']),
+        assignments: new Set([
+          'user-1',
+          'user-2',
+          'user-3',
+          'user-4',
+          'user-5',
+        ]),
       });
 
       expect(() => task.addAssignee('user-6', 'user-1')).toThrow(
@@ -102,7 +108,7 @@ describe('Task - addAssignee()', () => {
 
     it('should accept 5th assignee (boundary)', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1', 'user-2', 'user-3', 'user-4']),
+        assignments: new Set(['user-1', 'user-2', 'user-3', 'user-4']),
       });
 
       task.addAssignee('user-5', 'user-1'); // Should succeed
@@ -112,7 +118,13 @@ describe('Task - addAssignee()', () => {
 
     it('should not increase count when adding duplicate at max capacity', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1', 'user-2', 'user-3', 'user-4', 'user-5']),
+        assignments: new Set([
+          'user-1',
+          'user-2',
+          'user-3',
+          'user-4',
+          'user-5',
+        ]),
       });
 
       task.addAssignee('user-3', 'user-1'); // Re-add existing (should be no-op)
@@ -124,7 +136,7 @@ describe('Task - addAssignee()', () => {
   describe('State Updates', () => {
     it('should update timestamp when assignee is added', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
       });
 
       const oldTimestamp = task.getUpdatedAt();
@@ -141,7 +153,7 @@ describe('Task - addAssignee()', () => {
   describe('Edge Cases', () => {
     it('should allow any current assignee to add new assignees', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1', 'user-2', 'user-3']),
+        assignments: new Set(['user-1', 'user-2', 'user-3']),
       });
 
       // user-2 (not creator) can add user-4
@@ -152,7 +164,7 @@ describe('Task - addAssignee()', () => {
 
     it('should preserve other task properties when adding assignee', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         title: 'Important Task',
         priorityBucket: 8,
         tags: new Set(['urgent']),

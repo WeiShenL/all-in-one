@@ -15,7 +15,7 @@ describe('Task - updateTitle()', () => {
   describe('Title Validation', () => {
     it('should accept valid non-empty title', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         title: 'Old Title',
       });
 
@@ -26,7 +26,7 @@ describe('Task - updateTitle()', () => {
 
     it('should throw InvalidTitleError when title is empty string', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         title: 'Old Title',
       });
 
@@ -35,7 +35,7 @@ describe('Task - updateTitle()', () => {
 
     it('should throw InvalidTitleError when title is only whitespace', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         title: 'Old Title',
       });
 
@@ -44,7 +44,7 @@ describe('Task - updateTitle()', () => {
 
     it('should accept title with special characters', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         title: 'Old Title',
       });
 
@@ -55,7 +55,7 @@ describe('Task - updateTitle()', () => {
 
     it('should trim whitespace from title', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         title: 'Old Title',
       });
 
@@ -68,7 +68,7 @@ describe('Task - updateTitle()', () => {
   describe('State Updates', () => {
     it('should update title from default to new value', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         title: 'Original Task',
       });
 
@@ -79,7 +79,7 @@ describe('Task - updateTitle()', () => {
 
     it('should allow updating title multiple times', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         title: 'Version 1',
       });
 
@@ -92,7 +92,7 @@ describe('Task - updateTitle()', () => {
 
     it('should update timestamp when title is changed', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         title: 'Old Title',
       });
 
@@ -111,7 +111,7 @@ describe('Task - updateTitle()', () => {
   describe('Edge Cases', () => {
     it('should work when task has multiple assignees', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1', 'user-2', 'user-3']),
+        assignments: new Set(['user-1', 'user-2', 'user-3']),
         title: 'Old Title',
       });
 
@@ -123,7 +123,7 @@ describe('Task - updateTitle()', () => {
 
     it('should preserve other task properties when updating title', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         title: 'Old Title',
         description: 'Important description',
         priorityBucket: 7,
@@ -140,7 +140,7 @@ describe('Task - updateTitle()', () => {
 
     it('should accept very long titles', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         title: 'Old Title',
       });
 

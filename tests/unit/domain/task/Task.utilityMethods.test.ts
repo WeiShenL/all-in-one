@@ -69,7 +69,7 @@ describe('Task - Utility Methods', () => {
     describe('Authorization', () => {
       it('should allow assigned user to complete task', () => {
         const task = createTestTask({
-          assignees: new Set(['user-1']),
+          assignments: new Set(['user-1']),
           status: TaskStatus.IN_PROGRESS,
         });
 
@@ -80,7 +80,7 @@ describe('Task - Utility Methods', () => {
 
       it('should throw UnauthorizedError when user is not assigned', () => {
         const task = createTestTask({
-          assignees: new Set(['user-1']),
+          assignments: new Set(['user-1']),
           status: TaskStatus.IN_PROGRESS,
         });
 
@@ -91,7 +91,7 @@ describe('Task - Utility Methods', () => {
     describe('Status Changes', () => {
       it('should change status from TO_DO to COMPLETED', () => {
         const task = createTestTask({
-          assignees: new Set(['user-1']),
+          assignments: new Set(['user-1']),
           status: TaskStatus.TO_DO,
         });
 
@@ -102,7 +102,7 @@ describe('Task - Utility Methods', () => {
 
       it('should change status from IN_PROGRESS to COMPLETED', () => {
         const task = createTestTask({
-          assignees: new Set(['user-1']),
+          assignments: new Set(['user-1']),
           status: TaskStatus.IN_PROGRESS,
         });
 
@@ -113,7 +113,7 @@ describe('Task - Utility Methods', () => {
 
       it('should change status from BLOCKED to COMPLETED', () => {
         const task = createTestTask({
-          assignees: new Set(['user-1']),
+          assignments: new Set(['user-1']),
           status: TaskStatus.BLOCKED,
         });
 
@@ -126,7 +126,7 @@ describe('Task - Utility Methods', () => {
     describe('Completion Timestamp', () => {
       it('should set completedAt timestamp', () => {
         const task = createTestTask({
-          assignees: new Set(['user-1']),
+          assignments: new Set(['user-1']),
           status: TaskStatus.IN_PROGRESS,
         });
 
@@ -146,7 +146,7 @@ describe('Task - Utility Methods', () => {
 
       it('should update updatedAt timestamp', () => {
         const task = createTestTask({
-          assignees: new Set(['user-1']),
+          assignments: new Set(['user-1']),
           status: TaskStatus.IN_PROGRESS,
         });
 
@@ -164,7 +164,7 @@ describe('Task - Utility Methods', () => {
     describe('Edge Cases', () => {
       it('should allow completing already completed task (idempotent)', () => {
         const task = createTestTask({
-          assignees: new Set(['user-1']),
+          assignments: new Set(['user-1']),
           status: TaskStatus.COMPLETED,
         });
 
@@ -175,7 +175,7 @@ describe('Task - Utility Methods', () => {
 
       it('should work with multiple assignees', () => {
         const task = createTestTask({
-          assignees: new Set(['user-1', 'user-2', 'user-3']),
+          assignments: new Set(['user-1', 'user-2', 'user-3']),
           status: TaskStatus.IN_PROGRESS,
         });
 
@@ -186,7 +186,7 @@ describe('Task - Utility Methods', () => {
 
       it('should preserve other task properties', () => {
         const task = createTestTask({
-          assignees: new Set(['user-1']),
+          assignments: new Set(['user-1']),
           title: 'Important Task',
           priorityBucket: 9,
           status: TaskStatus.IN_PROGRESS,
@@ -204,7 +204,7 @@ describe('Task - Utility Methods', () => {
     describe('Authorization', () => {
       it('should allow assigned user to archive task', () => {
         const task = createTestTask({
-          assignees: new Set(['user-1']),
+          assignments: new Set(['user-1']),
         });
 
         task.archive('user-1');
@@ -214,7 +214,7 @@ describe('Task - Utility Methods', () => {
 
       it('should throw UnauthorizedError when user is not assigned', () => {
         const task = createTestTask({
-          assignees: new Set(['user-1']),
+          assignments: new Set(['user-1']),
         });
 
         expect(() => task.archive('user-999')).toThrow(UnauthorizedError);
@@ -224,7 +224,7 @@ describe('Task - Utility Methods', () => {
     describe('Archive Behavior', () => {
       it('should set isArchived to true', () => {
         const task = createTestTask({
-          assignees: new Set(['user-1']),
+          assignments: new Set(['user-1']),
         });
 
         expect(task.getIsArchived()).toBe(false);
@@ -236,7 +236,7 @@ describe('Task - Utility Methods', () => {
 
       it('should allow archiving completed tasks', () => {
         const task = createTestTask({
-          assignees: new Set(['user-1']),
+          assignments: new Set(['user-1']),
           status: TaskStatus.COMPLETED,
         });
 
@@ -247,7 +247,7 @@ describe('Task - Utility Methods', () => {
 
       it('should allow archiving in-progress tasks', () => {
         const task = createTestTask({
-          assignees: new Set(['user-1']),
+          assignments: new Set(['user-1']),
           status: TaskStatus.IN_PROGRESS,
         });
 
@@ -258,7 +258,7 @@ describe('Task - Utility Methods', () => {
 
       it('should update updatedAt timestamp', () => {
         const task = createTestTask({
-          assignees: new Set(['user-1']),
+          assignments: new Set(['user-1']),
         });
 
         const oldTimestamp = task.getUpdatedAt();
@@ -275,7 +275,7 @@ describe('Task - Utility Methods', () => {
     describe('Edge Cases', () => {
       it('should allow archiving already archived task (idempotent)', () => {
         const task = createTestTask({
-          assignees: new Set(['user-1']),
+          assignments: new Set(['user-1']),
           isArchived: true,
         });
 
@@ -286,7 +286,7 @@ describe('Task - Utility Methods', () => {
 
       it('should work with multiple assignees', () => {
         const task = createTestTask({
-          assignees: new Set(['user-1', 'user-2', 'user-3']),
+          assignments: new Set(['user-1', 'user-2', 'user-3']),
         });
 
         task.archive('user-3'); // Any assignee can archive
@@ -296,7 +296,7 @@ describe('Task - Utility Methods', () => {
 
       it('should preserve status when archiving', () => {
         const task = createTestTask({
-          assignees: new Set(['user-1']),
+          assignments: new Set(['user-1']),
           status: TaskStatus.IN_PROGRESS,
         });
 
@@ -308,7 +308,7 @@ describe('Task - Utility Methods', () => {
 
       it('should preserve other task properties', () => {
         const task = createTestTask({
-          assignees: new Set(['user-1']),
+          assignments: new Set(['user-1']),
           title: 'Important Task',
           priorityBucket: 8,
         });

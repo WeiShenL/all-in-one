@@ -12,7 +12,7 @@ describe('Task - Comments', () => {
   describe('addComment() - Authorization', () => {
     it('should allow assigned user to add comment', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
       });
 
       const comment = task.addComment('Great progress!', 'user-1');
@@ -24,7 +24,7 @@ describe('Task - Comments', () => {
 
     it('should throw UnauthorizedError when user is not assigned', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
       });
 
       expect(() => task.addComment('Comment', 'user-999')).toThrow(
@@ -36,7 +36,7 @@ describe('Task - Comments', () => {
   describe('addComment() - Adding Comments', () => {
     it('should add a comment with generated ID', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
       });
 
       const comment = task.addComment('First comment', 'user-1');
@@ -47,7 +47,7 @@ describe('Task - Comments', () => {
 
     it('should add a comment with correct content and author', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
       });
 
       const comment = task.addComment('Test comment', 'user-1');
@@ -58,7 +58,7 @@ describe('Task - Comments', () => {
 
     it('should add a comment with timestamps', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
       });
 
       const beforeAdd = new Date();
@@ -77,7 +77,7 @@ describe('Task - Comments', () => {
 
     it('should add comment to task comments array', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
       });
 
       task.addComment('Comment 1', 'user-1');
@@ -89,7 +89,7 @@ describe('Task - Comments', () => {
 
     it('should add multiple comments sequentially', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1', 'user-2']),
+        assignments: new Set(['user-1', 'user-2']),
       });
 
       task.addComment('First', 'user-1');
@@ -105,7 +105,7 @@ describe('Task - Comments', () => {
 
     it('should update task timestamp when comment is added', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
       });
 
       const oldTimestamp = task.getUpdatedAt();
@@ -122,7 +122,7 @@ describe('Task - Comments', () => {
   describe('updateComment() - Authorization', () => {
     it('should allow author to update own comment', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
       });
 
       const comment = task.addComment('Original', 'user-1');
@@ -135,7 +135,7 @@ describe('Task - Comments', () => {
 
     it('should throw UnauthorizedError when non-author tries to edit (TM021)', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1', 'user-2']),
+        assignments: new Set(['user-1', 'user-2']),
       });
 
       const comment = task.addComment('Original', 'user-1');
@@ -147,7 +147,7 @@ describe('Task - Comments', () => {
 
     it('should throw error when comment not found', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
       });
 
       expect(() =>
@@ -159,7 +159,7 @@ describe('Task - Comments', () => {
   describe('updateComment() - Updating Comments', () => {
     it('should update comment content', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
       });
 
       const comment = task.addComment('Version 1', 'user-1');
@@ -172,7 +172,7 @@ describe('Task - Comments', () => {
 
     it('should update comment updatedAt timestamp', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
       });
 
       const comment = task.addComment('Original', 'user-1');
@@ -188,7 +188,7 @@ describe('Task - Comments', () => {
 
     it('should preserve comment ID and createdAt when updating', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
       });
 
       const comment = task.addComment('Original', 'user-1');
@@ -204,7 +204,7 @@ describe('Task - Comments', () => {
 
     it('should preserve author when updating', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
       });
 
       const comment = task.addComment('Original', 'user-1');
@@ -217,7 +217,7 @@ describe('Task - Comments', () => {
 
     it('should update task timestamp when comment is edited', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
       });
 
       const comment = task.addComment('Original', 'user-1');
@@ -235,7 +235,7 @@ describe('Task - Comments', () => {
   describe('Edge Cases', () => {
     it('should handle multiple users commenting', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1', 'user-2', 'user-3']),
+        assignments: new Set(['user-1', 'user-2', 'user-3']),
       });
 
       task.addComment('Comment by user 1', 'user-1');
@@ -251,7 +251,7 @@ describe('Task - Comments', () => {
 
     it('should preserve other task properties when managing comments', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         title: 'Important Task',
         priorityBucket: 9,
       });

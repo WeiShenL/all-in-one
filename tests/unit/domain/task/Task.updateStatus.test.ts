@@ -15,7 +15,7 @@ describe('Task - updateStatus()', () => {
   describe('Status Transitions', () => {
     it('should update from TO_DO to IN_PROGRESS', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         status: TaskStatus.TO_DO,
       });
 
@@ -26,7 +26,7 @@ describe('Task - updateStatus()', () => {
 
     it('should update from IN_PROGRESS to COMPLETED', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         status: TaskStatus.IN_PROGRESS,
       });
 
@@ -37,7 +37,7 @@ describe('Task - updateStatus()', () => {
 
     it('should update from IN_PROGRESS to BLOCKED', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         status: TaskStatus.IN_PROGRESS,
       });
 
@@ -48,7 +48,7 @@ describe('Task - updateStatus()', () => {
 
     it('should update from BLOCKED back to IN_PROGRESS', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         status: TaskStatus.BLOCKED,
       });
 
@@ -59,7 +59,7 @@ describe('Task - updateStatus()', () => {
 
     it('should update from COMPLETED back to IN_PROGRESS (reopen)', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         status: TaskStatus.COMPLETED,
       });
 
@@ -70,7 +70,7 @@ describe('Task - updateStatus()', () => {
 
     it('should allow updating to same status (idempotent)', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         status: TaskStatus.IN_PROGRESS,
       });
 
@@ -83,7 +83,7 @@ describe('Task - updateStatus()', () => {
   describe('All Status Values', () => {
     it('should accept TO_DO status', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         status: TaskStatus.IN_PROGRESS,
       });
 
@@ -94,7 +94,7 @@ describe('Task - updateStatus()', () => {
 
     it('should accept IN_PROGRESS status', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         status: TaskStatus.TO_DO,
       });
 
@@ -105,7 +105,7 @@ describe('Task - updateStatus()', () => {
 
     it('should accept COMPLETED status', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         status: TaskStatus.IN_PROGRESS,
       });
 
@@ -116,7 +116,7 @@ describe('Task - updateStatus()', () => {
 
     it('should accept BLOCKED status', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         status: TaskStatus.TO_DO,
       });
 
@@ -129,7 +129,7 @@ describe('Task - updateStatus()', () => {
   describe('State Updates', () => {
     it('should allow updating status multiple times', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         status: TaskStatus.TO_DO,
       });
 
@@ -148,7 +148,7 @@ describe('Task - updateStatus()', () => {
 
     it('should update timestamp when status is changed', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         status: TaskStatus.TO_DO,
       });
 
@@ -166,7 +166,7 @@ describe('Task - updateStatus()', () => {
   describe('Edge Cases', () => {
     it('should work when task has multiple assignees', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1', 'user-2', 'user-3']),
+        assignments: new Set(['user-1', 'user-2', 'user-3']),
         status: TaskStatus.TO_DO,
       });
 
@@ -177,7 +177,7 @@ describe('Task - updateStatus()', () => {
 
     it('should preserve other task properties when updating status', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         title: 'Important Task',
         description: 'Critical work',
         status: TaskStatus.TO_DO,

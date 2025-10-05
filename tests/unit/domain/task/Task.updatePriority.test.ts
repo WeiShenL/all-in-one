@@ -20,7 +20,7 @@ describe('Task - updatePriority()', () => {
   describe('Priority Validation (1-10 scale - Change Document)', () => {
     it('should accept priority = 1 (minimum)', () => {
       // Arrange
-      const task = createTestTask({ assignees: new Set(['user-1']) });
+      const task = createTestTask({ assignments: new Set(['user-1']) });
 
       // Act
       task.updatePriority(1);
@@ -31,7 +31,7 @@ describe('Task - updatePriority()', () => {
 
     it('should accept priority = 10 (maximum)', () => {
       // Arrange
-      const task = createTestTask({ assignees: new Set(['user-1']) });
+      const task = createTestTask({ assignments: new Set(['user-1']) });
 
       // Act
       task.updatePriority(10);
@@ -42,7 +42,7 @@ describe('Task - updatePriority()', () => {
 
     it('should accept all valid priorities (1-10)', () => {
       // Arrange
-      const task = createTestTask({ assignees: new Set(['user-1']) });
+      const task = createTestTask({ assignments: new Set(['user-1']) });
 
       // Act & Assert
       for (let priority = 1; priority <= 10; priority++) {
@@ -53,7 +53,7 @@ describe('Task - updatePriority()', () => {
 
     it('should throw InvalidPriorityError when priority < 1', () => {
       // Arrange
-      const task = createTestTask({ assignees: new Set(['user-1']) });
+      const task = createTestTask({ assignments: new Set(['user-1']) });
 
       // Act & Assert
       expect(() => {
@@ -63,7 +63,7 @@ describe('Task - updatePriority()', () => {
 
     it('should throw InvalidPriorityError when priority > 10', () => {
       // Arrange
-      const task = createTestTask({ assignees: new Set(['user-1']) });
+      const task = createTestTask({ assignments: new Set(['user-1']) });
 
       // Act & Assert
       expect(() => {
@@ -73,7 +73,7 @@ describe('Task - updatePriority()', () => {
 
     it('should throw InvalidPriorityError for negative priority', () => {
       // Arrange
-      const task = createTestTask({ assignees: new Set(['user-1']) });
+      const task = createTestTask({ assignments: new Set(['user-1']) });
 
       // Act & Assert
       expect(() => {
@@ -86,7 +86,7 @@ describe('Task - updatePriority()', () => {
     it('should update priority from default to new value', () => {
       // Arrange
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         priorityBucket: 5,
       });
 
@@ -100,7 +100,7 @@ describe('Task - updatePriority()', () => {
     it('should allow updating priority multiple times', () => {
       // Arrange
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         priorityBucket: 5,
       });
 
@@ -120,7 +120,7 @@ describe('Task - updatePriority()', () => {
     it('should work when task has multiple assignees', () => {
       // Arrange
       const task = createTestTask({
-        assignees: new Set(['user-1', 'user-2', 'user-3']),
+        assignments: new Set(['user-1', 'user-2', 'user-3']),
         priorityBucket: 5,
       });
 
@@ -134,7 +134,7 @@ describe('Task - updatePriority()', () => {
     it('should preserve other task properties when updating priority', () => {
       // Arrange
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         title: 'Important Task',
         description: 'Description',
         status: TaskStatus.IN_PROGRESS,

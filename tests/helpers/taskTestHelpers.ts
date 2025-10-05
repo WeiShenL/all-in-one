@@ -12,7 +12,7 @@ import { Task, TaskData, TaskStatus } from '@/domain/task/Task';
  * You can override any fields for specific tests
  *
  * Usage:
- *   const task = createTestTask({ assignees: new Set(['user-1']) });
+ *   const task = createTestTask({ assignments: new Set(['user-1']) });
  */
 export function createTestTask(overrides: Partial<TaskData> = {}): Task {
   const defaultData: TaskData = {
@@ -31,7 +31,7 @@ export function createTestTask(overrides: Partial<TaskData> = {}): Task {
     isArchived: false,
     createdAt: new Date('2025-10-01'),
     updatedAt: new Date('2025-10-01'),
-    assignees: new Set(['owner-1']), // Owner is always assigned by default
+    assignments: new Set(['owner-1']), // Owner is always assigned by default
     tags: new Set(),
     ...overrides,
   };
@@ -55,13 +55,13 @@ export function createTestSubtask(
 }
 
 /**
- * Create a test task with max assignees (5)
+ * Create a test task with max assignments (5)
  */
 export function createTestTaskWithMaxAssignees(
   overrides: Partial<TaskData> = {}
 ): Task {
   return createTestTask({
-    assignees: new Set(['user-1', 'user-2', 'user-3', 'user-4', 'user-5']),
+    assignments: new Set(['user-1', 'user-2', 'user-3', 'user-4', 'user-5']),
     ...overrides,
   });
 }

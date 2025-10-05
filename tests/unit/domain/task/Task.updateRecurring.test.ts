@@ -16,7 +16,7 @@ describe('Task - updateRecurring()', () => {
   describe('Enabling Recurrence', () => {
     it('should enable recurrence with valid days (7 days)', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         isRecurring: false,
         recurrenceDays: null,
       });
@@ -29,7 +29,7 @@ describe('Task - updateRecurring()', () => {
 
     it('should enable recurrence with 1 day (minimum)', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         isRecurring: false,
         recurrenceDays: null,
       });
@@ -42,7 +42,7 @@ describe('Task - updateRecurring()', () => {
 
     it('should enable recurrence with 30 days (monthly)', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         isRecurring: false,
         recurrenceDays: null,
       });
@@ -55,7 +55,7 @@ describe('Task - updateRecurring()', () => {
 
     it('should throw InvalidRecurrenceError when enabling without days (TM057)', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         isRecurring: false,
         recurrenceDays: null,
       });
@@ -67,7 +67,7 @@ describe('Task - updateRecurring()', () => {
 
     it('should throw InvalidRecurrenceError when days <= 0', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         isRecurring: false,
         recurrenceDays: null,
       });
@@ -85,7 +85,7 @@ describe('Task - updateRecurring()', () => {
   describe('Disabling Recurrence', () => {
     it('should disable recurrence', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         isRecurring: true,
         recurrenceDays: 7,
       });
@@ -98,7 +98,7 @@ describe('Task - updateRecurring()', () => {
 
     it('should allow disabling with null days', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         isRecurring: true,
         recurrenceDays: 14,
       });
@@ -111,7 +111,7 @@ describe('Task - updateRecurring()', () => {
 
     it('should ignore days parameter when disabling', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         isRecurring: true,
         recurrenceDays: 7,
       });
@@ -127,7 +127,7 @@ describe('Task - updateRecurring()', () => {
   describe('Updating Recurrence Interval', () => {
     it('should update recurrence interval from 7 to 14 days', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         isRecurring: true,
         recurrenceDays: 7,
       });
@@ -140,7 +140,7 @@ describe('Task - updateRecurring()', () => {
 
     it('should allow multiple updates to recurrence settings', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         isRecurring: false,
         recurrenceDays: null,
       });
@@ -159,7 +159,7 @@ describe('Task - updateRecurring()', () => {
   describe('State Updates', () => {
     it('should update task timestamp when recurrence is changed', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         isRecurring: false,
         recurrenceDays: null,
       });
@@ -178,7 +178,7 @@ describe('Task - updateRecurring()', () => {
   describe('Edge Cases', () => {
     it('should work when task has multiple assignees', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1', 'user-2', 'user-3']),
+        assignments: new Set(['user-1', 'user-2', 'user-3']),
         isRecurring: false,
         recurrenceDays: null,
       });
@@ -190,7 +190,7 @@ describe('Task - updateRecurring()', () => {
 
     it('should preserve other task properties when updating recurrence', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         title: 'Weekly Report',
         priorityBucket: 5,
         isRecurring: false,
@@ -206,7 +206,7 @@ describe('Task - updateRecurring()', () => {
 
     it('should handle very large recurrence intervals (annual)', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         isRecurring: false,
         recurrenceDays: null,
       });

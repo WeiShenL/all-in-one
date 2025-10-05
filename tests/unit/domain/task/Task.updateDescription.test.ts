@@ -14,7 +14,7 @@ describe('Task - updateDescription()', () => {
   describe('Description Validation', () => {
     it('should accept valid non-empty description', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         description: 'Old description',
       });
 
@@ -25,7 +25,7 @@ describe('Task - updateDescription()', () => {
 
     it('should accept empty description (unlike title)', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         description: 'Old description',
       });
 
@@ -36,7 +36,7 @@ describe('Task - updateDescription()', () => {
 
     it('should accept multiline description', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         description: 'Old description',
       });
 
@@ -51,7 +51,7 @@ Line 3`;
 
     it('should accept description with special characters and markdown', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         description: 'Old description',
       });
 
@@ -69,7 +69,7 @@ Line 3`;
   describe('State Updates', () => {
     it('should update description from default to new value', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         description: 'Original description',
       });
 
@@ -80,7 +80,7 @@ Line 3`;
 
     it('should allow updating description multiple times', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         description: 'Version 1',
       });
 
@@ -93,7 +93,7 @@ Line 3`;
 
     it('should update timestamp when description is changed', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         description: 'Old description',
       });
 
@@ -111,7 +111,7 @@ Line 3`;
   describe('Edge Cases', () => {
     it('should work when task has multiple assignees', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1', 'user-2', 'user-3']),
+        assignments: new Set(['user-1', 'user-2', 'user-3']),
         description: 'Old description',
       });
 
@@ -122,7 +122,7 @@ Line 3`;
 
     it('should preserve other task properties when updating description', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         title: 'Important Task',
         description: 'Old description',
         priorityBucket: 9,
@@ -139,7 +139,7 @@ Line 3`;
 
     it('should accept very long descriptions', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         description: 'Old description',
       });
 

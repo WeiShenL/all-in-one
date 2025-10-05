@@ -16,7 +16,7 @@ describe('Task - updateDeadline()', () => {
   describe('Deadline Validation - Regular Tasks', () => {
     it('should accept future deadline', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         dueDate: new Date('2025-01-15'),
         parentTaskId: null, // Regular task, not subtask
       });
@@ -29,7 +29,7 @@ describe('Task - updateDeadline()', () => {
 
     it('should accept past deadline (no validation on past dates)', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         dueDate: new Date('2025-06-01'),
         parentTaskId: null,
       });
@@ -42,7 +42,7 @@ describe('Task - updateDeadline()', () => {
 
     it('should accept same day deadline', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         dueDate: new Date('2025-06-01'),
         parentTaskId: null,
       });
@@ -58,7 +58,7 @@ describe('Task - updateDeadline()', () => {
     it('should accept subtask deadline equal to parent deadline', () => {
       const parentDeadline = new Date('2025-12-31');
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         dueDate: new Date('2025-11-01'),
         parentTaskId: 'parent-123',
       });
@@ -75,7 +75,7 @@ describe('Task - updateDeadline()', () => {
       const parentDeadline = new Date('2025-12-31');
       const subtaskDeadline = new Date('2025-11-15');
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         dueDate: new Date('2025-10-01'),
         parentTaskId: 'parent-123',
       });
@@ -90,7 +90,7 @@ describe('Task - updateDeadline()', () => {
       const invalidDeadline = new Date('2026-01-15'); // After parent!
 
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         dueDate: new Date('2025-11-01'),
         parentTaskId: 'parent-123',
       });
@@ -104,7 +104,7 @@ describe('Task - updateDeadline()', () => {
   describe('State Updates', () => {
     it('should update deadline from default to new value', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         dueDate: new Date('2025-06-01'),
       });
 
@@ -116,7 +116,7 @@ describe('Task - updateDeadline()', () => {
 
     it('should allow updating deadline multiple times', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         dueDate: new Date('2025-01-01'),
       });
 
@@ -131,7 +131,7 @@ describe('Task - updateDeadline()', () => {
 
     it('should update timestamp when deadline is changed', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         dueDate: new Date('2025-06-01'),
       });
 
@@ -150,7 +150,7 @@ describe('Task - updateDeadline()', () => {
   describe('Edge Cases', () => {
     it('should work when task has multiple assignees', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1', 'user-2', 'user-3']),
+        assignments: new Set(['user-1', 'user-2', 'user-3']),
         dueDate: new Date('2025-06-01'),
       });
 
@@ -162,7 +162,7 @@ describe('Task - updateDeadline()', () => {
 
     it('should preserve other task properties when updating deadline', () => {
       const task = createTestTask({
-        assignees: new Set(['user-1']),
+        assignments: new Set(['user-1']),
         title: 'Important Task',
         description: 'Critical work',
         dueDate: new Date('2025-06-01'),
