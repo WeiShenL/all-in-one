@@ -13,7 +13,7 @@ import { trpc } from '@/app/lib/trpc';
 
 export default function SignupPage() {
   const router = useRouter();
-  const { signUp, user, userProfile, loading: authLoading } = useAuth();
+  const { signUp, signIn, user, userProfile, loading: authLoading } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -95,7 +95,25 @@ export default function SignupPage() {
         setLoading(false);
         return;
       }
-      console.error('🔍 SignUp response:', { error: signUpError });
+      console.warn('🔍 SignUp successful, now signing in...');
+
+      // With auto-confirm enabled, signUp doesn't always create a session
+      // So we need to explicitly sign in after successful signup
+      const { error: signInError } = await signIn(
+        formData.email,
+        formData.password
+      );
+
+      if (signInError) {
+        console.error('🔍 SignIn after signup failed:', signInError);
+        setError(
+          'Account created but login failed. Please try logging in manually.'
+        );
+        setLoading(false);
+        return;
+      }
+
+      console.warn('🔍 SignIn successful, auth context will handle redirect');
       // Success - auth context will handle redirect
     } catch (err) {
       console.error('🔍 SignUp error:', err);
