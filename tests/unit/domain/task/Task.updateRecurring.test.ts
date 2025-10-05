@@ -4,41 +4,14 @@
  * AC: Staff member can update recurring settings (enable/disable, change interval)
  * Requirements: Task recurrence (Change Document Week 6)
  * Constraint: If enabled, must have valid recurrence interval in days (TM057)
+ * Note: Authorization is now handled in TaskService layer
  */
 
-import {
-  UnauthorizedError,
-  InvalidRecurrenceError,
-} from '../../../../src/domain/task/errors/TaskErrors';
+import { InvalidRecurrenceError } from '../../../../src/domain/task/errors/TaskErrors';
 import { createTestTask } from '../../../helpers/taskTestHelpers';
 
 describe('Task - updateRecurring()', () => {
-  describe('Authorization', () => {
-    it('should allow assigned user to update recurring settings', () => {
-      const task = createTestTask({
-        assignees: new Set(['user-1']),
-        isRecurring: false,
-        recurrenceDays: null,
-      });
-
-      task.updateRecurring(true, 7, 'user-1');
-
-      expect(task.isTaskRecurring()).toBe(true);
-      expect(task.getRecurrenceDays()).toBe(7);
-    });
-
-    it('should throw UnauthorizedError when user is not assigned', () => {
-      const task = createTestTask({
-        assignees: new Set(['user-1']),
-        isRecurring: false,
-        recurrenceDays: null,
-      });
-
-      expect(() => task.updateRecurring(true, 7, 'user-999')).toThrow(
-        UnauthorizedError
-      );
-    });
-  });
+  // No authorization tests - moved to TaskService tests
 
   describe('Enabling Recurrence', () => {
     it('should enable recurrence with valid days (7 days)', () => {
@@ -48,7 +21,7 @@ describe('Task - updateRecurring()', () => {
         recurrenceDays: null,
       });
 
-      task.updateRecurring(true, 7, 'user-1');
+      task.updateRecurring(true, 7);
 
       expect(task.isTaskRecurring()).toBe(true);
       expect(task.getRecurrenceDays()).toBe(7);
@@ -61,7 +34,7 @@ describe('Task - updateRecurring()', () => {
         recurrenceDays: null,
       });
 
-      task.updateRecurring(true, 1, 'user-1');
+      task.updateRecurring(true, 1);
 
       expect(task.isTaskRecurring()).toBe(true);
       expect(task.getRecurrenceDays()).toBe(1);
@@ -74,7 +47,7 @@ describe('Task - updateRecurring()', () => {
         recurrenceDays: null,
       });
 
-      task.updateRecurring(true, 30, 'user-1');
+      task.updateRecurring(true, 30);
 
       expect(task.isTaskRecurring()).toBe(true);
       expect(task.getRecurrenceDays()).toBe(30);
@@ -87,7 +60,7 @@ describe('Task - updateRecurring()', () => {
         recurrenceDays: null,
       });
 
-      expect(() => task.updateRecurring(true, null, 'user-1')).toThrow(
+      expect(() => task.updateRecurring(true, null)).toThrow(
         InvalidRecurrenceError
       );
     });
@@ -99,11 +72,11 @@ describe('Task - updateRecurring()', () => {
         recurrenceDays: null,
       });
 
-      expect(() => task.updateRecurring(true, 0, 'user-1')).toThrow(
+      expect(() => task.updateRecurring(true, 0)).toThrow(
         InvalidRecurrenceError
       );
 
-      expect(() => task.updateRecurring(true, -5, 'user-1')).toThrow(
+      expect(() => task.updateRecurring(true, -5)).toThrow(
         InvalidRecurrenceError
       );
     });
@@ -117,7 +90,7 @@ describe('Task - updateRecurring()', () => {
         recurrenceDays: 7,
       });
 
-      task.updateRecurring(false, null, 'user-1');
+      task.updateRecurring(false, null);
 
       expect(task.isTaskRecurring()).toBe(false);
       expect(task.getRecurrenceDays()).toBeNull();
@@ -130,7 +103,7 @@ describe('Task - updateRecurring()', () => {
         recurrenceDays: 14,
       });
 
-      task.updateRecurring(false, null, 'user-1');
+      task.updateRecurring(false, null);
 
       expect(task.isTaskRecurring()).toBe(false);
       expect(task.getRecurrenceDays()).toBeNull();
@@ -144,7 +117,7 @@ describe('Task - updateRecurring()', () => {
       });
 
       // Even if days provided, should ignore when disabling
-      task.updateRecurring(false, 999, 'user-1');
+      task.updateRecurring(false, 999);
 
       expect(task.isTaskRecurring()).toBe(false);
       expect(task.getRecurrenceDays()).toBeNull();
@@ -159,7 +132,7 @@ describe('Task - updateRecurring()', () => {
         recurrenceDays: 7,
       });
 
-      task.updateRecurring(true, 14, 'user-1');
+      task.updateRecurring(true, 14);
 
       expect(task.isTaskRecurring()).toBe(true);
       expect(task.getRecurrenceDays()).toBe(14);
@@ -172,13 +145,13 @@ describe('Task - updateRecurring()', () => {
         recurrenceDays: null,
       });
 
-      task.updateRecurring(true, 7, 'user-1');
+      task.updateRecurring(true, 7);
       expect(task.getRecurrenceDays()).toBe(7);
 
-      task.updateRecurring(true, 14, 'user-1');
+      task.updateRecurring(true, 14);
       expect(task.getRecurrenceDays()).toBe(14);
 
-      task.updateRecurring(false, null, 'user-1');
+      task.updateRecurring(false, null);
       expect(task.isTaskRecurring()).toBe(false);
     });
   });
@@ -193,7 +166,7 @@ describe('Task - updateRecurring()', () => {
 
       const oldTimestamp = task.getUpdatedAt();
 
-      task.updateRecurring(true, 7, 'user-1');
+      task.updateRecurring(true, 7);
 
       const newTimestamp = task.getUpdatedAt();
       expect(newTimestamp.getTime()).toBeGreaterThanOrEqual(
@@ -210,7 +183,7 @@ describe('Task - updateRecurring()', () => {
         recurrenceDays: null,
       });
 
-      task.updateRecurring(true, 7, 'user-2');
+      task.updateRecurring(true, 7);
 
       expect(task.isTaskRecurring()).toBe(true);
     });
@@ -224,7 +197,7 @@ describe('Task - updateRecurring()', () => {
         recurrenceDays: null,
       });
 
-      task.updateRecurring(true, 7, 'user-1');
+      task.updateRecurring(true, 7);
 
       expect(task.isTaskRecurring()).toBe(true);
       expect(task.getTitle()).toBe('Weekly Report');
@@ -238,7 +211,7 @@ describe('Task - updateRecurring()', () => {
         recurrenceDays: null,
       });
 
-      task.updateRecurring(true, 365, 'user-1'); // Annual
+      task.updateRecurring(true, 365); // Annual
 
       expect(task.isTaskRecurring()).toBe(true);
       expect(task.getRecurrenceDays()).toBe(365);

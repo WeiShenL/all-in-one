@@ -1,36 +1,14 @@
 /**
  * TDD Tests for Task.addTag() and Task.removeTag()
  *
- * AC: Assigned Staff member can add or update tags (tags are optional)
+ * Business Rules: Tags are optional, duplicates handled automatically
+ * Note: Authorization is now handled in TaskService layer
  */
 
-import { UnauthorizedError } from '../../../../src/domain/task/errors/TaskErrors';
 import { createTestTask } from '../../../helpers/taskTestHelpers';
 
 describe('Task - Tags', () => {
-  describe('addTag() - Authorization', () => {
-    it('should allow assigned user to add tag', () => {
-      const task = createTestTask({
-        assignees: new Set(['user-1']),
-        tags: new Set(),
-      });
-
-      task.addTag('urgent', 'user-1');
-
-      expect(task.getTags()).toContain('urgent');
-    });
-
-    it('should throw UnauthorizedError when user is not assigned', () => {
-      const task = createTestTask({
-        assignees: new Set(['user-1']),
-        tags: new Set(),
-      });
-
-      expect(() => task.addTag('urgent', 'user-999')).toThrow(
-        UnauthorizedError
-      );
-    });
-  });
+  // No authorization tests - moved to TaskService tests
 
   describe('addTag() - Adding Tags', () => {
     it('should add a single tag to empty set', () => {
@@ -39,7 +17,7 @@ describe('Task - Tags', () => {
         tags: new Set(),
       });
 
-      task.addTag('bug', 'user-1');
+      task.addTag('bug');
 
       const tags = task.getTags();
       expect(tags.size).toBe(1);
@@ -52,9 +30,9 @@ describe('Task - Tags', () => {
         tags: new Set(),
       });
 
-      task.addTag('bug', 'user-1');
-      task.addTag('urgent', 'user-1');
-      task.addTag('backend', 'user-1');
+      task.addTag('bug');
+      task.addTag('urgent');
+      task.addTag('backend');
 
       const tags = task.getTags();
       expect(tags.size).toBe(3);
@@ -69,7 +47,7 @@ describe('Task - Tags', () => {
         tags: new Set(['urgent']),
       });
 
-      task.addTag('urgent', 'user-1'); // Try to add again
+      task.addTag('urgent'); // Try to add again
 
       const tags = task.getTags();
       expect(tags.size).toBe(1); // Still only 1 tag
@@ -82,7 +60,7 @@ describe('Task - Tags', () => {
         tags: new Set(['bug', 'urgent']),
       });
 
-      task.addTag('backend', 'user-1');
+      task.addTag('backend');
 
       const tags = task.getTags();
       expect(tags.size).toBe(3);
@@ -99,7 +77,7 @@ describe('Task - Tags', () => {
 
       const oldTimestamp = task.getUpdatedAt();
 
-      task.addTag('new-tag', 'user-1');
+      task.addTag('new-tag');
 
       const newTimestamp = task.getUpdatedAt();
       expect(newTimestamp.getTime()).toBeGreaterThanOrEqual(
@@ -108,30 +86,7 @@ describe('Task - Tags', () => {
     });
   });
 
-  describe('removeTag() - Authorization', () => {
-    it('should allow assigned user to remove tag', () => {
-      const task = createTestTask({
-        assignees: new Set(['user-1']),
-        tags: new Set(['urgent', 'bug']),
-      });
-
-      task.removeTag('urgent', 'user-1');
-
-      expect(task.getTags()).not.toContain('urgent');
-      expect(task.getTags()).toContain('bug');
-    });
-
-    it('should throw UnauthorizedError when user is not assigned', () => {
-      const task = createTestTask({
-        assignees: new Set(['user-1']),
-        tags: new Set(['urgent']),
-      });
-
-      expect(() => task.removeTag('urgent', 'user-999')).toThrow(
-        UnauthorizedError
-      );
-    });
-  });
+  // No authorization tests for removeTag - moved to TaskService tests
 
   describe('removeTag() - Removing Tags', () => {
     it('should remove an existing tag', () => {
@@ -140,7 +95,7 @@ describe('Task - Tags', () => {
         tags: new Set(['bug', 'urgent', 'backend']),
       });
 
-      task.removeTag('urgent', 'user-1');
+      task.removeTag('urgent');
 
       const tags = task.getTags();
       expect(tags.size).toBe(2);
@@ -155,7 +110,7 @@ describe('Task - Tags', () => {
         tags: new Set(['bug']),
       });
 
-      task.removeTag('nonexistent', 'user-1'); // Should not throw
+      task.removeTag('nonexistent'); // Should not throw
 
       const tags = task.getTags();
       expect(tags.size).toBe(1);
@@ -168,8 +123,8 @@ describe('Task - Tags', () => {
         tags: new Set(['bug', 'urgent']),
       });
 
-      task.removeTag('bug', 'user-1');
-      task.removeTag('urgent', 'user-1');
+      task.removeTag('bug');
+      task.removeTag('urgent');
 
       const tags = task.getTags();
       expect(tags.size).toBe(0);
@@ -183,7 +138,7 @@ describe('Task - Tags', () => {
 
       const oldTimestamp = task.getUpdatedAt();
 
-      task.removeTag('urgent', 'user-1');
+      task.removeTag('urgent');
 
       const newTimestamp = task.getUpdatedAt();
       expect(newTimestamp.getTime()).toBeGreaterThanOrEqual(
@@ -199,7 +154,7 @@ describe('Task - Tags', () => {
         tags: new Set(['bug']),
       });
 
-      task.addTag('urgent', 'user-2');
+      task.addTag('urgent');
 
       expect(task.getTags()).toContain('urgent');
     });
@@ -212,7 +167,7 @@ describe('Task - Tags', () => {
         priorityBucket: 7,
       });
 
-      task.addTag('urgent', 'user-1');
+      task.addTag('urgent');
 
       expect(task.getTags()).toContain('urgent');
       expect(task.getTitle()).toBe('Important Task');

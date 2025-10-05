@@ -1,41 +1,16 @@
 /**
  * TDD Tests for Task.updateTitle()
  *
- * AC: Assigned Staff member can update the task title
- * Constraints: Title cannot be empty (TM016)
+ * Business Rules: Title cannot be empty (TM016)
+ * Note: Authorization is now handled in TaskService layer
  */
 
 import { TaskStatus } from '../../../../src/domain/task/Task';
-import {
-  UnauthorizedError,
-  InvalidTitleError,
-} from '../../../../src/domain/task/errors/TaskErrors';
+import { InvalidTitleError } from '../../../../src/domain/task/errors/TaskErrors';
 import { createTestTask } from '../../../helpers/taskTestHelpers';
 
 describe('Task - updateTitle()', () => {
-  describe('Authorization', () => {
-    it('should allow assigned user to update title', () => {
-      const task = createTestTask({
-        assignees: new Set(['user-1']),
-        title: 'Old Title',
-      });
-
-      task.updateTitle('New Title', 'user-1');
-
-      expect(task.getTitle()).toBe('New Title');
-    });
-
-    it('should throw UnauthorizedError when user is not assigned', () => {
-      const task = createTestTask({
-        assignees: new Set(['user-1']),
-        title: 'Old Title',
-      });
-
-      expect(() => task.updateTitle('New Title', 'user-999')).toThrow(
-        UnauthorizedError
-      );
-    });
-  });
+  // No authorization tests - moved to TaskService tests
 
   describe('Title Validation', () => {
     it('should accept valid non-empty title', () => {
@@ -44,7 +19,7 @@ describe('Task - updateTitle()', () => {
         title: 'Old Title',
       });
 
-      task.updateTitle('Valid New Title', 'user-1');
+      task.updateTitle('Valid New Title');
 
       expect(task.getTitle()).toBe('Valid New Title');
     });
@@ -55,7 +30,7 @@ describe('Task - updateTitle()', () => {
         title: 'Old Title',
       });
 
-      expect(() => task.updateTitle('', 'user-1')).toThrow(InvalidTitleError);
+      expect(() => task.updateTitle('')).toThrow(InvalidTitleError);
     });
 
     it('should throw InvalidTitleError when title is only whitespace', () => {
@@ -64,9 +39,7 @@ describe('Task - updateTitle()', () => {
         title: 'Old Title',
       });
 
-      expect(() => task.updateTitle('   ', 'user-1')).toThrow(
-        InvalidTitleError
-      );
+      expect(() => task.updateTitle('   ')).toThrow(InvalidTitleError);
     });
 
     it('should accept title with special characters', () => {
@@ -75,7 +48,7 @@ describe('Task - updateTitle()', () => {
         title: 'Old Title',
       });
 
-      task.updateTitle('Task #1: Update API [URGENT]!', 'user-1');
+      task.updateTitle('Task #1: Update API [URGENT]!');
 
       expect(task.getTitle()).toBe('Task #1: Update API [URGENT]!');
     });
@@ -86,7 +59,7 @@ describe('Task - updateTitle()', () => {
         title: 'Old Title',
       });
 
-      task.updateTitle('  New Title  ', 'user-1');
+      task.updateTitle('  New Title  ');
 
       expect(task.getTitle()).toBe('New Title');
     });
@@ -99,7 +72,7 @@ describe('Task - updateTitle()', () => {
         title: 'Original Task',
       });
 
-      task.updateTitle('Updated Task', 'user-1');
+      task.updateTitle('Updated Task');
 
       expect(task.getTitle()).toBe('Updated Task');
     });
@@ -110,10 +83,10 @@ describe('Task - updateTitle()', () => {
         title: 'Version 1',
       });
 
-      task.updateTitle('Version 2', 'user-1');
+      task.updateTitle('Version 2');
       expect(task.getTitle()).toBe('Version 2');
 
-      task.updateTitle('Version 3', 'user-1');
+      task.updateTitle('Version 3');
       expect(task.getTitle()).toBe('Version 3');
     });
 
@@ -126,7 +99,7 @@ describe('Task - updateTitle()', () => {
       const oldTimestamp = task.getUpdatedAt();
 
       // Wait a bit to ensure timestamp changes
-      task.updateTitle('New Title', 'user-1');
+      task.updateTitle('New Title');
 
       const newTimestamp = task.getUpdatedAt();
       expect(newTimestamp.getTime()).toBeGreaterThanOrEqual(
@@ -142,10 +115,10 @@ describe('Task - updateTitle()', () => {
         title: 'Old Title',
       });
 
-      // Any assignee can update
-      task.updateTitle('Updated by user-2', 'user-2');
+      // No authorization check in domain layer anymore
+      task.updateTitle('Updated title');
 
-      expect(task.getTitle()).toBe('Updated by user-2');
+      expect(task.getTitle()).toBe('Updated title');
     });
 
     it('should preserve other task properties when updating title', () => {
@@ -157,7 +130,7 @@ describe('Task - updateTitle()', () => {
         status: TaskStatus.IN_PROGRESS,
       });
 
-      task.updateTitle('New Title', 'user-1');
+      task.updateTitle('New Title');
 
       expect(task.getTitle()).toBe('New Title');
       expect(task.getDescription()).toBe('Important description');
@@ -172,7 +145,7 @@ describe('Task - updateTitle()', () => {
       });
 
       const longTitle = 'A'.repeat(500); // 500 character title
-      task.updateTitle(longTitle, 'user-1');
+      task.updateTitle(longTitle);
 
       expect(task.getTitle()).toBe(longTitle);
     });

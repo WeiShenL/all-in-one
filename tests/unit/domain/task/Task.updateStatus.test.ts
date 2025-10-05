@@ -1,38 +1,16 @@
 /**
  * TDD Tests for Task.updateStatus()
  *
- * AC: Assigned Staff member can update the task status
+ * Business Rules: can update the task status
  * Statuses: TO_DO, IN_PROGRESS, COMPLETED, BLOCKED
+ * Note: Authorization is now handled in TaskService layer
  */
 
 import { TaskStatus } from '../../../../src/domain/task/Task';
-import { UnauthorizedError } from '../../../../src/domain/task/errors/TaskErrors';
 import { createTestTask } from '../../../helpers/taskTestHelpers';
 
 describe('Task - updateStatus()', () => {
-  describe('Authorization', () => {
-    it('should allow assigned user to update status', () => {
-      const task = createTestTask({
-        assignees: new Set(['user-1']),
-        status: TaskStatus.TO_DO,
-      });
-
-      task.updateStatus(TaskStatus.IN_PROGRESS, 'user-1');
-
-      expect(task.getStatus()).toBe(TaskStatus.IN_PROGRESS);
-    });
-
-    it('should throw UnauthorizedError when user is not assigned', () => {
-      const task = createTestTask({
-        assignees: new Set(['user-1']),
-        status: TaskStatus.TO_DO,
-      });
-
-      expect(() =>
-        task.updateStatus(TaskStatus.IN_PROGRESS, 'user-999')
-      ).toThrow(UnauthorizedError);
-    });
-  });
+  // No authorization tests - moved to TaskService tests
 
   describe('Status Transitions', () => {
     it('should update from TO_DO to IN_PROGRESS', () => {
@@ -41,7 +19,7 @@ describe('Task - updateStatus()', () => {
         status: TaskStatus.TO_DO,
       });
 
-      task.updateStatus(TaskStatus.IN_PROGRESS, 'user-1');
+      task.updateStatus(TaskStatus.IN_PROGRESS);
 
       expect(task.getStatus()).toBe(TaskStatus.IN_PROGRESS);
     });
@@ -52,7 +30,7 @@ describe('Task - updateStatus()', () => {
         status: TaskStatus.IN_PROGRESS,
       });
 
-      task.updateStatus(TaskStatus.COMPLETED, 'user-1');
+      task.updateStatus(TaskStatus.COMPLETED);
 
       expect(task.getStatus()).toBe(TaskStatus.COMPLETED);
     });
@@ -63,7 +41,7 @@ describe('Task - updateStatus()', () => {
         status: TaskStatus.IN_PROGRESS,
       });
 
-      task.updateStatus(TaskStatus.BLOCKED, 'user-1');
+      task.updateStatus(TaskStatus.BLOCKED);
 
       expect(task.getStatus()).toBe(TaskStatus.BLOCKED);
     });
@@ -74,7 +52,7 @@ describe('Task - updateStatus()', () => {
         status: TaskStatus.BLOCKED,
       });
 
-      task.updateStatus(TaskStatus.IN_PROGRESS, 'user-1');
+      task.updateStatus(TaskStatus.IN_PROGRESS);
 
       expect(task.getStatus()).toBe(TaskStatus.IN_PROGRESS);
     });
@@ -85,7 +63,7 @@ describe('Task - updateStatus()', () => {
         status: TaskStatus.COMPLETED,
       });
 
-      task.updateStatus(TaskStatus.IN_PROGRESS, 'user-1');
+      task.updateStatus(TaskStatus.IN_PROGRESS);
 
       expect(task.getStatus()).toBe(TaskStatus.IN_PROGRESS);
     });
@@ -96,7 +74,7 @@ describe('Task - updateStatus()', () => {
         status: TaskStatus.IN_PROGRESS,
       });
 
-      task.updateStatus(TaskStatus.IN_PROGRESS, 'user-1');
+      task.updateStatus(TaskStatus.IN_PROGRESS);
 
       expect(task.getStatus()).toBe(TaskStatus.IN_PROGRESS);
     });
@@ -109,7 +87,7 @@ describe('Task - updateStatus()', () => {
         status: TaskStatus.IN_PROGRESS,
       });
 
-      task.updateStatus(TaskStatus.TO_DO, 'user-1');
+      task.updateStatus(TaskStatus.TO_DO);
 
       expect(task.getStatus()).toBe(TaskStatus.TO_DO);
     });
@@ -120,7 +98,7 @@ describe('Task - updateStatus()', () => {
         status: TaskStatus.TO_DO,
       });
 
-      task.updateStatus(TaskStatus.IN_PROGRESS, 'user-1');
+      task.updateStatus(TaskStatus.IN_PROGRESS);
 
       expect(task.getStatus()).toBe(TaskStatus.IN_PROGRESS);
     });
@@ -131,7 +109,7 @@ describe('Task - updateStatus()', () => {
         status: TaskStatus.IN_PROGRESS,
       });
 
-      task.updateStatus(TaskStatus.COMPLETED, 'user-1');
+      task.updateStatus(TaskStatus.COMPLETED);
 
       expect(task.getStatus()).toBe(TaskStatus.COMPLETED);
     });
@@ -142,7 +120,7 @@ describe('Task - updateStatus()', () => {
         status: TaskStatus.TO_DO,
       });
 
-      task.updateStatus(TaskStatus.BLOCKED, 'user-1');
+      task.updateStatus(TaskStatus.BLOCKED);
 
       expect(task.getStatus()).toBe(TaskStatus.BLOCKED);
     });
@@ -155,16 +133,16 @@ describe('Task - updateStatus()', () => {
         status: TaskStatus.TO_DO,
       });
 
-      task.updateStatus(TaskStatus.IN_PROGRESS, 'user-1');
+      task.updateStatus(TaskStatus.IN_PROGRESS);
       expect(task.getStatus()).toBe(TaskStatus.IN_PROGRESS);
 
-      task.updateStatus(TaskStatus.BLOCKED, 'user-1');
+      task.updateStatus(TaskStatus.BLOCKED);
       expect(task.getStatus()).toBe(TaskStatus.BLOCKED);
 
-      task.updateStatus(TaskStatus.IN_PROGRESS, 'user-1');
+      task.updateStatus(TaskStatus.IN_PROGRESS);
       expect(task.getStatus()).toBe(TaskStatus.IN_PROGRESS);
 
-      task.updateStatus(TaskStatus.COMPLETED, 'user-1');
+      task.updateStatus(TaskStatus.COMPLETED);
       expect(task.getStatus()).toBe(TaskStatus.COMPLETED);
     });
 
@@ -176,7 +154,7 @@ describe('Task - updateStatus()', () => {
 
       const oldTimestamp = task.getUpdatedAt();
 
-      task.updateStatus(TaskStatus.IN_PROGRESS, 'user-1');
+      task.updateStatus(TaskStatus.IN_PROGRESS);
 
       const newTimestamp = task.getUpdatedAt();
       expect(newTimestamp.getTime()).toBeGreaterThanOrEqual(
@@ -192,7 +170,7 @@ describe('Task - updateStatus()', () => {
         status: TaskStatus.TO_DO,
       });
 
-      task.updateStatus(TaskStatus.IN_PROGRESS, 'user-2');
+      task.updateStatus(TaskStatus.IN_PROGRESS);
 
       expect(task.getStatus()).toBe(TaskStatus.IN_PROGRESS);
     });
@@ -206,7 +184,7 @@ describe('Task - updateStatus()', () => {
         priorityBucket: 9,
       });
 
-      task.updateStatus(TaskStatus.IN_PROGRESS, 'user-1');
+      task.updateStatus(TaskStatus.IN_PROGRESS);
 
       expect(task.getStatus()).toBe(TaskStatus.IN_PROGRESS);
       expect(task.getTitle()).toBe('Important Task');

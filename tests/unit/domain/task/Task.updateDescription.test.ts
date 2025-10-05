@@ -1,38 +1,15 @@
 /**
  * TDD Tests for Task.updateDescription()
  *
- * AC: Assigned Staff member can update task description
- * Note: Description can be empty (unlike title)
+ * Business Rules: Description can be empty (unlike title)
+ * Note: Authorization is now handled in TaskService layer
  */
 
 import { TaskStatus } from '../../../../src/domain/task/Task';
-import { UnauthorizedError } from '../../../../src/domain/task/errors/TaskErrors';
 import { createTestTask } from '../../../helpers/taskTestHelpers';
 
 describe('Task - updateDescription()', () => {
-  describe('Authorization', () => {
-    it('should allow assigned user to update description', () => {
-      const task = createTestTask({
-        assignees: new Set(['user-1']),
-        description: 'Old description',
-      });
-
-      task.updateDescription('New description', 'user-1');
-
-      expect(task.getDescription()).toBe('New description');
-    });
-
-    it('should throw UnauthorizedError when user is not assigned', () => {
-      const task = createTestTask({
-        assignees: new Set(['user-1']),
-        description: 'Old description',
-      });
-
-      expect(() =>
-        task.updateDescription('New description', 'user-999')
-      ).toThrow(UnauthorizedError);
-    });
-  });
+  // No authorization tests - moved to TaskService tests
 
   describe('Description Validation', () => {
     it('should accept valid non-empty description', () => {
@@ -41,7 +18,7 @@ describe('Task - updateDescription()', () => {
         description: 'Old description',
       });
 
-      task.updateDescription('Valid new description', 'user-1');
+      task.updateDescription('Valid new description');
 
       expect(task.getDescription()).toBe('Valid new description');
     });
@@ -52,7 +29,7 @@ describe('Task - updateDescription()', () => {
         description: 'Old description',
       });
 
-      task.updateDescription('', 'user-1');
+      task.updateDescription('');
 
       expect(task.getDescription()).toBe('');
     });
@@ -96,7 +73,7 @@ Line 3`;
         description: 'Original description',
       });
 
-      task.updateDescription('Updated description', 'user-1');
+      task.updateDescription('Updated description');
 
       expect(task.getDescription()).toBe('Updated description');
     });
@@ -107,10 +84,10 @@ Line 3`;
         description: 'Version 1',
       });
 
-      task.updateDescription('Version 2', 'user-1');
+      task.updateDescription('Version 2');
       expect(task.getDescription()).toBe('Version 2');
 
-      task.updateDescription('Version 3', 'user-1');
+      task.updateDescription('Version 3');
       expect(task.getDescription()).toBe('Version 3');
     });
 
@@ -122,7 +99,7 @@ Line 3`;
 
       const oldTimestamp = task.getUpdatedAt();
 
-      task.updateDescription('New description', 'user-1');
+      task.updateDescription('New description');
 
       const newTimestamp = task.getUpdatedAt();
       expect(newTimestamp.getTime()).toBeGreaterThanOrEqual(
@@ -138,7 +115,7 @@ Line 3`;
         description: 'Old description',
       });
 
-      task.updateDescription('Updated by user-3', 'user-3');
+      task.updateDescription('Updated by user-3');
 
       expect(task.getDescription()).toBe('Updated by user-3');
     });
@@ -152,7 +129,7 @@ Line 3`;
         status: TaskStatus.BLOCKED,
       });
 
-      task.updateDescription('New description', 'user-1');
+      task.updateDescription('New description');
 
       expect(task.getDescription()).toBe('New description');
       expect(task.getTitle()).toBe('Important Task');

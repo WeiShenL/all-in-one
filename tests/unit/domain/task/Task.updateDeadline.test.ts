@@ -1,43 +1,17 @@
 /**
  * TDD Tests for Task.updateDeadline()
  *
- * AC: Assigned Staff member can update the task deadline
+ * Business Rules: can update the task deadline
  * Constraint: If subtask, deadline must be <= parent deadline (DST014)
+ * Note: Authorization is now handled in TaskService layer
  */
 
 import { TaskStatus } from '../../../../src/domain/task/Task';
-import {
-  UnauthorizedError,
-  InvalidSubtaskDeadlineError,
-} from '../../../../src/domain/task/errors/TaskErrors';
+import { InvalidSubtaskDeadlineError } from '../../../../src/domain/task/errors/TaskErrors';
 import { createTestTask } from '../../../helpers/taskTestHelpers';
 
 describe('Task - updateDeadline()', () => {
-  describe('Authorization', () => {
-    it('should allow assigned user to update deadline', () => {
-      const task = createTestTask({
-        assignees: new Set(['user-1']),
-        dueDate: new Date('2025-01-15'),
-      });
-
-      const newDeadline = new Date('2025-02-20');
-      task.updateDeadline(newDeadline, 'user-1');
-
-      expect(task.getDueDate()).toEqual(newDeadline);
-    });
-
-    it('should throw UnauthorizedError when user is not assigned', () => {
-      const task = createTestTask({
-        assignees: new Set(['user-1']),
-        dueDate: new Date('2025-01-15'),
-      });
-
-      const newDeadline = new Date('2025-02-20');
-      expect(() => task.updateDeadline(newDeadline, 'user-999')).toThrow(
-        UnauthorizedError
-      );
-    });
-  });
+  // No authorization tests - moved to TaskService tests
 
   describe('Deadline Validation - Regular Tasks', () => {
     it('should accept future deadline', () => {
@@ -48,7 +22,7 @@ describe('Task - updateDeadline()', () => {
       });
 
       const futureDate = new Date('2026-12-31');
-      task.updateDeadline(futureDate, 'user-1');
+      task.updateDeadline(futureDate);
 
       expect(task.getDueDate()).toEqual(futureDate);
     });
@@ -61,7 +35,7 @@ describe('Task - updateDeadline()', () => {
       });
 
       const pastDate = new Date('2020-01-01');
-      task.updateDeadline(pastDate, 'user-1');
+      task.updateDeadline(pastDate);
 
       expect(task.getDueDate()).toEqual(pastDate);
     });
@@ -74,7 +48,7 @@ describe('Task - updateDeadline()', () => {
       });
 
       const sameDate = new Date('2025-06-01');
-      task.updateDeadline(sameDate, 'user-1');
+      task.updateDeadline(sameDate);
 
       expect(task.getDueDate()).toEqual(sameDate);
     });
@@ -92,7 +66,7 @@ describe('Task - updateDeadline()', () => {
       // Mock getParentDeadline to return parent deadline
       // For now, we'll pass parent deadline as context
       // NOTE: This will need Repository in real implementation
-      task.updateDeadline(parentDeadline, 'user-1', parentDeadline);
+      task.updateDeadline(parentDeadline, parentDeadline);
 
       expect(task.getDueDate()).toEqual(parentDeadline);
     });
@@ -106,7 +80,7 @@ describe('Task - updateDeadline()', () => {
         parentTaskId: 'parent-123',
       });
 
-      task.updateDeadline(subtaskDeadline, 'user-1', parentDeadline);
+      task.updateDeadline(subtaskDeadline, parentDeadline);
 
       expect(task.getDueDate()).toEqual(subtaskDeadline);
     });
@@ -122,7 +96,7 @@ describe('Task - updateDeadline()', () => {
       });
 
       expect(() =>
-        task.updateDeadline(invalidDeadline, 'user-1', parentDeadline)
+        task.updateDeadline(invalidDeadline, parentDeadline)
       ).toThrow(InvalidSubtaskDeadlineError);
     });
   });
@@ -135,7 +109,7 @@ describe('Task - updateDeadline()', () => {
       });
 
       const newDeadline = new Date('2025-09-15');
-      task.updateDeadline(newDeadline, 'user-1');
+      task.updateDeadline(newDeadline);
 
       expect(task.getDueDate()).toEqual(newDeadline);
     });
@@ -147,11 +121,11 @@ describe('Task - updateDeadline()', () => {
       });
 
       const deadline1 = new Date('2025-02-01');
-      task.updateDeadline(deadline1, 'user-1');
+      task.updateDeadline(deadline1);
       expect(task.getDueDate()).toEqual(deadline1);
 
       const deadline2 = new Date('2025-03-01');
-      task.updateDeadline(deadline2, 'user-1');
+      task.updateDeadline(deadline2);
       expect(task.getDueDate()).toEqual(deadline2);
     });
 
@@ -164,7 +138,7 @@ describe('Task - updateDeadline()', () => {
       const oldTimestamp = task.getUpdatedAt();
 
       const newDeadline = new Date('2025-08-01');
-      task.updateDeadline(newDeadline, 'user-1');
+      task.updateDeadline(newDeadline);
 
       const newTimestamp = task.getUpdatedAt();
       expect(newTimestamp.getTime()).toBeGreaterThanOrEqual(
@@ -181,7 +155,7 @@ describe('Task - updateDeadline()', () => {
       });
 
       const newDeadline = new Date('2025-07-15');
-      task.updateDeadline(newDeadline, 'user-2');
+      task.updateDeadline(newDeadline);
 
       expect(task.getDueDate()).toEqual(newDeadline);
     });
@@ -197,7 +171,7 @@ describe('Task - updateDeadline()', () => {
       });
 
       const newDeadline = new Date('2025-08-01');
-      task.updateDeadline(newDeadline, 'user-1');
+      task.updateDeadline(newDeadline);
 
       expect(task.getDueDate()).toEqual(newDeadline);
       expect(task.getTitle()).toBe('Important Task');
