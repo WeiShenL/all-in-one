@@ -164,10 +164,16 @@ jobs:
           npx vercel deploy --token=$VERCEL_TOKEN --yes > deployment-url.txt
           echo "VERCEL_URL=$(cat deployment-url.txt | grep -o 'https://[^[:space:]]*')" >> $GITHUB_OUTPUT
 
-      - name: Setup Playwright (cached browsers)
-        uses: microsoft/playwright-github-action@v1
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
         with:
-          with-deps: true
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            playwright-${{ runner.os }}-
+
+      - name: Install Playwright browsers and system deps
+        run: npx playwright install --with-deps
 
       - name: Run E2E Tests Against Preview
         env:
