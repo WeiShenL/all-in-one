@@ -161,17 +161,10 @@ jobs:
           SERVICE_ROLE_KEY: ${{ secrets.SERVICE_ROLE_KEY }}
         run: npm run build
 
-      - name: Reset and migrate staging database
+      - name: Run database migrations
         env:
           DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
-        run: |
-          npx prisma migrate reset --force --skip-seed
-          npx prisma migrate deploy
-
-      - name: Seed staging database
-        env:
-          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
-        run: npx prisma db seed
+        run: npx prisma migrate deploy
 
       - name: Run integration tests
         env:
