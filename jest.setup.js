@@ -6,6 +6,15 @@ import { TextEncoder, TextDecoder } from 'util';
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
+// Mock Supabase client to prevent initialization errors in tests
+jest.mock('@supabase/supabase-js', () => ({
+  createClient: jest.fn(() => ({
+    storage: {
+      from: jest.fn(),
+    },
+  })),
+}));
+
 // Mock Next.js router
 jest.mock('next/navigation', () => ({
   useRouter() {
