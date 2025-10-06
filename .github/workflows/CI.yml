@@ -58,40 +58,19 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Run unit tests (Jest)
-      - name: Run Unit Tests
-        run: npm run test:unit -- --coverage
+      # Run unit tests (Jest) with coverage into coverage/unit
+      - name: Run Unit Tests (with coverage)
+        run: npm run test:unit -- --coverage --coverageDirectory=coverage/unit
 
-      # Check if coverage file exists
-      - name: Check Coverage File
-        run: |
-          if [ ! -f ./coverage/lcov.info ]; then
-            echo "Coverage file not found!"
-            exit 1
-          fi
+      # Upload unit coverage as artifact for later merge
+      - name: Upload Unit Coverage Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-unit
+          path: coverage/unit/
 
-      # retrigger job
-      # # Upload coverage to Coveralls
-      # - uses: coverallsapp/github-action@v2
-      #   with:
-      #     github-token: ${{ secrets.GITHUB_TOKEN }}
-      #     path-to-lcov: ./coverage/lcov.info
-
-      # # Comment Coverage URL on PR
-      # - name: Comment Coverage URL
-      #   if: github.event_name == 'pull_request'
-      #   uses: actions/github-script@v7
-      #   with:
-      #     github-token: ${{ secrets.GITHUB_TOKEN }}
-      #     script: |
-      #       const result = JSON.parse('${{ steps.coveralls.outputs.coveralls-api-result }}');
-      #       const jobUrl = result.url || `https://coveralls.io/jobs/${result.id}`;
-      #       github.rest.issues.createComment({
-      #         issue_number: context.issue.number,
-      #         owner: context.repo.owner,
-      #         repo: context.repo.repo,
-      #         body: `📊 **Coverage Report**: ${jobUrl}`
-      #       })
+      # Upload coverage to Coveralls
+      # (Coveralls upload happens in staging-deploy after merging with integration)
 
   security:
     name: Security Scan
@@ -130,12 +109,42 @@ jobs:
       # SAST (Static Application Security Testing)
       # done by codeQL default
 
+  playwright-setup:
+    name: Setup Playwright
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-v1
+          restore-keys: |
+            playwright-${{ runner.os }}-
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps
+
   staging-deploy:
     name: Staging Deployment
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     environment: Preview
-    needs: [code-quality, base-tests, security] # Now this will work!
+    needs: [code-quality, base-tests, security, playwright-setup]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -172,7 +181,7 @@ jobs:
           NEXT_PUBLIC_ANON_KEY: ${{ secrets.NEXT_PUBLIC_ANON_KEY }}
           SERVICE_ROLE_KEY: ${{ secrets.SERVICE_ROLE_KEY }}
           DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
-        run: npm run test:integration
+        run: npm run test:integration -- --coverage --coverageDirectory=coverage/integration
 
       - name: Deploy to Vercel Preview
         id: vercel-deploy
@@ -184,6 +193,96 @@ jobs:
           npx vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
           npx vercel deploy --token=$VERCEL_TOKEN --yes > deployment-url.txt
           echo "VERCEL_URL=$(cat deployment-url.txt | grep -o 'https://[^[:space:]]*')" >> $GITHUB_OUTPUT
+
+      - name: Restore Playwright cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-v1
+          restore-keys: |
+            playwright-${{ runner.os }}-
+
+      - name: Install Playwright system deps only
+        run: npx playwright install-deps
+
+      - name: Run E2E Tests Against Preview
+        env:
+          # Use the deployed preview URL as Playwright baseURL
+          PLAYWRIGHT_BASE_URL: ${{ steps.vercel-deploy.outputs.VERCEL_URL }}
+          # Staging database for cleanup and verification
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+          # Supabase env for client auth in tests
+          NEXT_PUBLIC_API_EXTERNAL_URL: ${{ secrets.NEXT_PUBLIC_API_EXTERNAL_URL }}
+          NEXT_PUBLIC_ANON_KEY: ${{ secrets.NEXT_PUBLIC_ANON_KEY }}
+          SERVICE_ROLE_KEY: ${{ secrets.SERVICE_ROLE_KEY }}
+          CI: true
+        run: npm run test:e2e
+
+      - name: Upload Playwright Artifacts (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-artifacts
+          path: |
+            playwright-report
+            test-results
+
+      # Download unit coverage artifact
+      - name: Download Unit Coverage Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-unit
+          path: coverage/unit
+
+      # Merge unit + integration coverage
+      - name: Merge Coverage (unit + integration)
+        run: |
+          mkdir -p coverage
+
+          # Verify source files exist
+          if [ ! -f coverage/unit/lcov.info ]; then
+            echo "❌ Unit coverage file missing"
+            exit 1
+          fi
+
+          if [ ! -f coverage/integration/lcov.info ]; then
+            echo "❌ Integration coverage file missing"
+            exit 1
+          fi
+
+          # Simple concatenation works for lcov files
+          cat coverage/unit/lcov.info coverage/integration/lcov.info > coverage/lcov.info
+
+          if [ ! -f ./coverage/lcov.info ]; then
+            echo "❌ Merged coverage missing";
+            exit 1;
+          fi
+
+          echo "✅ Coverage merged: $(wc -l < ./coverage/lcov.info) lines"
+
+      # Upload merged coverage to Coveralls
+      - name: Upload coverage to Coveralls
+        uses: coverallsapp/github-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: ./coverage/lcov.info
+
+      - name: Comment PR with Coveralls URL
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const branch = context.payload.pull_request?.head?.ref || context.ref.replace('refs/heads/', '');
+            const coverallsUrl = `https://coveralls.io/github/${owner}/${repo}?branch=${encodeURIComponent(branch)}`;
+            const comment = `🧪 **Coverage uploaded to Coveralls (merged unit + integration)**\n\nCoverage URL: ${coverallsUrl}`;
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner,
+              repo,
+              body: comment,
+            });
 
       - name: Comment PR with preview URL
         if: github.event_name == 'pull_request' && steps.vercel-deploy.outcome == 'success'
@@ -197,6 +296,7 @@ jobs:
 
             ✅ Database migration completed
             ✅ Integration tests passed
+            ✅ E2E tests passed
             ✅ Vercel preview deployed
 
             The preview will be available at the URL above.`;

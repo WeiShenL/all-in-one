@@ -29,7 +29,16 @@ export default function SignupPage() {
   const emailValidation = validateEmail(formData.email);
 
   // Load departments using tRPC
-  const { data: departments = [] } = trpc.department.getAll.useQuery();
+  const utils = trpc.useUtils();
+  useEffect(() => {
+    utils.department.getAll.prefetch().catch(() => {});
+  }, [utils]);
+  const { data: departments = [] } = trpc.department.getAll.useQuery(
+    undefined,
+    {
+      staleTime: 5 * 60 * 1000,
+    }
+  );
 
   // Redirect if already logged in
   useEffect(() => {
