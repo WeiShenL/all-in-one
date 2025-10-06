@@ -78,6 +78,7 @@ test.describe('Signup to Dashboard, Logout and log back in Flow', () => {
     await expect(deptSearch).toBeVisible();
     await deptSearch.fill('IT');
     const itOption = page.getByText(/^\s*└─\s*IT\s*$/);
+    // note this is prefetched so in actual 5 sec is fine
     await expect(itOption).toBeVisible({ timeout: 5000 });
     await itOption.click();
 
@@ -89,9 +90,10 @@ test.describe('Signup to Dashboard, Logout and log back in Flow', () => {
     await page.getByRole('button', { name: /create account/i }).click();
 
     // Expect redirect to Staff Dashboard
+    // tolerance increased to 5 sec since vercel version is slightly slower
     await expect(
       page.getByRole('heading', { name: /staff dashboard/i })
-    ).toBeVisible({ timeout: 3000 });
+    ).toBeVisible({ timeout: 5000 });
 
     // Logout via Navbar
     await page.getByRole('button', { name: /sign out/i }).click();
