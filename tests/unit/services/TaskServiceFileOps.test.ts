@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
+// Mock dependencies BEFORE imports to prevent Supabase client initialization
+jest.mock('@/services/storage/SupabaseStorageService');
+
 import { TaskService } from '@/services/task/TaskService';
 import { ITaskRepository } from '@/repositories/ITaskRepository';
 import { SupabaseStorageService } from '@/services/storage/SupabaseStorageService';
-
-// Mock dependencies
-jest.mock('@/services/storage/SupabaseStorageService');
 
 describe('TaskService - File Operations', () => {
   let service: TaskService;

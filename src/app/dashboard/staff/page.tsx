@@ -9,7 +9,13 @@ import { TaskFileUpload } from '@/app/components/TaskFileUpload';
 export default function StaffDashboard() {
   const { user, userProfile, loading } = useAuth();
   const router = useRouter();
-  const [task, setTask] = useState<{ id: string; title: string } | null>(null);
+  const [task, setTask] = useState<{
+    id: string;
+    title: string;
+    description: string | null;
+    status: string;
+    priority: string;
+  } | null>(null);
   const [loadingTask, setLoadingTask] = useState(true);
 
   useEffect(() => {

@@ -89,7 +89,7 @@ export class PrismaTaskRepository implements ITaskRepository {
     taskId: string,
     userId: string,
     action: string,
-    metadata?: Record<string, unknown>
+    metadata?: Record<string, string | number | boolean | null>
   ): Promise<void> {
     await this.prisma.taskLog.create({
       data: {

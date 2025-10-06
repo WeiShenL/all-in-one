@@ -88,6 +88,6 @@ export interface ITaskRepository {
     taskId: string,
     userId: string,
     action: string,
-    metadata?: Record<string, unknown>
+    metadata?: Record<string, string | number | boolean | null>
   ): Promise<void>;
 }
