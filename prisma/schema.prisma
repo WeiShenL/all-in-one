@@ -13,12 +13,6 @@ enum UserRole {
   HR_ADMIN
 }
 
-enum TaskPriority {
-  LOW
-  MEDIUM
-  HIGH
-}
-
 enum TaskStatus {
   TO_DO
   IN_PROGRESS
@@ -151,7 +145,7 @@ model Project {
   id           String        @id @default(uuid())
   name         String
   description  String?       @db.Text
-  priority     TaskPriority  @default(MEDIUM)
+  priority     Int           @default(5) // 1-10 scale
   dueDate      DateTime?
   status       ProjectStatus @default(ACTIVE)
   departmentId String
@@ -174,19 +168,21 @@ model Project {
 
 // TASK
 model Task {
-  id           String       @id @default(uuid())
-  title        String
-  description  String       @db.Text
-  priority     TaskPriority @default(MEDIUM)
-  dueDate      DateTime
-  status       TaskStatus   @default(TO_DO)
-  ownerId      String
-  projectId    String?
-  departmentId String
-  parentTaskId String?
-  isArchived   Boolean      @default(false)
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  id             String       @id @default(uuid())
+  title          String
+  description    String       @db.Text
+  priority       Int          @default(5) // 1-10 scale as per requirements
+  dueDate        DateTime
+  status         TaskStatus   @default(TO_DO)
+  ownerId        String
+  projectId      String?
+  departmentId   String
+  parentTaskId   String?
+  isRecurring    Boolean      @default(false)
+  recurrenceDays Int?         // Number of days for recurrence interval
+  isArchived     Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   owner          UserProfile      @relation("TaskOwner", fields: [ownerId], references: [id])
   project        Project?         @relation(fields: [projectId], references: [id])

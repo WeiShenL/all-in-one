@@ -44,7 +44,7 @@ export function TaskFileUpload({ taskId }: TaskFileUploadProps) {
 
     try {
       const response = await fetch(
-        `/api/trpc/taskFile.getTaskFiles?input=${encodeURIComponent(
+        `/api/trpc/task.getTaskFiles?input=${encodeURIComponent(
           JSON.stringify({
             taskId,
             userId: userProfile.id,
@@ -73,7 +73,7 @@ export function TaskFileUpload({ taskId }: TaskFileUploadProps) {
 
     try {
       const response = await fetch(
-        `/api/trpc/taskFile.getFileDownloadUrl?input=${encodeURIComponent(
+        `/api/trpc/task.getFileDownloadUrl?input=${encodeURIComponent(
           JSON.stringify({
             fileId,
             userId: userProfile.id,
@@ -104,7 +104,7 @@ export function TaskFileUpload({ taskId }: TaskFileUploadProps) {
     }
 
     try {
-      const response = await fetch('/api/trpc/taskFile.deleteFile', {
+      const response = await fetch('/api/trpc/task.deleteFile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -196,7 +196,7 @@ export function TaskFileUpload({ taskId }: TaskFileUploadProps) {
           setUploadProgress(40);
 
           // Make API call with user context
-          const response = await fetch('/api/trpc/taskFile.uploadFile', {
+          const response = await fetch('/api/trpc/task.uploadFile', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

@@ -4,19 +4,14 @@ import { useAuth } from '@/lib/supabase/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Navbar from '@/app/components/Navbar';
-import { TaskFileUpload } from '@/app/components/TaskFileUpload';
+import { TaskEditCard } from '@/app/components/TaskEditCard';
 
 export default function StaffDashboard() {
   const { user, userProfile, loading } = useAuth();
   const router = useRouter();
-  const [task, setTask] = useState<{
-    id: string;
-    title: string;
-    description: string | null;
-    status: string;
-    priority: string;
-  } | null>(null);
-  const [loadingTask, setLoadingTask] = useState(true);
+  const [tasks, setTasks] = useState<Array<{ id: string; title: string }>>([]);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [loadingTasks, setLoadingTasks] = useState(true);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -33,17 +28,18 @@ export default function StaffDashboard() {
 
       try {
         const response = await fetch(
-          `/api/trpc/taskFile.getUserTasks?input=${encodeURIComponent(JSON.stringify({ userId: userProfile.id }))}`
+          `/api/trpc/task.getUserTasks?input=${encodeURIComponent(JSON.stringify({ userId: userProfile.id, includeArchived: false }))}`
         );
         const data = await response.json();
 
         if (data.result?.data?.tasks?.length > 0) {
-          setTask(data.result.data.tasks[0]); // Get first task
+          setTasks(data.result.data.tasks);
+          setSelectedTaskId(data.result.data.tasks[0].id); // Select first task
         }
       } catch (err) {
         console.error('Failed to fetch tasks:', err);
       } finally {
-        setLoadingTask(false);
+        setLoadingTasks(false);
       }
     }
 
@@ -229,91 +225,103 @@ export default function StaffDashboard() {
             </div>
           </div>
 
-          {/* File Upload Test Section */}
-          {task && (
-            <div style={{ marginTop: '2rem' }}>
-              <h2
-                style={{
-                  marginBottom: '1rem',
-                  color: '#2d3748',
-                  fontSize: '1.5rem',
-                  fontWeight: '600',
-                }}
-              >
-                📎 My Task - File Upload Test
-              </h2>
-              <div
-                style={{
-                  backgroundColor: '#ffffff',
-                  padding: '1.5rem',
-                  borderRadius: '12px',
-                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-                }}
-              >
-                <h3
-                  style={{
-                    marginBottom: '1rem',
-                    fontSize: '1.125rem',
-                    fontWeight: '600',
-                  }}
-                >
-                  {task.title}
-                </h3>
-                <p style={{ color: '#4a5568', marginBottom: '1rem' }}>
-                  {task.description}
-                </p>
-                <div style={{ marginBottom: '1rem', fontSize: '0.875rem' }}>
-                  <span
-                    style={{
-                      backgroundColor: '#e3f2fd',
-                      padding: '0.25rem 0.5rem',
-                      borderRadius: '4px',
-                      marginRight: '0.5rem',
-                    }}
-                  >
-                    {task.status}
-                  </span>
-                  <span
-                    style={{
-                      backgroundColor: '#fff3e0',
-                      padding: '0.25rem 0.5rem',
-                      borderRadius: '4px',
-                    }}
-                  >
-                    {task.priority}
-                  </span>
-                </div>
-
-                <h4
-                  style={{
-                    marginTop: '1.5rem',
-                    marginBottom: '1rem',
-                    fontSize: '1rem',
-                    fontWeight: '600',
-                  }}
-                >
-                  Upload Files
-                </h4>
-                <TaskFileUpload taskId={task.id} />
-              </div>
-            </div>
-          )}
-
-          {!task && !loadingTask && (
-            <div
+          {/* Task Management Section */}
+          <div style={{ marginTop: '2rem' }}>
+            <h2
               style={{
-                marginTop: '2rem',
-                padding: '1rem',
-                backgroundColor: '#fff3cd',
-                borderRadius: '8px',
+                marginBottom: '1rem',
+                color: '#2d3748',
+                fontSize: '1.5rem',
+                fontWeight: '600',
               }}
             >
-              <p style={{ margin: 0 }}>
-                No tasks found. Please run the SQL script from
-                FILE_UPLOAD_TESTING_GUIDE.md
-              </p>
-            </div>
-          )}
+              📋 My Assigned Tasks
+            </h2>
+
+            {loadingTasks ? (
+              <div
+                style={{
+                  padding: '2rem',
+                  backgroundColor: '#ffffff',
+                  borderRadius: '12px',
+                  textAlign: 'center',
+                  color: '#666',
+                }}
+              >
+                Loading tasks...
+              </div>
+            ) : tasks.length === 0 ? (
+              <div
+                style={{
+                  padding: '2rem',
+                  backgroundColor: '#fff3cd',
+                  borderRadius: '12px',
+                  border: '1px solid #ffc107',
+                }}
+              >
+                <p
+                  style={{ margin: 0, fontWeight: '600', marginBottom: '8px' }}
+                >
+                  📝 No tasks found
+                </p>
+                <p style={{ margin: 0, fontSize: '0.875rem', color: '#666' }}>
+                  Run the SQL script from{' '}
+                  <code
+                    style={{
+                      backgroundColor: '#fff',
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                    }}
+                  >
+                    scripts/seed-test-tasks-comprehensive.sql
+                  </code>{' '}
+                  to create test tasks.
+                </p>
+              </div>
+            ) : (
+              <div>
+                {/* Task Selector */}
+                {tasks.length > 1 && (
+                  <div style={{ marginBottom: '1rem' }}>
+                    <label
+                      style={{
+                        display: 'block',
+                        fontSize: '0.875rem',
+                        fontWeight: '600',
+                        marginBottom: '8px',
+                        color: '#4a5568',
+                      }}
+                    >
+                      Select Task:
+                    </label>
+                    <select
+                      value={selectedTaskId || ''}
+                      onChange={e => setSelectedTaskId(e.target.value)}
+                      style={{
+                        width: '100%',
+                        maxWidth: '500px',
+                        padding: '10px',
+                        border: '2px solid #cbd5e0',
+                        borderRadius: '8px',
+                        fontSize: '1rem',
+                        backgroundColor: '#fff',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {tasks.map(task => (
+                        <option key={task.id} value={task.id}>
+                          {task.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Task Edit Card */}
+                {selectedTaskId && <TaskEditCard taskId={selectedTaskId} />}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -15,6 +15,7 @@
     "type-check": "tsc --noEmit",
     "prepare": "node -e \"if (process.env.VERCEL !== '1') { require('child_process').execSync('npx husky', {stdio: 'inherit'}) }\"",
     "lint-staged": "lint-staged",
+    "node-fetch": "^2.7.0",
     "seed": "npx prisma db seed",
     "db:migrate": "node scripts/run-migrations.js",
     "db:push": "node scripts/push-db.js",

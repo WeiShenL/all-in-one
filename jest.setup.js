@@ -19,6 +19,12 @@ import { TextEncoder, TextDecoder } from 'util';
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
+// Polyfill setImmediate for Prisma in jsdom environment
+if (typeof setImmediate === 'undefined') {
+  global.setImmediate = (callback, ...args) => setTimeout(callback, 0, ...args);
+  global.clearImmediate = id => clearTimeout(id);
+}
+
 // Mock Next.js router
 jest.mock('next/navigation', () => ({
   useRouter() {
