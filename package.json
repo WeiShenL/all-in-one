@@ -29,7 +29,8 @@
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:ui": "playwright test --ui",
-    "test:e2e:debug": "playwright test --debug"
+    "test:e2e:debug": "playwright test --debug",
+    "coverage:merge": "lcov-result-merger \"coverage/unit/lcov.info\" \"coverage/integration/lcov.info\" > coverage/lcov.info"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -86,6 +87,7 @@
     "tailwindcss": "^4",
     "ts-jest": "^29.4.4",
     "tsx": "^4.20.5",
-    "typescript": "^5"
+    "typescript": "^5",
+    "lcov-result-merger": "^3.3.0"
   }
 }

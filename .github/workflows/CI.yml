@@ -58,40 +58,19 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Run unit tests (Jest)
-      - name: Run Unit Tests
-        run: npm run test:unit -- --coverage
+      # Run unit tests (Jest) with coverage into coverage/unit
+      - name: Run Unit Tests (with coverage)
+        run: npm run test:unit -- --coverage --coverageDirectory=coverage/unit
 
-      # Check if coverage file exists
-      - name: Check Coverage File
-        run: |
-          if [ ! -f ./coverage/lcov.info ]; then
-            echo "Coverage file not found!"
-            exit 1
-          fi
+      # Upload unit coverage as artifact for later merge
+      - name: Upload Unit Coverage Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-unit
+          path: coverage/unit/
 
       # Upload coverage to Coveralls
-      - uses: coverallsapp/github-action@v2
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          path-to-lcov: ./coverage/lcov.info
-
-      - name: Comment PR with Coveralls URL
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            const branch = context.payload.pull_request?.head?.ref || context.ref.replace('refs/heads/', '');
-            const coverallsUrl = `https://coveralls.io/github/${owner}/${repo}?branch=${encodeURIComponent(branch)}`;
-            const comment = `🧪 **Coverage uploaded to Coveralls**\n\nCoverage URL: ${coverallsUrl}`;
-            await github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner,
-              repo,
-              body: comment,
-            });
+      # (Coveralls upload happens in staging-deploy after merging with integration)
 
   security:
     name: Security Scan
@@ -172,7 +151,7 @@ jobs:
           NEXT_PUBLIC_ANON_KEY: ${{ secrets.NEXT_PUBLIC_ANON_KEY }}
           SERVICE_ROLE_KEY: ${{ secrets.SERVICE_ROLE_KEY }}
           DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
-        run: npm run test:integration
+        run: npm run test:integration -- --coverage --coverageDirectory=coverage/integration
 
       - name: Deploy to Vercel Preview
         id: vercel-deploy
@@ -211,6 +190,43 @@ jobs:
           path: |
             playwright-report
             test-results
+
+      # Download unit coverage artifact
+      - name: Download Unit Coverage Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-unit
+          path: coverage/unit
+
+      # Merge unit + integration coverage
+      - name: Merge Coverage (unit + integration)
+        run: |
+          npm run coverage:merge
+          if [ ! -f ./coverage/lcov.info ]; then echo "Merged coverage missing"; exit 1; fi
+
+      # Upload merged coverage to Coveralls
+      - name: Upload coverage to Coveralls
+        uses: coverallsapp/github-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: ./coverage/lcov.info
+
+      - name: Comment PR with Coveralls URL
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const branch = context.payload.pull_request?.head?.ref || context.ref.replace('refs/heads/', '');
+            const coverallsUrl = `https://coveralls.io/github/${owner}/${repo}?branch=${encodeURIComponent(branch)}`;
+            const comment = `🧪 **Coverage uploaded to Coveralls (merged unit + integration)**\n\nCoverage URL: ${coverallsUrl}`;
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner,
+              repo,
+              body: comment,
+            });
 
       - name: Comment PR with preview URL
         if: github.event_name == 'pull_request' && steps.vercel-deploy.outcome == 'success'
