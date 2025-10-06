@@ -145,6 +145,7 @@ jobs:
           DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
         run: npx prisma migrate deploy
 
+      # retrigger job. error is here if still fails
       - name: Run integration tests
         env:
           NEXT_PUBLIC_API_EXTERNAL_URL: ${{ secrets.NEXT_PUBLIC_API_EXTERNAL_URL }}
