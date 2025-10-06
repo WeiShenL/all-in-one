@@ -1,12 +1,4 @@
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-require('dotenv').config({ path: './.env' });
-
-import '@testing-library/jest-dom';
-import { TextEncoder, TextDecoder } from 'util';
-global.TextEncoder = TextEncoder;
-global.TextDecoder = TextDecoder;
-
-// Mock Supabase client to prevent initialization errors in tests
+// Mock Supabase client
 jest.mock('@supabase/supabase-js', () => ({
   createClient: jest.fn(() => ({
     storage: {
@@ -14,6 +6,14 @@ jest.mock('@supabase/supabase-js', () => ({
     },
   })),
 }));
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+require('dotenv').config({ path: './.env' });
+
+import '@testing-library/jest-dom';
+import { TextEncoder, TextDecoder } from 'util';
+global.TextEncoder = TextEncoder;
+global.TextDecoder = TextDecoder;
 
 // Mock Next.js router
 jest.mock('next/navigation', () => ({
