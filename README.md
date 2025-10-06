@@ -164,16 +164,19 @@ npm run test:coverage
 # Run tests in watch mode
 npm run test:watch
 
-# Run only e2e tests (requires database). Will only show test results (headless mode)
+# The following are for e2e tests:
+   # NOTE: for local, a temp folder will be created called test-result. It will include video of test for your review.
+
+# Run only e2e tests (requires database). Will only show test results (headless mode) Good if you just want to know test outcomes
 npm run test:e2e
 
-# Run only e2e tests (requires database). Will show test results and actual UI running also (head mode)
+# Run only e2e tests (requires database). Will show test results and actual UI running also (head mode). Good if you want to visualise
 npm run test:e2e:headed
 
-# Run only e2e tests (requires database). Manual test running with UI
+# Run only e2e tests (requires database). Manual test running with UI. Good if you want to control the tests and do manual.
 npm run test:e2e:ui
 
-# Run only e2e tests (requires database). step through executions and breakpoint/inspector for debugging
+# Run only e2e tests (requires database). step through executions and breakpoint/inspector for debugging. Good to see where the error occurs.
 npm run test:e2e:debug
 ```
 
