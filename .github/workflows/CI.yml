@@ -209,7 +209,20 @@ jobs:
       - name: Merge Coverage (unit + integration)
         run: |
           mkdir -p coverage
-          npx lcov-result-merger coverage/unit/lcov.info coverage/integration/lcov.info coverage/lcov.info
+
+          # Verify source files exist
+          if [ ! -f coverage/unit/lcov.info ]; then
+            echo "❌ Unit coverage file missing"
+            exit 1
+          fi
+
+          if [ ! -f coverage/integration/lcov.info ]; then
+            echo "❌ Integration coverage file missing"
+            exit 1
+          fi
+
+          # Simple concatenation works for lcov files
+          cat coverage/unit/lcov.info coverage/integration/lcov.info > coverage/lcov.info
 
           if [ ! -f ./coverage/lcov.info ]; then
             echo "❌ Merged coverage missing";
