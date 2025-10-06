@@ -163,6 +163,18 @@ npm run test:coverage
 
 # Run tests in watch mode
 npm run test:watch
+
+# Run only e2e tests (requires database). Will only show test results (headless mode)
+npm run test:e2e
+
+# Run only e2e tests (requires database). Will show test results and actual UI running also (head mode)
+npm run test:e2e:headed
+
+# Run only e2e tests (requires database). Manual test running with UI
+npm run test:e2e:ui
+
+# Run only e2e tests (requires database). step through executions and breakpoint/inspector for debugging
+npm run test:e2e:debug
 ```
 
 For detailed testing guidelines, best practices, and examples, see [DEVELOPMENT.md](./DEVELOPMENT.md).
