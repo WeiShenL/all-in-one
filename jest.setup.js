@@ -1,11 +1,15 @@
-// Mock Supabase client
-jest.mock('@supabase/supabase-js', () => ({
-  createClient: jest.fn(() => ({
-    storage: {
-      from: jest.fn(),
-    },
-  })),
-}));
+// Mock Supabase with a pass-through that works for both unit and integration tests
+jest.mock('@supabase/supabase-js', () => {
+  const actual = jest.requireActual('@supabase/supabase-js');
+  return {
+    ...actual,
+    createClient: jest.fn((...args) => {
+      // For integration tests, use real client
+      // For unit tests, return mock (unit tests will override with jest.mock anyway)
+      return actual.createClient(...args);
+    }),
+  };
+});
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 require('dotenv').config({ path: './.env' });

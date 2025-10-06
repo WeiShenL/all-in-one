@@ -1,10 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_API_EXTERNAL_URL!;
-const supabaseServiceKey = process.env.SERVICE_ROLE_KEY!;
-
-// Service client with elevated permissions for server-side operations
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 /**
  * Service for handling file storage operations with Supabase Storage
@@ -18,6 +12,15 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
  */
 export class SupabaseStorageService {
   private readonly bucketName = 'task-attachments';
+  private readonly supabaseAdmin: SupabaseClient;
+
+  constructor() {
+    const supabaseUrl = process.env.NEXT_PUBLIC_API_EXTERNAL_URL!;
+    const supabaseServiceKey = process.env.SERVICE_ROLE_KEY!;
+
+    // Service client with elevated permissions for server-side operations
+    this.supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+  }
 
   /**
    * Upload file to Supabase Storage
@@ -37,7 +40,7 @@ export class SupabaseStorageService {
     const fileId = crypto.randomUUID();
     const storagePath = `${taskId}/${fileId}-${fileName}`;
 
-    const { data, error } = await supabaseAdmin.storage
+    const { data, error } = await this.supabaseAdmin.storage
       .from(this.bucketName)
       .upload(storagePath, file, {
         contentType: fileType,
@@ -60,7 +63,7 @@ export class SupabaseStorageService {
    * @returns Signed URL for downloading the file
    */
   async getFileDownloadUrl(storagePath: string): Promise<string> {
-    const { data, error } = await supabaseAdmin.storage
+    const { data, error } = await this.supabaseAdmin.storage
       .from(this.bucketName)
       .createSignedUrl(storagePath, 3600); // 1 hour expiry
 
@@ -76,7 +79,7 @@ export class SupabaseStorageService {
    * @param storagePath - Path to file in storage
    */
   async deleteFile(storagePath: string): Promise<void> {
-    const { error } = await supabaseAdmin.storage
+    const { error } = await this.supabaseAdmin.storage
       .from(this.bucketName)
       .remove([storagePath]);
 
