@@ -70,28 +70,11 @@ jobs:
             exit 1
           fi
 
-      # retrigger job
-      # # Upload coverage to Coveralls
-      # - uses: coverallsapp/github-action@v2
-      #   with:
-      #     github-token: ${{ secrets.GITHUB_TOKEN }}
-      #     path-to-lcov: ./coverage/lcov.info
-
-      # # Comment Coverage URL on PR
-      # - name: Comment Coverage URL
-      #   if: github.event_name == 'pull_request'
-      #   uses: actions/github-script@v7
-      #   with:
-      #     github-token: ${{ secrets.GITHUB_TOKEN }}
-      #     script: |
-      #       const result = JSON.parse('${{ steps.coveralls.outputs.coveralls-api-result }}');
-      #       const jobUrl = result.url || `https://coveralls.io/jobs/${result.id}`;
-      #       github.rest.issues.createComment({
-      #         issue_number: context.issue.number,
-      #         owner: context.repo.owner,
-      #         repo: context.repo.repo,
-      #         body: `📊 **Coverage Report**: ${jobUrl}`
-      #       })
+      # Upload coverage to Coveralls
+      - uses: coverallsapp/github-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: ./coverage/lcov.info
 
   security:
     name: Security Scan
@@ -133,7 +116,7 @@ jobs:
   staging-deploy:
     name: Staging Deployment
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     environment: Preview
     needs: [code-quality, base-tests, security] # Now this will work!
     steps:
@@ -185,6 +168,31 @@ jobs:
           npx vercel deploy --token=$VERCEL_TOKEN --yes > deployment-url.txt
           echo "VERCEL_URL=$(cat deployment-url.txt | grep -o 'https://[^[:space:]]*')" >> $GITHUB_OUTPUT
 
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+
+      - name: Run E2E Tests Against Preview
+        env:
+          # Use the deployed preview URL as Playwright baseURL
+          PLAYWRIGHT_BASE_URL: ${{ steps.vercel-deploy.outputs.VERCEL_URL }}
+          # Staging database for cleanup and verification
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+          # Supabase env for client auth in tests
+          NEXT_PUBLIC_API_EXTERNAL_URL: ${{ secrets.NEXT_PUBLIC_API_EXTERNAL_URL }}
+          NEXT_PUBLIC_ANON_KEY: ${{ secrets.NEXT_PUBLIC_ANON_KEY }}
+          SERVICE_ROLE_KEY: ${{ secrets.SERVICE_ROLE_KEY }}
+          CI: true
+        run: npm run test:e2e
+
+      - name: Upload Playwright Artifacts (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-artifacts
+          path: |
+            playwright-report
+            test-results
+
       - name: Comment PR with preview URL
         if: github.event_name == 'pull_request' && steps.vercel-deploy.outcome == 'success'
         uses: actions/github-script@v7
@@ -197,6 +205,7 @@ jobs:
 
             ✅ Database migration completed
             ✅ Integration tests passed
+            ✅ E2E tests passed
             ✅ Vercel preview deployed
 
             The preview will be available at the URL above.`;
