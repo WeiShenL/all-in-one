@@ -44,7 +44,9 @@ test.describe('Signup to Dashboard, Logout and log back in Flow', () => {
     }
   });
 
-  test('login page -> signup -> dashboard -> logout', async ({ page }) => {
+  test('login page -> signup -> dashboard -> logout -> login page + log back in -> dashboard -> logout', async ({
+    page,
+  }) => {
     // Prepare unique credentials
     const unique = Date.now();
     const email = `e2e.user.${unique}@example.com`;
