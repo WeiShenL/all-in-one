@@ -1,8 +1,9 @@
-import { router, publicProcedure } from '../trpc';
+import { router, publicProcedure, Context } from '../trpc';
 import { TaskService } from '../../../services/task/TaskService';
 import { PrismaTaskRepository } from '../../../repositories/PrismaTaskRepository';
 import { z } from 'zod';
 import { TaskStatus, Task } from '../../../domain/task/Task';
+import { UserContext } from '../../../services/task/TaskService';
 
 /**
  * Task Router - UPDATE Operations
@@ -10,6 +11,27 @@ import { TaskStatus, Task } from '../../../domain/task/Task';
  * Exposes all UPDATE endpoints for the Task Management system
  * Authorization is handled in the TaskService layer
  */
+
+// Helper to get authenticated user context from tRPC context
+async function getUserContext(ctx: Context): Promise<UserContext> {
+  if (!ctx.userId) {
+    throw new Error('User not authenticated');
+  }
+
+  const userProfile = await ctx.prisma.userProfile.findUnique({
+    where: { id: ctx.userId },
+  });
+
+  if (!userProfile) {
+    throw new Error('User profile not found');
+  }
+
+  return {
+    userId: ctx.userId,
+    role: userProfile.role as 'STAFF' | 'MANAGER' | 'HR_ADMIN',
+    departmentId: userProfile.departmentId,
+  };
+}
 
 // Helper to serialize Task domain object to plain JSON for tRPC. (trpc cannot read OO objects...)
 function serializeTask(task: Task) {
@@ -115,13 +137,7 @@ export const taskRouter = router({
     .mutation(async ({ ctx, input }) => {
       const repository = new PrismaTaskRepository(ctx.prisma);
       const service = new TaskService(repository);
-
-      // Get user context from session (need to implement this)
-      const user = {
-        userId: ctx.session?.user?.id || '10000000-0000-4000-8000-000000000001', // TODO: Get from actual session
-        role: 'STAFF' as const, // TODO: Get from actual user role
-        departmentId: 'dept-engineering', // TODO: Get from actual user department
-      };
+      const user = await getUserContext(ctx);
 
       const task = await service.updateTaskTitle(
         input.taskId,
@@ -140,11 +156,7 @@ export const taskRouter = router({
       const repository = new PrismaTaskRepository(ctx.prisma);
       const service = new TaskService(repository);
 
-      const user = {
-        userId: ctx.session?.user?.id || '10000000-0000-4000-8000-000000000001',
-        role: 'STAFF' as const,
-        departmentId: 'dept-engineering',
-      };
+      const user = await getUserContext(ctx);
 
       const task = await service.updateTaskDescription(
         input.taskId,
@@ -163,11 +175,7 @@ export const taskRouter = router({
       const repository = new PrismaTaskRepository(ctx.prisma);
       const service = new TaskService(repository);
 
-      const user = {
-        userId: ctx.session?.user?.id || '10000000-0000-4000-8000-000000000001',
-        role: 'STAFF' as const,
-        departmentId: 'dept-engineering',
-      };
+      const user = await getUserContext(ctx);
 
       const task = await service.updateTaskPriority(
         input.taskId,
@@ -186,11 +194,7 @@ export const taskRouter = router({
       const repository = new PrismaTaskRepository(ctx.prisma);
       const service = new TaskService(repository);
 
-      const user = {
-        userId: ctx.session?.user?.id || '10000000-0000-4000-8000-000000000001',
-        role: 'STAFF' as const,
-        departmentId: 'dept-engineering',
-      };
+      const user = await getUserContext(ctx);
 
       const task = await service.updateTaskDeadline(
         input.taskId,
@@ -209,11 +213,7 @@ export const taskRouter = router({
       const repository = new PrismaTaskRepository(ctx.prisma);
       const service = new TaskService(repository);
 
-      const user = {
-        userId: ctx.session?.user?.id || '10000000-0000-4000-8000-000000000001',
-        role: 'STAFF' as const,
-        departmentId: 'dept-engineering',
-      };
+      const user = await getUserContext(ctx);
 
       const task = await service.updateTaskStatus(
         input.taskId,
@@ -232,11 +232,7 @@ export const taskRouter = router({
       const repository = new PrismaTaskRepository(ctx.prisma);
       const service = new TaskService(repository);
 
-      const user = {
-        userId: ctx.session?.user?.id || '10000000-0000-4000-8000-000000000001',
-        role: 'STAFF' as const,
-        departmentId: 'dept-engineering',
-      };
+      const user = await getUserContext(ctx);
 
       const task = await service.updateTaskRecurring(
         input.taskId,
@@ -256,11 +252,7 @@ export const taskRouter = router({
       const repository = new PrismaTaskRepository(ctx.prisma);
       const service = new TaskService(repository);
 
-      const user = {
-        userId: ctx.session?.user?.id || '10000000-0000-4000-8000-000000000001',
-        role: 'STAFF' as const,
-        departmentId: 'dept-engineering',
-      };
+      const user = await getUserContext(ctx);
 
       const task = await service.addTagToTask(input.taskId, input.tag, user);
       return serializeTask(task);
@@ -275,11 +267,7 @@ export const taskRouter = router({
       const repository = new PrismaTaskRepository(ctx.prisma);
       const service = new TaskService(repository);
 
-      const user = {
-        userId: ctx.session?.user?.id || '10000000-0000-4000-8000-000000000001',
-        role: 'STAFF' as const,
-        departmentId: 'dept-engineering',
-      };
+      const user = await getUserContext(ctx);
 
       const task = await service.removeTagFromTask(
         input.taskId,
@@ -298,11 +286,7 @@ export const taskRouter = router({
       const repository = new PrismaTaskRepository(ctx.prisma);
       const service = new TaskService(repository);
 
-      const user = {
-        userId: ctx.session?.user?.id || '10000000-0000-4000-8000-000000000001',
-        role: 'STAFF' as const,
-        departmentId: 'dept-engineering',
-      };
+      const user = await getUserContext(ctx);
 
       const task = await service.addAssigneeToTask(
         input.taskId,
@@ -321,11 +305,7 @@ export const taskRouter = router({
       const repository = new PrismaTaskRepository(ctx.prisma);
       const service = new TaskService(repository);
 
-      const user = {
-        userId: ctx.session?.user?.id || '10000000-0000-4000-8000-000000000001',
-        role: 'STAFF' as const,
-        departmentId: 'dept-engineering',
-      };
+      const user = await getUserContext(ctx);
 
       const task = await service.addCommentToTask(
         input.taskId,
@@ -344,11 +324,7 @@ export const taskRouter = router({
       const repository = new PrismaTaskRepository(ctx.prisma);
       const service = new TaskService(repository);
 
-      const user = {
-        userId: ctx.session?.user?.id || '10000000-0000-4000-8000-000000000001',
-        role: 'STAFF' as const,
-        departmentId: 'dept-engineering',
-      };
+      const user = await getUserContext(ctx);
 
       const task = await service.updateComment(
         input.taskId,
@@ -369,15 +345,9 @@ export const taskRouter = router({
   getById: publicProcedure
     .input(z.object({ taskId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
+      const user = await getUserContext(ctx);
       const repository = new PrismaTaskRepository(ctx.prisma);
       const service = new TaskService(repository);
-
-      const user = {
-        userId: ctx.session?.user?.id || '10000000-0000-4000-8000-000000000001',
-        role: 'STAFF' as const,
-        departmentId: 'dept-engineering',
-      };
-
       const task = await service.getTaskById(input.taskId, user);
       return task ? serializeTask(task) : null;
     }),

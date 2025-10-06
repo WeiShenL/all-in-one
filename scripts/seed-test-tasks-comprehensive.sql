@@ -36,7 +36,7 @@ INSERT INTO task (
   "updatedAt"
 )
 VALUES (
-  '11111111-1111-1111-1111-111111111111',
+  '11111111-1111-4111-8111-111111111111',
   '🚀 Q4 Marketing Campaign Launch',
   'Launch comprehensive Q4 marketing campaign including social media, email marketing, and paid ads. Target: 50% increase in engagement. Budget: $50k. Stakeholders: Marketing, Sales, Product teams.',
   'IN_PROGRESS',
@@ -60,7 +60,7 @@ ON CONFLICT (id) DO UPDATE SET
 -- Assign user to Task 1
 INSERT INTO task_assignment ("taskId", "userId", "assignedById", "assignedAt")
 VALUES (
-  '11111111-1111-1111-1111-111111111111',
+  '11111111-1111-4111-8111-111111111111',
   '75311644-d73e-4d9f-a941-1a729114d9fb',
   '75311644-d73e-4d9f-a941-1a729114d9fb',
   NOW() - INTERVAL '5 days'
@@ -77,7 +77,7 @@ VALUES
 ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO task_tag ("taskId", "tagId")
-SELECT '11111111-1111-1111-1111-111111111111', id FROM tag WHERE name IN ('marketing', 'high-priority', 'campaign', 'Q4')
+SELECT '11111111-1111-4111-8111-111111111111', id FROM tag WHERE name IN ('marketing', 'high-priority', 'campaign', 'Q4')
 ON CONFLICT ("taskId", "tagId") DO NOTHING;
 
 -- Add comments for Task 1
@@ -91,18 +91,18 @@ INSERT INTO comment (
 )
 VALUES
   (
-    '11111111-c001-0000-0000-000000000001',
+    '11111111-c001-4000-8000-000000000001',
     'Initial campaign strategy drafted. Waiting for budget approval from finance.',
     '75311644-d73e-4d9f-a941-1a729114d9fb',
-    '11111111-1111-1111-1111-111111111111',
+    '11111111-1111-4111-8111-111111111111',
     NOW() - INTERVAL '4 days',
     NOW() - INTERVAL '4 days'
   ),
   (
-    '11111111-c002-0000-0000-000000000002',
+    '11111111-c002-4000-8000-000000000002',
     'Budget approved! Moving forward with social media phase.',
     '75311644-d73e-4d9f-a941-1a729114d9fb',
-    '11111111-1111-1111-1111-111111111111',
+    '11111111-1111-4111-8111-111111111111',
     NOW() - INTERVAL '2 days',
     NOW() - INTERVAL '2 days'
   )
@@ -127,7 +127,7 @@ INSERT INTO task (
   "updatedAt"
 )
 VALUES (
-  '22222222-2222-2222-2222-222222222222',
+  '22222222-2222-4222-8222-222222222222',
   '📊 Weekly Performance Report',
   'Compile weekly performance metrics including: KPIs, team productivity, budget utilization, and client feedback. Submit to management every Friday EOD.',
   'TO_DO',
@@ -150,7 +150,7 @@ ON CONFLICT (id) DO UPDATE SET
 
 INSERT INTO task_assignment ("taskId", "userId", "assignedById", "assignedAt")
 VALUES (
-  '22222222-2222-2222-2222-222222222222',
+  '22222222-2222-4222-8222-222222222222',
   '75311644-d73e-4d9f-a941-1a729114d9fb',
   '75311644-d73e-4d9f-a941-1a729114d9fb',
   NOW() - INTERVAL '10 days'
@@ -158,7 +158,7 @@ VALUES (
 ON CONFLICT ("taskId", "userId") DO NOTHING;
 
 INSERT INTO task_tag ("taskId", "tagId")
-SELECT '22222222-2222-2222-2222-222222222222', id FROM tag WHERE name = 'high-priority'
+SELECT '22222222-2222-4222-8222-222222222222', id FROM tag WHERE name = 'high-priority'
 ON CONFLICT ("taskId", "tagId") DO NOTHING;
 
 INSERT INTO tag (id, name)
@@ -166,7 +166,7 @@ VALUES (gen_random_uuid(), 'recurring'), (gen_random_uuid(), 'reports')
 ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO task_tag ("taskId", "tagId")
-SELECT '22222222-2222-2222-2222-222222222222', id FROM tag WHERE name IN ('recurring', 'reports')
+SELECT '22222222-2222-4222-8222-222222222222', id FROM tag WHERE name IN ('recurring', 'reports')
 ON CONFLICT ("taskId", "tagId") DO NOTHING;
 
 -- ============================================
@@ -188,7 +188,7 @@ INSERT INTO task (
   "updatedAt"
 )
 VALUES (
-  '33333333-3333-3333-3333-333333333333',
+  '33333333-3333-4333-8333-333333333333',
   '🐛 Fix Critical Authentication Bug',
   'Critical bug causing login failures for 2FA users. Affects ~500 users. Steps to reproduce: 1) Enable 2FA 2) Logout 3) Login with 2FA code. Expected: Success. Actual: "Invalid token" error.',
   'BLOCKED',
@@ -211,7 +211,7 @@ ON CONFLICT (id) DO UPDATE SET
 
 INSERT INTO task_assignment ("taskId", "userId", "assignedById", "assignedAt")
 VALUES (
-  '33333333-3333-3333-3333-333333333333',
+  '33333333-3333-4333-8333-333333333333',
   '75311644-d73e-4d9f-a941-1a729114d9fb',
   '75311644-d73e-4d9f-a941-1a729114d9fb',
   NOW() - INTERVAL '3 days'
@@ -223,7 +223,7 @@ VALUES (gen_random_uuid(), 'bug'), (gen_random_uuid(), 'critical'), (gen_random_
 ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO task_tag ("taskId", "tagId")
-SELECT '33333333-3333-3333-3333-333333333333', id FROM tag WHERE name IN ('bug', 'critical', 'security')
+SELECT '33333333-3333-4333-8333-333333333333', id FROM tag WHERE name IN ('bug', 'critical', 'security')
 ON CONFLICT ("taskId", "tagId") DO NOTHING;
 
 INSERT INTO comment (
@@ -236,18 +236,18 @@ INSERT INTO comment (
 )
 VALUES
   (
-    '33333333-c001-0000-0000-000000000001',
+    '33333333-c001-4000-8000-000000000001',
     'Root cause identified: JWT token expiry mismatch between frontend and backend.',
     '75311644-d73e-4d9f-a941-1a729114d9fb',
-    '33333333-3333-3333-3333-333333333333',
+    '33333333-3333-4333-8333-333333333333',
     NOW() - INTERVAL '1 day',
     NOW() - INTERVAL '1 day'
   ),
   (
-    '33333333-c002-0000-0000-000000000002',
+    '33333333-c002-4000-8000-000000000002',
     'Blocked: Waiting for security team approval to modify auth flow.',
     '75311644-d73e-4d9f-a941-1a729114d9fb',
-    '33333333-3333-3333-3333-333333333333',
+    '33333333-3333-4333-8333-333333333333',
     NOW() - INTERVAL '5 hours',
     NOW() - INTERVAL '5 hours'
   )
@@ -271,7 +271,7 @@ INSERT INTO task (
   "updatedAt"
 )
 VALUES (
-  '33333333-sub1-0000-0000-000000000001',
+  '33333333-5b01-4000-8000-000000000001',
   'Investigate JWT token expiry issue',
   'Debug and identify why JWT tokens are expiring prematurely for 2FA users.',
   'COMPLETED',
@@ -279,7 +279,7 @@ VALUES (
   (NOW() + INTERVAL '1 day')::TIMESTAMP,
   '75311644-d73e-4d9f-a941-1a729114d9fb',
   'dept-consultancy-001',
-  '33333333-3333-3333-3333-333333333333', -- Parent task
+  '33333333-3333-4333-8333-333333333333', -- Parent task
   false,
   NULL,
   false,
@@ -292,7 +292,7 @@ ON CONFLICT (id) DO UPDATE SET
 
 INSERT INTO task_assignment ("taskId", "userId", "assignedById", "assignedAt")
 VALUES (
-  '33333333-sub1-0000-0000-000000000001',
+  '33333333-5b01-4000-8000-000000000001',
   '75311644-d73e-4d9f-a941-1a729114d9fb',
   '75311644-d73e-4d9f-a941-1a729114d9fb',
   NOW() - INTERVAL '2 days'
@@ -317,7 +317,7 @@ INSERT INTO task (
   "updatedAt"
 )
 VALUES (
-  '33333333-sub2-0000-0000-000000000002',
+  '33333333-5b02-4000-8000-000000000002',
   'Get security team approval for auth changes',
   'Present findings to security team and get approval for proposed JWT token changes.',
   'IN_PROGRESS',
@@ -325,7 +325,7 @@ VALUES (
   (NOW() + INTERVAL '1 day')::TIMESTAMP,
   '75311644-d73e-4d9f-a941-1a729114d9fb',
   'dept-consultancy-001',
-  '33333333-3333-3333-3333-333333333333', -- Parent task
+  '33333333-3333-4333-8333-333333333333', -- Parent task
   false,
   NULL,
   false,
@@ -338,7 +338,7 @@ ON CONFLICT (id) DO UPDATE SET
 
 INSERT INTO task_assignment ("taskId", "userId", "assignedById", "assignedAt")
 VALUES (
-  '33333333-sub2-0000-0000-000000000002',
+  '33333333-5b02-4000-8000-000000000002',
   '75311644-d73e-4d9f-a941-1a729114d9fb',
   '75311644-d73e-4d9f-a941-1a729114d9fb',
   NOW() - INTERVAL '1 day'
@@ -364,7 +364,7 @@ INSERT INTO task (
   "updatedAt"
 )
 VALUES (
-  '44444444-4444-4444-4444-444444444444',
+  '44444444-4444-4444-8444-444444444444',
   '✅ Update Team Documentation',
   'Update team wiki with new onboarding process and project guidelines. Include screenshots and step-by-step instructions.',
   'COMPLETED',
@@ -384,7 +384,7 @@ ON CONFLICT (id) DO UPDATE SET
 
 INSERT INTO task_assignment ("taskId", "userId", "assignedById", "assignedAt")
 VALUES (
-  '44444444-4444-4444-4444-444444444444',
+  '44444444-4444-4444-8444-444444444444',
   '75311644-d73e-4d9f-a941-1a729114d9fb',
   '75311644-d73e-4d9f-a941-1a729114d9fb',
   NOW() - INTERVAL '7 days'
@@ -396,7 +396,7 @@ VALUES (gen_random_uuid(), 'documentation')
 ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO task_tag ("taskId", "tagId")
-SELECT '44444444-4444-4444-4444-444444444444', id FROM tag WHERE name = 'documentation'
+SELECT '44444444-4444-4444-8444-444444444444', id FROM tag WHERE name = 'documentation'
 ON CONFLICT ("taskId", "tagId") DO NOTHING;
 
 -- ============================================
@@ -418,7 +418,7 @@ INSERT INTO task (
   "updatedAt"
 )
 VALUES (
-  '55555555-5555-5555-5555-555555555555',
+  '55555555-5555-4555-8555-555555555555',
   '📎 Client Proposal - TechCorp Integration',
   'Prepare comprehensive proposal for TechCorp system integration project. Include: technical architecture, timeline, budget breakdown, and risk assessment. Attach all diagrams and supporting documents.',
   'TO_DO',
@@ -439,7 +439,7 @@ ON CONFLICT (id) DO UPDATE SET
 
 INSERT INTO task_assignment ("taskId", "userId", "assignedById", "assignedAt")
 VALUES (
-  '55555555-5555-5555-5555-555555555555',
+  '55555555-5555-4555-8555-555555555555',
   '75311644-d73e-4d9f-a941-1a729114d9fb',
   '75311644-d73e-4d9f-a941-1a729114d9fb',
   NOW() - INTERVAL '1 day'
@@ -451,7 +451,7 @@ VALUES (gen_random_uuid(), 'proposal'), (gen_random_uuid(), 'client')
 ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO task_tag ("taskId", "tagId")
-SELECT '55555555-5555-5555-5555-555555555555', id FROM tag WHERE name IN ('proposal', 'client', 'high-priority')
+SELECT '55555555-5555-4555-8555-555555555555', id FROM tag WHERE name IN ('proposal', 'client', 'high-priority')
 ON CONFLICT ("taskId", "tagId") DO NOTHING;
 
 INSERT INTO comment (
@@ -463,10 +463,10 @@ INSERT INTO comment (
   "updatedAt"
 )
 VALUES (
-  '55555555-c001-0000-0000-000000000001',
+  '55555555-c001-4000-8000-000000000001',
   'Kickoff meeting scheduled with TechCorp for next Tuesday. Need to have draft ready by Monday.',
   '75311644-d73e-4d9f-a941-1a729114d9fb',
-  '55555555-5555-5555-5555-555555555555',
+  '55555555-5555-4555-8555-555555555555',
   NOW() - INTERVAL '12 hours',
   NOW() - INTERVAL '12 hours'
 )
@@ -491,11 +491,11 @@ SELECT
   (SELECT COUNT(*) FROM task st WHERE st."parentTaskId" = t.id) as "# Subtasks"
 FROM task t
 WHERE t.id IN (
-  '11111111-1111-1111-1111-111111111111',
-  '22222222-2222-2222-2222-222222222222',
-  '33333333-3333-3333-3333-333333333333',
-  '44444444-4444-4444-4444-444444444444',
-  '55555555-5555-5555-5555-555555555555'
+  '11111111-1111-4111-8111-111111111111',
+  '22222222-2222-4222-8222-222222222222',
+  '33333333-3333-4333-8333-333333333333',
+  '44444444-4444-4444-8444-444444444444',
+  '55555555-5555-4555-8555-555555555555'
 )
 ORDER BY t.priority DESC, t."dueDate" ASC;
 
@@ -510,11 +510,11 @@ FROM task_assignment ta
 JOIN task t ON ta."taskId" = t.id
 JOIN user_profile up ON ta."userId" = up.id
 WHERE t.id IN (
-  '11111111-1111-1111-1111-111111111111',
-  '22222222-2222-2222-2222-222222222222',
-  '33333333-3333-3333-3333-333333333333',
-  '44444444-4444-4444-4444-444444444444',
-  '55555555-5555-5555-5555-555555555555'
+  '11111111-1111-4111-8111-111111111111',
+  '22222222-2222-4222-8222-222222222222',
+  '33333333-3333-4333-8333-333333333333',
+  '44444444-4444-4444-8444-444444444444',
+  '55555555-5555-4555-8555-555555555555'
 )
 ORDER BY t.title;
 
@@ -527,11 +527,11 @@ FROM task t
 LEFT JOIN task_tag tt ON t.id = tt."taskId"
 LEFT JOIN tag tg ON tt."tagId" = tg.id
 WHERE t.id IN (
-  '11111111-1111-1111-1111-111111111111',
-  '22222222-2222-2222-2222-222222222222',
-  '33333333-3333-3333-3333-333333333333',
-  '44444444-4444-4444-4444-444444444444',
-  '55555555-5555-5555-5555-555555555555'
+  '11111111-1111-4111-8111-111111111111',
+  '22222222-2222-4222-8222-222222222222',
+  '33333333-3333-4333-8333-333333333333',
+  '44444444-4444-4444-8444-444444444444',
+  '55555555-5555-4555-8555-555555555555'
 )
 GROUP BY t.id, t.title
 ORDER BY t.title;
@@ -545,11 +545,11 @@ SELECT
 FROM task t
 LEFT JOIN comment c ON t.id = c."taskId"
 WHERE t.id IN (
-  '11111111-1111-1111-1111-111111111111',
-  '22222222-2222-2222-2222-222222222222',
-  '33333333-3333-3333-3333-333333333333',
-  '44444444-4444-4444-4444-444444444444',
-  '55555555-5555-5555-5555-555555555555'
+  '11111111-1111-4111-8111-111111111111',
+  '22222222-2222-4222-8222-222222222222',
+  '33333333-3333-4333-8333-333333333333',
+  '44444444-4444-4444-8444-444444444444',
+  '55555555-5555-4555-8555-555555555555'
 )
 GROUP BY t.id, t.title
 ORDER BY t.title;

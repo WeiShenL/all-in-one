@@ -6,15 +6,25 @@ import { appRouter } from '@/app/server/routers/_app';
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
 // this is improtant to connect with prisma
 import { prisma } from '@/app/lib/prisma';
+import { createClient } from '@/lib/supabase/server';
 
 const handler = (req: Request) => {
   return fetchRequestHandler({
     endpoint: '/api/trpc',
     router: appRouter,
     req,
-    createContext: () => ({
-      prisma,
-    }),
+    createContext: async () => {
+      // Get the logged-in user from Supabase
+      const supabase = await createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      return {
+        prisma,
+        userId: user?.id,
+      };
+    },
   });
 };
 

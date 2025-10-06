@@ -32,9 +32,13 @@ export default function StaffDashboard() {
         );
         const data = await response.json();
 
-        if (data.result?.data?.tasks?.length > 0) {
-          setTasks(data.result.data.tasks);
-          setSelectedTaskId(data.result.data.tasks[0].id); // Select first task
+        if (
+          data.result?.data &&
+          Array.isArray(data.result.data) &&
+          data.result.data.length > 0
+        ) {
+          setTasks(data.result.data);
+          setSelectedTaskId(data.result.data[0].id); // Select first task
         }
       } catch (err) {
         console.error('Failed to fetch tasks:', err);

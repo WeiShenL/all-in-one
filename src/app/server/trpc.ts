@@ -4,6 +4,7 @@ import { initTRPC } from '@trpc/server';
 // immprotant for trpc to connect with db/prisma
 export type Context = {
   prisma: typeof import('@/app/lib/prisma').prisma;
+  userId?: string; // Add the logged-in user's ID
 };
 
 /**
