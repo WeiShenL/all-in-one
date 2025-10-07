@@ -32,6 +32,9 @@ const customJestConfig = {
     '<rootDir>/src/**/__tests__/**/*.{js,jsx,ts,tsx}',
     '<rootDir>/src/**/*.{test,spec}.{js,jsx,ts,tsx}',
   ],
+
+  // Exclude e2e tests from Jest (run with Playwright instead)
+  testPathIgnorePatterns: ['/node_modules/', '/.next/', '/tests/e2e/'],
 };
 
 export default createJestConfig(customJestConfig);

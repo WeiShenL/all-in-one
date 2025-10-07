@@ -1,16 +1,17 @@
 import { z } from 'zod';
-import { router, protectedProcedure } from '../trpc';
+import { router, publicProcedure } from '../trpc';
 import { TaskService } from '../services/TaskService';
 
 export const taskRouter = router({
-  create: protectedProcedure
+  create: publicProcedure
     .input(
       z.object({
         title: z.string().min(1, 'Title is required'),
         description: z.string().min(1, 'Description is required'),
         priority: z.number().min(1).max(10),
         dueDate: z.date(),
-        assigneeIds: z.array(z.string()).min(1).max(5), // Mandatory: 1-5 assignees
+        ownerId: z.string(),
+        assigneeIds: z.array(z.string()).min(1).max(5),
         projectId: z.string().optional(),
         tags: z.array(z.string()).optional(),
         recurringInterval: z.number().positive().optional(),
@@ -20,9 +21,8 @@ export const taskRouter = router({
     .mutation(async ({ ctx, input }) => {
       const taskService = new TaskService(ctx.prisma);
 
-      // Get user's profile to fetch department
       const userProfile = await ctx.prisma.userProfile.findUnique({
-        where: { id: ctx.session.user.id },
+        where: { id: input.ownerId },
         select: { departmentId: true },
       });
 
@@ -32,17 +32,18 @@ export const taskRouter = router({
 
       return await taskService.create({
         ...input,
-        ownerId: ctx.session.user.id,
         departmentId: userProfile.departmentId,
       });
     }),
 
-  getMyTasks: protectedProcedure.query(async ({ ctx }) => {
-    const taskService = new TaskService(ctx.prisma);
-    return await taskService.getByOwner(ctx.session.user.id);
-  }),
+  getByOwner: publicProcedure
+    .input(z.object({ ownerId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const taskService = new TaskService(ctx.prisma);
+      return await taskService.getByOwner(input.ownerId);
+    }),
 
-  getDepartmentTasks: protectedProcedure
+  getByDepartment: publicProcedure
     .input(z.object({ departmentId: z.string() }))
     .query(async ({ ctx, input }) => {
       const taskService = new TaskService(ctx.prisma);
