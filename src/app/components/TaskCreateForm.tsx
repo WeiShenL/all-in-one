@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/supabase/auth-context';
 
 interface TaskCreateFormProps {
@@ -42,6 +42,64 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  // Available tasks for parent selection
+  const [availableTasks, setAvailableTasks] = useState<
+    Array<{
+      id: string;
+      title: string;
+      dueDate: string;
+      parentTaskId: string | null;
+    }>
+  >([]);
+  const [loadingTasks, setLoadingTasks] = useState(true);
+
+  // File upload state
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+
+  // Fetch user's tasks for parent task selector
+  useEffect(() => {
+    async function fetchTasks() {
+      if (!userProfile) {
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `/api/trpc/task.getByOwner?input=${encodeURIComponent(JSON.stringify({ ownerId: userProfile.id }))}`
+        );
+        const data = await response.json();
+
+        if (data.result?.data) {
+          interface TaskData {
+            id: string;
+            title: string;
+            dueDate: string;
+            parentTaskId: string | null;
+          }
+          const tasks = Array.isArray(data.result.data)
+            ? data.result.data
+            : [data.result.data];
+          // Filter to only show parent tasks (tasks without a parent)
+          const parentTasks = tasks.filter((t: TaskData) => !t.parentTaskId);
+          setAvailableTasks(
+            parentTasks.map((t: TaskData) => ({
+              id: t.id,
+              title: t.title,
+              dueDate: t.dueDate,
+              parentTaskId: t.parentTaskId,
+            }))
+          );
+        }
+      } catch (err) {
+        console.error('Failed to fetch tasks:', err);
+      } finally {
+        setLoadingTasks(false);
+      }
+    }
+
+    fetchTasks();
+  }, [userProfile]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -66,6 +124,22 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
     if (assigneeList.length > 5) {
       setError('Maximum 5 assignees allowed');
       return;
+    }
+
+    // Validate subtask due date doesn't exceed parent task due date
+    if (parentTaskId) {
+      const parentTask = availableTasks.find(t => t.id === parentTaskId);
+      if (parentTask) {
+        const parentDueDate = new Date(parentTask.dueDate);
+        const subtaskDueDate = new Date(dueDate);
+
+        if (subtaskDueDate > parentDueDate) {
+          setError(
+            `Subtask due date cannot be later than parent task due date (${parentDueDate.toLocaleDateString()})`
+          );
+          return;
+        }
+      }
     }
 
     // Validate priority
@@ -112,7 +186,8 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
         title: title.trim(),
         description: description.trim(),
         priority,
-        dueDate: new Date(dueDate),
+        dueDate: new Date(dueDate).toISOString(),
+        ownerId: userProfile.id,
         assigneeIds,
         ...(tagList.length > 0 && { tags: tagList }),
         ...(projectId && { projectId }),
@@ -136,6 +211,40 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
       const result = await response.json();
       const createdTask = result.result?.data;
 
+      // Step 3: Upload files if any were selected
+      if (selectedFiles.length > 0 && createdTask?.id) {
+        for (const file of selectedFiles) {
+          try {
+            // Read file as base64
+            const base64Data = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = e =>
+                resolve((e.target?.result as string).split(',')[1]);
+              reader.onerror = reject;
+              reader.readAsDataURL(file);
+            });
+
+            // Upload file
+            await fetch('/api/trpc/taskFile.uploadFile', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                taskId: createdTask.id,
+                fileName: file.name,
+                fileType: file.type,
+                fileData: base64Data,
+                userId: userProfile.id,
+                userRole: userProfile.role,
+                departmentId: userProfile.departmentId,
+              }),
+            });
+          } catch (fileErr) {
+            console.error(`Failed to upload file ${file.name}:`, fileErr);
+            // Continue with other files even if one fails
+          }
+        }
+      }
+
       setSuccess(true);
       setError(null);
 
@@ -149,6 +258,7 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
       setProjectId('');
       setParentTaskId('');
       setRecurringInterval('');
+      setSelectedFiles([]);
 
       if (onSuccess && createdTask?.id) {
         onSuccess(createdTask.id);
@@ -378,20 +488,30 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
           >
             Parent Task (Optional - for subtasks)
           </label>
-          <input
-            type='text'
+          <select
             value={parentTaskId}
             onChange={e => setParentTaskId(e.target.value)}
+            disabled={loadingTasks}
             style={{
               width: '100%',
               padding: '0.5rem',
               border: '1px solid #ccc',
               borderRadius: '4px',
+              backgroundColor: loadingTasks ? '#f5f5f5' : 'white',
+              cursor: loadingTasks ? 'not-allowed' : 'pointer',
             }}
-            placeholder='Parent Task ID (max 2 levels)'
-          />
+          >
+            <option value=''>-- Select Parent Task (Optional) --</option>
+            {availableTasks.map(task => (
+              <option key={task.id} value={task.id}>
+                {task.title}
+              </option>
+            ))}
+          </select>
           <small style={{ color: '#666', fontSize: '0.875rem' }}>
-            Leave empty for top-level task. Maximum 2 levels of nesting.
+            {loadingTasks
+              ? 'Loading your tasks...'
+              : 'Leave empty for top-level task. Maximum 2 levels of nesting.'}
           </small>
         </div>
 
@@ -425,6 +545,59 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
             Leave empty for one-time task. Enter number of days for recurring
             tasks.
           </small>
+        </div>
+
+        {/* File Attachments - Optional */}
+        <div style={{ marginBottom: '1.5rem' }}>
+          <label
+            style={{
+              display: 'block',
+              marginBottom: '0.5rem',
+              fontWeight: '500',
+            }}
+          >
+            File Attachments (Optional)
+          </label>
+          <input
+            type='file'
+            multiple
+            onChange={e => {
+              const files = Array.from(e.target.files || []);
+              // Validate file sizes and types
+              const validFiles = files.filter(file => {
+                const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+                if (file.size > MAX_SIZE) {
+                  setError(`File ${file.name} exceeds 10MB limit`);
+                  return false;
+                }
+                return true;
+              });
+              setSelectedFiles(validFiles);
+              setError(null);
+            }}
+            accept='.pdf,.jpg,.jpeg,.png,.gif,.doc,.docx,.xls,.xlsx,.txt,.zip'
+            style={{
+              width: '100%',
+              padding: '0.5rem',
+              border: '1px solid #ccc',
+              borderRadius: '4px',
+            }}
+          />
+          <small style={{ color: '#666', fontSize: '0.875rem' }}>
+            Max 10MB per file. Allowed: PDF, images, Word, Excel, text, ZIP
+          </small>
+          {selectedFiles.length > 0 && (
+            <div
+              style={{
+                marginTop: '0.5rem',
+                fontSize: '0.875rem',
+                color: '#4a5568',
+              }}
+            >
+              {selectedFiles.length} file(s) selected:{' '}
+              {selectedFiles.map(f => f.name).join(', ')}
+            </div>
+          )}
         </div>
 
         {/* Error Message */}

@@ -9,7 +9,7 @@ export const taskRouter = router({
         title: z.string().min(1, 'Title is required'),
         description: z.string().min(1, 'Description is required'),
         priority: z.number().min(1).max(10),
-        dueDate: z.date(),
+        dueDate: z.coerce.date(),
         ownerId: z.string(),
         assigneeIds: z.array(z.string()).min(1).max(5),
         projectId: z.string().optional(),
