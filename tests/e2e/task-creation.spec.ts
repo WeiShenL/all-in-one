@@ -112,6 +112,10 @@ test.describe('Task Creation - SCRUM-12', () => {
     });
 
     expect(task).toBeDefined();
+    if (!task) {
+      throw new Error('Task should be defined');
+    }
+
     expect(task.id).toBeDefined();
     expect(task.title).toBe('E2E Test Task');
     expect(task.description).toBe('Task created via E2E test');
@@ -142,6 +146,9 @@ test.describe('Task Creation - SCRUM-12', () => {
     });
 
     expect(task).toBeDefined();
+    if (!task) {
+      throw new Error('Task should be defined');
+    }
     createdTaskIds.push(task.id);
 
     const assignments = await prisma.taskAssignment.findMany({
@@ -161,6 +168,9 @@ test.describe('Task Creation - SCRUM-12', () => {
       assigneeIds: [testUserId],
     });
 
+    if (!task) {
+      throw new Error('Task should be defined');
+    }
     expect(task.priority).toBe(1);
     createdTaskIds.push(task.id);
   });
@@ -176,6 +186,9 @@ test.describe('Task Creation - SCRUM-12', () => {
       assigneeIds: [testUserId],
     });
 
+    if (!task) {
+      throw new Error('Task should be defined');
+    }
     expect(task.priority).toBe(10);
     createdTaskIds.push(task.id);
   });
@@ -193,6 +206,9 @@ test.describe('Task Creation - SCRUM-12', () => {
     });
 
     expect(task).toBeDefined();
+    if (!task) {
+      throw new Error('Task should be defined');
+    }
     createdTaskIds.push(task.id);
 
     // Verify tags
@@ -234,6 +250,9 @@ test.describe('Task Creation - SCRUM-12', () => {
     });
 
     expect(subtask).toBeDefined();
+    if (!subtask) {
+      throw new Error('Subtask should be defined');
+    }
     expect(subtask.parentTaskId).toBe(parentTask.id);
     createdTaskIds.push(subtask.id);
 
@@ -263,6 +282,9 @@ test.describe('Task Creation - SCRUM-12', () => {
       assigneeIds: [testUserId],
     });
 
+    if (!task) {
+      throw new Error('Task should be defined');
+    }
     expect(task.departmentId).toBe(testDepartmentId);
     createdTaskIds.push(task.id);
   });
@@ -279,7 +301,11 @@ test.describe('Task Creation - SCRUM-12', () => {
       recurringInterval: 7,
     });
 
-    expect(task.recurringInterval).toBe(7);
+    if (!task) {
+      throw new Error('Task should be defined');
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((task as any).recurringInterval).toBe(7);
     createdTaskIds.push(task.id);
   });
 
@@ -294,7 +320,169 @@ test.describe('Task Creation - SCRUM-12', () => {
       assigneeIds: [testUserId],
     });
 
+    if (!task) {
+      throw new Error('Task should be defined');
+    }
     expect(task.status).toBe('TO_DO');
     createdTaskIds.push(task.id);
+  });
+
+  test('should automatically generate next instance when recurring task is completed', async () => {
+    // Create a weekly recurring task
+    const originalDueDate = new Date('2025-01-07T00:00:00.000Z');
+
+    const recurringTask = await taskService.create({
+      title: 'E2E Weekly Report',
+      description: 'Automated weekly report test',
+      priority: 6,
+      dueDate: originalDueDate,
+      ownerId: testUserId,
+      departmentId: testDepartmentId,
+      assigneeIds: [testUserId],
+      recurringInterval: 7, // Weekly
+    });
+
+    if (!recurringTask) {
+      throw new Error('Recurring task should be defined');
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((recurringTask as any).recurringInterval).toBe(7);
+    createdTaskIds.push(recurringTask.id);
+
+    // Mark task as COMPLETED
+    const completedTask = await taskService.updateStatus(
+      recurringTask.id,
+      'COMPLETED'
+    );
+    expect(completedTask?.status).toBe('COMPLETED');
+
+    // Wait for async recurring generation
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    // Verify next instance was created
+    const allRecurringTasks = await prisma.task.findMany({
+      where: {
+        title: 'E2E Weekly Report',
+        ownerId: testUserId,
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+
+    expect(allRecurringTasks.length).toBe(2);
+
+    const nextInstance = allRecurringTasks[1];
+    createdTaskIds.push(nextInstance.id);
+
+    // Verify next instance properties
+    expect(nextInstance.id).not.toBe(recurringTask.id);
+    expect(nextInstance.status).toBe('TO_DO');
+    expect(nextInstance.recurringInterval).toBe(7);
+    expect(nextInstance.priority).toBe(6);
+
+    // Verify due date is 7 days later
+    const expectedDueDate = new Date('2025-01-14T00:00:00.000Z');
+    expect(nextInstance.dueDate.toISOString()).toBe(
+      expectedDueDate.toISOString()
+    );
+  });
+
+  test('should NOT generate next instance for non-recurring completed tasks', async () => {
+    // Create a one-time task (no recurringInterval)
+    const oneTimeTask = await taskService.create({
+      title: 'E2E One-Time Task',
+      description: 'Should not recur',
+      priority: 5,
+      dueDate: new Date('2025-02-01T00:00:00.000Z'),
+      ownerId: testUserId,
+      departmentId: testDepartmentId,
+      assigneeIds: [testUserId],
+      // NO recurringInterval
+    });
+
+    if (!oneTimeTask) {
+      throw new Error('One-time task should be defined');
+    }
+    createdTaskIds.push(oneTimeTask.id);
+
+    // Complete the task
+    await taskService.updateStatus(oneTimeTask.id, 'COMPLETED');
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    // Verify NO new instance was created
+    const allTasks = await prisma.task.findMany({
+      where: {
+        title: 'E2E One-Time Task',
+        ownerId: testUserId,
+      },
+    });
+
+    expect(allTasks.length).toBe(1); // Only the original
+    expect(allTasks[0].status).toBe('COMPLETED');
+  });
+
+  test('should chain recurring tasks - verify multiple generations', async () => {
+    // Create daily recurring task
+    const dailyTask = await taskService.create({
+      title: 'E2E Daily Standup',
+      description: 'Daily standup meeting',
+      priority: 3,
+      dueDate: new Date('2025-03-01T00:00:00.000Z'),
+      ownerId: testUserId,
+      departmentId: testDepartmentId,
+      assigneeIds: [testUserId],
+      recurringInterval: 1, // Daily
+    });
+
+    if (!dailyTask) {
+      throw new Error('Daily task should be defined');
+    }
+    createdTaskIds.push(dailyTask.id);
+
+    // Complete first instance
+    await taskService.updateStatus(dailyTask.id, 'COMPLETED');
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    // Get second instance
+    let allTasks = await prisma.task.findMany({
+      where: {
+        title: 'E2E Daily Standup',
+        ownerId: testUserId,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    expect(allTasks.length).toBe(2);
+    const secondInstance = allTasks[0];
+    createdTaskIds.push(secondInstance.id);
+    expect(secondInstance.dueDate.toISOString()).toBe(
+      new Date('2025-03-02T00:00:00.000Z').toISOString()
+    );
+
+    // Complete second instance
+    await taskService.updateStatus(secondInstance.id, 'COMPLETED');
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    // Get third instance
+    allTasks = await prisma.task.findMany({
+      where: {
+        title: 'E2E Daily Standup',
+        ownerId: testUserId,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    expect(allTasks.length).toBe(3);
+    const thirdInstance = allTasks[0];
+    createdTaskIds.push(thirdInstance.id);
+    expect(thirdInstance.dueDate.toISOString()).toBe(
+      new Date('2025-03-03T00:00:00.000Z').toISOString()
+    );
+    expect(thirdInstance.recurringInterval).toBe(1); // Still daily
   });
 });

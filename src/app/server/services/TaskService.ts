@@ -520,6 +520,7 @@ export class TaskService extends BaseService {
 
   /**
    * Update task status
+   * Automatically generates next recurring task instance when a recurring task is completed
    * @param id - Task ID
    * @param status - New status
    * @returns Updated task
@@ -528,9 +529,105 @@ export class TaskService extends BaseService {
     try {
       this.validateId(id, 'Task ID');
 
-      return await this.update(id, { status });
+      // Get task details before updating to check for recurring interval
+      const task = await this.prisma.task.findUnique({
+        where: { id },
+        include: {
+          assignments: {
+            select: {
+              userId: true,
+            },
+          },
+          tags: {
+            select: {
+              tagId: true,
+            },
+          },
+        },
+      });
+
+      if (!task) {
+        throw new Error('Task not found');
+      }
+
+      // If task is being marked as COMPLETED and has a recurring interval, create next instance
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (status === 'COMPLETED' && (task as any).recurringInterval) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await this.generateNextRecurringTask(task as any);
+      }
+
+      // Update the task status
+      const updatedTask = await this.update(id, { status });
+
+      return updatedTask;
     } catch (error) {
       this.handleError(error, 'updateStatus');
+    }
+  }
+
+  /**
+   * Generate the next instance of a recurring task
+   * @param completedTask - The completed recurring task
+   * @returns Newly created recurring task instance
+   */
+  private async generateNextRecurringTask(completedTask: {
+    id: string;
+    title: string;
+    description: string;
+    priority: number;
+    dueDate: Date;
+    ownerId: string;
+    projectId: string | null;
+    departmentId: string;
+    parentTaskId: string | null;
+    recurringInterval: number | null;
+    assignments: Array<{ userId: string }>;
+    tags: Array<{ tagId: string }>;
+  }) {
+    try {
+      if (!completedTask.recurringInterval) {
+        return;
+      }
+
+      // Calculate new due date by adding recurring interval (in days) to original due date
+      const newDueDate = new Date(completedTask.dueDate);
+      newDueDate.setDate(
+        newDueDate.getDate() + completedTask.recurringInterval
+      );
+
+      // Extract assignee IDs
+      const assigneeIds = completedTask.assignments.map(a => a.userId);
+
+      // Extract tag names if tags exist
+      let tagNames: string[] = [];
+      if (completedTask.tags && completedTask.tags.length > 0) {
+        const tagIds = completedTask.tags.map(tt => tt.tagId);
+        const tags = await this.prisma.tag.findMany({
+          where: { id: { in: tagIds } },
+        });
+        tagNames = tags.map(tag => tag.name);
+      }
+
+      // Create the next task instance
+      const nextTask = await this.create({
+        title: completedTask.title,
+        description: completedTask.description,
+        priority: completedTask.priority,
+        dueDate: newDueDate,
+        ownerId: completedTask.ownerId,
+        assigneeIds,
+        departmentId: completedTask.departmentId,
+        projectId: completedTask.projectId || undefined,
+        parentTaskId: completedTask.parentTaskId || undefined,
+        recurringInterval: completedTask.recurringInterval, // Keep the recurring interval
+        tags: tagNames.length > 0 ? tagNames : undefined,
+      });
+
+      return nextTask;
+    } catch (error) {
+      console.error('Failed to generate next recurring task:', error);
+      // Don't throw - we don't want to fail the status update if recurring generation fails
     }
   }
 
