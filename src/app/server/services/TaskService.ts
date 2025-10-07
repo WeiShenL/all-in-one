@@ -291,13 +291,13 @@ export class TaskService extends BaseService {
   }
 
   /**
-   * Create a new task
+   * Create a new task with assignments and tags
    * @param data - Task creation data
-   * @returns Created task
+   * @returns Created task with all relations
    */
   async create(data: CreateTaskInput) {
     try {
-      // Validate owner exists
+      // Validate owner exists and is active
       const owner = await this.prisma.userProfile.findUnique({
         where: { id: data.ownerId },
       });
@@ -326,27 +326,76 @@ export class TaskService extends BaseService {
         }
       }
 
-      // Validate parent task if provided
+      // Validate parent task if provided (for subtasks) - TGO026
       if (data.parentTaskId) {
         const parentTask = await this.prisma.task.findUnique({
           where: { id: data.parentTaskId },
+          select: {
+            id: true,
+            parentTaskId: true,
+          },
         });
 
         if (!parentTask) {
           throw new Error('Parent task not found');
         }
+
+        // Check subtask depth limit (2 levels max)
+        if (parentTask.parentTaskId) {
+          throw new Error('Maximum subtask depth is 2 levels (TGO026)');
+        }
       }
 
-      return await this.prisma.task.create({
+      // Validate all assignees exist and are active
+      if (data.assigneeIds && data.assigneeIds.length > 0) {
+        const assignees = await this.prisma.userProfile.findMany({
+          where: {
+            id: { in: data.assigneeIds },
+          },
+        });
+
+        if (assignees.length !== data.assigneeIds.length) {
+          throw new Error('One or more assignees not found');
+        }
+
+        const inactiveAssignees = assignees.filter(a => !a.isActive);
+        if (inactiveAssignees.length > 0) {
+          throw new Error('One or more assignees are inactive');
+        }
+      }
+
+      // Handle tags - create or find existing tags
+      const tagIds: string[] = [];
+      if (data.tags && data.tags.length > 0) {
+        for (const tagName of data.tags) {
+          // Try to find existing tag
+          let tag = await this.prisma.tag.findUnique({
+            where: { name: tagName },
+          });
+
+          // Create tag if it doesn't exist
+          if (!tag) {
+            tag = await this.prisma.tag.create({
+              data: { name: tagName },
+            });
+          }
+
+          tagIds.push(tag.id);
+        }
+      }
+
+      // Create the task with priority defaulting to 5 (medium on 1-10 scale)
+      const createdTask = await this.prisma.task.create({
         data: {
           title: data.title,
           description: data.description,
-          priority: data.priority || 'MEDIUM',
+          priority: data.priority ?? 5,
           dueDate: data.dueDate,
           ownerId: data.ownerId,
           departmentId: data.departmentId,
           projectId: data.projectId,
           parentTaskId: data.parentTaskId,
+          recurringInterval: data.recurringInterval,
         },
         include: {
           owner: {
@@ -368,8 +417,38 @@ export class TaskService extends BaseService {
               name: true,
             },
           },
+          parentTask: {
+            select: {
+              id: true,
+              title: true,
+            },
+          },
         },
       });
+
+      // Create task assignments for all assignees
+      if (data.assigneeIds && data.assigneeIds.length > 0) {
+        await this.prisma.taskAssignment.createMany({
+          data: data.assigneeIds.map(userId => ({
+            taskId: createdTask.id,
+            userId,
+            assignedById: data.ownerId,
+          })),
+        });
+      }
+
+      // Link tags to task
+      if (tagIds.length > 0) {
+        await this.prisma.taskTag.createMany({
+          data: tagIds.map(tagId => ({
+            taskId: createdTask.id,
+            tagId,
+          })),
+        });
+      }
+
+      // Fetch and return the complete task with all relations for immediate dashboard display
+      return await this.getById(createdTask.id);
     } catch (error) {
       this.handleError(error, 'create');
     }
@@ -425,6 +504,21 @@ export class TaskService extends BaseService {
   }
 
   /**
+   * Get tasks in a department
+   * @param departmentId - Department ID
+   * @returns Array of tasks
+   */
+  async getByDepartment(departmentId: string) {
+    try {
+      this.validateId(departmentId, 'Department ID');
+
+      return await this.getAll({ departmentId });
+    } catch (error) {
+      this.handleError(error, 'getByDepartment');
+    }
+  }
+
+  /**
    * Update task status
    * @param id - Task ID
    * @param status - New status
@@ -456,10 +550,19 @@ export class TaskService extends BaseService {
       // Verify task exists
       const task = await this.prisma.task.findUnique({
         where: { id: taskId },
+        // ===== NEW: Include assignments to count them =====
+        include: {
+          assignments: true,
+        },
       });
 
       if (!task) {
         throw new Error('Task not found');
+      }
+
+      // ===== NEW: Check max 5 assignees limit =====
+      if (task.assignments.length >= 5) {
+        throw new Error('Maximum 5 assignees allowed per task');
       }
 
       // Verify user exists

@@ -151,7 +151,7 @@ model Project {
   id           String        @id @default(uuid())
   name         String
   description  String?       @db.Text
-  priority     TaskPriority  @default(MEDIUM)
+  priority     Int           @default(5) // Priority scale 1-10
   dueDate      DateTime?
   status       ProjectStatus @default(ACTIVE)
   departmentId String
@@ -177,13 +177,14 @@ model Task {
   id           String       @id @default(uuid())
   title        String
   description  String       @db.Text
-  priority     TaskPriority @default(MEDIUM)
+  priority     Int          @default(5) // Priority scale 1-10
   dueDate      DateTime
   status       TaskStatus   @default(TO_DO)
   ownerId      String
   projectId    String?
   departmentId String
   parentTaskId String?
+  recurringInterval Int? // Interval in days for recurring tasks, optional
   isArchived   Boolean      @default(false)
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
