@@ -198,7 +198,7 @@ export class ProjectService extends BaseService {
         data: {
           name: data.name,
           description: data.description,
-          priority: data.priority || 'MEDIUM',
+          priority: data.priority ?? 5,
           dueDate: data.dueDate,
           departmentId: data.departmentId,
           creatorId: data.creatorId,
