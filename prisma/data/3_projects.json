@@ -3,7 +3,7 @@
     "id": "proj-001",
     "name": "Customer Portal Redesign",
     "description": "Modernize the customer-facing portal with new UI/UX",
-    "priority": "HIGH",
+    "priority": 8,
     "dueDate": "2025-06-30T00:00:00.000Z",
     "status": "ACTIVE",
     "departmentId": "dept-developers-001",

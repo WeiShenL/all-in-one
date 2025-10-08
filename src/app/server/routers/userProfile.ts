@@ -22,6 +22,24 @@ export const userProfileRouter = router({
       return service.getByEmail(input.email);
     }),
 
+  findByEmails: publicProcedure
+    .input(z.object({ emails: z.array(z.string().email()) }))
+    .mutation(async ({ ctx, input }) => {
+      // Find all users with the given emails
+      const users = await ctx.prisma.userProfile.findMany({
+        where: {
+          email: { in: input.emails },
+          isActive: true,
+        },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+        },
+      });
+      return users.map(u => u.id);
+    }),
+
   getByDepartment: publicProcedure
     .input(z.object({ departmentId: z.string() }))
     .query(({ ctx, input }) => {

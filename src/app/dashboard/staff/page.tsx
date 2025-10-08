@@ -9,14 +9,20 @@ import { TaskFileUpload } from '@/app/components/TaskFileUpload';
 export default function StaffDashboard() {
   const { user, userProfile, loading } = useAuth();
   const router = useRouter();
-  const [task, setTask] = useState<{
-    id: string;
-    title: string;
-    description: string | null;
-    status: string;
-    priority: string;
-  } | null>(null);
-  const [loadingTask, setLoadingTask] = useState(true);
+  const [tasks, setTasks] = useState<
+    Array<{
+      id: string;
+      title: string;
+      description: string | null;
+      status: string;
+      priority: number;
+      dueDate: string;
+      ownerId: string;
+      parentTaskId: string | null;
+      assignments?: Array<{ userId: string }>;
+    }>
+  >([]);
+  const [loadingTasks, setLoadingTasks] = useState(true);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -33,17 +39,21 @@ export default function StaffDashboard() {
 
       try {
         const response = await fetch(
-          `/api/trpc/taskFile.getUserTasks?input=${encodeURIComponent(JSON.stringify({ userId: userProfile.id }))}`
+          `/api/trpc/task.getByOwner?input=${encodeURIComponent(JSON.stringify({ ownerId: userProfile.id }))}`
         );
         const data = await response.json();
 
-        if (data.result?.data?.tasks?.length > 0) {
-          setTask(data.result.data.tasks[0]); // Get first task
+        if (data.result?.data) {
+          setTasks(
+            Array.isArray(data.result.data)
+              ? data.result.data
+              : [data.result.data]
+          );
         }
       } catch (err) {
         console.error('Failed to fetch tasks:', err);
       } finally {
-        setLoadingTask(false);
+        setLoadingTasks(false);
       }
     }
 
@@ -229,91 +239,304 @@ export default function StaffDashboard() {
             </div>
           </div>
 
-          {/* File Upload Test Section */}
-          {task && (
-            <div style={{ marginTop: '2rem' }}>
+          {/* My Tasks Section */}
+          <div style={{ marginTop: '2rem' }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '1rem',
+              }}
+            >
               <h2
                 style={{
-                  marginBottom: '1rem',
+                  margin: 0,
                   color: '#2d3748',
                   fontSize: '1.5rem',
                   fontWeight: '600',
                 }}
               >
-                📎 My Task - File Upload Test
+                📋 My Tasks
               </h2>
-              <div
+              <button
+                onClick={() => router.push('/tasks/create')}
                 style={{
-                  backgroundColor: '#ffffff',
-                  padding: '1.5rem',
-                  borderRadius: '12px',
-                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                  backgroundColor: '#3182ce',
+                  color: 'white',
+                  padding: '0.5rem 1rem',
+                  borderRadius: '8px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontWeight: '600',
                 }}
               >
-                <h3
-                  style={{
-                    marginBottom: '1rem',
-                    fontSize: '1.125rem',
-                    fontWeight: '600',
-                  }}
-                >
-                  {task.title}
-                </h3>
-                <p style={{ color: '#4a5568', marginBottom: '1rem' }}>
-                  {task.description}
-                </p>
-                <div style={{ marginBottom: '1rem', fontSize: '0.875rem' }}>
-                  <span
-                    style={{
-                      backgroundColor: '#e3f2fd',
-                      padding: '0.25rem 0.5rem',
-                      borderRadius: '4px',
-                      marginRight: '0.5rem',
-                    }}
-                  >
-                    {task.status}
-                  </span>
-                  <span
-                    style={{
-                      backgroundColor: '#fff3e0',
-                      padding: '0.25rem 0.5rem',
-                      borderRadius: '4px',
-                    }}
-                  >
-                    {task.priority}
-                  </span>
-                </div>
+                + Create Task
+              </button>
+            </div>
 
-                <h4
-                  style={{
-                    marginTop: '1.5rem',
-                    marginBottom: '1rem',
-                    fontSize: '1rem',
-                    fontWeight: '600',
-                  }}
-                >
-                  Upload Files
-                </h4>
-                <TaskFileUpload taskId={task.id} />
+            {loadingTasks && (
+              <div style={{ padding: '2rem', textAlign: 'center' }}>
+                <p style={{ color: '#718096' }}>Loading tasks...</p>
               </div>
-            </div>
-          )}
+            )}
 
-          {!task && !loadingTask && (
-            <div
-              style={{
-                marginTop: '2rem',
-                padding: '1rem',
-                backgroundColor: '#fff3cd',
-                borderRadius: '8px',
-              }}
-            >
-              <p style={{ margin: 0 }}>
-                No tasks found. Please run the SQL script from
-                FILE_UPLOAD_TESTING_GUIDE.md
-              </p>
-            </div>
-          )}
+            {!loadingTasks && tasks.length === 0 && (
+              <div
+                style={{
+                  padding: '2rem',
+                  backgroundColor: '#fff3cd',
+                  borderRadius: '8px',
+                  textAlign: 'center',
+                }}
+              >
+                <p style={{ margin: 0 }}>
+                  No tasks found. Create your first task!
+                </p>
+              </div>
+            )}
+
+            {!loadingTasks && tasks.length > 0 && (
+              <div style={{ display: 'grid', gap: '1rem' }}>
+                {/* Organize tasks hierarchically: parent tasks first, then their subtasks */}
+                {(() => {
+                  const parentTasks = tasks.filter(t => !t.parentTaskId);
+                  const subtasks = tasks.filter(t => t.parentTaskId);
+
+                  return parentTasks.map(task => (
+                    <div key={task.id}>
+                      {/* Parent Task */}
+                      <div
+                        style={{
+                          backgroundColor: '#ffffff',
+                          padding: '1.5rem',
+                          borderRadius: '12px',
+                          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                          border: '1px solid #e2e8f0',
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            marginBottom: '0.75rem',
+                          }}
+                        >
+                          <h3
+                            style={{
+                              margin: 0,
+                              fontSize: '1.125rem',
+                              fontWeight: '600',
+                              color: '#1a202c',
+                            }}
+                          >
+                            {task.title}
+                          </h3>
+                          <div style={{ fontSize: '0.875rem' }}>
+                            <span
+                              style={{
+                                backgroundColor:
+                                  task.status === 'TO_DO'
+                                    ? '#e3f2fd'
+                                    : '#f0f0f0',
+                                padding: '0.25rem 0.75rem',
+                                borderRadius: '12px',
+                                marginRight: '0.5rem',
+                                fontWeight: '500',
+                              }}
+                            >
+                              {task.status}
+                            </span>
+                            <span
+                              style={{
+                                backgroundColor:
+                                  task.priority >= 8
+                                    ? '#fee'
+                                    : task.priority >= 5
+                                      ? '#fff3e0'
+                                      : '#f0f0f0',
+                                padding: '0.25rem 0.75rem',
+                                borderRadius: '12px',
+                                fontWeight: '500',
+                              }}
+                            >
+                              Priority: {task.priority}
+                            </span>
+                          </div>
+                        </div>
+                        <p
+                          style={{
+                            color: '#4a5568',
+                            marginBottom: '0.75rem',
+                            fontSize: '0.9rem',
+                          }}
+                        >
+                          {task.description}
+                        </p>
+                        <div
+                          style={{
+                            fontSize: '0.875rem',
+                            color: '#718096',
+                            marginBottom: '1rem',
+                          }}
+                        >
+                          <span>
+                            📅 Due:{' '}
+                            {new Date(task.dueDate).toLocaleDateString()}
+                          </span>
+                          {task.assignments && task.assignments.length > 0 && (
+                            <span style={{ marginLeft: '1rem' }}>
+                              👥 {task.assignments.length} assignee(s)
+                            </span>
+                          )}
+                        </div>
+
+                        {/* File Upload Section */}
+                        <details style={{ marginTop: '1rem' }}>
+                          <summary
+                            style={{
+                              cursor: 'pointer',
+                              fontWeight: '600',
+                              color: '#3182ce',
+                            }}
+                          >
+                            📎 Manage Files
+                          </summary>
+                          <div
+                            style={{
+                              marginTop: '1rem',
+                              paddingTop: '1rem',
+                              borderTop: '1px solid #e2e8f0',
+                            }}
+                          >
+                            <TaskFileUpload taskId={task.id} />
+                          </div>
+                        </details>
+                      </div>
+
+                      {/* Subtasks - Indented and narrower */}
+                      {subtasks
+                        .filter(subtask => subtask.parentTaskId === task.id)
+                        .map(subtask => (
+                          <div
+                            key={subtask.id}
+                            style={{
+                              marginLeft: '2rem',
+                              marginTop: '0.75rem',
+                              maxWidth: 'calc(100% - 2rem)',
+                            }}
+                          >
+                            <div
+                              style={{
+                                backgroundColor: '#f8f9fa',
+                                padding: '1rem',
+                                borderRadius: '8px',
+                                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                                border: '1px solid #dee2e6',
+                                borderLeft: '3px solid #3182ce',
+                              }}
+                            >
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  marginBottom: '0.5rem',
+                                  alignItems: 'center',
+                                }}
+                              >
+                                <h4
+                                  style={{
+                                    margin: 0,
+                                    fontSize: '1rem',
+                                    fontWeight: '500',
+                                    color: '#2d3748',
+                                  }}
+                                >
+                                  ↳ {subtask.title}
+                                </h4>
+                                <div style={{ fontSize: '0.75rem' }}>
+                                  <span
+                                    style={{
+                                      backgroundColor:
+                                        subtask.status === 'TO_DO'
+                                          ? '#e3f2fd'
+                                          : '#f0f0f0',
+                                      padding: '0.2rem 0.6rem',
+                                      borderRadius: '10px',
+                                      marginRight: '0.4rem',
+                                      fontWeight: '500',
+                                    }}
+                                  >
+                                    {subtask.status}
+                                  </span>
+                                  <span
+                                    style={{
+                                      backgroundColor:
+                                        subtask.priority >= 8
+                                          ? '#fee'
+                                          : subtask.priority >= 5
+                                            ? '#fff3e0'
+                                            : '#f0f0f0',
+                                      padding: '0.2rem 0.6rem',
+                                      borderRadius: '10px',
+                                      fontWeight: '500',
+                                    }}
+                                  >
+                                    P: {subtask.priority}
+                                  </span>
+                                </div>
+                              </div>
+                              <p
+                                style={{
+                                  color: '#4a5568',
+                                  marginBottom: '0.5rem',
+                                  fontSize: '0.85rem',
+                                }}
+                              >
+                                {subtask.description}
+                              </p>
+                              <div
+                                style={{ fontSize: '0.8rem', color: '#718096' }}
+                              >
+                                <span>
+                                  📅 Due:{' '}
+                                  {new Date(
+                                    subtask.dueDate
+                                  ).toLocaleDateString()}
+                                </span>
+                              </div>
+
+                              {/* File Upload Section for subtask */}
+                              <details style={{ marginTop: '0.75rem' }}>
+                                <summary
+                                  style={{
+                                    cursor: 'pointer',
+                                    fontWeight: '600',
+                                    color: '#3182ce',
+                                    fontSize: '0.85rem',
+                                  }}
+                                >
+                                  📎 Manage Files
+                                </summary>
+                                <div
+                                  style={{
+                                    marginTop: '0.75rem',
+                                    paddingTop: '0.75rem',
+                                    borderTop: '1px solid #dee2e6',
+                                  }}
+                                >
+                                  <TaskFileUpload taskId={subtask.id} />
+                                </div>
+                              </details>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  ));
+                })()}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
