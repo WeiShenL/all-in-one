@@ -257,7 +257,7 @@ describe('Integration Tests - Recurring Tasks', () => {
       const tagNames = nextTask.tags.map(tt => tt.tag.name).sort();
       expect(tagNames).toContain(urgentTag.name);
       expect(tagNames).toContain(reportTag.name);
-    });
+    }, 15000); // Increased timeout for staging database
 
     it('should support recurring subtasks', async () => {
       // Create parent task
@@ -317,7 +317,7 @@ describe('Integration Tests - Recurring Tasks', () => {
       expect(nextSubtask.dueDate.toISOString()).toBe(
         new Date('2025-03-14T00:00:00.000Z').toISOString()
       );
-    });
+    }, 15000); // Increased timeout for staging database
 
     it('should NOT create next instance for non-recurring tasks', async () => {
       // Create one-time task (no recurringInterval)
@@ -445,6 +445,6 @@ describe('Integration Tests - Recurring Tasks', () => {
         new Date('2025-06-03T00:00:00.000Z').toISOString()
       );
       expect(task3.recurringInterval).toBe(1); // Still daily
-    });
+    }, 15000); // Increased timeout for staging database
   });
 });
