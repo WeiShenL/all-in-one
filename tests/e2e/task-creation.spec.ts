@@ -22,6 +22,7 @@ test.describe('Task Creation - SCRUM-12', () => {
 
   test.beforeAll(async () => {
     prisma = new PrismaClient();
+    await prisma.$connect(); // Explicitly connect to database first
     taskService = new TaskService(prisma);
 
     // Create test department
