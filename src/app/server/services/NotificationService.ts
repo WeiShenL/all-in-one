@@ -1,6 +1,7 @@
 import { BaseService } from './BaseService';
 import { CreateNotificationInput } from '../types';
 import { NotificationType } from '@prisma/client';
+import { EmailService } from './EmailService';
 
 /**
  * NotificationService
@@ -112,6 +113,7 @@ export class NotificationService extends BaseService {
       // Validate user exists
       const user = await this.prisma.userProfile.findUnique({
         where: { id: data.userId },
+        select: { email: true, name: true }, // Select email and name
       });
 
       if (!user || !user.isActive) {
@@ -129,7 +131,7 @@ export class NotificationService extends BaseService {
         }
       }
 
-      return await this.prisma.notification.create({
+      const newNotification = await this.prisma.notification.create({
         data: {
           userId: data.userId,
           type: data.type,
@@ -146,6 +148,19 @@ export class NotificationService extends BaseService {
           },
         },
       });
+
+      // Send email notification
+      if (user.email) {
+        const emailService = new EmailService();
+        await emailService.sendEmail({
+          to: user.email,
+          subject: `New Notification: ${data.title}`,
+          text: data.message,
+          html: `<p>Dear ${user.name || 'User'},</p><p>${data.message}</p><p>Regards,<br>Your Application Team</p>`,
+        });
+      }
+
+      return newNotification;
     } catch (error) {
       this.handleError(error, 'create');
     }

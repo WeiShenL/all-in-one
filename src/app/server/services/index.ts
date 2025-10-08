@@ -13,3 +13,4 @@ export { ProjectService } from './ProjectService';
 export { TaskService } from './TaskService';
 export { CommentService } from './CommentService';
 export { NotificationService } from './NotificationService';
+export { EmailService } from './EmailService';
