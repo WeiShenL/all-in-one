@@ -128,7 +128,37 @@ describe('TaskService - File Operations', () => {
       expect(mockStorageService.uploadFile).not.toHaveBeenCalled();
     });
 
-    it('should reject upload when user not assigned to task', async () => {
+    it('should allow task owner to upload files even if not assigned', async () => {
+      const taskOwner = {
+        userId: 'owner-123',
+        role: 'MANAGER' as const,
+        departmentId: 'dept-1',
+      };
+
+      mockRepository.getTaskById.mockResolvedValue(mockTask as any);
+      mockRepository.getTaskFiles.mockResolvedValue([]);
+      mockStorageService.validateFile.mockReturnValue({ valid: true });
+      mockStorageService.validateTaskFileLimit.mockReturnValue({ valid: true });
+      mockStorageService.uploadFile.mockResolvedValue({
+        storagePath: 'task-123/uuid-document.pdf',
+        fileSize: fileBuffer.length,
+      });
+      mockRepository.createTaskFile.mockResolvedValue(mockFile as any);
+      mockRepository.logTaskAction.mockResolvedValue(undefined);
+
+      const result = await service.uploadFileToTask(
+        'task-123',
+        fileBuffer,
+        fileName,
+        mimeType,
+        taskOwner
+      );
+
+      expect(mockRepository.getTaskById).toHaveBeenCalledWith('task-123');
+      expect(result).toEqual(mockFile);
+    });
+
+    it('should reject upload when user not assigned to task and not owner', async () => {
       const unauthorizedUser = {
         userId: 'user-999',
         role: 'STAFF' as const,
@@ -146,7 +176,7 @@ describe('TaskService - File Operations', () => {
           unauthorizedUser
         )
       ).rejects.toThrow(
-        'Unauthorized: You must be assigned to this task to upload files'
+        'Unauthorized: You must be the task owner or assigned to this task to upload files'
       );
 
       expect(mockStorageService.uploadFile).not.toHaveBeenCalled();
