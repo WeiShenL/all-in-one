@@ -74,7 +74,11 @@ npx prisma db seed
 
 ## 🧪 Testing
 
-This project uses Jest and React Testing Library for comprehensive unit and integration testing with a well-organized test structure.
+This project uses a comprehensive testing strategy with three test types:
+
+1. **Unit Tests** - Fast, isolated tests using Jest
+2. **Integration Tests** - Database and API tests using Jest
+3. **End-to-End (E2E) Tests** - Full user flow tests using Playwright
 
 ### Test Structure
 
@@ -85,23 +89,37 @@ tests/
 ├── unit/                    # Unit tests (fast, isolated)
 │   ├── components/         # React component tests
 │   │   └── auth/
-│   └── lib/               # Utility function tests
+│   ├── lib/               # Utility function tests
+│   ├── hooks/             # React hooks tests
+│   └── services/          # Service class tests
 ├── integration/           # Integration tests (database, API)
-│   └── database/
-└── e2e/                  # End-to-end tests (future)
+│   ├── auth/              # Auth flow integration tests
+│   ├── database/          # Database operation tests
+│   └── realtime/          # Real-time notification tests
+└── e2e/                   # End-to-end tests (Playwright)
+    └── auth-flow.spec.ts  # Full authentication flow
 ```
 
 ### Running Tests
 
 ```bash
-# Run all tests
+# Run ALL tests sequentially (Jest unit + integration + Playwright E2E)
 npm test
+
+# Run ONLY Jest tests (unit + integration, excludes E2E)
+npm run test:jest
 
 # Run only unit tests (fast feedback during development)
 npm run test:unit
 
 # Run only integration tests (requires database)
 npm run test:integration
+
+# Run only E2E tests (requires database and running app)
+npm run test:e2e
+npm run test:e2e:headed     # With browser UI visible
+npm run test:e2e:ui         # Interactive UI mode
+npm run test:e2e:debug      # Debug mode with inspector
 
 # Run tests in watch mode (automatically re-run on file changes)
 npm run test:watch
@@ -116,6 +134,24 @@ npm run test:coverage
 # CI mode (no watch, coverage enabled)
 npm run test:ci
 ```
+
+### Test Execution Order
+
+When running `npm test`, tests execute in this order:
+
+1. **Unit Tests** → Fast isolated tests (Jest)
+2. **Integration Tests** → Database/API tests (Jest)
+3. **E2E Tests** → Full user flows (Playwright)
+
+If any step fails, subsequent steps are skipped (fail-fast behavior).
+
+### Test Type Comparison
+
+| Test Type       | Speed     | Isolation     | Requires DB | Requires Browser | Use Case                   |
+| --------------- | --------- | ------------- | ----------- | ---------------- | -------------------------- |
+| **Unit**        | ⚡ Fast   | ✅ Isolated   | ❌ No       | ❌ No            | Component logic, utilities |
+| **Integration** | 🐢 Medium | ⚠️ Partial    | ✅ Yes      | ❌ No            | Database ops, API calls    |
+| **E2E**         | 🐌 Slow   | ❌ Full stack | ✅ Yes      | ✅ Yes           | User workflows, UI         |
 
 ### Coverage Reports
 
@@ -315,11 +351,54 @@ Use the configured path mappings:
 
 ### Continuous Integration
 
-The project includes CI-ready test commands:
+The CI/CD pipeline ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs tests automatically on every pull request:
 
-- `npm run test:ci` - Runs all tests with coverage, no watch mode
-- All tests must pass before deployment
-- Coverage reports are generated for CI/CD analysis
+**Pipeline Stages:**
+
+1. **Code Quality** (`code-quality` job):
+   - TypeScript type checking (`npx tsc --noEmit`)
+   - Code formatting check (`npm run format:check`)
+   - Linting (`npm run lint`)
+
+2. **Unit Tests** (`base-tests` job):
+   - Runs `npm run test:unit` with coverage
+   - Outputs coverage to `coverage/unit/`
+   - Uploads coverage artifact for later merging
+
+3. **Security Scan** (`security` job):
+   - Dependency vulnerability scan (`npm audit`)
+   - Secrets leak detection (gitleaks)
+   - Static Application Security Testing (CodeQL)
+
+4. **Staging Deploy & Integration Testing** (`staging-deploy` job):
+   - Build verification
+   - Database migrations (`npx prisma migrate deploy`)
+   - Integration tests: `npm run test:integration` with coverage
+   - Vercel preview deployment
+   - E2E tests: `npm run test:e2e` against deployed preview
+   - Coverage merging (unit + integration)
+   - Coverage upload to Coveralls
+
+**Test Execution in CI:**
+
+- **Unit tests** run first (fast feedback)
+- **Integration tests** run after successful deployment
+- **E2E tests** run against the deployed Vercel preview URL
+- All tests must pass for the pipeline to succeed
+
+**Coverage Reporting:**
+
+- Unit and integration coverage are collected separately
+- Coverage files are merged: `coverage/unit/lcov.info` + `coverage/integration/lcov.info`
+- Merged coverage uploaded to [Coveralls](https://coveralls.io) for tracking
+- E2E tests do not generate coverage (focused on user flow validation)
+
+**Manual CI Commands:**
+
+```bash
+# Run tests as CI does (no watch mode)
+npm run test:ci
+```
 
 ## 🧹 Code Quality & Development Standards
 
