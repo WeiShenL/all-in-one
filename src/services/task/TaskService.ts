@@ -22,7 +22,7 @@ export class TaskService {
   /**
    * Upload a file to a task
    *
-   * Authorization: User must be assigned to the task
+   * Authorization: Task owner can always upload, otherwise must be assigned
    * Validation:
    * - Individual file max 10MB (TM005)
    * - Task total max 50MB (TM044)
@@ -42,19 +42,20 @@ export class TaskService {
     fileType: string,
     user: UserContext
   ) {
-    // 1. Authorization: Check if user is assigned to task
+    // 1. Authorization: Check if user is task owner or assigned to task
     const task = await this.taskRepository.getTaskById(taskId);
     if (!task) {
       throw new Error('Task not found');
     }
 
+    const isOwner = task.ownerId === user.userId;
     const isAssigned = task.assignments.some(
       assignment => assignment.userId === user.userId
     );
 
-    if (!isAssigned) {
+    if (!isOwner && !isAssigned) {
       throw new Error(
-        'Unauthorized: You must be assigned to this task to upload files'
+        'Unauthorized: You must be the task owner or assigned to this task to upload files'
       );
     }
 
