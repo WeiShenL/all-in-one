@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { Client } from 'pg';
 import { PrismaClient } from '@prisma/client';
 import { TaskService } from '@/app/server/services/TaskService';
 
@@ -14,6 +15,7 @@ import { TaskService } from '@/app/server/services/TaskService';
  */
 
 test.describe('Task Creation - SCRUM-12', () => {
+  let pgClient: Client;
   let prisma: PrismaClient;
   let taskService: TaskService;
   let testUserId: string;
@@ -21,84 +23,86 @@ test.describe('Task Creation - SCRUM-12', () => {
   const createdTaskIds: string[] = [];
 
   test.beforeAll(async () => {
+    // Use pg Client for explicit connection (like auth test)
+    pgClient = new Client({ connectionString: process.env.DATABASE_URL });
+    await pgClient.connect();
+
+    // Prisma still needed for TaskService
     prisma = new PrismaClient();
-    await prisma.$connect(); // Explicitly connect to database first
+    await prisma.$connect();
     taskService = new TaskService(prisma);
 
-    // Create test department
-    const dept = await prisma.department.create({
-      data: {
-        name: `E2E Test Dept ${Date.now()}`,
-        isActive: true,
-      },
-    });
-    testDepartmentId = dept.id;
+    // Create test department using pg
+    const deptResult = await pgClient.query(
+      'INSERT INTO "department" (id, name, "isActive", "createdAt", "updatedAt") VALUES (gen_random_uuid(), $1, true, NOW(), NOW()) RETURNING id',
+      [`E2E Test Dept ${Date.now()}`]
+    );
+    testDepartmentId = deptResult.rows[0].id;
 
-    // Create test user
-    const user = await prisma.userProfile.create({
-      data: {
-        email: `e2e.test.${Date.now()}@example.com`,
-        name: 'E2E Test User',
-        role: 'STAFF',
-        departmentId: testDepartmentId,
-        isActive: true,
-      },
-    });
-    testUserId = user.id;
+    // Create test user using pg
+    const userResult = await pgClient.query(
+      'INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt") VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW()) RETURNING id',
+      [
+        `e2e.test.${Date.now()}@example.com`,
+        'E2E Test User',
+        'STAFF',
+        testDepartmentId,
+      ]
+    );
+    testUserId = userResult.rows[0].id;
   });
 
   test.afterAll(async () => {
-    // Cleanup
+    // Cleanup using pg
     if (createdTaskIds.length > 0) {
-      // Step 1: Delete TaskAssignments (foreign key to Task)
-      await prisma.taskAssignment.deleteMany({
-        where: { taskId: { in: createdTaskIds } },
-      });
+      // Step 1: Delete TaskAssignments
+      await pgClient.query(
+        'DELETE FROM "task_assignment" WHERE "taskId" = ANY($1)',
+        [createdTaskIds]
+      );
 
-      // Step 2: Get tag IDs before deleting TaskTag records
-      const taskTags = await prisma.taskTag.findMany({
-        where: { taskId: { in: createdTaskIds } },
-        select: { tagId: true },
-      });
-      const tagIds = [...new Set(taskTags.map(tt => tt.tagId))];
+      // Step 2: Get tag IDs and delete TaskTag records
+      const taskTagsResult = await pgClient.query(
+        'SELECT DISTINCT "tagId" FROM "task_tag" WHERE "taskId" = ANY($1)',
+        [createdTaskIds]
+      );
+      const tagIds = taskTagsResult.rows.map(row => row.tagId);
 
-      // Step 3: Delete TaskTag junction records
-      await prisma.taskTag.deleteMany({
-        where: { taskId: { in: createdTaskIds } },
-      });
+      await pgClient.query('DELETE FROM "task_tag" WHERE "taskId" = ANY($1)', [
+        createdTaskIds,
+      ]);
 
-      // Step 4: Delete test-specific tags (e2e- prefixed)
+      // Step 3: Delete e2e tags
       if (tagIds.length > 0) {
-        await prisma.tag.deleteMany({
-          where: {
-            id: { in: tagIds },
-            name: { startsWith: 'e2e-' },
-          },
-        });
+        await pgClient.query(
+          'DELETE FROM "tag" WHERE id = ANY($1) AND name LIKE $2',
+          [tagIds, 'e2e-%']
+        );
       }
 
-      // Step 5: Delete tasks
-      await prisma.task.deleteMany({
-        where: { id: { in: createdTaskIds } },
-      });
+      // Step 4: Delete tasks
+      await pgClient.query('DELETE FROM "task" WHERE id = ANY($1)', [
+        createdTaskIds,
+      ]);
     }
 
-    // Step 6: Delete test user
+    // Step 5: Delete test user
     if (testUserId) {
-      await prisma.userProfile
-        .delete({ where: { id: testUserId } })
-        .catch(() => {});
+      await pgClient.query('DELETE FROM "user_profile" WHERE id = $1', [
+        testUserId,
+      ]);
     }
 
-    // Step 7: Delete test department
+    // Step 6: Delete test department
     if (testDepartmentId) {
-      await prisma.department
-        .delete({ where: { id: testDepartmentId } })
-        .catch(() => {});
+      await pgClient.query('DELETE FROM "department" WHERE id = $1', [
+        testDepartmentId,
+      ]);
     }
 
-    // Step 8: Disconnect Prisma client
+    // Step 7: Disconnect
     await prisma.$disconnect();
+    await pgClient.end();
   });
 
   test('should successfully create a task with all mandatory fields', async () => {
@@ -127,12 +131,13 @@ test.describe('Task Creation - SCRUM-12', () => {
 
     createdTaskIds.push(task.id);
 
-    // Verify assignment
-    const assignments = await prisma.taskAssignment.findMany({
-      where: { taskId: task.id },
-    });
-    expect(assignments.length).toBe(1);
-    expect(assignments[0].userId).toBe(testUserId);
+    // Verify assignment using pg
+    const assignmentResult = await pgClient.query(
+      'SELECT * FROM "task_assignment" WHERE "taskId" = $1',
+      [task.id]
+    );
+    expect(assignmentResult.rows.length).toBe(1);
+    expect(assignmentResult.rows[0].userId).toBe(testUserId);
   });
 
   test('should enforce 1-5 assignees requirement - accept 1 assignee', async () => {
@@ -152,10 +157,11 @@ test.describe('Task Creation - SCRUM-12', () => {
     }
     createdTaskIds.push(task.id);
 
-    const assignments = await prisma.taskAssignment.findMany({
-      where: { taskId: task.id },
-    });
-    expect(assignments.length).toBe(1);
+    const assignmentResult = await pgClient.query(
+      'SELECT * FROM "task_assignment" WHERE "taskId" = $1',
+      [task.id]
+    );
+    expect(assignmentResult.rows.length).toBe(1);
   });
 
   test('should validate priority between 1 and 10 - accept priority 1', async () => {
@@ -212,31 +218,33 @@ test.describe('Task Creation - SCRUM-12', () => {
     }
     createdTaskIds.push(task.id);
 
-    // Verify tags
-    const taskTags = await prisma.taskTag.findMany({
-      where: { taskId: task.id },
-      include: { tag: true },
-    });
+    // Verify tags using pg
+    const taskTagsResult = await pgClient.query(
+      'SELECT t.name FROM "task_tag" tt JOIN "tag" t ON tt."tagId" = t.id WHERE tt."taskId" = $1 ORDER BY t.name',
+      [task.id]
+    );
 
-    expect(taskTags.length).toBe(3);
-    const tagNames = taskTags.map(tt => tt.tag.name).sort();
+    expect(taskTagsResult.rows.length).toBe(3);
+    const tagNames = taskTagsResult.rows.map(row => row.name);
     expect(tagNames).toEqual(['e2e-bug', 'e2e-frontend', 'e2e-urgent']);
   });
 
   test('should enforce subtask depth limit (TGO026)', async () => {
-    // Create parent task (level 0)
-    const parentTask = await prisma.task.create({
-      data: {
-        title: 'Parent Task',
-        description: 'Level 0 task',
-        priority: 5,
-        dueDate: new Date('2025-12-31'),
-        ownerId: testUserId,
-        departmentId: testDepartmentId,
-        status: 'TO_DO',
-      },
-    });
-    createdTaskIds.push(parentTask.id);
+    // Create parent task using pg directly
+    const parentResult = await pgClient.query(
+      'INSERT INTO "task" (id, title, description, priority, "dueDate", "ownerId", "departmentId", status, "createdAt", "updatedAt") VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, NOW(), NOW()) RETURNING id',
+      [
+        'Parent Task',
+        'Level 0 task',
+        5,
+        new Date('2025-12-31'),
+        testUserId,
+        testDepartmentId,
+        'TO_DO',
+      ]
+    );
+    const parentTaskId = parentResult.rows[0].id;
+    createdTaskIds.push(parentTaskId);
 
     // Create subtask (level 1) - should succeed
     const subtask = await taskService.create({
@@ -247,14 +255,14 @@ test.describe('Task Creation - SCRUM-12', () => {
       ownerId: testUserId,
       departmentId: testDepartmentId,
       assigneeIds: [testUserId],
-      parentTaskId: parentTask.id,
+      parentTaskId: parentTaskId,
     });
 
     expect(subtask).toBeDefined();
     if (!subtask) {
       throw new Error('Subtask should be defined');
     }
-    expect(subtask.parentTaskId).toBe(parentTask.id);
+    expect(subtask.parentTaskId).toBe(parentTaskId);
     createdTaskIds.push(subtask.id);
 
     // Try to create sub-subtask (level 2) - should FAIL (TGO026)
@@ -360,20 +368,15 @@ test.describe('Task Creation - SCRUM-12', () => {
     // Wait for async recurring generation
     await new Promise(resolve => setTimeout(resolve, 1500));
 
-    // Verify next instance was created
-    const allRecurringTasks = await prisma.task.findMany({
-      where: {
-        title: 'E2E Weekly Report',
-        ownerId: testUserId,
-      },
-      orderBy: {
-        createdAt: 'asc',
-      },
-    });
+    // Verify next instance was created using pg
+    const tasksResult = await pgClient.query(
+      'SELECT * FROM "task" WHERE title = $1 AND "ownerId" = $2 ORDER BY "createdAt" ASC',
+      ['E2E Weekly Report', testUserId]
+    );
 
-    expect(allRecurringTasks.length).toBe(2);
+    expect(tasksResult.rows.length).toBe(2);
 
-    const nextInstance = allRecurringTasks[1];
+    const nextInstance = tasksResult.rows[1];
     createdTaskIds.push(nextInstance.id);
 
     // Verify next instance properties
@@ -384,7 +387,7 @@ test.describe('Task Creation - SCRUM-12', () => {
 
     // Verify due date is 7 days later
     const expectedDueDate = new Date('2025-01-14T00:00:00.000Z');
-    expect(nextInstance.dueDate.toISOString()).toBe(
+    expect(new Date(nextInstance.dueDate).toISOString()).toBe(
       expectedDueDate.toISOString()
     );
   });
@@ -411,16 +414,14 @@ test.describe('Task Creation - SCRUM-12', () => {
     await taskService.updateStatus(oneTimeTask.id, 'COMPLETED');
     await new Promise(resolve => setTimeout(resolve, 1500));
 
-    // Verify NO new instance was created
-    const allTasks = await prisma.task.findMany({
-      where: {
-        title: 'E2E One-Time Task',
-        ownerId: testUserId,
-      },
-    });
+    // Verify NO new instance was created using pg
+    const tasksResult = await pgClient.query(
+      'SELECT * FROM "task" WHERE title = $1 AND "ownerId" = $2',
+      ['E2E One-Time Task', testUserId]
+    );
 
-    expect(allTasks.length).toBe(1); // Only the original
-    expect(allTasks[0].status).toBe('COMPLETED');
+    expect(tasksResult.rows.length).toBe(1); // Only the original
+    expect(tasksResult.rows[0].status).toBe('COMPLETED');
   });
 
   test('should chain recurring tasks - verify multiple generations', async () => {
@@ -445,21 +446,16 @@ test.describe('Task Creation - SCRUM-12', () => {
     await taskService.updateStatus(dailyTask.id, 'COMPLETED');
     await new Promise(resolve => setTimeout(resolve, 1500));
 
-    // Get second instance
-    let allTasks = await prisma.task.findMany({
-      where: {
-        title: 'E2E Daily Standup',
-        ownerId: testUserId,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    // Get second instance using pg
+    let tasksResult = await pgClient.query(
+      'SELECT * FROM "task" WHERE title = $1 AND "ownerId" = $2 ORDER BY "createdAt" DESC',
+      ['E2E Daily Standup', testUserId]
+    );
 
-    expect(allTasks.length).toBe(2);
-    const secondInstance = allTasks[0];
+    expect(tasksResult.rows.length).toBe(2);
+    const secondInstance = tasksResult.rows[0];
     createdTaskIds.push(secondInstance.id);
-    expect(secondInstance.dueDate.toISOString()).toBe(
+    expect(new Date(secondInstance.dueDate).toISOString()).toBe(
       new Date('2025-03-02T00:00:00.000Z').toISOString()
     );
 
@@ -467,21 +463,16 @@ test.describe('Task Creation - SCRUM-12', () => {
     await taskService.updateStatus(secondInstance.id, 'COMPLETED');
     await new Promise(resolve => setTimeout(resolve, 1500));
 
-    // Get third instance
-    allTasks = await prisma.task.findMany({
-      where: {
-        title: 'E2E Daily Standup',
-        ownerId: testUserId,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    // Get third instance using pg
+    tasksResult = await pgClient.query(
+      'SELECT * FROM "task" WHERE title = $1 AND "ownerId" = $2 ORDER BY "createdAt" DESC',
+      ['E2E Daily Standup', testUserId]
+    );
 
-    expect(allTasks.length).toBe(3);
-    const thirdInstance = allTasks[0];
+    expect(tasksResult.rows.length).toBe(3);
+    const thirdInstance = tasksResult.rows[0];
     createdTaskIds.push(thirdInstance.id);
-    expect(thirdInstance.dueDate.toISOString()).toBe(
+    expect(new Date(thirdInstance.dueDate).toISOString()).toBe(
       new Date('2025-03-03T00:00:00.000Z').toISOString()
     );
     expect(thirdInstance.recurringInterval).toBe(1); // Still daily
