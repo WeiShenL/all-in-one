@@ -10,145 +10,151 @@ interface ToastProps {
 
 export const Toast: React.FC<ToastProps> = ({ notification, onClose }) => {
   const [isVisible, setIsVisible] = useState(false);
-  const [isLeaving, setIsLeaving] = useState(false);
 
   useEffect(() => {
-    // Trigger entrance animation
     setTimeout(() => setIsVisible(true), 10);
-  }, []);
+
+    // Pre-animate exit before removal
+    const exitDelay = 59000; // Start exit animation 1 second before removal (at 59s)
+    const exitTimer = setTimeout(() => {
+      onClose(notification.id);
+    }, exitDelay);
+
+    return () => clearTimeout(exitTimer);
+  }, [notification.id, onClose]);
 
   const handleClose = () => {
-    setIsLeaving(true);
-    setTimeout(() => {
-      onClose(notification.id);
-    }, 300); // Match animation duration
+    onClose(notification.id);
   };
 
-  const getTypeStyles = () => {
-    switch (notification.type) {
-      case 'success':
-        return 'bg-green-50 border-green-200 text-green-800';
-      case 'error':
-        return 'bg-red-50 border-red-200 text-red-800';
-      case 'warning':
-        return 'bg-yellow-50 border-yellow-200 text-yellow-800';
-      case 'info':
-      default:
-        return 'bg-blue-50 border-blue-200 text-blue-800';
-    }
-  };
+  const isLeaving = notification.isDismissing || false;
 
-  const getIconColor = () => {
+  const getStyles = () => {
     switch (notification.type) {
       case 'success':
-        return 'text-green-500';
+        return {
+          bg: '#d4edda',
+          border: '#c3e6cb',
+          text: '#155724',
+          icon: '#28a745',
+        };
       case 'error':
-        return 'text-red-500';
+        return {
+          bg: '#f8d7da',
+          border: '#f5c6cb',
+          text: '#721c24',
+          icon: '#dc3545',
+        };
       case 'warning':
-        return 'text-yellow-500';
+        return {
+          bg: '#fff3cd',
+          border: '#ffeeba',
+          text: '#856404',
+          icon: '#ffc107',
+        };
       case 'info':
       default:
-        return 'text-blue-500';
+        return {
+          bg: '#d1ecf1',
+          border: '#bee5eb',
+          text: '#0c5460',
+          icon: '#17a2b8',
+        };
     }
   };
 
   const getIcon = () => {
+    const styles = getStyles();
     switch (notification.type) {
       case 'success':
         return (
-          <svg
-            className='w-5 h-5'
-            fill='currentColor'
-            viewBox='0 0 20 20'
-            xmlns='http://www.w3.org/2000/svg'
-          >
-            <path
-              fillRule='evenodd'
-              d='M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z'
-              clipRule='evenodd'
-            />
+          <svg width='16' height='16' viewBox='0 0 16 16' fill={styles.icon}>
+            <path d='M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0zm3.97 4.97a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z' />
           </svg>
         );
       case 'error':
         return (
-          <svg
-            className='w-5 h-5'
-            fill='currentColor'
-            viewBox='0 0 20 20'
-            xmlns='http://www.w3.org/2000/svg'
-          >
-            <path
-              fillRule='evenodd'
-              d='M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z'
-              clipRule='evenodd'
-            />
+          <svg width='16' height='16' viewBox='0 0 16 16' fill={styles.icon}>
+            <path d='M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0zM4.646 4.646a.5.5 0 0 0 0 .708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293 5.354 4.646a.5.5 0 0 0-.708 0z' />
           </svg>
         );
       case 'warning':
         return (
-          <svg
-            className='w-5 h-5'
-            fill='currentColor'
-            viewBox='0 0 20 20'
-            xmlns='http://www.w3.org/2000/svg'
-          >
-            <path
-              fillRule='evenodd'
-              d='M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z'
-              clipRule='evenodd'
-            />
+          <svg width='16' height='16' viewBox='0 0 16 16' fill={styles.icon}>
+            <path d='M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0zm.93 4.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 4.588zM9 12a1 1 0 1 0-2 0 1 1 0 0 0 2 0z' />
           </svg>
         );
       case 'info':
       default:
         return (
-          <svg
-            className='w-5 h-5'
-            fill='currentColor'
-            viewBox='0 0 20 20'
-            xmlns='http://www.w3.org/2000/svg'
-          >
-            <path
-              fillRule='evenodd'
-              d='M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z'
-              clipRule='evenodd'
-            />
+          <svg width='16' height='16' viewBox='0 0 16 16' fill={styles.icon}>
+            <path d='M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0zm.93 4.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 4.588zM9 12a1 1 0 1 0-2 0 1 1 0 0 0 2 0z' />
           </svg>
         );
     }
   };
 
+  const styles = getStyles();
+
   return (
     <div
-      className={`
-        flex items-start gap-3 p-4 mb-3 border rounded-lg shadow-lg max-w-md w-full
-        transition-all duration-300 ease-in-out
-        ${getTypeStyles()}
-        ${isVisible && !isLeaving ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}
-      `}
+      style={{
+        backgroundColor: styles.bg,
+        border: `1px solid ${styles.border}`,
+        borderRadius: '4px',
+        padding: '0.75rem 1rem',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: '0.75rem',
+        fontSize: '0.875rem',
+        color: styles.text,
+        transform:
+          isVisible && !isLeaving ? 'translateX(0)' : 'translateX(120%)',
+        opacity: isVisible && !isLeaving ? 1 : 0,
+        transition: 'all 0.2s ease-in-out',
+        position: 'relative',
+      }}
       role='alert'
     >
-      <div className={`flex-shrink-0 ${getIconColor()}`}>{getIcon()}</div>
-      <div className='flex-1 min-w-0'>
-        <h3 className='text-sm font-semibold mb-1'>{notification.title}</h3>
-        <p className='text-sm opacity-90'>{notification.message}</p>
+      <div style={{ flexShrink: 0, marginTop: '2px' }}>{getIcon()}</div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div
+          style={{
+            fontWeight: 600,
+            marginBottom: '0.25rem',
+            fontSize: '0.8125rem',
+          }}
+        >
+          {notification.title}
+        </div>
+        <div style={{ fontSize: '0.8125rem', lineHeight: '1.4' }}>
+          {notification.message}
+        </div>
       </div>
       <button
         onClick={handleClose}
-        className='flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors'
+        style={{
+          background: 'none',
+          border: 'none',
+          padding: '0',
+          cursor: 'pointer',
+          color: styles.text,
+          opacity: 0.6,
+          flexShrink: 0,
+          width: '16px',
+          height: '16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginTop: '2px',
+        }}
+        onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+        onMouseLeave={e => (e.currentTarget.style.opacity = '0.6')}
         aria-label='Close notification'
       >
-        <svg
-          className='w-5 h-5'
-          fill='currentColor'
-          viewBox='0 0 20 20'
-          xmlns='http://www.w3.org/2000/svg'
-        >
-          <path
-            fillRule='evenodd'
-            d='M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z'
-            clipRule='evenodd'
-          />
+        <svg width='12' height='12' viewBox='0 0 12 12' fill='currentColor'>
+          <path d='M6 4.586L9.293 1.293a1 1 0 011.414 1.414L7.414 6l3.293 3.293a1 1 0 01-1.414 1.414L6 7.414l-3.293 3.293a1 1 0 01-1.414-1.414L4.586 6 1.293 2.707a1 1 0 011.414-1.414L6 4.586z' />
         </svg>
       </button>
     </div>

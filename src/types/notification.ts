@@ -6,6 +6,7 @@ export interface Notification {
   title: string;
   message: string;
   timestamp: number;
+  isDismissing?: boolean;
 }
 
 export interface RealtimeNotification {

@@ -22,6 +22,7 @@ interface NotificationContextType {
     message: string
   ) => void;
   removeNotification: (id: string) => void;
+  dismissNotification: (id: string) => void;
   clearAll: () => void;
   isConnected: boolean;
   error: Error | null;
@@ -53,10 +54,28 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
   maxNotifications = 5,
 }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [dismissingIds, setDismissingIds] = useState<Set<string>>(new Set());
 
   const removeNotification = useCallback((id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
+    setDismissingIds(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(id);
+      return newSet;
+    });
   }, []);
+
+  const dismissNotification = useCallback(
+    (id: string) => {
+      // Mark as dismissing to trigger exit animation
+      setDismissingIds(prev => new Set(prev).add(id));
+      // Remove after animation completes
+      setTimeout(() => {
+        removeNotification(id);
+      }, 300);
+    },
+    [removeNotification]
+  );
 
   const addNotification = useCallback(
     (type: NotificationType, title: string, message: string) => {
@@ -108,9 +127,13 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
   });
 
   const value: NotificationContextType = {
-    notifications,
+    notifications: notifications.map(n => ({
+      ...n,
+      isDismissing: dismissingIds.has(n.id),
+    })) as Notification[],
     addNotification,
     removeNotification,
+    dismissNotification,
     clearAll,
     isConnected,
     error,

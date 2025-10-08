@@ -8,6 +8,7 @@ This document covers development practices, guidelines, and advanced topics for 
 - [Testing](#-testing)
 - [Code Quality & Standards](#-code-quality--standards)
 - [Authentication System](#-authentication-system)
+- [Real-time Notification System](#-real-time-notification-system)
 - [Project Structure](#-project-structure)
 
 ## 💾 Database Management
@@ -435,6 +436,261 @@ NEXT_PUBLIC_ANON_KEY=your-production-anon-key
 ```
 
 The authentication code automatically adapts to the environment.
+
+## 🔔 Real-time Notification System
+
+### Overview
+
+The application includes a **real-time notification system** built with Supabase Realtime and custom Toast components. It supports displaying notifications in real-time across all connected clients with a clean, animated UI.
+
+### Notification Features
+
+- **Real-time Broadcasting**: Notifications appear instantly across all connected clients
+- **Auto-dismiss**: Notifications automatically disappear after 5 seconds (configurable)
+- **Manual Dismiss**: Users can close notifications manually
+- **Animated Transitions**: Smooth slide-in and slide-out animations
+- **Type Safety**: Full TypeScript support with defined notification types
+- **Connection Status**: Real-time connection monitoring (shown in development mode)
+- **Multiple Types**: Support for `info`, `success`, `warning`, and `error` notifications
+
+### Notification Types
+
+```typescript
+type NotificationType = 'info' | 'success' | 'warning' | 'error';
+```
+
+Each type has distinct visual styling:
+
+- **Info**: Blue theme for informational messages
+- **Success**: Green theme for successful operations
+- **Warning**: Yellow theme for warnings
+- **Error**: Red theme for errors
+
+### Setup
+
+The notification system is already set up globally in [src/app/layout.tsx](src/app/layout.tsx). The `NotificationProvider` wraps your application and `ToastContainer` displays the notifications.
+
+```typescript
+import { NotificationProvider } from '@/lib/context/NotificationContext'
+import { ToastContainer } from '@/app/components/ToastContainer'
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <NotificationProvider autoRemoveDelay={5000} maxNotifications={5}>
+      {children}
+      <ToastContainer />
+    </NotificationProvider>
+  )
+}
+```
+
+### Using Notifications in Components
+
+#### Displaying Notifications
+
+```typescript
+'use client'
+import { useNotifications } from '@/lib/context/NotificationContext'
+
+export function MyComponent() {
+  const { addNotification, isConnected } = useNotifications()
+
+  const handleSuccess = () => {
+    addNotification('success', 'Task Completed', 'Your task was successfully saved!')
+  }
+
+  const handleError = () => {
+    addNotification('error', 'Error', 'Failed to save task. Please try again.')
+  }
+
+  const handleWarning = () => {
+    addNotification('warning', 'Warning', 'This action cannot be undone.')
+  }
+
+  const handleInfo = () => {
+    addNotification('info', 'New Update', 'A new version is available.')
+  }
+
+  return (
+    <div>
+      <button onClick={handleSuccess}>Show Success</button>
+      <button onClick={handleError}>Show Error</button>
+      <button onClick={handleWarning}>Show Warning</button>
+      <button onClick={handleInfo}>Show Info</button>
+
+      {/* Connection status */}
+      <p>Status: {isConnected ? 'Connected' : 'Disconnected'}</p>
+    </div>
+  )
+}
+```
+
+#### Broadcasting Real-time Notifications
+
+To send notifications that appear on all connected clients:
+
+```typescript
+'use client'
+import { useRealtimeNotifications } from '@/lib/hooks/useRealtimeNotifications'
+
+export function BroadcastComponent() {
+  const { sendBroadcast, isConnected } = useRealtimeNotifications()
+
+  const notifyAllUsers = async () => {
+    try {
+      await sendBroadcast({
+        type: 'info',
+        title: 'System Announcement',
+        message: 'Maintenance scheduled for tonight at 10 PM',
+      })
+    } catch (error) {
+      console.error('Failed to broadcast notification:', error)
+    }
+  }
+
+  return (
+    <button onClick={notifyAllUsers} disabled={!isConnected}>
+      Notify All Users
+    </button>
+  )
+}
+```
+
+### API Reference
+
+#### `useNotifications()` Hook
+
+Returns notification context with the following methods and properties:
+
+```typescript
+interface NotificationContextType {
+  // Array of current notifications
+  notifications: Notification[];
+
+  // Add a new notification
+  addNotification: (
+    type: NotificationType,
+    title: string,
+    message: string
+  ) => void;
+
+  // Remove a notification immediately
+  removeNotification: (id: string) => void;
+
+  // Dismiss with animation
+  dismissNotification: (id: string) => void;
+
+  // Clear all notifications
+  clearAll: () => void;
+
+  // Connection status
+  isConnected: boolean;
+
+  // Connection error (if any)
+  error: Error | null;
+}
+```
+
+#### `useRealtimeNotifications()` Hook
+
+Lower-level hook for custom real-time notification handling:
+
+```typescript
+interface UseRealtimeNotificationsOptions {
+  channel?: string; // Default: 'notifications'
+  onNotification?: (notification: RealtimeNotification) => void;
+  autoReconnect?: boolean; // Default: true
+}
+
+interface UseRealtimeNotificationsReturn {
+  isConnected: boolean;
+  error: Error | null;
+  sendBroadcast: (
+    notification: Omit<RealtimeNotification, 'broadcast_at'>
+  ) => Promise<void>;
+}
+```
+
+#### `NotificationProvider` Props
+
+```typescript
+interface NotificationProviderProps {
+  children: ReactNode;
+  autoRemoveDelay?: number; // Default: 5000ms (5 seconds)
+  maxNotifications?: number; // Default: 5
+}
+```
+
+### Configuration Options
+
+Customize the notification behavior by adjusting the provider props:
+
+```typescript
+<NotificationProvider
+  autoRemoveDelay={10000}     // Keep notifications for 10 seconds
+  maxNotifications={3}        // Show max 3 notifications at once
+>
+  {children}
+</NotificationProvider>
+```
+
+### File Structure
+
+```
+src/
+├── app/components/
+│   ├── Toast.tsx              # Individual toast notification component
+│   └── ToastContainer.tsx     # Container for rendering all toasts
+├── lib/
+│   ├── context/
+│   │   └── NotificationContext.tsx  # Notification state management
+│   └── hooks/
+│       └── useRealtimeNotifications.ts  # Supabase Realtime hook
+└── types/
+    └── notification.ts        # TypeScript type definitions
+```
+
+### Best Practices
+
+1. **Use Appropriate Types**: Choose the correct notification type to convey the message intent
+2. **Keep Messages Concise**: Titles should be 2-4 words, messages 1-2 sentences
+3. **Avoid Spam**: Don't trigger multiple notifications for the same event
+4. **Handle Errors**: Wrap `sendBroadcast` in try-catch blocks
+5. **Check Connection**: Verify `isConnected` before broadcasting
+
+### Notification Examples
+
+**Task Assignment:**
+
+```typescript
+addNotification('success', 'Task Assigned', `Task assigned to ${userName}`);
+```
+
+**Error Handling:**
+
+```typescript
+addNotification('error', 'Upload Failed', 'File size exceeds 10MB limit');
+```
+
+**System Announcements:**
+
+```typescript
+await sendBroadcast({
+  type: 'warning',
+  title: 'Scheduled Maintenance',
+  message: 'System will be down for 30 minutes starting at 2 AM',
+});
+```
+
+**Real-time Updates:**
+
+```typescript
+await sendBroadcast({
+  type: 'info',
+  title: 'New Comment',
+  message: `${userName} commented on your task`,
+});
+```
 
 ## 📁 Project Structure
 

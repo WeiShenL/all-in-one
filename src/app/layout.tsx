@@ -23,14 +23,14 @@ export default function RootLayout({
   return (
     <html lang='en'>
       <body className={inter.className}>
-        <AuthProvider>
-          <TRPCProvider>
-            <NotificationProvider>
+        <NotificationProvider autoRemoveDelay={60000}>
+          <AuthProvider>
+            <TRPCProvider>
               {children}
               <ToastContainer />
-            </NotificationProvider>
-          </TRPCProvider>
-        </AuthProvider>
+            </TRPCProvider>
+          </AuthProvider>
+        </NotificationProvider>
       </body>
     </html>
   );
