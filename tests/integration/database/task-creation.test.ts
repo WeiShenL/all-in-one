@@ -39,6 +39,8 @@ describe('Integration Tests - Task Creation (SCRUM-12)', () => {
   const createdTagIds: string[] = [];
 
   beforeAll(async () => {
+    // connect to DB first
+    await prisma.$connect();
     // Create test department
     const department = await prisma.department.create({
       data: {
