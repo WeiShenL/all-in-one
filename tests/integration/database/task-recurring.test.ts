@@ -6,12 +6,14 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { Client } from 'pg';
 import { TaskService } from '@/app/server/services/TaskService';
 
 const prisma = new PrismaClient();
 const taskService = new TaskService(prisma);
 
 describe('Integration Tests - Recurring Tasks', () => {
+  let pgClient: Client;
   let testDepartmentId: string;
   let testUserId1: string;
   let testUserId2: string;
@@ -20,7 +22,11 @@ describe('Integration Tests - Recurring Tasks', () => {
   const createdTagIds: string[] = [];
 
   beforeAll(async () => {
-    // connect to DB first
+    // Explicit pg connection like auth-api.test.ts
+    pgClient = new Client({ connectionString: process.env.DATABASE_URL });
+    await pgClient.connect();
+
+    // Also connect Prisma for TaskService
     await prisma.$connect();
     // Create test department
     const department = await prisma.department.create({
@@ -115,6 +121,7 @@ describe('Integration Tests - Recurring Tasks', () => {
     }
 
     await prisma.$disconnect();
+    await pgClient.end();
   });
 
   describe('Recurring Task Generation', () => {

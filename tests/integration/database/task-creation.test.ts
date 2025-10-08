@@ -17,6 +17,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { Client } from 'pg';
 import { TaskService } from '@/app/server/services/TaskService';
 import { CreateTaskInput } from '@/app/server/types';
 
@@ -24,6 +25,8 @@ const prisma = new PrismaClient();
 const taskService = new TaskService(prisma);
 
 describe('Integration Tests - Task Creation (SCRUM-12)', () => {
+  let pgClient: Client;
+
   // Test data IDs
   let testDepartmentId: string;
   let testUserId: string;
@@ -39,7 +42,11 @@ describe('Integration Tests - Task Creation (SCRUM-12)', () => {
   const createdTagIds: string[] = [];
 
   beforeAll(async () => {
-    // connect to DB first
+    // Explicit pg connection like auth-api.test.ts
+    pgClient = new Client({ connectionString: process.env.DATABASE_URL });
+    await pgClient.connect();
+
+    // Also connect Prisma for TaskService
     await prisma.$connect();
     // Create test department
     const department = await prisma.department.create({
@@ -173,6 +180,7 @@ describe('Integration Tests - Task Creation (SCRUM-12)', () => {
     await prisma.department.delete({ where: { id: testDepartmentId } });
 
     await prisma.$disconnect();
+    await pgClient.end();
   });
 
   describe('Test 1: Mandatory Fields and Assignment Limits', () => {
