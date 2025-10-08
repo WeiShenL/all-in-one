@@ -1,8 +1,6 @@
-import React from 'react';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useSessionTimeout } from '@/lib/hooks/useSessionTimeout';
-import { NotificationProvider } from '@/lib/context/NotificationContext';
 
 // Mock Next.js navigation
 jest.mock('next/navigation', () => ({
@@ -10,14 +8,27 @@ jest.mock('next/navigation', () => ({
   usePathname: jest.fn(),
 }));
 
+// Mock NotificationContext
+const mockAddNotification = jest.fn();
+const mockDismissNotification = jest.fn();
+const mockNotifications: unknown[] = [];
+
+jest.mock('@/lib/context/NotificationContext', () => ({
+  useNotifications: () => ({
+    notifications: mockNotifications,
+    addNotification: mockAddNotification,
+    dismissNotification: mockDismissNotification,
+    removeNotification: jest.fn(),
+    clearAll: jest.fn(),
+    isConnected: true,
+    error: null,
+  }),
+}));
+
 describe('useSessionTimeout', () => {
   const mockPush = jest.fn();
   const mockOnTimeout = jest.fn();
   const mockPathname = '/dashboard/staff';
-
-  // Wrapper component for NotificationProvider
-  const wrapper = ({ children }: { children: React.ReactNode }) =>
-    React.createElement(NotificationProvider, null, children);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -35,13 +46,11 @@ describe('useSessionTimeout', () => {
 
   describe('Initialization', () => {
     it('should not start timer when disabled', () => {
-      renderHook(
-        () =>
-          useSessionTimeout({
-            onTimeout: mockOnTimeout,
-            enabled: false,
-          }),
-        { wrapper }
+      renderHook(() =>
+        useSessionTimeout({
+          onTimeout: mockOnTimeout,
+          enabled: false,
+        })
       );
 
       act(() => {
@@ -52,13 +61,11 @@ describe('useSessionTimeout', () => {
     });
 
     it('should start timer when enabled', () => {
-      renderHook(
-        () =>
-          useSessionTimeout({
-            onTimeout: mockOnTimeout,
-            enabled: true,
-          }),
-        { wrapper }
+      renderHook(() =>
+        useSessionTimeout({
+          onTimeout: mockOnTimeout,
+          enabled: true,
+        })
       );
 
       // Timer should be set but not yet triggered
@@ -68,13 +75,11 @@ describe('useSessionTimeout', () => {
 
   describe('Inactivity Timeout', () => {
     it('should call onTimeout after 15 minutes of inactivity', async () => {
-      renderHook(
-        () =>
-          useSessionTimeout({
-            onTimeout: mockOnTimeout,
-            enabled: true,
-          }),
-        { wrapper }
+      renderHook(() =>
+        useSessionTimeout({
+          onTimeout: mockOnTimeout,
+          enabled: true,
+        })
       );
 
       act(() => {
@@ -89,13 +94,11 @@ describe('useSessionTimeout', () => {
     it('should store session expired info in localStorage after timeout', async () => {
       (usePathname as jest.Mock).mockReturnValue('/dashboard/manager');
 
-      renderHook(
-        () =>
-          useSessionTimeout({
-            onTimeout: mockOnTimeout,
-            enabled: true,
-          }),
-        { wrapper }
+      renderHook(() =>
+        useSessionTimeout({
+          onTimeout: mockOnTimeout,
+          enabled: true,
+        })
       );
 
       act(() => {
@@ -112,13 +115,11 @@ describe('useSessionTimeout', () => {
     });
 
     it('should not timeout before 15 minutes', () => {
-      renderHook(
-        () =>
-          useSessionTimeout({
-            onTimeout: mockOnTimeout,
-            enabled: true,
-          }),
-        { wrapper }
+      renderHook(() =>
+        useSessionTimeout({
+          onTimeout: mockOnTimeout,
+          enabled: true,
+        })
       );
 
       act(() => {
@@ -131,13 +132,11 @@ describe('useSessionTimeout', () => {
 
   describe('Activity Detection', () => {
     it('should reset timer on mouse activity', async () => {
-      renderHook(
-        () =>
-          useSessionTimeout({
-            onTimeout: mockOnTimeout,
-            enabled: true,
-          }),
-        { wrapper }
+      renderHook(() =>
+        useSessionTimeout({
+          onTimeout: mockOnTimeout,
+          enabled: true,
+        })
       );
 
       // Advance to just before timeout
@@ -170,13 +169,11 @@ describe('useSessionTimeout', () => {
     });
 
     it('should reset timer on keyboard activity', async () => {
-      renderHook(
-        () =>
-          useSessionTimeout({
-            onTimeout: mockOnTimeout,
-            enabled: true,
-          }),
-        { wrapper }
+      renderHook(() =>
+        useSessionTimeout({
+          onTimeout: mockOnTimeout,
+          enabled: true,
+        })
       );
 
       act(() => {
@@ -196,13 +193,11 @@ describe('useSessionTimeout', () => {
     });
 
     it('should reset timer on scroll activity', async () => {
-      renderHook(
-        () =>
-          useSessionTimeout({
-            onTimeout: mockOnTimeout,
-            enabled: true,
-          }),
-        { wrapper }
+      renderHook(() =>
+        useSessionTimeout({
+          onTimeout: mockOnTimeout,
+          enabled: true,
+        })
       );
 
       act(() => {
@@ -222,13 +217,11 @@ describe('useSessionTimeout', () => {
     });
 
     it('should reset timer on click activity', async () => {
-      renderHook(
-        () =>
-          useSessionTimeout({
-            onTimeout: mockOnTimeout,
-            enabled: true,
-          }),
-        { wrapper }
+      renderHook(() =>
+        useSessionTimeout({
+          onTimeout: mockOnTimeout,
+          enabled: true,
+        })
       );
 
       act(() => {
@@ -248,13 +241,11 @@ describe('useSessionTimeout', () => {
     });
 
     it('should throttle activity events to once per second', () => {
-      renderHook(
-        () =>
-          useSessionTimeout({
-            onTimeout: mockOnTimeout,
-            enabled: true,
-          }),
-        { wrapper }
+      renderHook(() =>
+        useSessionTimeout({
+          onTimeout: mockOnTimeout,
+          enabled: true,
+        })
       );
 
       // Clear any initial timers
@@ -281,7 +272,7 @@ describe('useSessionTimeout', () => {
             onTimeout: mockOnTimeout,
             enabled,
           }),
-        { initialProps: { enabled: true }, wrapper }
+        { initialProps: { enabled: true } }
       );
 
       // Start with enabled
@@ -308,7 +299,7 @@ describe('useSessionTimeout', () => {
             onTimeout: mockOnTimeout,
             enabled,
           }),
-        { initialProps: { enabled: false }, wrapper }
+        { initialProps: { enabled: false } }
       );
 
       // Start disabled - advance time, should not timeout
@@ -336,13 +327,11 @@ describe('useSessionTimeout', () => {
     it('should remove event listeners on unmount', () => {
       const removeEventListenerSpy = jest.spyOn(window, 'removeEventListener');
 
-      const { unmount } = renderHook(
-        () =>
-          useSessionTimeout({
-            onTimeout: mockOnTimeout,
-            enabled: true,
-          }),
-        { wrapper }
+      const { unmount } = renderHook(() =>
+        useSessionTimeout({
+          onTimeout: mockOnTimeout,
+          enabled: true,
+        })
       );
 
       unmount();
@@ -375,13 +364,11 @@ describe('useSessionTimeout', () => {
     });
 
     it('should clear timers on unmount', () => {
-      const { unmount } = renderHook(
-        () =>
-          useSessionTimeout({
-            onTimeout: mockOnTimeout,
-            enabled: true,
-          }),
-        { wrapper }
+      const { unmount } = renderHook(() =>
+        useSessionTimeout({
+          onTimeout: mockOnTimeout,
+          enabled: true,
+        })
       );
 
       unmount();
@@ -398,22 +385,25 @@ describe('useSessionTimeout', () => {
 
   describe('Warning Timeout', () => {
     it('should show notification warning 1 minute before timeout', async () => {
-      renderHook(
-        () =>
-          useSessionTimeout({
-            onTimeout: mockOnTimeout,
-            enabled: true,
-          }),
-        { wrapper }
+      renderHook(() =>
+        useSessionTimeout({
+          onTimeout: mockOnTimeout,
+          enabled: true,
+        })
       );
 
       act(() => {
         jest.advanceTimersByTime(14 * 60 * 1000); // 14 minutes
       });
 
-      // The notification should be added to the context
-      // We need to use a separate hook to check notifications
-      // For now, we just verify the timer doesn't trigger early
+      // Verify the notification was added
+      expect(mockAddNotification).toHaveBeenCalledWith(
+        'warning',
+        'Inactivity Warning',
+        'Your session will expire soon due to inactivity. Move your mouse or press a key to stay logged in.'
+      );
+
+      // Verify timeout hasn't triggered yet
       expect(mockOnTimeout).not.toHaveBeenCalled();
 
       // Verify that the full timeout still works after warning
