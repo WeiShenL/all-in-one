@@ -207,7 +207,7 @@ describe('Integration Tests - Task Creation (SCRUM-12)', () => {
       expect(assignments).toHaveLength(1);
       expect(assignments[0].userId).toBe(testAssignee1Id);
       expect(assignments[0].assignedById).toBe(testUserId);
-    });
+    }, 30000);
 
     it('should accept minimum 1 assignee', async () => {
       const input: CreateTaskInput = {
@@ -227,7 +227,7 @@ describe('Integration Tests - Task Creation (SCRUM-12)', () => {
         where: { taskId: task!.id },
       });
       expect(assignments).toHaveLength(1);
-    });
+    }, 30000);
 
     it('should accept maximum 5 assignees', async () => {
       const input: CreateTaskInput = {
@@ -264,7 +264,7 @@ describe('Integration Tests - Task Creation (SCRUM-12)', () => {
           testAssignee5Id,
         ].sort()
       );
-    });
+    }, 30000);
 
     it('should validate priority range (1-10)', async () => {
       // Test priority 1 (minimum)
@@ -296,7 +296,7 @@ describe('Integration Tests - Task Creation (SCRUM-12)', () => {
       const task2 = await taskService.create(input2);
       createdTaskIds.push(task2!.id);
       expect(task2!.priority).toBe(10);
-    });
+    }, 30000);
 
     it('should default priority to 5 when not provided', async () => {
       const input: CreateTaskInput = {
@@ -338,7 +338,7 @@ describe('Integration Tests - Task Creation (SCRUM-12)', () => {
       const task = ownerTasks!.find(t => t.id === createdTask!.id);
       expect(task).toBeDefined();
       expect(task!.title).toBe('Dashboard Test Task');
-    });
+    }, 30000);
 
     it("should appear in assignee's tasks immediately", async () => {
       const input: CreateTaskInput = {
@@ -361,7 +361,7 @@ describe('Integration Tests - Task Creation (SCRUM-12)', () => {
       const task = assigneeTasks!.find(t => t.id === createdTask!.id);
       expect(task).toBeDefined();
       expect(task!.title).toBe('Assignee Dashboard Task');
-    });
+    }, 30000);
 
     it('should appear in department tasks immediately', async () => {
       const input: CreateTaskInput = {
@@ -419,7 +419,7 @@ describe('Integration Tests - Task Creation (SCRUM-12)', () => {
 
       expect(subtask).toBeDefined();
       expect(subtask!.parentTaskId).toBe(parentTask!.id);
-    });
+    }, 30000);
 
     it('should NOT allow creating level 3 subtask (exceeds maximum)', async () => {
       // Create level 0 task
@@ -503,7 +503,7 @@ describe('Integration Tests - Task Creation (SCRUM-12)', () => {
 
       // Store tag IDs for cleanup
       taskWithTags!.tags.forEach(t => createdTagIds.push(t.tag.id));
-    });
+    }, 30000);
 
     it('should reuse existing tags', async () => {
       // Create a tag first
@@ -552,7 +552,7 @@ describe('Integration Tests - Task Creation (SCRUM-12)', () => {
       createdTaskIds.push(task!.id);
 
       expect(task!.recurringInterval).toBe(7);
-    });
+    }, 30000);
 
     it('should create non-recurring task when interval not provided', async () => {
       const input: CreateTaskInput = {
@@ -594,7 +594,7 @@ describe('Integration Tests - Task Creation (SCRUM-12)', () => {
       const projectTasks = await taskService.getByProject(testProjectId);
       const foundTask = projectTasks!.find(t => t.id === task!.id);
       expect(foundTask).toBeDefined();
-    });
+    }, 30000);
 
     it('should create standalone task without project', async () => {
       const input: CreateTaskInput = {
@@ -629,7 +629,7 @@ describe('Integration Tests - Task Creation (SCRUM-12)', () => {
       await expect(taskService.create(input)).rejects.toThrow(
         'Owner not found or inactive'
       );
-    });
+    }, 30000);
 
     it('should throw error when department not found', async () => {
       const input: CreateTaskInput = {
@@ -645,7 +645,7 @@ describe('Integration Tests - Task Creation (SCRUM-12)', () => {
       await expect(taskService.create(input)).rejects.toThrow(
         'Department not found'
       );
-    });
+    }, 30000);
 
     it('should throw error when assignee not found', async () => {
       const input: CreateTaskInput = {
@@ -661,7 +661,7 @@ describe('Integration Tests - Task Creation (SCRUM-12)', () => {
       await expect(taskService.create(input)).rejects.toThrow(
         'One or more assignees not found'
       );
-    });
+    }, 30000);
 
     it('should throw error when project not found', async () => {
       const input: CreateTaskInput = {

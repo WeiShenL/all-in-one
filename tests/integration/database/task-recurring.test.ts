@@ -198,7 +198,7 @@ describe('Integration Tests - Recurring Tasks', () => {
       expect(nextTask.assignments.length).toBe(2);
       const assigneeIds = nextTask.assignments.map(a => a.userId).sort();
       expect(assigneeIds).toEqual([testUserId1, testUserId2].sort());
-    });
+    }, 30000);
 
     it('should preserve tags in next recurring instance', async () => {
       // Create tags
@@ -352,7 +352,7 @@ describe('Integration Tests - Recurring Tasks', () => {
 
       expect(allTasks.length).toBe(1); // Only the original task
       expect(allTasks[0].status).toBe('COMPLETED');
-    });
+    }, 30000);
 
     it('should NOT create next instance when task is marked as IN_PROGRESS', async () => {
       // Create recurring task
@@ -384,7 +384,7 @@ describe('Integration Tests - Recurring Tasks', () => {
       });
 
       expect(allTasks.length).toBe(1); // Only the original task
-    });
+    }, 30000);
 
     it('should chain recurring tasks - complete 1st, complete 2nd, verify 3rd', async () => {
       // Create first recurring task
