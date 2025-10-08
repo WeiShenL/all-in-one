@@ -12,6 +12,7 @@ const mockPrisma = {
   },
   userProfile: {
     findUnique: jest.fn(),
+    findMany: jest.fn(),
   },
   department: {
     findUnique: jest.fn(),
@@ -23,6 +24,7 @@ const mockPrisma = {
     findMany: jest.fn(),
     findUnique: jest.fn(),
     create: jest.fn(),
+    createMany: jest.fn(),
     delete: jest.fn(),
   },
   calendarEvent: {
@@ -31,10 +33,12 @@ const mockPrisma = {
   },
   tag: {
     findUnique: jest.fn(),
+    create: jest.fn(),
   },
   taskTag: {
     findUnique: jest.fn(),
     create: jest.fn(),
+    createMany: jest.fn(),
     delete: jest.fn(),
     findMany: jest.fn(),
   },
@@ -54,11 +58,12 @@ describe('TaskService', () => {
         const input = {
           title: 'Implement Login',
           description: 'Implement user login functionality',
-          priority: 'HIGH' as const,
+          priority: 8, // Changed from 'HIGH' to number (1-10 scale)
           dueDate: new Date('2025-12-31'),
           ownerId: 'user1',
           departmentId: 'dept1',
           projectId: 'proj1',
+          assigneeIds: ['user2'], // Added required assigneeIds
         };
 
         (mockPrisma.userProfile.findUnique as jest.Mock).mockResolvedValue({
@@ -74,19 +79,54 @@ describe('TaskService', () => {
           id: 'proj1',
         });
 
+        // Mock assignee validation
+        (mockPrisma.userProfile.findMany as jest.Mock).mockResolvedValue([
+          { id: 'user2', isActive: true },
+        ]);
+
         const mockCreated = {
           id: 'task1',
-          ...input,
+          title: input.title,
+          description: input.description,
+          priority: 8, // Number instead of enum
+          dueDate: input.dueDate,
+          ownerId: input.ownerId,
+          departmentId: input.departmentId,
+          projectId: input.projectId,
           status: 'TO_DO',
           isArchived: false,
+          parentTaskId: null,
+          recurringInterval: null,
           createdAt: new Date(),
           updatedAt: new Date(),
           owner: { id: 'user1', name: 'Owner', email: 'owner@example.com' },
           department: { id: 'dept1', name: 'Engineering' },
           project: { id: 'proj1', name: 'Project' },
+          parentTask: null,
         };
 
         (mockPrisma.task.create as jest.Mock).mockResolvedValue(mockCreated);
+
+        // Mock createMany for task assignments
+        (mockPrisma.taskAssignment.createMany as jest.Mock).mockResolvedValue({
+          count: 1,
+        });
+
+        // Mock getById for final return
+        (mockPrisma.task.findUnique as jest.Mock).mockResolvedValue({
+          ...mockCreated,
+          owner: {
+            id: 'user1',
+            name: 'Owner',
+            email: 'owner@example.com',
+            role: 'STAFF',
+          },
+          subtasks: [],
+          assignments: [],
+          comments: [],
+          files: [],
+          tags: [],
+        });
 
         const result = await service.create(input);
 
@@ -94,18 +134,20 @@ describe('TaskService', () => {
           data: {
             title: input.title,
             description: input.description,
-            priority: input.priority,
+            priority: 8,
             dueDate: input.dueDate,
             ownerId: input.ownerId,
             departmentId: input.departmentId,
             projectId: input.projectId,
             parentTaskId: undefined,
+            recurringInterval: undefined,
           },
           include: expect.any(Object),
         });
 
-        expect(result.title).toBe('Implement Login');
-        expect(result.priority).toBe('HIGH');
+        expect(result).toBeDefined();
+        expect(result!.title).toBe('Implement Login');
+        expect(result!.priority).toBe(8); // Expect number, not 'HIGH'
       });
 
       it('should throw error when owner not found', async () => {
@@ -115,6 +157,7 @@ describe('TaskService', () => {
           dueDate: new Date(),
           ownerId: 'nonexistent',
           departmentId: 'dept1',
+          assigneeIds: ['user1'], // Added required field
         };
 
         (mockPrisma.userProfile.findUnique as jest.Mock).mockResolvedValue(
@@ -133,6 +176,7 @@ describe('TaskService', () => {
           dueDate: new Date(),
           ownerId: 'user1',
           departmentId: 'nonexistent',
+          assigneeIds: ['user1'], // Added required field
         };
 
         (mockPrisma.userProfile.findUnique as jest.Mock).mockResolvedValue({
@@ -402,6 +446,7 @@ describe('TaskService', () => {
     it('should assign user to task', async () => {
       (mockPrisma.task.findUnique as jest.Mock).mockResolvedValue({
         id: 'task1',
+        assignments: [], // Include assignments array for length check
       });
 
       (mockPrisma.userProfile.findUnique as jest.Mock).mockResolvedValue({
@@ -451,6 +496,7 @@ describe('TaskService', () => {
     it('should throw error when user already assigned', async () => {
       (mockPrisma.task.findUnique as jest.Mock).mockResolvedValue({
         id: 'task1',
+        assignments: [], // Include assignments array
       });
 
       (mockPrisma.userProfile.findUnique as jest.Mock).mockResolvedValue({
