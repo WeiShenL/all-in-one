@@ -20,19 +20,6 @@ const { TextEncoder, TextDecoder } = require('util');
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
-// Simple fetch polyfill that uses node's built-in fetch or mocks it
-if (typeof global.fetch === 'undefined') {
-  // For Node 18+, just mock it to not throw
-  global.fetch = jest.fn(() =>
-    Promise.resolve({
-      ok: true,
-      json: async () => ({}),
-      text: async () => '',
-      headers: new Map(),
-    })
-  );
-}
-
 // Import testing-library/jest-dom for extended matchers
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 require('@testing-library/jest-dom');
