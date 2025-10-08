@@ -14,15 +14,10 @@ jest.mock('@supabase/supabase-js', () => {
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 require('dotenv').config({ path: './.env' });
 
-// Setup TextEncoder/TextDecoder
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { TextEncoder, TextDecoder } = require('util');
+import '@testing-library/jest-dom';
+import { TextEncoder, TextDecoder } from 'util';
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
-
-// Import testing-library/jest-dom for extended matchers
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-require('@testing-library/jest-dom');
 
 // Mock Next.js router
 jest.mock('next/navigation', () => ({
