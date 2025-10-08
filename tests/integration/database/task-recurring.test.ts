@@ -20,6 +20,8 @@ describe('Integration Tests - Recurring Tasks', () => {
   const createdTagIds: string[] = [];
 
   beforeAll(async () => {
+    // connect to DB first
+    await prisma.$connect();
     // Create test department
     const department = await prisma.department.create({
       data: {
