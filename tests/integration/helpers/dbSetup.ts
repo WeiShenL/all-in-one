@@ -2,6 +2,7 @@
  * Database Setup/Teardown Helper for Integration Tests
  *
  * Industry-standard approach:
+ * - Each test file gets its own Prisma instance for isolation
  * - Seed ONLY base infrastructure (departments, users, projects)
  * - Each test creates its own task-specific data
  * - Full reset between tests for complete isolation
@@ -9,15 +10,21 @@
 
 import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
-
 /**
  * Clear all tables in correct order (respecting FK constraints)
  */
-export async function clearDatabase() {
-  // Use $transaction to ensure atomic operation
+export async function clearDatabase(prisma: PrismaClient) {
+  // Handle circular dependency between Department and UserProfile
+  // Department.managerId -> UserProfile.id
+  // UserProfile.departmentId -> Department.id
+
+  // First, break the circular dependency by nullifying Department.managerId
+  await prisma.department.updateMany({
+    data: { managerId: null },
+  });
+
+  // Now delete in correct order respecting remaining FK constraints
   await prisma.$transaction([
-    // Order matters due to foreign key constraints
     prisma.taskLog.deleteMany({}),
     prisma.taskFile.deleteMany({}),
     prisma.comment.deleteMany({}),
@@ -41,7 +48,7 @@ export async function clearDatabase() {
  * - Base fixtures are READ-ONLY shared data
  * - Test-specific data is created in each test
  */
-export async function seedTestData() {
+export async function seedTestData(prisma: PrismaClient) {
   // 1. Create Departments (shared infrastructure)
   await prisma.department.createMany({
     data: [
@@ -123,21 +130,7 @@ export async function seedTestData() {
  * Full database reset: Clear + Seed
  * Use this in beforeEach for complete test isolation
  */
-export async function resetAndSeedDatabase() {
-  await clearDatabase();
-  await seedTestData();
-}
-
-/**
- * Get Prisma client instance
- */
-export function getPrisma() {
-  return prisma;
-}
-
-/**
- * Disconnect Prisma (call in afterAll)
- */
-export async function disconnectPrisma() {
-  await prisma.$disconnect();
+export async function resetAndSeedDatabase(prisma: PrismaClient) {
+  await clearDatabase(prisma);
+  await seedTestData(prisma);
 }

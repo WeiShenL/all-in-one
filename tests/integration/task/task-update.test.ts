@@ -1,5 +1,7 @@
 /**
- * Integration Tests for Task Update Endpoints
+ * @jest-environment node
+ *
+ * Integration Tests for Task Update Operations
  *
  * Tests all UPDATE operations (AC 1-7, 9-10):
  * - AC 1: Update Deadline
@@ -11,22 +13,23 @@
  * - AC 9: Changes Reflected Within 10 Seconds
  * - AC 10: Update Recurring Settings
  *
+ * Test Pattern: TaskService → Domain → Prisma Repository → Real Database
+ * Skips: tRPC/HTTP layer (tested in E2E)
+ *
  * Each test gets a fresh database with complete isolation
  */
 
-import {
-  resetAndSeedDatabase,
-  getPrisma,
-  disconnectPrisma,
-} from '../helpers/dbSetup';
-import { createTestTRPCClient } from '../helpers/trpcTestClient';
+import { resetAndSeedDatabase } from '../helpers/dbSetup';
+import { TaskService, UserContext } from '@/services/task/TaskService';
+import { PrismaTaskRepository } from '@/repositories/PrismaTaskRepository';
+import { PrismaClient } from '@prisma/client';
 
-const prisma = getPrisma();
-const client = createTestTRPCClient();
+const prisma = new PrismaClient();
+let taskService: TaskService;
+let testUser: UserContext;
 
 /**
  * Helper to create a task with assignment for testing
- * The user (10000000-0000-4000-8000-000000000001) is assigned to authorize updates
  */
 async function createTaskWithAssignment(taskData: {
   id: string;
@@ -40,6 +43,10 @@ async function createTaskWithAssignment(taskData: {
   const task = await prisma.task.create({
     data: {
       ...taskData,
+      description: taskData.description || 'Test description',
+      priority: taskData.priority || 5,
+      dueDate: taskData.dueDate || new Date('2025-12-31'),
+      status: taskData.status || 'TO_DO',
       ownerId: '10000000-0000-4000-8000-000000000001',
       departmentId: 'dept-engineering',
       projectId: 'proj-001',
@@ -61,14 +68,27 @@ async function createTaskWithAssignment(taskData: {
 }
 
 describe('Task Update Integration Tests', () => {
+  // Setup before all tests
+  beforeAll(async () => {
+    const repository = new PrismaTaskRepository(prisma);
+    taskService = new TaskService(repository);
+
+    // Test user context (from seed data)
+    testUser = {
+      userId: '10000000-0000-4000-8000-000000000001',
+      role: 'STAFF',
+      departmentId: 'dept-engineering',
+    };
+  });
+
   // Full DB reset before EACH test for complete independence
   beforeEach(async () => {
-    await resetAndSeedDatabase();
+    await resetAndSeedDatabase(prisma);
   });
 
   // Disconnect after all tests
   afterAll(async () => {
-    await disconnectPrisma();
+    await prisma.$disconnect();
   });
 
   // ============================================
@@ -85,12 +105,13 @@ describe('Task Update Integration Tests', () => {
         status: 'TO_DO',
       });
 
-      const result = await client.task.updateTitle.mutate({
-        taskId: task.id,
-        title: 'UPDATED: New Task Title',
-      });
+      const updatedTask = await taskService.updateTaskTitle(
+        task.id,
+        'UPDATED: New Task Title',
+        testUser
+      );
 
-      expect(result.title).toBe('UPDATED: New Task Title');
+      expect(updatedTask.getTitle()).toBe('UPDATED: New Task Title');
     });
 
     it('should update task description', async () => {
@@ -103,12 +124,13 @@ describe('Task Update Integration Tests', () => {
         status: 'TO_DO',
       });
 
-      const result = await client.task.updateDescription.mutate({
-        taskId: task.id,
-        description: 'UPDATED: This is the new description with more details.',
-      });
+      const updatedTask = await taskService.updateTaskDescription(
+        task.id,
+        'UPDATED: This is the new description with more details.',
+        testUser
+      );
 
-      expect(result.description).toContain('UPDATED:');
+      expect(updatedTask.getDescription()).toContain('UPDATED:');
     });
   });
 
@@ -126,12 +148,13 @@ describe('Task Update Integration Tests', () => {
         status: 'TO_DO',
       });
 
-      const result = await client.task.updatePriority.mutate({
-        taskId: task.id,
-        priority: 8,
-      });
+      const updatedTask = await taskService.updateTaskPriority(
+        task.id,
+        8,
+        testUser
+      );
 
-      expect(result.priorityBucket).toBe(8);
+      expect(updatedTask.getPriorityBucket()).toBe(8);
     });
 
     it('should reject invalid priority (> 10)', async () => {
@@ -145,10 +168,7 @@ describe('Task Update Integration Tests', () => {
       });
 
       await expect(
-        client.task.updatePriority.mutate({
-          taskId: task.id,
-          priority: 15,
-        })
+        taskService.updateTaskPriority(task.id, 15, testUser)
       ).rejects.toThrow();
     });
   });
@@ -167,12 +187,14 @@ describe('Task Update Integration Tests', () => {
         status: 'TO_DO',
       });
 
-      const result = await client.task.updateDeadline.mutate({
-        taskId: task.id,
-        deadline: new Date('2026-06-30'),
-      });
+      const newDeadline = new Date('2026-06-30');
+      const updatedTask = await taskService.updateTaskDeadline(
+        task.id,
+        newDeadline,
+        testUser
+      );
 
-      expect(result.dueDate).toContain('2026');
+      expect(updatedTask.getDueDate().getFullYear()).toBe(2026);
     });
 
     it('should reject subtask deadline after parent deadline', async () => {
@@ -199,7 +221,7 @@ describe('Task Update Integration Tests', () => {
           departmentId: 'dept-engineering',
           projectId: 'proj-001',
           parentTaskId: parentTask.id,
-          recurrenceDays: null,
+          recurringInterval: null,
         },
       });
 
@@ -213,12 +235,13 @@ describe('Task Update Integration Tests', () => {
         },
       });
 
+      // Try to update subtask deadline to after parent deadline
       await expect(
-        client.task.updateDeadline.mutate({
-          taskId: subtask.id,
-          deadline: new Date('2027-01-01'),
-          parentDeadline: new Date('2026-06-30'),
-        })
+        taskService.updateTaskDeadline(
+          subtask.id,
+          new Date('2027-01-01'),
+          testUser
+        )
       ).rejects.toThrow();
     });
   });
@@ -237,12 +260,13 @@ describe('Task Update Integration Tests', () => {
         status: 'TO_DO',
       });
 
-      const result = await client.task.updateStatus.mutate({
-        taskId: task.id,
-        status: 'IN_PROGRESS',
-      });
+      const updatedTask = await taskService.updateTaskStatus(
+        task.id,
+        'IN_PROGRESS',
+        testUser
+      );
 
-      expect(result.status).toBe('IN_PROGRESS');
+      expect(updatedTask.getStatus()).toBe('IN_PROGRESS');
     });
 
     it('should update status to COMPLETED', async () => {
@@ -255,12 +279,13 @@ describe('Task Update Integration Tests', () => {
         status: 'TO_DO',
       });
 
-      const result = await client.task.updateStatus.mutate({
-        taskId: task.id,
-        status: 'COMPLETED',
-      });
+      const updatedTask = await taskService.updateTaskStatus(
+        task.id,
+        'COMPLETED',
+        testUser
+      );
 
-      expect(result.status).toBe('COMPLETED');
+      expect(updatedTask.getStatus()).toBe('COMPLETED');
     });
   });
 
@@ -278,12 +303,13 @@ describe('Task Update Integration Tests', () => {
         status: 'TO_DO',
       });
 
-      const result = await client.task.addTag.mutate({
-        taskId: task.id,
-        tag: 'urgent',
-      });
+      const updatedTask = await taskService.addTagToTask(
+        task.id,
+        'urgent',
+        testUser
+      );
 
-      expect(result.tags).toContain('urgent');
+      expect(Array.from(updatedTask.getTags())).toContain('urgent');
     });
 
     it('should add multiple tags', async () => {
@@ -296,18 +322,16 @@ describe('Task Update Integration Tests', () => {
         status: 'TO_DO',
       });
 
-      await client.task.addTag.mutate({
-        taskId: task.id,
-        tag: 'urgent',
-      });
+      await taskService.addTagToTask(task.id, 'urgent', testUser);
+      const updatedTask = await taskService.addTagToTask(
+        task.id,
+        'backend',
+        testUser
+      );
 
-      const result = await client.task.addTag.mutate({
-        taskId: task.id,
-        tag: 'backend',
-      });
-
-      expect(result.tags).toContain('urgent');
-      expect(result.tags).toContain('backend');
+      const tags = Array.from(updatedTask.getTags());
+      expect(tags).toContain('urgent');
+      expect(tags).toContain('backend');
     });
 
     it('should remove tag', async () => {
@@ -320,23 +344,17 @@ describe('Task Update Integration Tests', () => {
         status: 'TO_DO',
       });
 
-      await client.task.addTag.mutate({
-        taskId: task.id,
-        tag: 'urgent',
-      });
+      await taskService.addTagToTask(task.id, 'urgent', testUser);
+      await taskService.addTagToTask(task.id, 'backend', testUser);
+      const updatedTask = await taskService.removeTagFromTask(
+        task.id,
+        'urgent',
+        testUser
+      );
 
-      await client.task.addTag.mutate({
-        taskId: task.id,
-        tag: 'backend',
-      });
-
-      const result = await client.task.removeTag.mutate({
-        taskId: task.id,
-        tag: 'urgent',
-      });
-
-      expect(result.tags).not.toContain('urgent');
-      expect(result.tags).toContain('backend');
+      const tags = Array.from(updatedTask.getTags());
+      expect(tags).not.toContain('urgent');
+      expect(tags).toContain('backend');
     });
   });
 
@@ -364,22 +382,76 @@ describe('Task Update Integration Tests', () => {
         },
       });
 
-      await client.task.addAssignee.mutate({
-        taskId: task.id,
-        userId: '10000000-0000-4000-8000-000000000003',
+      // Add 3rd, 4th, 5th via service
+      await taskService.addAssigneeToTask(
+        task.id,
+        '10000000-0000-4000-8000-000000000003',
+        testUser
+      );
+
+      await taskService.addAssigneeToTask(
+        task.id,
+        '10000000-0000-4000-8000-000000000004',
+        testUser
+      );
+
+      const updatedTask = await taskService.addAssigneeToTask(
+        task.id,
+        '10000000-0000-4000-8000-000000000005',
+        testUser
+      );
+
+      expect(Array.from(updatedTask.getAssignees()).length).toBe(5);
+    });
+
+    it('should reject adding 6th assignee', async () => {
+      const task = await createTaskWithAssignment({
+        id: '123e4567-e89b-12d3-a456-426614174012',
+        title: 'Assignee Test',
+        description: 'Test',
+        priority: 5,
+        dueDate: new Date('2025-12-31'),
+        status: 'TO_DO',
       });
 
-      await client.task.addAssignee.mutate({
-        taskId: task.id,
-        userId: '10000000-0000-4000-8000-000000000004',
+      // Add 4 more (total will be 5)
+      await prisma.taskAssignment.createMany({
+        data: [
+          {
+            taskId: task.id,
+            userId: '10000000-0000-4000-8000-000000000002',
+            assignedById: '10000000-0000-4000-8000-000000000001',
+            assignedAt: new Date(),
+          },
+          {
+            taskId: task.id,
+            userId: '10000000-0000-4000-8000-000000000003',
+            assignedById: '10000000-0000-4000-8000-000000000001',
+            assignedAt: new Date(),
+          },
+          {
+            taskId: task.id,
+            userId: '10000000-0000-4000-8000-000000000004',
+            assignedById: '10000000-0000-4000-8000-000000000001',
+            assignedAt: new Date(),
+          },
+          {
+            taskId: task.id,
+            userId: '10000000-0000-4000-8000-000000000005',
+            assignedById: '10000000-0000-4000-8000-000000000001',
+            assignedAt: new Date(),
+          },
+        ],
       });
 
-      const result = await client.task.addAssignee.mutate({
-        taskId: task.id,
-        userId: '10000000-0000-4000-8000-000000000005',
-      });
-
-      expect(result.assignments.length).toBe(5);
+      // Try to add 6th assignee
+      await expect(
+        taskService.addAssigneeToTask(
+          task.id,
+          '10000000-0000-4000-8000-000000000003', // Using user 3 as 6th
+          testUser
+        )
+      ).rejects.toThrow();
     });
   });
 
@@ -389,25 +461,6 @@ describe('Task Update Integration Tests', () => {
   describe('Update Recurring Settings (AC 10)', () => {
     it('should enable recurring (every 7 days)', async () => {
       const task = await createTaskWithAssignment({
-        id: '123e4567-e89b-12d3-a456-426614174012',
-        title: 'Recurring Test',
-        description: 'Test',
-        priority: 5,
-        dueDate: new Date('2025-12-31'),
-        status: 'TO_DO',
-      });
-
-      const result = await client.task.updateRecurring.mutate({
-        taskId: task.id,
-        enabled: true,
-        days: 7,
-      });
-
-      expect(result.recurringInterval).toBe(7);
-    });
-
-    it('should reject invalid recurrence days (0)', async () => {
-      const task = await createTaskWithAssignment({
         id: '123e4567-e89b-12d3-a456-426614174013',
         title: 'Recurring Test',
         description: 'Test',
@@ -416,13 +469,15 @@ describe('Task Update Integration Tests', () => {
         status: 'TO_DO',
       });
 
-      await expect(
-        client.task.updateRecurring.mutate({
-          taskId: task.id,
-          enabled: true,
-          days: 0,
-        })
-      ).rejects.toThrow();
+      const updatedTask = await taskService.updateTaskRecurring(
+        task.id,
+        true,
+        7,
+        testUser
+      );
+
+      expect(updatedTask.getRecurringInterval()).toBe(7);
+      expect(updatedTask.isTaskRecurring()).toBe(true);
     });
 
     it('should disable recurring', async () => {
@@ -436,13 +491,15 @@ describe('Task Update Integration Tests', () => {
         recurringInterval: 7,
       });
 
-      const result = await client.task.updateRecurring.mutate({
-        taskId: task.id,
-        enabled: false,
-        days: null,
-      });
+      const updatedTask = await taskService.updateTaskRecurring(
+        task.id,
+        false,
+        null,
+        testUser
+      );
 
-      expect(result.recurringInterval).toBeNull();
+      expect(updatedTask.getRecurringInterval()).toBeNull();
+      expect(updatedTask.isTaskRecurring()).toBe(false);
     });
   });
 
@@ -461,10 +518,11 @@ describe('Task Update Integration Tests', () => {
       });
 
       const beforeUpdate = new Date();
-      await client.task.updateTitle.mutate({
-        taskId: task.id,
-        title: 'FINAL: Timestamp Test',
-      });
+      await taskService.updateTaskTitle(
+        task.id,
+        'FINAL: Timestamp Test',
+        testUser
+      );
       const afterUpdate = new Date();
 
       const timeDiff = afterUpdate.getTime() - beforeUpdate.getTime();

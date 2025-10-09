@@ -391,14 +391,14 @@ describe('Task.create() - Domain Factory Method', () => {
         },
         {
           name: 'no assignees',
-          data: { ...validTaskData, assignments: new Set() },
+          data: { ...validTaskData, assignments: new Set<string>() },
           error: Error,
         },
         {
           name: 'too many assignees',
           data: {
             ...validTaskData,
-            assignments: new Set(['u1', 'u2', 'u3', 'u4', 'u5', 'u6']),
+            assignments: new Set<string>(['u1', 'u2', 'u3', 'u4', 'u5', 'u6']),
           },
           error: MaxAssigneesReachedError,
         },
