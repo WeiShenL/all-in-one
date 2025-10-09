@@ -50,17 +50,28 @@ export async function clearDatabase(prisma: PrismaClient) {
  */
 export async function seedTestData(prisma: PrismaClient) {
   // 1. Create Departments (shared infrastructure)
+  // NOTE: Matches production hierarchy for E2E test compatibility
   await prisma.department.createMany({
     data: [
       {
+        id: 'dept-md-001',
+        name: 'Managing Director',
+        parentId: null,
+      },
+      {
         id: 'dept-engineering',
         name: 'Engineering',
-        parentId: null,
+        parentId: 'dept-md-001',
       },
       {
         id: 'dept-hr',
         name: 'HR',
-        parentId: null,
+        parentId: 'dept-md-001',
+      },
+      {
+        id: 'dept-it-001',
+        name: 'IT',
+        parentId: 'dept-md-001',
       },
     ],
   });

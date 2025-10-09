@@ -74,9 +74,10 @@ describe('Task Comment Integration Tests', () => {
   });
 
   // Full DB reset before EACH test for complete independence
+  // Increased timeout for CI environment
   beforeEach(async () => {
     await resetAndSeedDatabase(prisma);
-  });
+  }, 15000); // 15 second timeout for database reset in CI
 
   // Disconnect after all tests
   afterAll(async () => {
