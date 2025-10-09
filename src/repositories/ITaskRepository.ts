@@ -68,7 +68,7 @@ export interface ITaskRepository {
   deleteTaskFile(fileId: string): Promise<void>;
 
   /**
-   * Get task by ID (needed for authorization checks - simple version)
+   * Get task by ID (needed for authorization checks)
    * @param taskId - Task ID
    */
   getTaskById(taskId: string): Promise<{
