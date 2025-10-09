@@ -37,10 +37,8 @@ export class SupabaseStorageService {
     fileType: string
   ): Promise<{ storagePath: string; fileSize: number }> {
     // Generate unique file path: task-attachments/{taskId}/{uuid}-{filename}
-    // Sanitize filename: replace spaces and special chars with underscores
-    const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
     const fileId = crypto.randomUUID();
-    const storagePath = `${taskId}/${fileId}-${sanitizedFileName}`;
+    const storagePath = `${taskId}/${fileId}-${fileName}`;
 
     const { data, error } = await this.supabaseAdmin.storage
       .from(this.bucketName)

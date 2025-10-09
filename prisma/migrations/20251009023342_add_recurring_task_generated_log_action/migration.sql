@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "public"."LogAction" ADD VALUE 'RECURRING_TASK_GENERATED';

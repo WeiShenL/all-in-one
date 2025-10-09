@@ -201,26 +201,6 @@ describe('Task - Utility Methods', () => {
   });
 
   describe('archive()', () => {
-    describe('Authorization', () => {
-      it('should allow assigned user to archive task', () => {
-        const task = createTestTask({
-          assignments: new Set(['user-1']),
-        });
-
-        task.archive('user-1');
-
-        expect(task.getIsArchived()).toBe(true);
-      });
-
-      it('should throw UnauthorizedError when user is not assigned', () => {
-        const task = createTestTask({
-          assignments: new Set(['user-1']),
-        });
-
-        expect(() => task.archive('user-999')).toThrow(UnauthorizedError);
-      });
-    });
-
     describe('Archive Behavior', () => {
       it('should set isArchived to true', () => {
         const task = createTestTask({
@@ -229,7 +209,7 @@ describe('Task - Utility Methods', () => {
 
         expect(task.getIsArchived()).toBe(false);
 
-        task.archive('user-1');
+        task.archive();
 
         expect(task.getIsArchived()).toBe(true);
       });
@@ -240,7 +220,7 @@ describe('Task - Utility Methods', () => {
           status: TaskStatus.COMPLETED,
         });
 
-        task.archive('user-1');
+        task.archive();
 
         expect(task.getIsArchived()).toBe(true);
       });
@@ -251,7 +231,7 @@ describe('Task - Utility Methods', () => {
           status: TaskStatus.IN_PROGRESS,
         });
 
-        task.archive('user-1');
+        task.archive();
 
         expect(task.getIsArchived()).toBe(true);
       });
@@ -263,7 +243,7 @@ describe('Task - Utility Methods', () => {
 
         const oldTimestamp = task.getUpdatedAt();
 
-        task.archive('user-1');
+        task.archive();
 
         const newTimestamp = task.getUpdatedAt();
         expect(newTimestamp.getTime()).toBeGreaterThanOrEqual(
@@ -279,17 +259,17 @@ describe('Task - Utility Methods', () => {
           isArchived: true,
         });
 
-        task.archive('user-1'); // Archive again
+        task.archive(); // Archive again
 
         expect(task.getIsArchived()).toBe(true);
       });
 
-      it('should work with multiple assignees', () => {
+      it('should work with tasks having multiple assignees', () => {
         const task = createTestTask({
           assignments: new Set(['user-1', 'user-2', 'user-3']),
         });
 
-        task.archive('user-3'); // Any assignee can archive
+        task.archive();
 
         expect(task.getIsArchived()).toBe(true);
       });
@@ -300,7 +280,7 @@ describe('Task - Utility Methods', () => {
           status: TaskStatus.IN_PROGRESS,
         });
 
-        task.archive('user-1');
+        task.archive();
 
         expect(task.getStatus()).toBe(TaskStatus.IN_PROGRESS);
         expect(task.getIsArchived()).toBe(true);
@@ -313,7 +293,7 @@ describe('Task - Utility Methods', () => {
           priorityBucket: 8,
         });
 
-        task.archive('user-1');
+        task.archive();
 
         expect(task.getTitle()).toBe('Important Task');
         expect(task.getPriorityBucket()).toBe(8);

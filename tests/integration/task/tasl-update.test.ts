@@ -35,8 +35,7 @@ async function createTaskWithAssignment(taskData: {
   priority?: number;
   dueDate?: Date;
   status?: 'TO_DO' | 'IN_PROGRESS' | 'COMPLETED';
-  isRecurring?: boolean;
-  recurrenceDays?: number | null;
+  recurringInterval?: number | null;
 }) {
   const task = await prisma.task.create({
     data: {
@@ -44,7 +43,7 @@ async function createTaskWithAssignment(taskData: {
       ownerId: '10000000-0000-4000-8000-000000000001',
       departmentId: 'dept-engineering',
       projectId: 'proj-001',
-      recurrenceDays: taskData.recurrenceDays ?? null,
+      recurringInterval: taskData.recurringInterval ?? null,
     },
   });
 
@@ -84,7 +83,6 @@ describe('Task Update Integration Tests', () => {
         priority: 5,
         dueDate: new Date('2025-12-31'),
         status: 'TO_DO',
-        isRecurring: false,
       });
 
       const result = await client.task.updateTitle.mutate({
@@ -103,7 +101,6 @@ describe('Task Update Integration Tests', () => {
         priority: 5,
         dueDate: new Date('2025-12-31'),
         status: 'TO_DO',
-        isRecurring: false,
       });
 
       const result = await client.task.updateDescription.mutate({
@@ -127,7 +124,6 @@ describe('Task Update Integration Tests', () => {
         priority: 5,
         dueDate: new Date('2025-12-31'),
         status: 'TO_DO',
-        isRecurring: false,
       });
 
       const result = await client.task.updatePriority.mutate({
@@ -146,7 +142,6 @@ describe('Task Update Integration Tests', () => {
         priority: 5,
         dueDate: new Date('2025-12-31'),
         status: 'TO_DO',
-        isRecurring: false,
       });
 
       await expect(
@@ -170,7 +165,6 @@ describe('Task Update Integration Tests', () => {
         priority: 5,
         dueDate: new Date('2025-12-31'),
         status: 'TO_DO',
-        isRecurring: false,
       });
 
       const result = await client.task.updateDeadline.mutate({
@@ -190,7 +184,6 @@ describe('Task Update Integration Tests', () => {
         priority: 5,
         dueDate: new Date('2026-06-30'),
         status: 'TO_DO',
-        isRecurring: false,
       });
 
       // Create subtask (with parentTaskId, needs manual creation)
@@ -206,7 +199,6 @@ describe('Task Update Integration Tests', () => {
           departmentId: 'dept-engineering',
           projectId: 'proj-001',
           parentTaskId: parentTask.id,
-          isRecurring: false,
           recurrenceDays: null,
         },
       });
@@ -243,7 +235,6 @@ describe('Task Update Integration Tests', () => {
         priority: 5,
         dueDate: new Date('2025-12-31'),
         status: 'TO_DO',
-        isRecurring: false,
       });
 
       const result = await client.task.updateStatus.mutate({
@@ -262,7 +253,6 @@ describe('Task Update Integration Tests', () => {
         priority: 5,
         dueDate: new Date('2025-12-31'),
         status: 'TO_DO',
-        isRecurring: false,
       });
 
       const result = await client.task.updateStatus.mutate({
@@ -286,7 +276,6 @@ describe('Task Update Integration Tests', () => {
         priority: 5,
         dueDate: new Date('2025-12-31'),
         status: 'TO_DO',
-        isRecurring: false,
       });
 
       const result = await client.task.addTag.mutate({
@@ -305,7 +294,6 @@ describe('Task Update Integration Tests', () => {
         priority: 5,
         dueDate: new Date('2025-12-31'),
         status: 'TO_DO',
-        isRecurring: false,
       });
 
       await client.task.addTag.mutate({
@@ -330,7 +318,6 @@ describe('Task Update Integration Tests', () => {
         priority: 5,
         dueDate: new Date('2025-12-31'),
         status: 'TO_DO',
-        isRecurring: false,
       });
 
       await client.task.addTag.mutate({
@@ -365,7 +352,6 @@ describe('Task Update Integration Tests', () => {
         priority: 5,
         dueDate: new Date('2025-12-31'),
         status: 'TO_DO',
-        isRecurring: false,
       });
 
       // Add second assignment manually (helper already created first one)
@@ -409,7 +395,6 @@ describe('Task Update Integration Tests', () => {
         priority: 5,
         dueDate: new Date('2025-12-31'),
         status: 'TO_DO',
-        isRecurring: false,
       });
 
       const result = await client.task.updateRecurring.mutate({
@@ -418,8 +403,7 @@ describe('Task Update Integration Tests', () => {
         days: 7,
       });
 
-      expect(result.isRecurring).toBe(true);
-      expect(result.recurrenceDays).toBe(7);
+      expect(result.recurringInterval).toBe(7);
     });
 
     it('should reject invalid recurrence days (0)', async () => {
@@ -430,7 +414,6 @@ describe('Task Update Integration Tests', () => {
         priority: 5,
         dueDate: new Date('2025-12-31'),
         status: 'TO_DO',
-        isRecurring: false,
       });
 
       await expect(
@@ -450,8 +433,7 @@ describe('Task Update Integration Tests', () => {
         priority: 5,
         dueDate: new Date('2025-12-31'),
         status: 'TO_DO',
-        isRecurring: true,
-        recurrenceDays: 7,
+        recurringInterval: 7,
       });
 
       const result = await client.task.updateRecurring.mutate({
@@ -460,7 +442,7 @@ describe('Task Update Integration Tests', () => {
         days: null,
       });
 
-      expect(result.isRecurring).toBe(false);
+      expect(result.recurringInterval).toBeNull();
     });
   });
 
@@ -476,7 +458,6 @@ describe('Task Update Integration Tests', () => {
         priority: 5,
         dueDate: new Date('2025-12-31'),
         status: 'TO_DO',
-        isRecurring: false,
       });
 
       const beforeUpdate = new Date();

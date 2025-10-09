@@ -47,7 +47,7 @@ function serializeTask(task: Task) {
     projectId: task.getProjectId(),
     parentTaskId: task.getParentTaskId(),
     isRecurring: task.isTaskRecurring(),
-    recurrenceDays: task.getRecurrenceDays(),
+    recurringInterval: task.getRecurringInterval(),
     isArchived: task.getIsArchived(),
     createdAt: task.getCreatedAt().toISOString(),
     updatedAt: task.getUpdatedAt().toISOString(),
@@ -125,6 +125,59 @@ const updateCommentSchema = z.object({
 });
 
 export const taskRouter = router({
+  // ============================================
+  // CREATE OPERATIONS
+  // ============================================
+
+  /**
+   * Create a new task
+   *
+   * AC:
+   * - Create tasks within projects or standalone
+   * - Mandatory: title, description, priority (1-10), deadline, assignee
+   * - Up to 5 assignees
+   * - Auto-associate with department
+   * - Default "To Do" status
+   * - Optional tags/files
+   * - Optional recurring with interval
+   */
+  create: publicProcedure
+    .input(
+      z.object({
+        title: z.string().min(1, 'Title is required'),
+        description: z.string().min(1, 'Description is required'),
+        priority: z.number().min(1).max(10),
+        dueDate: z.coerce.date(),
+        assigneeIds: z.array(z.string().uuid()).min(1).max(5),
+        projectId: z.string().uuid().optional(),
+        tags: z.array(z.string()).optional(),
+        recurringInterval: z.number().positive().optional(),
+        parentTaskId: z.string().uuid().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const repository = new PrismaTaskRepository(ctx.prisma);
+      const service = new TaskService(repository);
+      const user = await getUserContext(ctx);
+
+      const result = await service.createTask(
+        {
+          title: input.title,
+          description: input.description,
+          priority: input.priority,
+          dueDate: input.dueDate,
+          assigneeIds: input.assigneeIds,
+          projectId: input.projectId,
+          parentTaskId: input.parentTaskId,
+          tags: input.tags,
+          recurringInterval: input.recurringInterval,
+        },
+        user
+      );
+
+      return result;
+    }),
+
   // ============================================
   // UPDATE OPERATIONS
   // ============================================
@@ -297,6 +350,30 @@ export const taskRouter = router({
     }),
 
   /**
+   * Remove assignee from task
+   */
+  removeAssignee: publicProcedure
+    .input(
+      z.object({
+        taskId: z.string().uuid(),
+        userId: z.string().uuid(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const repository = new PrismaTaskRepository(ctx.prisma);
+      const service = new TaskService(repository);
+
+      const user = await getUserContext(ctx);
+
+      const task = await service.removeAssigneeFromTask(
+        input.taskId,
+        input.userId,
+        user
+      );
+      return serializeTask(task);
+    }),
+
+  /**
    * Add comment to task
    */
   addComment: publicProcedure
@@ -335,6 +412,52 @@ export const taskRouter = router({
       return serializeTask(task);
     }),
 
+  /**
+   * Archive task (soft delete)
+   */
+  archive: publicProcedure
+    .input(z.object({ taskId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const repository = new PrismaTaskRepository(ctx.prisma);
+      const service = new TaskService(repository);
+
+      const user = await getUserContext(ctx);
+
+      const task = await service.archiveTask(input.taskId, user);
+      return serializeTask(task);
+    }),
+
+  /**
+   * Unarchive task
+   */
+  unarchive: publicProcedure
+    .input(z.object({ taskId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const repository = new PrismaTaskRepository(ctx.prisma);
+      const service = new TaskService(repository);
+
+      const user = await getUserContext(ctx);
+
+      const task = await service.unarchiveTask(input.taskId, user);
+      return serializeTask(task);
+    }),
+
+  /**
+   * Delete task (hard delete)
+   * Cannot delete tasks with subtasks - must archive instead
+   */
+  delete: publicProcedure
+    .input(z.object({ taskId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const repository = new PrismaTaskRepository(ctx.prisma);
+      const service = new TaskService(repository);
+
+      const user = await getUserContext(ctx);
+
+      await service.deleteTask(input.taskId, user);
+      return { success: true };
+    }),
+
   // ============================================
   // QUERY OPERATIONS (for testing/viewing)
   // ============================================
@@ -350,6 +473,85 @@ export const taskRouter = router({
       const service = new TaskService(repository);
       const task = await service.getTaskById(input.taskId, user);
       return task ? serializeTask(task) : null;
+    }),
+
+  /**
+   * Get all tasks with optional filters
+   */
+  getAll: publicProcedure
+    .input(
+      z.object({
+        ownerId: z.string().uuid().optional(),
+        projectId: z.string().uuid().optional(),
+        departmentId: z.string().uuid().optional(),
+        status: z
+          .enum(['TO_DO', 'IN_PROGRESS', 'COMPLETED', 'BLOCKED'])
+          .optional(),
+        isArchived: z.boolean().optional(),
+        parentTaskId: z.string().uuid().optional(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const user = await getUserContext(ctx);
+      const repository = new PrismaTaskRepository(ctx.prisma);
+      const service = new TaskService(repository);
+      const tasks = await service.getAllTasks(input, user);
+      return tasks.map(serializeTask);
+    }),
+
+  /**
+   * Get tasks by project
+   */
+  getByProject: publicProcedure
+    .input(
+      z.object({
+        projectId: z.string().uuid(),
+        includeArchived: z.boolean().optional().default(false),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const user = await getUserContext(ctx);
+      const repository = new PrismaTaskRepository(ctx.prisma);
+      const service = new TaskService(repository);
+      const tasks = await service.getProjectTasks(
+        input.projectId,
+        user,
+        input.includeArchived
+      );
+      return tasks.map(serializeTask);
+    }),
+
+  /**
+   * Get subtasks of a parent task
+   */
+  getSubtasks: publicProcedure
+    .input(z.object({ parentTaskId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const user = await getUserContext(ctx);
+      const repository = new PrismaTaskRepository(ctx.prisma);
+      const service = new TaskService(repository);
+      const tasks = await service.getSubtasks(input.parentTaskId, user);
+      return tasks.map(serializeTask);
+    }),
+
+  /**
+   * Get tasks owned/created by a user
+   */
+  getByOwner: publicProcedure
+    .input(
+      z.object({
+        ownerId: z.string().uuid(),
+        includeArchived: z.boolean().optional().default(false),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const repository = new PrismaTaskRepository(ctx.prisma);
+      const service = new TaskService(repository);
+      const tasks = await service.getOwnerTasks(
+        input.ownerId,
+        input.includeArchived
+      );
+      return tasks.map(serializeTask);
     }),
 
   /**
@@ -388,7 +590,7 @@ export const taskRouter = router({
       const service = new TaskService(repository);
 
       const user = {
-        userId: ctx.session?.user?.id || 'test-user',
+        userId: ctx.userId || 'test-user',
         role: 'MANAGER' as const, // Need manager role to view all department tasks
         departmentId: input.departmentId,
       };
@@ -401,150 +603,59 @@ export const taskRouter = router({
       return tasks.map(serializeTask);
     }),
 
+  /**
+   * Get task hierarchy (parent chain + subtask tree)
+   */
+  getHierarchy: publicProcedure
+    .input(z.object({ taskId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const user = await getUserContext(ctx);
+      const repository = new PrismaTaskRepository(ctx.prisma);
+      const service = new TaskService(repository);
+      const hierarchy = await service.getTaskHierarchy(input.taskId, user);
+      return hierarchy;
+    }),
+
   // ============================================
-  // FILE OPERATIONS
+  // CALENDAR EVENT OPERATIONS
   // ============================================
 
   /**
-   * Upload a file to a task
+   * Create a calendar event for a task
    */
-  uploadFile: publicProcedure
+  createCalendarEvent: publicProcedure
     .input(
       z.object({
         taskId: z.string().uuid(),
-        fileName: z.string().min(1).max(255),
-        fileType: z.string(),
-        fileData: z.string(), // Base64 encoded file
-        userId: z.string().uuid(),
-        userRole: z.enum(['STAFF', 'MANAGER', 'HR_ADMIN']),
-        departmentId: z.string(),
+        eventUserId: z.string().uuid(),
+        title: z.string().min(1),
+        eventDate: z.coerce.date(),
       })
     )
     .mutation(async ({ ctx, input }) => {
+      const user = await getUserContext(ctx);
       const repository = new PrismaTaskRepository(ctx.prisma);
       const service = new TaskService(repository);
-
-      const user = {
-        userId: input.userId,
-        role: input.userRole,
-        departmentId: input.departmentId,
-      };
-
-      // Decode base64 file data
-      const fileBuffer = Buffer.from(input.fileData, 'base64');
-
-      const fileRecord = await service.uploadFileToTask(
+      const calendarEvent = await service.createCalendarEvent(
         input.taskId,
-        fileBuffer,
-        input.fileName,
-        input.fileType,
+        input.eventUserId,
+        input.title,
+        input.eventDate,
         user
       );
-
-      return {
-        success: true,
-        file: {
-          id: fileRecord.id,
-          fileName: fileRecord.fileName,
-          fileSize: fileRecord.fileSize,
-          fileType: fileRecord.fileType,
-          uploadedAt: fileRecord.uploadedAt,
-        },
-      };
+      return calendarEvent;
     }),
 
   /**
-   * Get download URL for a file
+   * Get calendar events for a task
    */
-  getFileDownloadUrl: publicProcedure
-    .input(
-      z.object({
-        fileId: z.string().uuid(),
-        userId: z.string().uuid(),
-        userRole: z.enum(['STAFF', 'MANAGER', 'HR_ADMIN']),
-        departmentId: z.string(),
-      })
-    )
+  getCalendarEvents: publicProcedure
+    .input(z.object({ taskId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
+      const user = await getUserContext(ctx);
       const repository = new PrismaTaskRepository(ctx.prisma);
       const service = new TaskService(repository);
-
-      const user = {
-        userId: input.userId,
-        role: input.userRole,
-        departmentId: input.departmentId,
-      };
-
-      const downloadUrl = await service.getFileDownloadUrl(input.fileId, user);
-
-      return {
-        downloadUrl,
-        expiresIn: 3600, // 1 hour
-      };
-    }),
-
-  /**
-   * Delete a file
-   */
-  deleteFile: publicProcedure
-    .input(
-      z.object({
-        fileId: z.string().uuid(),
-        userId: z.string().uuid(),
-        userRole: z.enum(['STAFF', 'MANAGER', 'HR_ADMIN']),
-        departmentId: z.string(),
-      })
-    )
-    .mutation(async ({ ctx, input }) => {
-      const repository = new PrismaTaskRepository(ctx.prisma);
-      const service = new TaskService(repository);
-
-      const user = {
-        userId: input.userId,
-        role: input.userRole,
-        departmentId: input.departmentId,
-      };
-
-      await service.deleteFile(input.fileId, user);
-
-      return { success: true };
-    }),
-
-  /**
-   * Get all files for a task
-   */
-  getTaskFiles: publicProcedure
-    .input(
-      z.object({
-        taskId: z.string().uuid(),
-        userId: z.string().uuid(),
-        userRole: z.enum(['STAFF', 'MANAGER', 'HR_ADMIN']),
-        departmentId: z.string(),
-      })
-    )
-    .query(async ({ ctx, input }) => {
-      const repository = new PrismaTaskRepository(ctx.prisma);
-      const service = new TaskService(repository);
-
-      const user = {
-        userId: input.userId,
-        role: input.userRole,
-        departmentId: input.departmentId,
-      };
-
-      const files = await service.getTaskFiles(input.taskId, user);
-
-      return {
-        files: files.map(f => ({
-          id: f.id,
-          fileName: f.fileName,
-          fileSize: f.fileSize,
-          fileType: f.fileType,
-          uploadedById: f.uploadedById,
-          uploadedAt: f.uploadedAt,
-        })),
-        totalSize: files.reduce((sum, f) => sum + f.fileSize, 0),
-        count: files.length,
-      };
+      const events = await service.getCalendarEvents(input.taskId, user);
+      return events;
     }),
 });

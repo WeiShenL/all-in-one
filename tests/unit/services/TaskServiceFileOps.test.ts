@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 // Mock dependencies BEFORE imports to prevent Supabase client initialization
 jest.mock('@/services/storage/SupabaseStorageService');
 
@@ -128,7 +126,37 @@ describe('TaskService - File Operations', () => {
       expect(mockStorageService.uploadFile).not.toHaveBeenCalled();
     });
 
-    it('should reject upload when user not assigned to task', async () => {
+    it('should allow task owner to upload files even if not assigned', async () => {
+      const taskOwner = {
+        userId: 'owner-123',
+        role: 'MANAGER' as const,
+        departmentId: 'dept-1',
+      };
+
+      mockRepository.getTaskById.mockResolvedValue(mockTask as any);
+      mockRepository.getTaskFiles.mockResolvedValue([]);
+      mockStorageService.validateFile.mockReturnValue({ valid: true });
+      mockStorageService.validateTaskFileLimit.mockReturnValue({ valid: true });
+      mockStorageService.uploadFile.mockResolvedValue({
+        storagePath: 'task-123/uuid-document.pdf',
+        fileSize: fileBuffer.length,
+      });
+      mockRepository.createTaskFile.mockResolvedValue(mockFile as any);
+      mockRepository.logTaskAction.mockResolvedValue(undefined);
+
+      const result = await service.uploadFileToTask(
+        'task-123',
+        fileBuffer,
+        fileName,
+        mimeType,
+        taskOwner
+      );
+
+      expect(mockRepository.getTaskById).toHaveBeenCalledWith('task-123');
+      expect(result).toEqual(mockFile);
+    });
+
+    it('should reject upload when user not assigned to task and not owner', async () => {
       const unauthorizedUser = {
         userId: 'user-999',
         role: 'STAFF' as const,
@@ -146,7 +174,7 @@ describe('TaskService - File Operations', () => {
           unauthorizedUser
         )
       ).rejects.toThrow(
-        'Unauthorized: You must be assigned to this task to upload files'
+        'Unauthorized: You must be the task owner or assigned to this task to upload files'
       );
 
       expect(mockStorageService.uploadFile).not.toHaveBeenCalled();
@@ -225,7 +253,7 @@ describe('TaskService - File Operations', () => {
       expect(mockStorageService.getFileDownloadUrl).not.toHaveBeenCalled();
     });
 
-    it('should reject download when user not assigned to task', async () => {
+    it('should reject download when user not assigned to task and not owner', async () => {
       const unauthorizedUser = {
         userId: 'user-999',
         role: 'STAFF' as const,
@@ -238,7 +266,7 @@ describe('TaskService - File Operations', () => {
       await expect(
         service.getFileDownloadUrl('file-123', unauthorizedUser)
       ).rejects.toThrow(
-        'Unauthorized: You must be assigned to this task to download files'
+        'Unauthorized: You must be the task owner or assigned to this task to download files'
       );
 
       expect(mockStorageService.getFileDownloadUrl).not.toHaveBeenCalled();
@@ -370,7 +398,24 @@ describe('TaskService - File Operations', () => {
       expect(mockRepository.getTaskFiles).not.toHaveBeenCalled();
     });
 
-    it('should reject when user not assigned to task', async () => {
+    it('should allow task owner to view files even if not assigned', async () => {
+      const taskOwner = {
+        userId: 'owner-123',
+        role: 'MANAGER' as const,
+        departmentId: 'dept-1',
+      };
+
+      mockRepository.getTaskById.mockResolvedValue(mockTask as any);
+      mockRepository.getTaskFiles.mockResolvedValue(mockFiles as any);
+
+      const result = await service.getTaskFiles('task-123', taskOwner);
+
+      expect(mockRepository.getTaskById).toHaveBeenCalledWith('task-123');
+      expect(mockRepository.getTaskFiles).toHaveBeenCalledWith('task-123');
+      expect(result).toEqual(mockFiles);
+    });
+
+    it('should reject when user not assigned to task and not owner', async () => {
       const unauthorizedUser = {
         userId: 'user-999',
         role: 'STAFF' as const,
@@ -382,7 +427,7 @@ describe('TaskService - File Operations', () => {
       await expect(
         service.getTaskFiles('task-123', unauthorizedUser)
       ).rejects.toThrow(
-        'Unauthorized: You must be assigned to this task to view files'
+        'Unauthorized: You must be the task owner or assigned to this task to view files'
       );
 
       expect(mockRepository.getTaskFiles).not.toHaveBeenCalled();

@@ -44,7 +44,7 @@ describe('Task - updateDescription()', () => {
 Line 2
 Line 3`;
 
-      task.updateDescription(multilineDesc, 'user-1');
+      task.updateDescription(multilineDesc);
 
       expect(task.getDescription()).toBe(multilineDesc);
     });
@@ -60,7 +60,7 @@ Line 3`;
 - Item 2
 **Bold text** and *italic*`;
 
-      task.updateDescription(markdownDesc, 'user-1');
+      task.updateDescription(markdownDesc);
 
       expect(task.getDescription()).toBe(markdownDesc);
     });
@@ -144,7 +144,7 @@ Line 3`;
       });
 
       const longDescription = 'A'.repeat(5000); // 5000 character description
-      task.updateDescription(longDescription, 'user-1');
+      task.updateDescription(longDescription);
 
       expect(task.getDescription()).toBe(longDescription);
     });

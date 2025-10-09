@@ -10,6 +10,7 @@ import {
 import { createClient } from './client';
 import type { AuthUser, UserProfile, UserRole } from './types';
 import type { Session, AuthChangeEvent } from '@supabase/supabase-js';
+import { useSessionTimeout } from '@/lib/hooks/useSessionTimeout';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -186,6 +187,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut();
+      // Clear local state immediately
+      setUser(null);
+      setUserProfile(null);
+      setUserRole(null);
+      setSession(null);
       return { error };
     } catch (error) {
       return { error };
@@ -202,6 +208,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error };
     }
   };
+
+  // Session timeout - automatically logs out after 15 minutes of inactivity
+  useSessionTimeout({
+    onTimeout: async () => {
+      console.warn('🕐 Session timeout due to inactivity');
+      await signOut();
+    },
+    enabled: !!user && !!session, // Only enable when user is logged in
+  });
 
   const value: AuthContextType = {
     user,

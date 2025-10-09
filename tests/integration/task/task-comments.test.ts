@@ -27,8 +27,7 @@ async function createTaskWithAssignment(taskData: {
   priority?: number;
   dueDate?: Date;
   status?: 'TO_DO' | 'IN_PROGRESS' | 'COMPLETED';
-  isRecurring?: boolean;
-  recurrenceDays?: number | null;
+  recurringInterval?: number | null;
 }) {
   const task = await prisma.task.create({
     data: {
@@ -36,7 +35,7 @@ async function createTaskWithAssignment(taskData: {
       ownerId: '10000000-0000-4000-8000-000000000001',
       departmentId: 'dept-engineering',
       projectId: 'proj-001',
-      recurrenceDays: taskData.recurrenceDays ?? null,
+      recurringInterval: taskData.recurringInterval ?? null,
     },
   });
 
@@ -76,7 +75,6 @@ describe('Task Comment Integration Tests', () => {
         priority: 5,
         dueDate: new Date('2025-12-31'),
         status: 'TO_DO',
-        isRecurring: false,
       });
 
       const result = await client.task.addComment.mutate({
@@ -99,7 +97,6 @@ describe('Task Comment Integration Tests', () => {
         priority: 5,
         dueDate: new Date('2025-12-31'),
         status: 'TO_DO',
-        isRecurring: false,
       });
 
       await client.task.addComment.mutate({
@@ -123,7 +120,6 @@ describe('Task Comment Integration Tests', () => {
         priority: 5,
         dueDate: new Date('2025-12-31'),
         status: 'TO_DO',
-        isRecurring: false,
       });
 
       await expect(
@@ -147,7 +143,6 @@ describe('Task Comment Integration Tests', () => {
         priority: 5,
         dueDate: new Date('2025-12-31'),
         status: 'TO_DO',
-        isRecurring: false,
       });
 
       const addResult = await client.task.addComment.mutate({
@@ -183,7 +178,6 @@ describe('Task Comment Integration Tests', () => {
         priority: 5,
         dueDate: new Date('2025-12-31'),
         status: 'TO_DO',
-        isRecurring: false,
       });
 
       await client.task.addComment.mutate({

@@ -17,47 +17,43 @@ describe('Task - updateRecurring()', () => {
     it('should enable recurrence with valid days (7 days)', () => {
       const task = createTestTask({
         assignments: new Set(['user-1']),
-        isRecurring: false,
-        recurrenceDays: null,
+        recurringInterval: null,
       });
 
       task.updateRecurring(true, 7);
 
       expect(task.isTaskRecurring()).toBe(true);
-      expect(task.getRecurrenceDays()).toBe(7);
+      expect(task.getRecurringInterval()).toBe(7);
     });
 
     it('should enable recurrence with 1 day (minimum)', () => {
       const task = createTestTask({
         assignments: new Set(['user-1']),
-        isRecurring: false,
-        recurrenceDays: null,
+        recurringInterval: null,
       });
 
       task.updateRecurring(true, 1);
 
       expect(task.isTaskRecurring()).toBe(true);
-      expect(task.getRecurrenceDays()).toBe(1);
+      expect(task.getRecurringInterval()).toBe(1);
     });
 
     it('should enable recurrence with 30 days (monthly)', () => {
       const task = createTestTask({
         assignments: new Set(['user-1']),
-        isRecurring: false,
-        recurrenceDays: null,
+        recurringInterval: null,
       });
 
       task.updateRecurring(true, 30);
 
       expect(task.isTaskRecurring()).toBe(true);
-      expect(task.getRecurrenceDays()).toBe(30);
+      expect(task.getRecurringInterval()).toBe(30);
     });
 
     it('should throw InvalidRecurrenceError when enabling without days (TM057)', () => {
       const task = createTestTask({
         assignments: new Set(['user-1']),
-        isRecurring: false,
-        recurrenceDays: null,
+        recurringInterval: null,
       });
 
       expect(() => task.updateRecurring(true, null)).toThrow(
@@ -68,8 +64,7 @@ describe('Task - updateRecurring()', () => {
     it('should throw InvalidRecurrenceError when days <= 0', () => {
       const task = createTestTask({
         assignments: new Set(['user-1']),
-        isRecurring: false,
-        recurrenceDays: null,
+        recurringInterval: null,
       });
 
       expect(() => task.updateRecurring(true, 0)).toThrow(
@@ -86,41 +81,38 @@ describe('Task - updateRecurring()', () => {
     it('should disable recurrence', () => {
       const task = createTestTask({
         assignments: new Set(['user-1']),
-        isRecurring: true,
-        recurrenceDays: 7,
+        recurringInterval: 7,
       });
 
       task.updateRecurring(false, null);
 
       expect(task.isTaskRecurring()).toBe(false);
-      expect(task.getRecurrenceDays()).toBeNull();
+      expect(task.getRecurringInterval()).toBeNull();
     });
 
     it('should allow disabling with null days', () => {
       const task = createTestTask({
         assignments: new Set(['user-1']),
-        isRecurring: true,
-        recurrenceDays: 14,
+        recurringInterval: 14,
       });
 
       task.updateRecurring(false, null);
 
       expect(task.isTaskRecurring()).toBe(false);
-      expect(task.getRecurrenceDays()).toBeNull();
+      expect(task.getRecurringInterval()).toBeNull();
     });
 
     it('should ignore days parameter when disabling', () => {
       const task = createTestTask({
         assignments: new Set(['user-1']),
-        isRecurring: true,
-        recurrenceDays: 7,
+        recurringInterval: 7,
       });
 
       // Even if days provided, should ignore when disabling
       task.updateRecurring(false, 999);
 
       expect(task.isTaskRecurring()).toBe(false);
-      expect(task.getRecurrenceDays()).toBeNull();
+      expect(task.getRecurringInterval()).toBeNull();
     });
   });
 
@@ -128,28 +120,26 @@ describe('Task - updateRecurring()', () => {
     it('should update recurrence interval from 7 to 14 days', () => {
       const task = createTestTask({
         assignments: new Set(['user-1']),
-        isRecurring: true,
-        recurrenceDays: 7,
+        recurringInterval: 7,
       });
 
       task.updateRecurring(true, 14);
 
       expect(task.isTaskRecurring()).toBe(true);
-      expect(task.getRecurrenceDays()).toBe(14);
+      expect(task.getRecurringInterval()).toBe(14);
     });
 
     it('should allow multiple updates to recurrence settings', () => {
       const task = createTestTask({
         assignments: new Set(['user-1']),
-        isRecurring: false,
-        recurrenceDays: null,
+        recurringInterval: null,
       });
 
       task.updateRecurring(true, 7);
-      expect(task.getRecurrenceDays()).toBe(7);
+      expect(task.getRecurringInterval()).toBe(7);
 
       task.updateRecurring(true, 14);
-      expect(task.getRecurrenceDays()).toBe(14);
+      expect(task.getRecurringInterval()).toBe(14);
 
       task.updateRecurring(false, null);
       expect(task.isTaskRecurring()).toBe(false);
@@ -160,8 +150,7 @@ describe('Task - updateRecurring()', () => {
     it('should update task timestamp when recurrence is changed', () => {
       const task = createTestTask({
         assignments: new Set(['user-1']),
-        isRecurring: false,
-        recurrenceDays: null,
+        recurringInterval: null,
       });
 
       const oldTimestamp = task.getUpdatedAt();
@@ -179,8 +168,7 @@ describe('Task - updateRecurring()', () => {
     it('should work when task has multiple assignees', () => {
       const task = createTestTask({
         assignments: new Set(['user-1', 'user-2', 'user-3']),
-        isRecurring: false,
-        recurrenceDays: null,
+        recurringInterval: null,
       });
 
       task.updateRecurring(true, 7);
@@ -193,8 +181,7 @@ describe('Task - updateRecurring()', () => {
         assignments: new Set(['user-1']),
         title: 'Weekly Report',
         priorityBucket: 5,
-        isRecurring: false,
-        recurrenceDays: null,
+        recurringInterval: null,
       });
 
       task.updateRecurring(true, 7);
@@ -207,14 +194,13 @@ describe('Task - updateRecurring()', () => {
     it('should handle very large recurrence intervals (annual)', () => {
       const task = createTestTask({
         assignments: new Set(['user-1']),
-        isRecurring: false,
-        recurrenceDays: null,
+        recurringInterval: null,
       });
 
       task.updateRecurring(true, 365); // Annual
 
       expect(task.isTaskRecurring()).toBe(true);
-      expect(task.getRecurrenceDays()).toBe(365);
+      expect(task.getRecurringInterval()).toBe(365);
     });
   });
 });

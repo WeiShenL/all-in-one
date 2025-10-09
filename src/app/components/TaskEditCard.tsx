@@ -8,10 +8,10 @@ interface Task {
   title: string;
   description: string;
   status: 'TO_DO' | 'IN_PROGRESS' | 'COMPLETED' | 'BLOCKED';
-  priority: number;
+  priorityBucket: number;
   dueDate: string;
   isRecurring: boolean;
-  recurrenceDays: number | null;
+  recurringInterval: number | null;
   assignments: string[];
   tags: string[];
   comments: Array<{
@@ -93,7 +93,7 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
         setDeadlineValue(data.result.data.dueDate.split('T')[0]);
         setStatusValue(data.result.data.status);
         setRecurringEnabled(data.result.data.isRecurring);
-        setRecurringDays(data.result.data.recurrenceDays);
+        setRecurringDays(data.result.data.recurringInterval);
       }
     } catch {
       setError('Failed to load task');
@@ -109,7 +109,7 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
 
     try {
       const response = await fetch(
-        `/api/trpc/task.getTaskFiles?input=${encodeURIComponent(
+        `/api/trpc/taskFile.getTaskFiles?input=${encodeURIComponent(
           JSON.stringify({
             taskId,
             userId: userProfile.id,
@@ -133,7 +133,7 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
 
   const updateTask = async (
     endpoint: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     payload: any,
     successMsg: string
   ) => {
@@ -308,7 +308,7 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
 
           setUploadProgress(40);
 
-          const response = await fetch('/api/trpc/task.uploadFile', {
+          const response = await fetch('/api/trpc/taskFile.uploadFile', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -340,7 +340,7 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
             setSuccess(null);
             setUploadProgress(0);
           }, 3000);
-        } catch {
+        } catch (err) {
           setError(err instanceof Error ? err.message : 'Upload failed');
           setUploading(false);
           setUploadProgress(0);
@@ -368,7 +368,7 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
     }
 
     try {
-      const response = await fetch('/api/trpc/task.deleteFile', {
+      const response = await fetch('/api/trpc/taskFile.deleteFile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -399,7 +399,7 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
 
     try {
       const response = await fetch(
-        `/api/trpc/task.getFileDownloadUrl?input=${encodeURIComponent(
+        `/api/trpc/taskFile.getFileDownloadUrl?input=${encodeURIComponent(
           JSON.stringify({
             fileId,
             userId: userProfile.id,
@@ -1031,7 +1031,7 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
         ) : (
           <div style={{ fontSize: '0.875rem', color: '#0369a1' }}>
             {task.isRecurring
-              ? `✅ Enabled (every ${task.recurrenceDays} days)`
+              ? `✅ Enabled (every ${task.recurringInterval} days)`
               : '❌ Not recurring'}
           </div>
         )}
