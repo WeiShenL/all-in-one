@@ -10,6 +10,7 @@ import {
 import { createClient } from './client';
 import type { AuthUser, UserProfile, UserRole } from './types';
 import type { Session, AuthChangeEvent } from '@supabase/supabase-js';
+import { useSessionTimeout } from '@/lib/hooks/useSessionTimeout';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -42,17 +43,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchUserProfile = useCallback(
     async (userId: string): Promise<UserProfile | null> => {
       try {
+        console.warn('🔍 [Auth Context] Fetching user profile for:', userId);
         // Call tRPC API endpoint via fetch
         const response = await fetch(
           `/api/trpc/userProfile.getById?input=${encodeURIComponent(JSON.stringify({ id: userId }))}`
         );
+        console.warn(
+          '🔍 [Auth Context] Profile fetch response status:',
+          response.status
+        );
         if (!response.ok) {
+          const errorText = await response.text();
+          console.error('🔍 [Auth Context] Profile fetch failed:', errorText);
           throw new Error('Failed to fetch user profile');
         }
         const data = await response.json();
+        console.warn('🔍 [Auth Context] Profile data:', data);
         return data.result.data;
       } catch (error) {
-        console.error('Error fetching user profile:', error);
+        console.error('🔍 [Auth Context] Error fetching user profile:', error);
         return null;
       }
     },
@@ -98,10 +107,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(
-      async (_event: AuthChangeEvent, session: Session | null) => {
+      async (event: AuthChangeEvent, session: Session | null) => {
+        console.warn(
+          '🔍 [Auth Context] Auth state changed:',
+          event,
+          'Session:',
+          session?.user?.id
+        );
         setSession(session);
 
         if (session?.user) {
+          console.warn(
+            '🔍 [Auth Context] User authenticated, fetching profile...'
+          );
           const profile = await fetchUserProfile(session.user.id);
           const userWithProfile: AuthUser = {
             ...session.user,
@@ -111,7 +129,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(userWithProfile);
           setUserProfile(profile);
           setUserRole(profile?.role || null);
+          console.warn('🔍 [Auth Context] Profile loaded:', profile?.role);
         } else {
+          console.warn('🔍 [Auth Context] No session, clearing user data');
           setUser(null);
           setUserProfile(null);
           setUserRole(null);
@@ -167,6 +187,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut();
+      // Clear local state immediately
+      setUser(null);
+      setUserProfile(null);
+      setUserRole(null);
+      setSession(null);
       return { error };
     } catch (error) {
       return { error };
@@ -183,6 +208,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error };
     }
   };
+
+  // Session timeout - automatically logs out after 15 minutes of inactivity
+  useSessionTimeout({
+    onTimeout: async () => {
+      console.warn('🕐 Session timeout due to inactivity');
+      await signOut();
+    },
+    enabled: !!user && !!session, // Only enable when user is logged in
+  });
 
   const value: AuthContextType = {
     user,

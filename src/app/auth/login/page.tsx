@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/supabase/auth-context';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { signIn, user, userProfile, loading: authLoading } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
@@ -15,17 +16,27 @@ export default function LoginPage() {
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState(false);
 
+  // Check if session expired
+  const sessionExpired = searchParams.get('expired') === 'true';
+  const redirectUrl = searchParams.get('redirect');
+
   // Redirect if already logged in
   useEffect(() => {
     if (!authLoading && user && userProfile) {
-      const roleRoutes = {
-        STAFF: '/dashboard/staff',
-        MANAGER: '/dashboard/manager',
-        HR_ADMIN: '/dashboard/hr',
-      };
-      router.push(roleRoutes[userProfile.role]);
+      // If there's a redirect URL from session expiry, use it
+      if (redirectUrl) {
+        router.push(redirectUrl);
+      } else {
+        // Otherwise, use role-based routing
+        const roleRoutes = {
+          STAFF: '/dashboard/staff',
+          MANAGER: '/dashboard/manager',
+          HR_ADMIN: '/dashboard/hr',
+        };
+        router.push(roleRoutes[userProfile.role]);
+      }
     }
-  }, [user, userProfile, authLoading, router]);
+  }, [user, userProfile, authLoading, router, redirectUrl]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -128,6 +139,24 @@ export default function LoginPage() {
         >
           Sign in to access your dashboard
         </p>
+
+        {sessionExpired && (
+          <div
+            style={{
+              backgroundColor: '#fef5e7',
+              border: '1px solid #f39c12',
+              borderRadius: '8px',
+              padding: '0.75rem',
+              marginBottom: '1rem',
+              color: '#d68910',
+              fontSize: '0.875rem',
+            }}
+          >
+            <strong>Your session has expired due to inactivity.</strong>
+            <br />
+            Please sign in again to continue.
+          </div>
+        )}
 
         {error && (
           <div
@@ -356,5 +385,26 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            height: '100vh',
+          }}
+        >
+          <p>Loading...</p>
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }

@@ -6,13 +6,14 @@ import {
   waitFor,
   act,
 } from '@testing-library/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import LoginPage from '@/app/auth/login/page';
 import { useAuth } from '@/lib/supabase/auth-context';
 
 // Mock dependencies
 jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
+  useSearchParams: jest.fn(),
 }));
 
 jest.mock('@/lib/supabase/auth-context', () => ({
@@ -28,6 +29,7 @@ describe('LoginPage Component', () => {
     (useRouter as jest.Mock).mockReturnValue({
       push: mockPush,
     });
+    (useSearchParams as jest.Mock).mockReturnValue(new URLSearchParams());
     (useAuth as jest.Mock).mockReturnValue({
       signIn: mockSignIn,
       loading: false,
