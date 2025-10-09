@@ -19,6 +19,19 @@
 import { TaskService, UserContext } from '@/services/task/TaskService';
 import { ITaskRepository } from '@/repositories/ITaskRepository';
 
+// Mock SupabaseStorageService to prevent real Supabase client creation
+jest.mock('@/services/storage/SupabaseStorageService', () => {
+  return {
+    SupabaseStorageService: jest.fn().mockImplementation(() => ({
+      uploadFile: jest.fn(),
+      getFileDownloadUrl: jest.fn(),
+      deleteFile: jest.fn(),
+      validateFile: jest.fn(),
+      validateTaskFileLimit: jest.fn(),
+    })),
+  };
+});
+
 describe('TaskService.createTask() - Service Orchestration', () => {
   let service: TaskService;
   let mockRepository: jest.Mocked<ITaskRepository>;
