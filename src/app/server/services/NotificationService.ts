@@ -12,6 +12,13 @@ import { EmailService } from './EmailService';
  * - Read/unread status tracking
  */
 export class NotificationService extends BaseService {
+  private emailService: EmailService;
+
+  constructor(emailService: EmailService) {
+    super();
+    this.emailService = emailService;
+  }
+
   /**
    * Get all notifications for a user
    * @param userId - User ID
@@ -113,7 +120,7 @@ export class NotificationService extends BaseService {
       // Validate user exists
       const user = await this.prisma.userProfile.findUnique({
         where: { id: data.userId },
-        select: { email: true, name: true }, // Select email and name
+        select: { email: true, name: true, isActive: true }, // Select email and name
       });
 
       if (!user || !user.isActive) {
@@ -151,13 +158,17 @@ export class NotificationService extends BaseService {
 
       // Send email notification
       if (user.email) {
-        const emailService = new EmailService();
-        await emailService.sendEmail({
-          to: user.email,
-          subject: `New Notification: ${data.title}`,
-          text: data.message,
-          html: `<p>Dear ${user.name || 'User'},</p><p>${data.message}</p><p>Regards,<br>Your Application Team</p>`,
-        });
+        try {
+          await this.emailService.sendEmail({
+            to: user.email,
+            subject: `New Notification: ${data.title}`,
+            text: data.message,
+            html: `<p>Dear ${user.name || 'User'},</p><p>${data.message}</p><p>Regards,<br>Your Application Team</p>`,
+          });
+        } catch (emailError) {
+          console.error('Failed to send notification email:', emailError);
+          // We don't re-throw the error, as the notification has been created successfully.
+        }
       }
 
       return newNotification;

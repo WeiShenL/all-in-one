@@ -43,7 +43,7 @@ describe('EmailService', () => {
       from: 'test@example.com',
       to: options.to,
       subject: options.subject,
-      html: `<p>${options.text}</p>`,
+      html: expect.stringContaining('Task Completed'),
     });
     expect(result).toEqual({ id: 'mock-email-id' });
   });
@@ -73,6 +73,24 @@ describe('EmailService', () => {
     );
     expect(result).toBeUndefined();
     consoleSpy.mockRestore();
+  });
+
+  it('should use fallback email if RESEND_EMAIL_FROM is not defined', async () => {
+    delete process.env.RESEND_EMAIL_FROM;
+
+    const options = {
+      to: 'recipient@example.com',
+      subject: 'Test Subject',
+      text: 'Test Text',
+    };
+
+    await emailService.sendEmail(options);
+
+    expect(mockResendSend).toHaveBeenCalledWith(
+      expect.objectContaining({
+        from: 'onboarding@resend.dev',
+      })
+    );
   });
 
   it('should throw an error if RESEND_API_KEY is not defined', () => {

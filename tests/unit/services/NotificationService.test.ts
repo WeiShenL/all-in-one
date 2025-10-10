@@ -1,5 +1,9 @@
 import { NotificationService } from '@/app/server/services/NotificationService';
+import { EmailService } from '@/app/server/services/EmailService';
 import { PrismaClient } from '@prisma/client';
+
+// Mock EmailService
+jest.mock('@/app/server/services/EmailService');
 
 // Mock Prisma Client
 const mockPrisma = {
@@ -22,15 +26,19 @@ const mockPrisma = {
 
 describe('NotificationService', () => {
   let service: NotificationService;
+  let mockEmailService: jest.Mocked<EmailService>;
 
   beforeEach(() => {
-    service = new NotificationService(mockPrisma);
+    mockEmailService = new EmailService() as jest.Mocked<EmailService>;
+    service = new NotificationService(mockEmailService);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (service as any).prisma = mockPrisma;
     jest.clearAllMocks();
   });
 
   describe('CRUD Operations', () => {
     describe('Create', () => {
-      it('should create a new notification', async () => {
+      it('should create a new notification and send an email', async () => {
         const input = {
           userId: 'user1',
           type: 'TASK_ASSIGNED' as const,
@@ -42,6 +50,8 @@ describe('NotificationService', () => {
         (mockPrisma.userProfile.findUnique as jest.Mock).mockResolvedValue({
           id: 'user1',
           isActive: true,
+          email: 'user@example.com',
+          name: 'Test User',
         });
 
         (mockPrisma.task.findUnique as jest.Mock).mockResolvedValue({
@@ -76,8 +86,57 @@ describe('NotificationService', () => {
           include: expect.any(Object),
         });
 
+        expect(mockEmailService.sendEmail).toHaveBeenCalledTimes(1);
+        expect(mockEmailService.sendEmail).toHaveBeenCalledWith({
+          to: 'user@example.com',
+          subject: `New Notification: ${input.title}`,
+          text: input.message,
+          html: expect.any(String),
+        });
+
         expect(result.title).toBe('New Task Assigned');
         expect(result.isRead).toBe(false);
+      });
+
+      it('should not throw an error if email sending fails', async () => {
+        const input = {
+          userId: 'user1',
+          type: 'TASK_ASSIGNED' as const,
+          title: 'New Task Assigned',
+          message: 'You have been assigned to a new task',
+          taskId: 'task1',
+        };
+
+        (mockPrisma.userProfile.findUnique as jest.Mock).mockResolvedValue({
+          id: 'user1',
+          isActive: true,
+          email: 'user@example.com',
+        });
+
+        (mockPrisma.task.findUnique as jest.Mock).mockResolvedValue({
+          id: 'task1',
+        });
+
+        (mockPrisma.notification.create as jest.Mock).mockResolvedValue({
+          id: 'notif1',
+          ...input,
+        });
+
+        mockEmailService.sendEmail.mockRejectedValue(
+          new Error('Email service is down')
+        );
+
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+
+        await expect(service.create(input)).resolves.toBeDefined();
+
+        expect(mockEmailService.sendEmail).toHaveBeenCalledTimes(1);
+        expect(consoleSpy).toHaveBeenCalledWith(
+          'Failed to send notification email:',
+          expect.any(Error)
+        );
+
+        consoleSpy.mockRestore();
       });
 
       it('should create notification without taskId', async () => {
@@ -91,6 +150,7 @@ describe('NotificationService', () => {
         (mockPrisma.userProfile.findUnique as jest.Mock).mockResolvedValue({
           id: 'user1',
           isActive: true,
+          email: 'user@example.com',
         });
 
         const mockCreated = {
@@ -109,6 +169,7 @@ describe('NotificationService', () => {
         const result = await service.create(input);
 
         expect(result.taskId).toBeNull();
+        expect(mockEmailService.sendEmail).toHaveBeenCalled();
       });
 
       it('should throw error when user not found or inactive', async () => {
@@ -126,6 +187,7 @@ describe('NotificationService', () => {
         await expect(service.create(input)).rejects.toThrow(
           'User not found or inactive'
         );
+        expect(mockEmailService.sendEmail).not.toHaveBeenCalled();
       });
 
       it('should throw error when task not found', async () => {
@@ -145,6 +207,7 @@ describe('NotificationService', () => {
         (mockPrisma.task.findUnique as jest.Mock).mockResolvedValue(null);
 
         await expect(service.create(input)).rejects.toThrow('Task not found');
+        expect(mockEmailService.sendEmail).not.toHaveBeenCalled();
       });
     });
 
