@@ -144,43 +144,43 @@ For detailed architecture documentation and implementation guide, see [OOP.md](.
 
 ## 🧪 Testing
 
-This project uses Jest and React Testing Library for testing.
+This project uses a comprehensive testing strategy:
+
+- **Unit Tests** (Jest) - Fast, isolated component and utility tests
+- **Integration Tests** (Jest) - Database and API tests
+- **E2E Tests** (Playwright) - Full user flow tests
 
 ### Quick Start
 
 ```bash
-# Run all tests
+# Run ALL tests (unit → integration → E2E)
 npm test
 
-# Run only unit tests (fast, isolated)
+# Run only unit tests (fast, no database required)
 npm run test:unit
 
 # Run only integration tests (requires database)
 npm run test:integration
 
+# Run only E2E tests (requires database)
+npm run test:e2e
+npm run test:e2e:headed
+npm run test:e2e:ui
+npm run test:e2e:debug
+
 # Run tests with coverage
 npm run test:coverage
-
-# Run tests in watch mode
-npm run test:watch
-
-# The following are for e2e tests:
-   # NOTE: for local, a temp folder will be created called test-result. It will include video of test for your review.
-
-# Run only e2e tests (requires database). Will only show test results (headless mode) Good if you just want to know test outcomes
-npm run test:e2e
-
-# Run only e2e tests (requires database). Will show test results and actual UI running also (head mode). Good if you want to visualise
-npm run test:e2e:headed
-
-# Run only e2e tests (requires database). Manual test running with UI. Good if you want to control the tests and do manual.
-npm run test:e2e:ui
-
-# Run only e2e tests (requires database). step through executions and breakpoint/inspector for debugging. Good to see where the error occurs.
-npm run test:e2e:debug
 ```
 
-For detailed testing guidelines, best practices, and examples, see [DEVELOPMENT.md](./DEVELOPMENT.md).
+**For detailed information:**
+
+- Test structure and organization
+- Writing tests (components, services, database operations)
+- Test best practices and guidelines
+- CI/CD pipeline details
+- Coverage reporting
+
+See the comprehensive testing guide in [DEVELOPMENT.md](./DEVELOPMENT.md#-testing).
 
 For development practices, code quality standards, authentication details, and project structure, see [DEVELOPMENT.md](./DEVELOPMENT.md).
 

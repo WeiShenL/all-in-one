@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { TRPCProvider } from './components/TRPCProvider';
 import { AuthProvider } from '../lib/supabase/auth-context';
+import { NotificationProvider } from '../lib/context/NotificationContext';
+import { ToastContainer } from './components/ToastContainer';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -21,9 +23,14 @@ export default function RootLayout({
   return (
     <html lang='en'>
       <body className={inter.className}>
-        <AuthProvider>
-          <TRPCProvider>{children}</TRPCProvider>
-        </AuthProvider>
+        <NotificationProvider autoRemoveDelay={60000}>
+          <AuthProvider>
+            <TRPCProvider>
+              {children}
+              <ToastContainer />
+            </TRPCProvider>
+          </AuthProvider>
+        </NotificationProvider>
       </body>
     </html>
   );
