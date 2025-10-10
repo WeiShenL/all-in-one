@@ -45,7 +45,7 @@ describe('Session Timeout Integration Tests', () => {
       expect(
         screen.getByText(/your session has expired due to inactivity/i)
       ).toBeInTheDocument();
-      expect(screen.getByText(/please sign in again/i)).toBeInTheDocument();
+      expect(screen.getByText(/please log in again/i)).toBeInTheDocument();
     });
 
     it('should include redirect URL in message when provided', () => {

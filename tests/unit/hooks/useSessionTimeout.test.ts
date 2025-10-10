@@ -8,6 +8,23 @@ jest.mock('next/navigation', () => ({
   usePathname: jest.fn(),
 }));
 
+// Mock NotificationContext
+const mockAddNotification = jest.fn();
+const mockDismissNotification = jest.fn();
+const mockNotifications: unknown[] = [];
+
+jest.mock('@/lib/context/NotificationContext', () => ({
+  useNotifications: () => ({
+    notifications: mockNotifications,
+    addNotification: mockAddNotification,
+    dismissNotification: mockDismissNotification,
+    removeNotification: jest.fn(),
+    clearAll: jest.fn(),
+    isConnected: true,
+    error: null,
+  }),
+}));
+
 describe('useSessionTimeout', () => {
   const mockPush = jest.fn();
   const mockOnTimeout = jest.fn();
@@ -16,6 +33,8 @@ describe('useSessionTimeout', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
+    // Clear localStorage
+    localStorage.clear();
     (useRouter as jest.Mock).mockReturnValue({ push: mockPush });
     (usePathname as jest.Mock).mockReturnValue(mockPathname);
   });
@@ -72,7 +91,7 @@ describe('useSessionTimeout', () => {
       });
     });
 
-    it('should redirect to login with expired flag after timeout', async () => {
+    it('should store session expired info in localStorage after timeout', async () => {
       (usePathname as jest.Mock).mockReturnValue('/dashboard/manager');
 
       renderHook(() =>
@@ -87,8 +106,10 @@ describe('useSessionTimeout', () => {
       });
 
       await waitFor(() => {
-        expect(mockPush).toHaveBeenCalledWith(
-          `/auth/login?expired=true&redirect=${encodeURIComponent('/dashboard/manager')}`
+        expect(mockOnTimeout).toHaveBeenCalledTimes(1);
+        expect(localStorage.getItem('sessionExpired')).toBe('true');
+        expect(localStorage.getItem('sessionExpiredRedirect')).toBe(
+          '/dashboard/manager'
         );
       });
     });
@@ -363,9 +384,7 @@ describe('useSessionTimeout', () => {
   });
 
   describe('Warning Timeout', () => {
-    it('should log warning 1 minute before timeout', () => {
-      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
-
+    it('should show notification warning 1 minute before timeout', async () => {
       renderHook(() =>
         useSessionTimeout({
           onTimeout: mockOnTimeout,
@@ -377,11 +396,24 @@ describe('useSessionTimeout', () => {
         jest.advanceTimersByTime(14 * 60 * 1000); // 14 minutes
       });
 
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        'Session will expire in 1 minute due to inactivity'
+      // Verify the notification was added
+      expect(mockAddNotification).toHaveBeenCalledWith(
+        'warning',
+        'Inactivity Warning',
+        'Your session will expire soon due to inactivity. Move your mouse or press a key to stay logged in.'
       );
 
-      consoleWarnSpy.mockRestore();
+      // Verify timeout hasn't triggered yet
+      expect(mockOnTimeout).not.toHaveBeenCalled();
+
+      // Verify that the full timeout still works after warning
+      act(() => {
+        jest.advanceTimersByTime(1 * 60 * 1000); // 1 more minute = 15 total
+      });
+
+      await waitFor(() => {
+        expect(mockOnTimeout).toHaveBeenCalledTimes(1);
+      });
     });
   });
 });

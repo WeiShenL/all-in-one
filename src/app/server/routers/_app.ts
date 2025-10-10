@@ -4,6 +4,8 @@
 import { departmentRouter } from './department';
 import { userProfileRouter } from './userProfile';
 import { taskFileRouter } from './taskFile';
+
+import { notificationRouter } from './notification';
 import { taskRouter } from './task';
 
 // here we import from our init (server/trpc.ts)
@@ -14,6 +16,7 @@ export const appRouter = router({
   department: departmentRouter,
   userProfile: userProfileRouter,
   taskFile: taskFileRouter,
+  notification: notificationRouter,
   task: taskRouter,
 });
 
