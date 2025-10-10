@@ -90,10 +90,10 @@ test.describe('Signup to Dashboard, Logout and log back in Flow', () => {
     await page.getByRole('button', { name: /create account/i }).click();
 
     // Expect redirect to Staff Dashboard
-    // tolerance increased to 5 sec since vercel version is slightly slower
+    // tolerance increased to 15 sec since vercel version is slightly slower
     await expect(
       page.getByRole('heading', { name: /staff dashboard/i })
-    ).toBeVisible({ timeout: 5000 });
+    ).toBeVisible({ timeout: 15000 });
 
     // Logout via Navbar
     await page.getByRole('button', { name: /sign out/i }).click();
