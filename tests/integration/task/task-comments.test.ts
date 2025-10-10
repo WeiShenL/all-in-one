@@ -207,7 +207,7 @@ describe('Task Comment Integration Tests', () => {
   describe('Add Comment (AC 6)', () => {
     it('should add a comment to task', async () => {
       const task = await createTaskWithAssignment({
-        id: '123e4567-e89b-12d3-a456-426614174000',
+        id: 'c0000000-e89b-12d3-a456-426614174000',
         title: 'Comment Test Task',
       });
 
@@ -229,7 +229,7 @@ describe('Task Comment Integration Tests', () => {
 
     it('should add multiple comments', async () => {
       const task = await createTaskWithAssignment({
-        id: '123e4567-e89b-12d3-a456-426614174001',
+        id: 'c0000001-e89b-12d3-a456-426614174001',
         title: 'Comment Test Task',
       });
 
@@ -249,7 +249,7 @@ describe('Task Comment Integration Tests', () => {
 
     it('should reject unauthorized user adding comment', async () => {
       const task = await createTaskWithAssignment({
-        id: '123e4567-e89b-12d3-a456-426614174003',
+        id: 'c0000003-e89b-12d3-a456-426614174003',
         title: 'Comment Test Task',
       });
 
@@ -301,7 +301,7 @@ describe('Task Comment Integration Tests', () => {
   describe('Edit Own Comment (AC 6 - TM021)', () => {
     it('should edit own comment', async () => {
       const task = await createTaskWithAssignment({
-        id: '123e4567-e89b-12d3-a456-426614174004',
+        id: 'c0000004-e89b-12d3-a456-426614174004',
         title: 'Comment Test Task',
       });
 
@@ -332,7 +332,7 @@ describe('Task Comment Integration Tests', () => {
 
     it("should reject editing another user's comment", async () => {
       const task = await createTaskWithAssignment({
-        id: '123e4567-e89b-12d3-a456-426614174005',
+        id: 'c0000005-e89b-12d3-a456-426614174005',
         title: 'Comment Test Task',
       });
 
@@ -379,7 +379,7 @@ describe('Task Comment Integration Tests', () => {
   describe('View Comments', () => {
     it('should retrieve all comments for a task', async () => {
       const task = await createTaskWithAssignment({
-        id: '123e4567-e89b-12d3-a456-426614174006',
+        id: 'c0000006-e89b-12d3-a456-426614174006',
         title: 'Comment Test Task',
       });
 
