@@ -1,777 +1,587 @@
 /**
- * Unit Tests for TaskService.create()
- * Testing Task Creation Feature - SCRUM-12
+ * Unit Tests for TaskService.createTask()
+ * Testing Service Layer Orchestration for Task Creation - SCRUM-12
+ *
+ * DDD Layer: SERVICE
+ * Tests: Service orchestration, external validations, repository coordination
  *
  * Acceptance Criteria Covered:
- * - TM016: All fields except tags are mandatory (title, description, priority 1-10, deadline, assignees)
- * - Max 5 assignees during creation
+ * - TM016: External validations (project exists, assignees exist/active)
+ * - TGO026: Subtask depth validation (max 2 levels)
+ * - Service coordinates Domain factory and Repository
  * - Automatic department association
- * - Default "To Do" status
  * - System records creator as owner
- * - Optional tags during creation
- * - TGO026: Subtasks max 2 levels
- * - Optional recurring interval
+ *
+ * NOTE: Domain-level validations (title, priority, assignees count)
+ * are tested in Task.create.test.ts
  */
 
-import { TaskService } from '@/app/server/services/TaskService';
-import { PrismaClient } from '@prisma/client';
-import { CreateTaskInput } from '@/app/server/types';
+import { TaskService, UserContext } from '@/services/task/TaskService';
+import { ITaskRepository } from '@/repositories/ITaskRepository';
 
-// Mock Prisma Client
-const mockPrisma = {
-  task: {
-    findMany: jest.fn(),
-    findUnique: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    delete: jest.fn(),
-  },
-  userProfile: {
-    findUnique: jest.fn(),
-    findMany: jest.fn(),
-  },
-  department: {
-    findUnique: jest.fn(),
-  },
-  project: {
-    findUnique: jest.fn(),
-  },
-  taskAssignment: {
-    findMany: jest.fn(),
-    findUnique: jest.fn(),
-    create: jest.fn(),
-    createMany: jest.fn(),
-    delete: jest.fn(),
-  },
-  tag: {
-    findUnique: jest.fn(),
-    create: jest.fn(),
-  },
-  taskTag: {
-    findUnique: jest.fn(),
-    create: jest.fn(),
-    createMany: jest.fn(),
-    delete: jest.fn(),
-  },
-} as unknown as PrismaClient;
+// Mock SupabaseStorageService to prevent real Supabase client creation
+jest.mock('@/services/storage/SupabaseStorageService', () => {
+  return {
+    SupabaseStorageService: jest.fn().mockImplementation(() => ({
+      uploadFile: jest.fn(),
+      getFileDownloadUrl: jest.fn(),
+      deleteFile: jest.fn(),
+      validateFile: jest.fn(),
+      validateTaskFileLimit: jest.fn(),
+    })),
+  };
+});
 
-describe('TaskService - create()', () => {
+describe('TaskService.createTask() - Service Orchestration', () => {
   let service: TaskService;
+  let mockRepository: jest.Mocked<ITaskRepository>;
+  let testUser: UserContext;
 
   beforeEach(() => {
-    service = new TaskService(mockPrisma);
+    // Mock ITaskRepository instead of Prisma
+    mockRepository = {
+      createTask: jest.fn(),
+      validateProjectExists: jest.fn(),
+      validateAssignees: jest.fn(),
+      getParentTaskDepth: jest.fn(),
+      logTaskAction: jest.fn(),
+      getTaskByIdFull: jest.fn(),
+      getUserTasks: jest.fn(),
+      getDepartmentTasks: jest.fn(),
+      updateTask: jest.fn(),
+      addTaskTag: jest.fn(),
+      removeTaskTag: jest.fn(),
+      addTaskAssignment: jest.fn(),
+      createComment: jest.fn(),
+      updateComment: jest.fn(),
+      uploadFile: jest.fn(),
+      getFileMetadata: jest.fn(),
+      deleteFile: jest.fn(),
+      getTaskFiles: jest.fn(),
+      checkFileSizeLimit: jest.fn(),
+    } as any;
+
+    service = new TaskService(mockRepository);
+
+    testUser = {
+      userId: 'creator-123',
+      role: 'STAFF',
+      departmentId: 'dept-456',
+    };
+
     jest.clearAllMocks();
   });
 
-  describe('Test 1: Mandatory Field and Assignment Limit Validation', () => {
-    describe('Priority Validation (1-10 scale) - TM016', () => {
-      it('should accept priority value of 1 (minimum)', async () => {
-        const input: CreateTaskInput = {
-          title: 'Task',
-          description: 'Description',
-          priority: 1,
-          dueDate: new Date('2025-12-31'),
-          ownerId: 'user1',
-          departmentId: 'dept1',
-          assigneeIds: ['user2'],
-        };
-
-        setupValidMocks();
-        (mockPrisma.userProfile.findMany as jest.Mock).mockResolvedValue([
-          { id: 'user2', isActive: true },
-        ]);
-        (mockPrisma.task.create as jest.Mock).mockResolvedValue({
-          id: 'task1',
-          ...input,
-          priority: 1,
-        });
-        mockGetById('task1');
-
-        await service.create(input);
-
-        expect(mockPrisma.task.create).toHaveBeenCalledWith(
-          expect.objectContaining({
-            data: expect.objectContaining({
-              priority: 1,
-            }),
-          })
-        );
-      });
-
-      it('should accept priority value of 10 (maximum)', async () => {
-        const input: CreateTaskInput = {
-          title: 'Task',
-          description: 'Description',
-          priority: 10,
-          dueDate: new Date('2025-12-31'),
-          ownerId: 'user1',
-          departmentId: 'dept1',
-          assigneeIds: ['user2'],
-        };
-
-        setupValidMocks();
-        (mockPrisma.userProfile.findMany as jest.Mock).mockResolvedValue([
-          { id: 'user2', isActive: true },
-        ]);
-        (mockPrisma.task.create as jest.Mock).mockResolvedValue({
-          id: 'task1',
-          ...input,
-          priority: 10,
-        });
-        mockGetById('task1');
-
-        await service.create(input);
-
-        expect(mockPrisma.task.create).toHaveBeenCalledWith(
-          expect.objectContaining({
-            data: expect.objectContaining({
-              priority: 10,
-            }),
-          })
-        );
-      });
-
-      it('should accept priority value of 5 (medium)', async () => {
-        const input: CreateTaskInput = {
-          title: 'Task',
-          description: 'Description',
-          priority: 5,
-          dueDate: new Date('2025-12-31'),
-          ownerId: 'user1',
-          departmentId: 'dept1',
-          assigneeIds: ['user2'],
-        };
-
-        setupValidMocks();
-        (mockPrisma.userProfile.findMany as jest.Mock).mockResolvedValue([
-          { id: 'user2', isActive: true },
-        ]);
-        (mockPrisma.task.create as jest.Mock).mockResolvedValue({
-          id: 'task1',
-          ...input,
-        });
-        mockGetById('task1');
-
-        await service.create(input);
-
-        expect(mockPrisma.task.create).toHaveBeenCalledWith(
-          expect.objectContaining({
-            data: expect.objectContaining({
-              priority: 5,
-            }),
-          })
-        );
-      });
-
-      it('should default to priority 5 when not provided', async () => {
-        const input: CreateTaskInput = {
-          title: 'Task',
-          description: 'Description',
-          dueDate: new Date('2025-12-31'),
-          ownerId: 'user1',
-          departmentId: 'dept1',
-          assigneeIds: ['user2'],
-        };
-
-        setupValidMocks();
-        (mockPrisma.userProfile.findMany as jest.Mock).mockResolvedValue([
-          { id: 'user2', isActive: true },
-        ]);
-        (mockPrisma.task.create as jest.Mock).mockResolvedValue({
-          id: 'task1',
-          ...input,
-          priority: 5,
-        });
-        mockGetById('task1');
-
-        await service.create(input);
-
-        expect(mockPrisma.task.create).toHaveBeenCalledWith(
-          expect.objectContaining({
-            data: expect.objectContaining({
-              priority: 5,
-            }),
-          })
-        );
-      });
-    });
-
-    describe('Assignee Validation', () => {
-      it('should accept exactly 1 assignee (minimum)', async () => {
-        const input: CreateTaskInput = {
-          title: 'Task',
-          description: 'Description',
-          dueDate: new Date('2025-12-31'),
-          ownerId: 'owner1',
-          departmentId: 'dept1',
-          assigneeIds: ['user1'],
-        };
-
-        setupValidMocks();
-        (mockPrisma.userProfile.findMany as jest.Mock).mockResolvedValue([
-          { id: 'user1', isActive: true },
-        ]);
-
-        const createdTask = {
-          id: 'task1',
-          ...input,
-          priority: 5,
-        };
-        (mockPrisma.task.create as jest.Mock).mockResolvedValue(createdTask);
-
-        // Mock getById to return full task
-        mockGetById('task1');
-
-        await service.create(input);
-
-        expect(mockPrisma.taskAssignment.createMany).toHaveBeenCalledWith({
-          data: [
-            {
-              taskId: 'task1',
-              userId: 'user1',
-              assignedById: 'owner1',
-            },
-          ],
-        });
-      });
-
-      it('should accept exactly 5 assignees (maximum)', async () => {
-        const assigneeIds = ['user1', 'user2', 'user3', 'user4', 'user5'];
-        const input: CreateTaskInput = {
-          title: 'Task',
-          description: 'Description',
-          dueDate: new Date('2025-12-31'),
-          ownerId: 'owner1',
-          departmentId: 'dept1',
-          assigneeIds,
-        };
-
-        setupValidMocks();
-        (mockPrisma.userProfile.findMany as jest.Mock).mockResolvedValue(
-          assigneeIds.map(id => ({ id, isActive: true }))
-        );
-
-        const createdTask = { id: 'task1', ...input, priority: 5 };
-        (mockPrisma.task.create as jest.Mock).mockResolvedValue(createdTask);
-        mockGetById('task1');
-
-        await service.create(input);
-
-        expect(mockPrisma.taskAssignment.createMany).toHaveBeenCalledWith({
-          data: assigneeIds.map(userId => ({
-            taskId: 'task1',
-            userId,
-            assignedById: 'owner1',
-          })),
-        });
-      });
-
-      it('should throw error when assignee not found', async () => {
-        const input: CreateTaskInput = {
-          title: 'Task',
-          description: 'Description',
-          dueDate: new Date('2025-12-31'),
-          ownerId: 'user1',
-          departmentId: 'dept1',
-          assigneeIds: ['nonexistent', 'user2'],
-        };
-
-        setupValidMocks();
-        // Only return 1 user instead of 2
-        (mockPrisma.userProfile.findMany as jest.Mock).mockResolvedValue([
-          { id: 'user2', isActive: true },
-        ]);
-
-        await expect(service.create(input)).rejects.toThrow(
-          'One or more assignees not found'
-        );
-      });
-
-      it('should throw error when assignee is inactive', async () => {
-        const input: CreateTaskInput = {
-          title: 'Task',
-          description: 'Description',
-          dueDate: new Date('2025-12-31'),
-          ownerId: 'user1',
-          departmentId: 'dept1',
-          assigneeIds: ['user2'],
-        };
-
-        setupValidMocks();
-        (mockPrisma.userProfile.findMany as jest.Mock).mockResolvedValue([
-          { id: 'user2', isActive: false },
-        ]);
-
-        await expect(service.create(input)).rejects.toThrow(
-          'One or more assignees are inactive'
-        );
-      });
-    });
-
-    describe('Owner and Department Validation', () => {
-      it('should throw error when owner not found', async () => {
-        const input: CreateTaskInput = {
-          title: 'Task',
-          description: 'Description',
-          dueDate: new Date('2025-12-31'),
-          ownerId: 'nonexistent',
-          departmentId: 'dept1',
-          assigneeIds: ['user1'],
-        };
-
-        (mockPrisma.userProfile.findUnique as jest.Mock).mockResolvedValue(
-          null
-        );
-
-        await expect(service.create(input)).rejects.toThrow(
-          'Owner not found or inactive'
-        );
-      });
-
-      it('should throw error when owner is inactive', async () => {
-        const input: CreateTaskInput = {
-          title: 'Task',
-          description: 'Description',
-          dueDate: new Date('2025-12-31'),
-          ownerId: 'user1',
-          departmentId: 'dept1',
-          assigneeIds: ['user2'],
-        };
-
-        (mockPrisma.userProfile.findUnique as jest.Mock).mockResolvedValue({
-          id: 'user1',
-          isActive: false,
-        });
-
-        await expect(service.create(input)).rejects.toThrow(
-          'Owner not found or inactive'
-        );
-      });
-
-      it('should throw error when department not found', async () => {
-        const input: CreateTaskInput = {
-          title: 'Task',
-          description: 'Description',
-          dueDate: new Date('2025-12-31'),
-          ownerId: 'user1',
-          departmentId: 'nonexistent',
-          assigneeIds: ['user2'],
-        };
-
-        (mockPrisma.userProfile.findUnique as jest.Mock).mockResolvedValue({
-          id: 'user1',
-          isActive: true,
-        });
-        (mockPrisma.department.findUnique as jest.Mock).mockResolvedValue(null);
-
-        await expect(service.create(input)).rejects.toThrow(
-          'Department not found'
-        );
-      });
-    });
-  });
-
-  describe('Test 2: Subtask Depth Validation (TGO026)', () => {
-    it('should allow creating a subtask (level 1)', async () => {
-      const input: CreateTaskInput = {
-        title: 'Subtask',
-        description: 'Description',
+  describe('Successful Task Creation', () => {
+    it('should create task with valid data and call repository', async () => {
+      const input = {
+        title: 'Implement Login',
+        description: 'Create login feature',
+        priority: 5,
         dueDate: new Date('2025-12-31'),
-        ownerId: 'user1',
-        departmentId: 'dept1',
-        assigneeIds: ['user2'],
-        parentTaskId: 'parent-task',
+        assigneeIds: ['assignee-1'],
       };
 
-      setupValidMocks();
-      // Parent task has no parent (level 0), so this will be level 1
-      (mockPrisma.task.findUnique as jest.Mock).mockResolvedValueOnce({
-        id: 'parent-task',
-        parentTaskId: null,
+      // Mock repository responses
+      mockRepository.validateAssignees.mockResolvedValue({
+        allExist: true,
+        allActive: true,
       });
+      mockRepository.createTask.mockResolvedValue({ id: 'task-123' });
 
-      const createdTask = { id: 'subtask1', ...input, priority: 5 };
-      (mockPrisma.task.create as jest.Mock).mockResolvedValue(createdTask);
-      (mockPrisma.userProfile.findMany as jest.Mock).mockResolvedValue([
-        { id: 'user2', isActive: true },
-      ]);
-      mockGetById('subtask1');
+      const result = await service.createTask(input, testUser);
 
-      await service.create(input);
-
-      expect(mockPrisma.task.create).toHaveBeenCalledWith(
+      // Verify repository was called with correct data
+      expect(mockRepository.createTask).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({
-            parentTaskId: 'parent-task',
-          }),
+          id: expect.any(String),
+          title: 'Implement Login',
+          description: 'Create login feature',
+          priority: 5,
+          dueDate: input.dueDate,
+          ownerId: 'creator-123',
+          departmentId: 'dept-456', // Auto-associated from user context
+          assigneeIds: ['assignee-1'],
+        })
+      );
+
+      // Verify action was logged
+      expect(mockRepository.logTaskAction).toHaveBeenCalledWith(
+        'task-123',
+        'creator-123',
+        'CREATED',
+        expect.objectContaining({
+          title: 'Implement Login',
+          assigneeCount: 1,
+        })
+      );
+
+      expect(result).toEqual({ id: 'task-123' });
+    });
+
+    it('should auto-associate task with creator department', async () => {
+      const input = {
+        title: 'Task',
+        description: 'Description',
+        priority: 5,
+        dueDate: new Date('2025-12-31'),
+        assigneeIds: ['assignee-1'],
+      };
+
+      mockRepository.validateAssignees.mockResolvedValue({
+        allExist: true,
+        allActive: true,
+      });
+      mockRepository.createTask.mockResolvedValue({ id: 'task-123' });
+
+      await service.createTask(input, testUser);
+
+      expect(mockRepository.createTask).toHaveBeenCalledWith(
+        expect.objectContaining({
+          departmentId: 'dept-456', // From testUser.departmentId
         })
       );
     });
 
-    it('should allow creating a sub-subtask (level 2 - maximum)', async () => {
-      const input: CreateTaskInput = {
-        title: 'Sub-subtask',
-        description: 'Description',
-        dueDate: new Date('2025-12-31'),
-        ownerId: 'user1',
-        departmentId: 'dept1',
-        assigneeIds: ['user2'],
-        parentTaskId: 'level1-task',
-      };
-
-      setupValidMocks();
-      // Parent task (level1-task) has a parent, so it's level 1
-      // This will be level 2 (max allowed)
-      (mockPrisma.task.findUnique as jest.Mock).mockResolvedValueOnce({
-        id: 'level1-task',
-        parentTaskId: 'root-task',
-      });
-
-      await expect(service.create(input)).rejects.toThrow(
-        'Maximum subtask depth is 2 levels (TGO026)'
-      );
-    });
-
-    it('should throw error when creating level 3 subtask (exceeds maximum)', async () => {
-      const input: CreateTaskInput = {
-        title: 'Level 3 subtask',
-        description: 'Description',
-        dueDate: new Date('2025-12-31'),
-        ownerId: 'user1',
-        departmentId: 'dept1',
-        assigneeIds: ['user2'],
-        parentTaskId: 'level2-task',
-      };
-
-      setupValidMocks();
-      // Parent task already has a parent (level 2), so this would be level 3
-      (mockPrisma.task.findUnique as jest.Mock).mockResolvedValueOnce({
-        id: 'level2-task',
-        parentTaskId: 'level1-task',
-      });
-
-      await expect(service.create(input)).rejects.toThrow(
-        'Maximum subtask depth is 2 levels (TGO026)'
-      );
-    });
-
-    it('should throw error when parent task not found', async () => {
-      const input: CreateTaskInput = {
-        title: 'Subtask',
-        description: 'Description',
-        dueDate: new Date('2025-12-31'),
-        ownerId: 'user1',
-        departmentId: 'dept1',
-        assigneeIds: ['user2'],
-        parentTaskId: 'nonexistent',
-      };
-
-      setupValidMocks();
-      (mockPrisma.task.findUnique as jest.Mock).mockResolvedValueOnce(null);
-
-      await expect(service.create(input)).rejects.toThrow(
-        'Parent task not found'
-      );
-    });
-  });
-
-  describe('Test 3: Tag Creation During Task Creation', () => {
-    it("should create new tags that don't exist", async () => {
-      const input: CreateTaskInput = {
+    it('should record creator as owner', async () => {
+      const input = {
         title: 'Task',
         description: 'Description',
+        priority: 5,
         dueDate: new Date('2025-12-31'),
-        ownerId: 'user1',
-        departmentId: 'dept1',
-        assigneeIds: ['user2'],
-        tags: ['urgent', 'frontend'],
+        assigneeIds: ['assignee-1'],
       };
 
-      setupValidMocks();
-      (mockPrisma.userProfile.findMany as jest.Mock).mockResolvedValue([
-        { id: 'user2', isActive: true },
-      ]);
-
-      // Both tags don't exist
-      (mockPrisma.tag.findUnique as jest.Mock)
-        .mockResolvedValueOnce(null)
-        .mockResolvedValueOnce(null);
-
-      // Create new tags
-      (mockPrisma.tag.create as jest.Mock)
-        .mockResolvedValueOnce({ id: 'tag1', name: 'urgent' })
-        .mockResolvedValueOnce({ id: 'tag2', name: 'frontend' });
-
-      const createdTask = { id: 'task1', ...input, priority: 5 };
-      (mockPrisma.task.create as jest.Mock).mockResolvedValue(createdTask);
-      mockGetById('task1');
-
-      await service.create(input);
-
-      expect(mockPrisma.tag.create).toHaveBeenCalledTimes(2);
-      expect(mockPrisma.tag.create).toHaveBeenCalledWith({
-        data: { name: 'urgent' },
+      mockRepository.validateAssignees.mockResolvedValue({
+        allExist: true,
+        allActive: true,
       });
-      expect(mockPrisma.tag.create).toHaveBeenCalledWith({
-        data: { name: 'frontend' },
-      });
+      mockRepository.createTask.mockResolvedValue({ id: 'task-123' });
 
-      expect(mockPrisma.taskTag.createMany).toHaveBeenCalledWith({
-        data: [
-          { taskId: 'task1', tagId: 'tag1' },
-          { taskId: 'task1', tagId: 'tag2' },
-        ],
-      });
-    });
+      await service.createTask(input, testUser);
 
-    it('should use existing tags when they already exist', async () => {
-      const input: CreateTaskInput = {
-        title: 'Task',
-        description: 'Description',
-        dueDate: new Date('2025-12-31'),
-        ownerId: 'user1',
-        departmentId: 'dept1',
-        assigneeIds: ['user2'],
-        tags: ['urgent'],
-      };
-
-      setupValidMocks();
-      (mockPrisma.userProfile.findMany as jest.Mock).mockResolvedValue([
-        { id: 'user2', isActive: true },
-      ]);
-
-      // Tag already exists
-      (mockPrisma.tag.findUnique as jest.Mock).mockResolvedValue({
-        id: 'existing-tag1',
-        name: 'urgent',
-      });
-
-      const createdTask = { id: 'task1', ...input, priority: 5 };
-      (mockPrisma.task.create as jest.Mock).mockResolvedValue(createdTask);
-      mockGetById('task1');
-
-      await service.create(input);
-
-      expect(mockPrisma.tag.create).not.toHaveBeenCalled();
-      expect(mockPrisma.taskTag.createMany).toHaveBeenCalledWith({
-        data: [{ taskId: 'task1', tagId: 'existing-tag1' }],
-      });
-    });
-
-    it('should work without tags (optional)', async () => {
-      const input: CreateTaskInput = {
-        title: 'Task',
-        description: 'Description',
-        dueDate: new Date('2025-12-31'),
-        ownerId: 'user1',
-        departmentId: 'dept1',
-        assigneeIds: ['user2'],
-      };
-
-      setupValidMocks();
-      (mockPrisma.userProfile.findMany as jest.Mock).mockResolvedValue([
-        { id: 'user2', isActive: true },
-      ]);
-
-      const createdTask = { id: 'task1', ...input, priority: 5 };
-      (mockPrisma.task.create as jest.Mock).mockResolvedValue(createdTask);
-      mockGetById('task1');
-
-      await service.create(input);
-
-      expect(mockPrisma.tag.findUnique).not.toHaveBeenCalled();
-      expect(mockPrisma.tag.create).not.toHaveBeenCalled();
-      expect(mockPrisma.taskTag.createMany).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('Test 4: Project Association', () => {
-    it('should create task within a project', async () => {
-      const input: CreateTaskInput = {
-        title: 'Task',
-        description: 'Description',
-        dueDate: new Date('2025-12-31'),
-        ownerId: 'user1',
-        departmentId: 'dept1',
-        assigneeIds: ['user2'],
-        projectId: 'project1',
-      };
-
-      setupValidMocks();
-      (mockPrisma.project.findUnique as jest.Mock).mockResolvedValue({
-        id: 'project1',
-      });
-      (mockPrisma.userProfile.findMany as jest.Mock).mockResolvedValue([
-        { id: 'user2', isActive: true },
-      ]);
-
-      const createdTask = { id: 'task1', ...input, priority: 5 };
-      (mockPrisma.task.create as jest.Mock).mockResolvedValue(createdTask);
-      mockGetById('task1');
-
-      await service.create(input);
-
-      expect(mockPrisma.task.create).toHaveBeenCalledWith(
+      expect(mockRepository.createTask).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({
-            projectId: 'project1',
-          }),
+          ownerId: 'creator-123', // From testUser.userId
         })
       );
     });
+  });
 
-    it('should create standalone task without project', async () => {
-      const input: CreateTaskInput = {
+  describe('TM016: External Validations - Project Existence', () => {
+    it('should validate project exists when projectId provided', async () => {
+      const input = {
         title: 'Task',
         description: 'Description',
+        priority: 5,
         dueDate: new Date('2025-12-31'),
-        ownerId: 'user1',
-        departmentId: 'dept1',
-        assigneeIds: ['user2'],
+        assigneeIds: ['assignee-1'],
+        projectId: 'project-789',
       };
 
-      setupValidMocks();
-      (mockPrisma.userProfile.findMany as jest.Mock).mockResolvedValue([
-        { id: 'user2', isActive: true },
-      ]);
+      mockRepository.validateProjectExists.mockResolvedValue(true);
+      mockRepository.validateAssignees.mockResolvedValue({
+        allExist: true,
+        allActive: true,
+      });
+      mockRepository.createTask.mockResolvedValue({ id: 'task-123' });
 
-      const createdTask = { id: 'task1', ...input, priority: 5 };
-      (mockPrisma.task.create as jest.Mock).mockResolvedValue(createdTask);
-      mockGetById('task1');
+      await service.createTask(input, testUser);
 
-      await service.create(input);
-
-      expect(mockPrisma.task.create).toHaveBeenCalledWith(
+      expect(mockRepository.validateProjectExists).toHaveBeenCalledWith(
+        'project-789'
+      );
+      expect(mockRepository.createTask).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({
-            projectId: undefined,
-          }),
+          projectId: 'project-789',
         })
       );
     });
 
     it('should throw error when project not found', async () => {
-      const input: CreateTaskInput = {
+      const input = {
         title: 'Task',
         description: 'Description',
+        priority: 5,
         dueDate: new Date('2025-12-31'),
-        ownerId: 'user1',
-        departmentId: 'dept1',
-        assigneeIds: ['user2'],
-        projectId: 'nonexistent',
+        assigneeIds: ['assignee-1'],
+        projectId: 'nonexistent-project',
       };
 
-      setupValidMocks();
-      (mockPrisma.project.findUnique as jest.Mock).mockResolvedValue(null);
+      mockRepository.validateProjectExists.mockResolvedValue(false);
 
-      await expect(service.create(input)).rejects.toThrow('Project not found');
+      await expect(service.createTask(input, testUser)).rejects.toThrow(
+        'Project not found'
+      );
+
+      expect(mockRepository.createTask).not.toHaveBeenCalled();
+    });
+
+    it('should skip project validation when projectId not provided', async () => {
+      const input = {
+        title: 'Task',
+        description: 'Description',
+        priority: 5,
+        dueDate: new Date('2025-12-31'),
+        assigneeIds: ['assignee-1'],
+      };
+
+      mockRepository.validateAssignees.mockResolvedValue({
+        allExist: true,
+        allActive: true,
+      });
+      mockRepository.createTask.mockResolvedValue({ id: 'task-123' });
+
+      await service.createTask(input, testUser);
+
+      expect(mockRepository.validateProjectExists).not.toHaveBeenCalled();
     });
   });
 
-  describe('Test 5: Recurring Tasks', () => {
-    it('should create recurring task with interval', async () => {
-      const input: CreateTaskInput = {
-        title: 'Weekly Report',
-        description: 'Submit weekly report',
+  describe('TM016: External Validations - Assignees Existence and Status', () => {
+    it('should validate all assignees exist and are active', async () => {
+      const input = {
+        title: 'Task',
+        description: 'Description',
+        priority: 5,
         dueDate: new Date('2025-12-31'),
-        ownerId: 'user1',
-        departmentId: 'dept1',
-        assigneeIds: ['user2'],
-        recurringInterval: 7, // Every 7 days
+        assigneeIds: ['user-1', 'user-2', 'user-3'],
       };
 
-      setupValidMocks();
-      (mockPrisma.userProfile.findMany as jest.Mock).mockResolvedValue([
-        { id: 'user2', isActive: true },
+      mockRepository.validateAssignees.mockResolvedValue({
+        allExist: true,
+        allActive: true,
+      });
+      mockRepository.createTask.mockResolvedValue({ id: 'task-123' });
+
+      await service.createTask(input, testUser);
+
+      expect(mockRepository.validateAssignees).toHaveBeenCalledWith([
+        'user-1',
+        'user-2',
+        'user-3',
       ]);
+      expect(mockRepository.createTask).toHaveBeenCalled();
+    });
 
-      const createdTask = { id: 'task1', ...input, priority: 5 };
-      (mockPrisma.task.create as jest.Mock).mockResolvedValue(createdTask);
-      mockGetById('task1');
+    it('should throw error when one or more assignees not found', async () => {
+      const input = {
+        title: 'Task',
+        description: 'Description',
+        priority: 5,
+        dueDate: new Date('2025-12-31'),
+        assigneeIds: ['user-1', 'nonexistent-user'],
+      };
 
-      await service.create(input);
+      mockRepository.validateAssignees.mockResolvedValue({
+        allExist: false,
+        allActive: true,
+      });
 
-      expect(mockPrisma.task.create).toHaveBeenCalledWith(
+      await expect(service.createTask(input, testUser)).rejects.toThrow(
+        'One or more assignees not found'
+      );
+
+      expect(mockRepository.createTask).not.toHaveBeenCalled();
+    });
+
+    it('should throw error when one or more assignees are inactive', async () => {
+      const input = {
+        title: 'Task',
+        description: 'Description',
+        priority: 5,
+        dueDate: new Date('2025-12-31'),
+        assigneeIds: ['user-1', 'inactive-user'],
+      };
+
+      mockRepository.validateAssignees.mockResolvedValue({
+        allExist: true,
+        allActive: false,
+      });
+
+      await expect(service.createTask(input, testUser)).rejects.toThrow(
+        'One or more assignees are inactive'
+      );
+
+      expect(mockRepository.createTask).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('TGO026: Subtask Depth Validation', () => {
+    it('should allow creating subtask at level 1', async () => {
+      const input = {
+        title: 'Subtask',
+        description: 'Description',
+        priority: 5,
+        dueDate: new Date('2025-12-31'),
+        assigneeIds: ['assignee-1'],
+        parentTaskId: 'parent-task-id',
+      };
+
+      // Parent has no parent (level 0), so this will be level 1
+      mockRepository.getParentTaskDepth.mockResolvedValue({
+        id: 'parent-task-id',
+        parentTaskId: null,
+      });
+      mockRepository.validateAssignees.mockResolvedValue({
+        allExist: true,
+        allActive: true,
+      });
+      mockRepository.createTask.mockResolvedValue({ id: 'subtask-123' });
+
+      await service.createTask(input, testUser);
+
+      expect(mockRepository.getParentTaskDepth).toHaveBeenCalledWith(
+        'parent-task-id'
+      );
+      expect(mockRepository.createTask).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({
-            recurringInterval: 7,
-          }),
+          parentTaskId: 'parent-task-id',
+        })
+      );
+    });
+
+    it('should throw error when creating level 3 subtask (exceeds maximum)', async () => {
+      const input = {
+        title: 'Level 3 Subtask',
+        description: 'Description',
+        priority: 5,
+        dueDate: new Date('2025-12-31'),
+        assigneeIds: ['assignee-1'],
+        parentTaskId: 'level-2-task-id',
+      };
+
+      // Parent task already has a parent (is level 1), so it would create level 2
+      mockRepository.getParentTaskDepth.mockResolvedValue({
+        id: 'level-2-task-id',
+        parentTaskId: 'level-1-task-id',
+      });
+
+      await expect(service.createTask(input, testUser)).rejects.toThrow(
+        'Maximum subtask depth is 2 levels (TGO026)'
+      );
+
+      expect(mockRepository.createTask).not.toHaveBeenCalled();
+    });
+
+    it('should throw error when parent task not found', async () => {
+      const input = {
+        title: 'Subtask',
+        description: 'Description',
+        priority: 5,
+        dueDate: new Date('2025-12-31'),
+        assigneeIds: ['assignee-1'],
+        parentTaskId: 'nonexistent-parent',
+      };
+
+      mockRepository.getParentTaskDepth.mockResolvedValue(null);
+
+      await expect(service.createTask(input, testUser)).rejects.toThrow(
+        'Parent task not found'
+      );
+
+      expect(mockRepository.createTask).not.toHaveBeenCalled();
+    });
+
+    it('should skip parent validation when parentTaskId not provided', async () => {
+      const input = {
+        title: 'Root Task',
+        description: 'Description',
+        priority: 5,
+        dueDate: new Date('2025-12-31'),
+        assigneeIds: ['assignee-1'],
+      };
+
+      mockRepository.validateAssignees.mockResolvedValue({
+        allExist: true,
+        allActive: true,
+      });
+      mockRepository.createTask.mockResolvedValue({ id: 'task-123' });
+
+      await service.createTask(input, testUser);
+
+      expect(mockRepository.getParentTaskDepth).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Optional Fields - Tags', () => {
+    it('should create task with tags', async () => {
+      const input = {
+        title: 'Task',
+        description: 'Description',
+        priority: 5,
+        dueDate: new Date('2025-12-31'),
+        assigneeIds: ['assignee-1'],
+        tags: ['urgent', 'frontend', 'bug'],
+      };
+
+      mockRepository.validateAssignees.mockResolvedValue({
+        allExist: true,
+        allActive: true,
+      });
+      mockRepository.createTask.mockResolvedValue({ id: 'task-123' });
+
+      await service.createTask(input, testUser);
+
+      expect(mockRepository.createTask).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tags: ['urgent', 'frontend', 'bug'],
+        })
+      );
+    });
+
+    it('should create task without tags', async () => {
+      const input = {
+        title: 'Task',
+        description: 'Description',
+        priority: 5,
+        dueDate: new Date('2025-12-31'),
+        assigneeIds: ['assignee-1'],
+      };
+
+      mockRepository.validateAssignees.mockResolvedValue({
+        allExist: true,
+        allActive: true,
+      });
+      mockRepository.createTask.mockResolvedValue({ id: 'task-123' });
+
+      await service.createTask(input, testUser);
+
+      expect(mockRepository.createTask).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tags: undefined,
+        })
+      );
+    });
+  });
+
+  describe('Optional Fields - Recurring', () => {
+    it('should create recurring task with interval', async () => {
+      const input = {
+        title: 'Weekly Report',
+        description: 'Submit weekly report',
+        priority: 5,
+        dueDate: new Date('2025-12-31'),
+        assigneeIds: ['assignee-1'],
+        recurringInterval: 7,
+      };
+
+      mockRepository.validateAssignees.mockResolvedValue({
+        allExist: true,
+        allActive: true,
+      });
+      mockRepository.createTask.mockResolvedValue({ id: 'task-123' });
+
+      await service.createTask(input, testUser);
+
+      expect(mockRepository.createTask).toHaveBeenCalledWith(
+        expect.objectContaining({
+          recurringInterval: 7,
         })
       );
     });
 
     it('should create non-recurring task when interval not provided', async () => {
-      const input: CreateTaskInput = {
-        title: 'Task',
+      const input = {
+        title: 'One-time Task',
         description: 'Description',
+        priority: 5,
         dueDate: new Date('2025-12-31'),
-        ownerId: 'user1',
-        departmentId: 'dept1',
-        assigneeIds: ['user2'],
+        assigneeIds: ['assignee-1'],
       };
 
-      setupValidMocks();
-      (mockPrisma.userProfile.findMany as jest.Mock).mockResolvedValue([
-        { id: 'user2', isActive: true },
-      ]);
+      mockRepository.validateAssignees.mockResolvedValue({
+        allExist: true,
+        allActive: true,
+      });
+      mockRepository.createTask.mockResolvedValue({ id: 'task-123' });
 
-      const createdTask = { id: 'task1', ...input, priority: 5 };
-      (mockPrisma.task.create as jest.Mock).mockResolvedValue(createdTask);
-      mockGetById('task1');
+      await service.createTask(input, testUser);
 
-      await service.create(input);
-
-      expect(mockPrisma.task.create).toHaveBeenCalledWith(
+      expect(mockRepository.createTask).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({
-            recurringInterval: undefined,
-          }),
+          recurringInterval: undefined,
         })
       );
     });
   });
 
-  // Helper functions
-  function setupValidMocks() {
-    (mockPrisma.userProfile.findUnique as jest.Mock).mockResolvedValue({
-      id: 'user1',
-      isActive: true,
-    });
-    (mockPrisma.department.findUnique as jest.Mock).mockResolvedValue({
-      id: 'dept1',
-    });
-    // Default: No assignees validation needed unless test overrides
-    (mockPrisma.userProfile.findMany as jest.Mock).mockResolvedValue([]);
-    (mockPrisma.taskAssignment.createMany as jest.Mock).mockResolvedValue({
-      count: 0,
-    });
-    (mockPrisma.taskTag.createMany as jest.Mock).mockResolvedValue({
-      count: 0,
-    });
-  }
+  describe('Service Orchestration Flow', () => {
+    it('should perform validations before calling domain factory', async () => {
+      const input = {
+        title: 'Task',
+        description: 'Description',
+        priority: 5,
+        dueDate: new Date('2025-12-31'),
+        assigneeIds: ['assignee-1'],
+        projectId: 'project-123',
+        parentTaskId: 'parent-123',
+      };
 
-  function mockGetById(taskId: string) {
-    // Mock findUnique for getById call - this is called AFTER create
-    (mockPrisma.task.findUnique as jest.Mock).mockResolvedValueOnce({
-      id: taskId,
-      title: 'Task',
-      description: 'Description',
-      priority: 5,
-      status: 'TO_DO',
-      owner: {
-        id: 'user1',
-        name: 'Owner',
-        email: 'owner@example.com',
-        role: 'STAFF',
-      },
-      department: { id: 'dept1', name: 'Department' },
-      project: null,
-      parentTask: null,
-      subtasks: [],
-      assignments: [],
-      comments: [],
-      files: [],
-      tags: [],
+      mockRepository.validateProjectExists.mockResolvedValue(true);
+      mockRepository.getParentTaskDepth.mockResolvedValue({
+        id: 'parent-123',
+        parentTaskId: null,
+      });
+      mockRepository.validateAssignees.mockResolvedValue({
+        allExist: true,
+        allActive: true,
+      });
+      mockRepository.createTask.mockResolvedValue({ id: 'task-123' });
+
+      await service.createTask(input, testUser);
+
+      // Verify validation order
+      expect(mockRepository.validateProjectExists).toHaveBeenCalled();
+      expect(mockRepository.getParentTaskDepth).toHaveBeenCalled();
+      expect(mockRepository.validateAssignees).toHaveBeenCalled();
+      expect(mockRepository.createTask).toHaveBeenCalled();
+      expect(mockRepository.logTaskAction).toHaveBeenCalled();
     });
-  }
+
+    it('should not call repository if validation fails', async () => {
+      const input = {
+        title: 'Task',
+        description: 'Description',
+        priority: 5,
+        dueDate: new Date('2025-12-31'),
+        assigneeIds: ['nonexistent-user'],
+      };
+
+      mockRepository.validateAssignees.mockResolvedValue({
+        allExist: false,
+        allActive: true,
+      });
+
+      await expect(service.createTask(input, testUser)).rejects.toThrow();
+
+      expect(mockRepository.createTask).not.toHaveBeenCalled();
+      expect(mockRepository.logTaskAction).not.toHaveBeenCalled();
+    });
+
+    it('should log task creation action after successful create', async () => {
+      const input = {
+        title: 'Task',
+        description: 'Description',
+        priority: 5,
+        dueDate: new Date('2025-12-31'),
+        assigneeIds: ['assignee-1'],
+      };
+
+      mockRepository.validateAssignees.mockResolvedValue({
+        allExist: true,
+        allActive: true,
+      });
+      mockRepository.createTask.mockResolvedValue({ id: 'task-123' });
+
+      await service.createTask(input, testUser);
+
+      expect(mockRepository.logTaskAction).toHaveBeenCalledWith(
+        'task-123',
+        'creator-123',
+        'CREATED',
+        expect.any(Object)
+      );
+    });
+  });
 });

@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 // Mock dependencies BEFORE imports to prevent Supabase client initialization
 jest.mock('@/services/storage/SupabaseStorageService');
 

@@ -33,6 +33,9 @@ const customJestConfig = {
     '<rootDir>/src/**/*.{test,spec}.{js,jsx,ts,tsx}',
   ],
 
+  // run integration tests sequentially to prevent DB reset issues
+  maxWorkers: 2,
+
   // Exclude e2e tests from Jest (run with Playwright instead)
   testPathIgnorePatterns: ['/node_modules/', '/.next/', '/tests/e2e/'],
 };

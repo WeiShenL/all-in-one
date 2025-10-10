@@ -13,12 +13,6 @@ enum UserRole {
   HR_ADMIN
 }
 
-enum TaskPriority {
-  LOW
-  MEDIUM
-  HIGH
-}
-
 enum TaskStatus {
   TO_DO
   IN_PROGRESS
@@ -53,6 +47,7 @@ enum LogAction {
   DESCRIPTION_CHANGED
   ARCHIVED
   DELETED
+  RECURRING_TASK_GENERATED
 }
 
 // DEPARTMENT

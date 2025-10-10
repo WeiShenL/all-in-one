@@ -1,7 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { Client } from 'pg';
 import { PrismaClient } from '@prisma/client';
-import { TaskService } from '@/app/server/services/TaskService';
+import { TaskService, UserContext } from '@/services/task/TaskService';
+import { PrismaTaskRepository } from '@/repositories/PrismaTaskRepository';
 
 /**
  * E2E Tests for Task Creation Feature - SCRUM-12
@@ -20,6 +21,7 @@ test.describe('Task Creation - SCRUM-12', () => {
   let taskService: TaskService;
   let testUserId: string;
   let testDepartmentId: string;
+  let userContext: UserContext;
   const createdTaskIds: string[] = [];
 
   test.beforeAll(async () => {
@@ -30,7 +32,10 @@ test.describe('Task Creation - SCRUM-12', () => {
     // Prisma still needed for TaskService
     prisma = new PrismaClient();
     await prisma.$connect();
-    taskService = new TaskService(prisma);
+
+    // Initialize repository and service with DDD architecture
+    const taskRepository = new PrismaTaskRepository(prisma);
+    taskService = new TaskService(taskRepository);
 
     // Create test department using pg
     const deptResult = await pgClient.query(
@@ -50,6 +55,13 @@ test.describe('Task Creation - SCRUM-12', () => {
       ]
     );
     testUserId = userResult.rows[0].id;
+
+    // Setup user context for DDD service layer
+    userContext = {
+      userId: testUserId,
+      role: 'STAFF',
+      departmentId: testDepartmentId,
+    };
   });
 
   test.afterAll(async () => {
@@ -106,22 +118,28 @@ test.describe('Task Creation - SCRUM-12', () => {
   });
 
   test('should successfully create a task with all mandatory fields', async () => {
-    const task = await taskService.create({
-      title: 'E2E Test Task',
-      description: 'Task created via E2E test',
-      priority: 8,
-      dueDate: new Date('2025-12-31'),
-      ownerId: testUserId,
-      departmentId: testDepartmentId,
-      assigneeIds: [testUserId],
-    });
+    const result = await taskService.createTask(
+      {
+        title: 'E2E Test Task',
+        description: 'Task created via E2E test',
+        priority: 8,
+        dueDate: new Date('2025-12-31'),
+        assigneeIds: [testUserId],
+      },
+      userContext
+    );
 
-    expect(task).toBeDefined();
-    if (!task) {
-      throw new Error('Task should be defined');
-    }
+    expect(result).toBeDefined();
+    expect(result.id).toBeDefined();
+    createdTaskIds.push(result.id);
 
-    expect(task.id).toBeDefined();
+    // Verify task was created correctly using pg
+    const taskResult = await pgClient.query(
+      'SELECT * FROM "task" WHERE id = $1',
+      [result.id]
+    );
+    expect(taskResult.rows.length).toBe(1);
+    const task = taskResult.rows[0];
     expect(task.title).toBe('E2E Test Task');
     expect(task.description).toBe('Task created via E2E test');
     expect(task.priority).toBe(8);
@@ -129,99 +147,107 @@ test.describe('Task Creation - SCRUM-12', () => {
     expect(task.ownerId).toBe(testUserId);
     expect(task.departmentId).toBe(testDepartmentId);
 
-    createdTaskIds.push(task.id);
-
     // Verify assignment using pg
     const assignmentResult = await pgClient.query(
       'SELECT * FROM "task_assignment" WHERE "taskId" = $1',
-      [task.id]
+      [result.id]
     );
     expect(assignmentResult.rows.length).toBe(1);
     expect(assignmentResult.rows[0].userId).toBe(testUserId);
   });
 
   test('should enforce 1-5 assignees requirement - accept 1 assignee', async () => {
-    const task = await taskService.create({
-      title: 'Task with 1 assignee',
-      description: 'Test minimum assignees',
-      priority: 5,
-      dueDate: new Date('2025-12-31'),
-      ownerId: testUserId,
-      departmentId: testDepartmentId,
-      assigneeIds: [testUserId],
-    });
+    const result = await taskService.createTask(
+      {
+        title: 'Task with 1 assignee',
+        description: 'Test minimum assignees',
+        priority: 5,
+        dueDate: new Date('2025-12-31'),
+        assigneeIds: [testUserId],
+      },
+      userContext
+    );
 
-    expect(task).toBeDefined();
-    if (!task) {
-      throw new Error('Task should be defined');
-    }
-    createdTaskIds.push(task.id);
+    expect(result).toBeDefined();
+    expect(result.id).toBeDefined();
+    createdTaskIds.push(result.id);
 
     const assignmentResult = await pgClient.query(
       'SELECT * FROM "task_assignment" WHERE "taskId" = $1',
-      [task.id]
+      [result.id]
     );
     expect(assignmentResult.rows.length).toBe(1);
   });
 
   test('should validate priority between 1 and 10 - accept priority 1', async () => {
-    const task = await taskService.create({
-      title: 'Priority 1 Task',
-      description: 'Test minimum priority',
-      priority: 1,
-      dueDate: new Date('2025-12-31'),
-      ownerId: testUserId,
-      departmentId: testDepartmentId,
-      assigneeIds: [testUserId],
-    });
+    const result = await taskService.createTask(
+      {
+        title: 'Priority 1 Task',
+        description: 'Test minimum priority',
+        priority: 1,
+        dueDate: new Date('2025-12-31'),
+        assigneeIds: [testUserId],
+      },
+      userContext
+    );
 
-    if (!task) {
-      throw new Error('Task should be defined');
-    }
-    expect(task.priority).toBe(1);
-    createdTaskIds.push(task.id);
+    expect(result).toBeDefined();
+    expect(result.id).toBeDefined();
+    createdTaskIds.push(result.id);
+
+    // Verify priority using pg
+    const taskResult = await pgClient.query(
+      'SELECT priority FROM "task" WHERE id = $1',
+      [result.id]
+    );
+    expect(taskResult.rows[0].priority).toBe(1);
   });
 
   test('should validate priority between 1 and 10 - accept priority 10', async () => {
-    const task = await taskService.create({
-      title: 'Priority 10 Task',
-      description: 'Test maximum priority',
-      priority: 10,
-      dueDate: new Date('2025-12-31'),
-      ownerId: testUserId,
-      departmentId: testDepartmentId,
-      assigneeIds: [testUserId],
-    });
+    const result = await taskService.createTask(
+      {
+        title: 'Priority 10 Task',
+        description: 'Test maximum priority',
+        priority: 10,
+        dueDate: new Date('2025-12-31'),
+        assigneeIds: [testUserId],
+      },
+      userContext
+    );
 
-    if (!task) {
-      throw new Error('Task should be defined');
-    }
-    expect(task.priority).toBe(10);
-    createdTaskIds.push(task.id);
+    expect(result).toBeDefined();
+    expect(result.id).toBeDefined();
+    createdTaskIds.push(result.id);
+
+    // Verify priority using pg
+    const taskResult = await pgClient.query(
+      'SELECT priority FROM "task" WHERE id = $1',
+      [result.id]
+    );
+    expect(taskResult.rows[0].priority).toBe(10);
   });
 
   test('should create task with optional tags', async () => {
-    const task = await taskService.create({
-      title: 'Tagged Task',
-      description: 'Task with tags',
-      priority: 5,
-      dueDate: new Date('2025-12-31'),
-      ownerId: testUserId,
-      departmentId: testDepartmentId,
-      assigneeIds: [testUserId],
-      tags: ['e2e-urgent', 'e2e-frontend', 'e2e-bug'],
-    });
+    const result = await taskService.createTask(
+      {
+        title: 'Tagged Task',
+        description: 'Task with tags',
+        priority: 5,
+        dueDate: new Date('2025-12-31'),
+        assigneeIds: [testUserId],
+        tags: ['e2e-urgent', 'e2e-frontend', 'e2e-bug'],
+      },
+      userContext
+    );
 
-    expect(task).toBeDefined();
-    if (!task) {
-      throw new Error('Task should be defined');
-    }
-    createdTaskIds.push(task.id);
+    expect(result).toBeDefined();
+    expect(result.id).toBeDefined();
+    createdTaskIds.push(result.id);
 
     // Verify tags using pg
     const taskTagsResult = await pgClient.query(
       'SELECT t.name FROM "task_tag" tt JOIN "tag" t ON tt."tagId" = t.id WHERE tt."taskId" = $1 ORDER BY t.name',
-      [task.id]
+      [result.id]
     );
 
     expect(taskTagsResult.rows.length).toBe(3);
@@ -246,124 +272,154 @@ test.describe('Task Creation - SCRUM-12', () => {
     const parentTaskId = parentResult.rows[0].id;
     createdTaskIds.push(parentTaskId);
 
-    // Create subtask (level 1) - should succeed
-    const subtask = await taskService.create({
-      title: 'Subtask Level 1',
-      description: 'First level subtask',
-      priority: 5,
-      dueDate: new Date('2025-12-31'),
-      ownerId: testUserId,
-      departmentId: testDepartmentId,
-      assigneeIds: [testUserId],
-      parentTaskId: parentTaskId,
-    });
+    // Create assignment for parent task so user has access
+    await pgClient.query(
+      'INSERT INTO "task_assignment" ("taskId", "userId", "assignedById", "assignedAt") VALUES ($1, $2, $3, NOW())',
+      [parentTaskId, testUserId, testUserId]
+    );
 
-    expect(subtask).toBeDefined();
-    if (!subtask) {
-      throw new Error('Subtask should be defined');
-    }
-    expect(subtask.parentTaskId).toBe(parentTaskId);
-    createdTaskIds.push(subtask.id);
+    // Create subtask (level 1) - should succeed
+    const subtaskResult = await taskService.createTask(
+      {
+        title: 'Subtask Level 1',
+        description: 'First level subtask',
+        priority: 5,
+        dueDate: new Date('2025-12-31'),
+        assigneeIds: [testUserId],
+        parentTaskId: parentTaskId,
+      },
+      userContext
+    );
+
+    expect(subtaskResult).toBeDefined();
+    expect(subtaskResult.id).toBeDefined();
+    createdTaskIds.push(subtaskResult.id);
+
+    // Verify parent task ID using pg
+    const subtaskData = await pgClient.query(
+      'SELECT "parentTaskId" FROM "task" WHERE id = $1',
+      [subtaskResult.id]
+    );
+    expect(subtaskData.rows[0].parentTaskId).toBe(parentTaskId);
 
     // Try to create sub-subtask (level 2) - should FAIL (TGO026)
     await expect(
-      taskService.create({
-        title: 'Subtask Level 2',
-        description: 'Second level subtask (should fail)',
-        priority: 5,
-        dueDate: new Date('2025-12-31'),
-        ownerId: testUserId,
-        departmentId: testDepartmentId,
-        assigneeIds: [testUserId],
-        parentTaskId: subtask.id,
-      })
+      taskService.createTask(
+        {
+          title: 'Subtask Level 2',
+          description: 'Second level subtask (should fail)',
+          priority: 5,
+          dueDate: new Date('2025-12-31'),
+          assigneeIds: [testUserId],
+          parentTaskId: subtaskResult.id,
+        },
+        userContext
+      )
     ).rejects.toThrow(/TGO026|Maximum subtask depth/);
   });
 
   test('should auto-associate department from user profile', async () => {
-    const task = await taskService.create({
-      title: 'Auto-Department Task',
-      description: 'Should use provided department',
-      priority: 5,
-      dueDate: new Date('2025-12-31'),
-      ownerId: testUserId,
-      departmentId: testDepartmentId,
-      assigneeIds: [testUserId],
-    });
+    const result = await taskService.createTask(
+      {
+        title: 'Auto-Department Task',
+        description: 'Should use department from user context',
+        priority: 5,
+        dueDate: new Date('2025-12-31'),
+        assigneeIds: [testUserId],
+      },
+      userContext
+    );
 
-    if (!task) {
-      throw new Error('Task should be defined');
-    }
-    expect(task.departmentId).toBe(testDepartmentId);
-    createdTaskIds.push(task.id);
+    expect(result).toBeDefined();
+    expect(result.id).toBeDefined();
+    createdTaskIds.push(result.id);
+
+    // Verify department using pg
+    const taskResult = await pgClient.query(
+      'SELECT "departmentId" FROM "task" WHERE id = $1',
+      [result.id]
+    );
+    expect(taskResult.rows[0].departmentId).toBe(testDepartmentId);
   });
 
   test('should create recurring task with interval', async () => {
-    const task = await taskService.create({
-      title: 'Weekly Report',
-      description: 'Submit weekly report',
-      priority: 5,
-      dueDate: new Date('2025-12-31'),
-      ownerId: testUserId,
-      departmentId: testDepartmentId,
-      assigneeIds: [testUserId],
-      recurringInterval: 7,
-    });
+    const result = await taskService.createTask(
+      {
+        title: 'Weekly Report',
+        description: 'Submit weekly report',
+        priority: 5,
+        dueDate: new Date('2025-12-31'),
+        assigneeIds: [testUserId],
+        recurringInterval: 7,
+      },
+      userContext
+    );
 
-    if (!task) {
-      throw new Error('Task should be defined');
-    }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expect((task as any).recurringInterval).toBe(7);
-    createdTaskIds.push(task.id);
+    expect(result).toBeDefined();
+    expect(result.id).toBeDefined();
+    createdTaskIds.push(result.id);
+
+    // Verify recurring interval using pg
+    const taskResult = await pgClient.query(
+      'SELECT "recurringInterval" FROM "task" WHERE id = $1',
+      [result.id]
+    );
+    expect(taskResult.rows[0].recurringInterval).toBe(7);
   });
 
   test('should set default status to TO_DO', async () => {
-    const task = await taskService.create({
-      title: 'New Task',
-      description: 'Should have TO_DO status',
-      priority: 5,
-      dueDate: new Date('2025-12-31'),
-      ownerId: testUserId,
-      departmentId: testDepartmentId,
-      assigneeIds: [testUserId],
-    });
+    const result = await taskService.createTask(
+      {
+        title: 'New Task',
+        description: 'Should have TO_DO status',
+        priority: 5,
+        dueDate: new Date('2025-12-31'),
+        assigneeIds: [testUserId],
+      },
+      userContext
+    );
 
-    if (!task) {
-      throw new Error('Task should be defined');
-    }
-    expect(task.status).toBe('TO_DO');
-    createdTaskIds.push(task.id);
+    expect(result).toBeDefined();
+    expect(result.id).toBeDefined();
+    createdTaskIds.push(result.id);
+
+    // Verify status using pg
+    const taskResult = await pgClient.query(
+      'SELECT status FROM "task" WHERE id = $1',
+      [result.id]
+    );
+    expect(taskResult.rows[0].status).toBe('TO_DO');
   });
 
   test('should automatically generate next instance when recurring task is completed', async () => {
     // Create a weekly recurring task
     const originalDueDate = new Date('2025-01-07T00:00:00.000Z');
 
-    const recurringTask = await taskService.create({
-      title: 'E2E Weekly Report',
-      description: 'Automated weekly report test',
-      priority: 6,
-      dueDate: originalDueDate,
-      ownerId: testUserId,
-      departmentId: testDepartmentId,
-      assigneeIds: [testUserId],
-      recurringInterval: 7, // Weekly
-    });
-
-    if (!recurringTask) {
-      throw new Error('Recurring task should be defined');
-    }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expect((recurringTask as any).recurringInterval).toBe(7);
-    createdTaskIds.push(recurringTask.id);
-
-    // Mark task as COMPLETED
-    const completedTask = await taskService.updateStatus(
-      recurringTask.id,
-      'COMPLETED'
+    const result = await taskService.createTask(
+      {
+        title: 'E2E Weekly Report',
+        description: 'Automated weekly report test',
+        priority: 6,
+        dueDate: originalDueDate,
+        assigneeIds: [testUserId],
+        recurringInterval: 7, // Weekly
+      },
+      userContext
     );
-    expect(completedTask?.status).toBe('COMPLETED');
+
+    expect(result).toBeDefined();
+    expect(result.id).toBeDefined();
+    createdTaskIds.push(result.id);
+
+    // Verify recurring interval using pg
+    const taskResult = await pgClient.query(
+      'SELECT "recurringInterval" FROM "task" WHERE id = $1',
+      [result.id]
+    );
+    expect(taskResult.rows[0].recurringInterval).toBe(7);
+
+    // Mark task as COMPLETED using the new API
+    await taskService.updateTaskStatus(result.id, 'COMPLETED', userContext);
 
     // Wait for async recurring generation
     await new Promise(resolve => setTimeout(resolve, 1500));
@@ -380,7 +436,7 @@ test.describe('Task Creation - SCRUM-12', () => {
     createdTaskIds.push(nextInstance.id);
 
     // Verify next instance properties
-    expect(nextInstance.id).not.toBe(recurringTask.id);
+    expect(nextInstance.id).not.toBe(result.id);
     expect(nextInstance.status).toBe('TO_DO');
     expect(nextInstance.recurringInterval).toBe(7);
     expect(nextInstance.priority).toBe(6);
@@ -397,24 +453,24 @@ test.describe('Task Creation - SCRUM-12', () => {
 
   test('should NOT generate next instance for non-recurring completed tasks', async () => {
     // Create a one-time task (no recurringInterval)
-    const oneTimeTask = await taskService.create({
-      title: 'E2E One-Time Task',
-      description: 'Should not recur',
-      priority: 5,
-      dueDate: new Date('2025-02-01T00:00:00.000Z'),
-      ownerId: testUserId,
-      departmentId: testDepartmentId,
-      assigneeIds: [testUserId],
-      // NO recurringInterval
-    });
+    const result = await taskService.createTask(
+      {
+        title: 'E2E One-Time Task',
+        description: 'Should not recur',
+        priority: 5,
+        dueDate: new Date('2025-02-01T00:00:00.000Z'),
+        assigneeIds: [testUserId],
+        // NO recurringInterval
+      },
+      userContext
+    );
 
-    if (!oneTimeTask) {
-      throw new Error('One-time task should be defined');
-    }
-    createdTaskIds.push(oneTimeTask.id);
+    expect(result).toBeDefined();
+    expect(result.id).toBeDefined();
+    createdTaskIds.push(result.id);
 
     // Complete the task
-    await taskService.updateStatus(oneTimeTask.id, 'COMPLETED');
+    await taskService.updateTaskStatus(result.id, 'COMPLETED', userContext);
     await new Promise(resolve => setTimeout(resolve, 1500));
 
     // Verify NO new instance was created using pg
@@ -429,24 +485,24 @@ test.describe('Task Creation - SCRUM-12', () => {
 
   test('should chain recurring tasks - verify multiple generations', async () => {
     // Create daily recurring task
-    const dailyTask = await taskService.create({
-      title: 'E2E Daily Standup',
-      description: 'Daily standup meeting',
-      priority: 3,
-      dueDate: new Date('2025-03-01T00:00:00.000Z'),
-      ownerId: testUserId,
-      departmentId: testDepartmentId,
-      assigneeIds: [testUserId],
-      recurringInterval: 1, // Daily
-    });
+    const result = await taskService.createTask(
+      {
+        title: 'E2E Daily Standup',
+        description: 'Daily standup meeting',
+        priority: 3,
+        dueDate: new Date('2025-03-01T00:00:00.000Z'),
+        assigneeIds: [testUserId],
+        recurringInterval: 1, // Daily
+      },
+      userContext
+    );
 
-    if (!dailyTask) {
-      throw new Error('Daily task should be defined');
-    }
-    createdTaskIds.push(dailyTask.id);
+    expect(result).toBeDefined();
+    expect(result.id).toBeDefined();
+    createdTaskIds.push(result.id);
 
     // Complete first instance
-    await taskService.updateStatus(dailyTask.id, 'COMPLETED');
+    await taskService.updateTaskStatus(result.id, 'COMPLETED', userContext);
     await new Promise(resolve => setTimeout(resolve, 1500));
 
     // Get second instance using pg
@@ -459,6 +515,8 @@ test.describe('Task Creation - SCRUM-12', () => {
     const secondInstance = tasksResult.rows[0];
     createdTaskIds.push(secondInstance.id);
 
+    // Assignment is automatically created by recurring task generation, no need to create it manually
+
     // Verify due date is 1 day later (allow for timezone differences)
     const firstDate = new Date('2025-03-01T00:00:00.000Z');
     const secondDate = new Date(secondInstance.dueDate);
@@ -468,7 +526,11 @@ test.describe('Task Creation - SCRUM-12', () => {
     expect(daysDiff).toBe(1);
 
     // Complete second instance
-    await taskService.updateStatus(secondInstance.id, 'COMPLETED');
+    await taskService.updateTaskStatus(
+      secondInstance.id,
+      'COMPLETED',
+      userContext
+    );
     await new Promise(resolve => setTimeout(resolve, 1500));
 
     // Get third instance using pg

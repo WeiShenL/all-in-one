@@ -8,6 +8,7 @@ This document covers development practices, guidelines, and advanced topics for 
 - [Testing](#-testing)
 - [Code Quality & Standards](#-code-quality--standards)
 - [Authentication System](#-authentication-system)
+- [Real-time Notification System](#-real-time-notification-system)
 - [Project Structure](#-project-structure)
 
 ## 💾 Database Management
@@ -73,7 +74,11 @@ npx prisma db seed
 
 ## 🧪 Testing
 
-This project uses Jest and React Testing Library for comprehensive unit and integration testing with a well-organized test structure.
+This project uses a comprehensive testing strategy with three test types:
+
+1. **Unit Tests** - Fast, isolated tests using Jest
+2. **Integration Tests** - Database and API tests using Jest
+3. **End-to-End (E2E) Tests** - Full user flow tests using Playwright
 
 ### Test Structure
 
@@ -84,23 +89,37 @@ tests/
 ├── unit/                    # Unit tests (fast, isolated)
 │   ├── components/         # React component tests
 │   │   └── auth/
-│   └── lib/               # Utility function tests
+│   ├── lib/               # Utility function tests
+│   ├── hooks/             # React hooks tests
+│   └── services/          # Service class tests
 ├── integration/           # Integration tests (database, API)
-│   └── database/
-└── e2e/                  # End-to-end tests (future)
+│   ├── auth/              # Auth flow integration tests
+│   ├── database/          # Database operation tests
+│   └── realtime/          # Real-time notification tests
+└── e2e/                   # End-to-end tests (Playwright)
+    └── auth-flow.spec.ts  # Full authentication flow
 ```
 
 ### Running Tests
 
 ```bash
-# Run all tests
+# Run ALL tests sequentially (Jest unit + integration + Playwright E2E)
 npm test
+
+# Run ONLY Jest tests (unit + integration, excludes E2E)
+npm run test:jest
 
 # Run only unit tests (fast feedback during development)
 npm run test:unit
 
 # Run only integration tests (requires database)
 npm run test:integration
+
+# Run only E2E tests (requires database and running app)
+npm run test:e2e
+npm run test:e2e:headed     # With browser UI visible
+npm run test:e2e:ui         # Interactive UI mode
+npm run test:e2e:debug      # Debug mode with inspector
 
 # Run tests in watch mode (automatically re-run on file changes)
 npm run test:watch
@@ -115,6 +134,24 @@ npm run test:coverage
 # CI mode (no watch, coverage enabled)
 npm run test:ci
 ```
+
+### Test Execution Order
+
+When running `npm test`, tests execute in this order:
+
+1. **Unit Tests** → Fast isolated tests (Jest)
+2. **Integration Tests** → Database/API tests (Jest)
+3. **E2E Tests** → Full user flows (Playwright)
+
+If any step fails, subsequent steps are skipped (fail-fast behavior).
+
+### Test Type Comparison
+
+| Test Type       | Speed     | Isolation     | Requires DB | Requires Browser | Use Case                   |
+| --------------- | --------- | ------------- | ----------- | ---------------- | -------------------------- |
+| **Unit**        | ⚡ Fast   | ✅ Isolated   | ❌ No       | ❌ No            | Component logic, utilities |
+| **Integration** | 🐢 Medium | ⚠️ Partial    | ✅ Yes      | ❌ No            | Database ops, API calls    |
+| **E2E**         | 🐌 Slow   | ❌ Full stack | ✅ Yes      | ✅ Yes           | User workflows, UI         |
 
 ### Coverage Reports
 
@@ -231,53 +268,183 @@ describe('User Database Operations', () => {
 
 #### Creating Service Tests (OOP Implementation)
 
-**For Service Classes:**
+**For OOP Service Classes:**
 Create tests in `tests/unit/services/ServiceName.test.ts`
 
 ```typescript
-// tests/unit/services/TaskService.test.ts
-import { TaskService } from '@/services/TaskService';
-import { ITaskRepository } from '@/repositories/interfaces/ITaskRepository';
+// tests/unit/services/DepartmentService.test.ts
+import { DepartmentService } from '@/app/server/services/DepartmentService';
+import { PrismaClient } from '@prisma/client';
 
-describe('TaskService', () => {
+describe('DepartmentService - OOP Pattern', () => {
+  let departmentService: DepartmentService;
+  let mockPrisma: jest.Mocked<PrismaClient>;
+
+  beforeEach(() => {
+    mockPrisma = {
+      department: {
+        findMany: jest.fn(),
+        create: jest.fn(),
+        update: jest.fn(),
+      },
+    } as any;
+
+    departmentService = new DepartmentService(mockPrisma);
+  });
+
+  test('should get all departments with hierarchy', async () => {
+    mockPrisma.department.findMany.mockResolvedValue([
+      { id: '1', name: 'Engineering', parentId: null },
+      { id: '2', name: 'Backend', parentId: '1' },
+    ]);
+
+    const result = await departmentService.getAll();
+
+    expect(result).toHaveLength(2);
+    expect(result[0].level).toBe(0); // Top level
+    expect(result[1].level).toBe(1); // Child level
+  });
+});
+```
+
+#### Creating Domain Tests (DDD Implementation)
+
+**For Domain Entities (Pure Business Logic):**
+Create tests in `tests/unit/domain/[entity]/[Entity].test.ts`
+
+```typescript
+// tests/unit/domain/task/Task.create.test.ts
+import { Task, TaskStatus } from '@/domain/task/Task';
+import {
+  MinAssigneeRequiredError,
+  MaxAssigneesReachedError,
+} from '@/domain/task/errors/TaskErrors';
+
+describe('Task Entity - DDD Pattern', () => {
+  const validTaskData = {
+    title: 'Test Task',
+    description: 'Test Description',
+    priorityBucket: 5,
+    dueDate: new Date('2025-12-31'),
+    status: TaskStatus.TO_DO,
+    ownerId: 'user-1',
+    departmentId: 'dept-1',
+    projectId: null,
+    parentTaskId: null,
+    recurringInterval: null,
+    isArchived: false,
+    assignments: new Set(['user-1']),
+    tags: new Set(),
+  };
+
+  describe('create', () => {
+    test('should create task with valid data', () => {
+      const task = Task.create(validTaskData);
+
+      expect(task.getTitle()).toBe('Test Task');
+      expect(task.getPriorityBucket()).toBe(5);
+    });
+
+    test('should enforce minimum 1 assignee rule', () => {
+      expect(() =>
+        Task.create({
+          ...validTaskData,
+          assignments: new Set(), // Empty set
+        })
+      ).toThrow(MinAssigneeRequiredError);
+    });
+
+    test('should enforce maximum 5 assignees rule', () => {
+      expect(() =>
+        Task.create({
+          ...validTaskData,
+          assignments: new Set(['u1', 'u2', 'u3', 'u4', 'u5', 'u6']),
+        })
+      ).toThrow(MaxAssigneesReachedError);
+    });
+  });
+
+  describe('updateTitle', () => {
+    test('should update title successfully', () => {
+      const task = Task.create(validTaskData);
+
+      task.updateTitle('Updated Title');
+
+      expect(task.getTitle()).toBe('Updated Title');
+    });
+
+    test('should reject empty title', () => {
+      const task = Task.create(validTaskData);
+
+      expect(() => task.updateTitle('')).toThrow('Title cannot be empty');
+    });
+  });
+});
+```
+
+**For Application Services (DDD Pattern):**
+Create tests in `tests/unit/services/[Service].test.ts`
+
+```typescript
+// tests/unit/services/TaskService.test.ts
+import { TaskService } from '@/services/task/TaskService';
+import { ITaskRepository } from '@/repositories/ITaskRepository';
+
+describe('TaskService - DDD Pattern', () => {
   let taskService: TaskService;
   let mockTaskRepository: jest.Mocked<ITaskRepository>;
 
   beforeEach(() => {
     mockTaskRepository = {
-      findById: jest.fn(),
-      save: jest.fn(),
-      findByUserId: jest.fn(),
-      // ... other methods
-    };
+      createTask: jest.fn(),
+      getTaskByIdFull: jest.fn(),
+      updateTask: jest.fn(),
+      validateProjectExists: jest.fn(),
+      validateAssignees: jest.fn(),
+      logTaskAction: jest.fn(),
+    } as any;
 
     taskService = new TaskService(mockTaskRepository);
   });
 
-  test('should create task with valid data', async () => {
-    const taskData = {
-      title: 'Test Task',
-      description: 'Test Description',
-      priority: 'HIGH',
-      dueDate: new Date(),
-      ownerId: 'user-id',
-    };
+  test('should create task via domain model', async () => {
+    mockTaskRepository.validateAssignees.mockResolvedValue({
+      allExist: true,
+      allActive: true,
+    });
+    mockTaskRepository.createTask.mockResolvedValue({ id: 'task-1' });
 
-    await taskService.createTask(taskData);
-
-    expect(mockTaskRepository.save).toHaveBeenCalledWith(
-      expect.objectContaining({
-        title: 'Test Task',
-      })
+    const result = await taskService.createTask(
+      {
+        title: 'New Task',
+        description: 'Description',
+        priority: 8,
+        dueDate: new Date(),
+        assigneeIds: ['user-1'],
+      },
+      { userId: 'user-1', role: 'STAFF', departmentId: 'dept-1' }
     );
+
+    expect(result.id).toBe('task-1');
+    expect(mockTaskRepository.createTask).toHaveBeenCalled();
   });
 
-  test('should throw error for invalid task data', async () => {
-    const invalidData = { title: '', description: 'Test' };
+  test('should reject invalid project ID', async () => {
+    mockTaskRepository.validateProjectExists.mockResolvedValue(false);
 
-    await expect(taskService.createTask(invalidData)).rejects.toThrow(
-      'Task title is required'
-    );
+    await expect(
+      taskService.createTask(
+        {
+          title: 'Task',
+          description: 'Description',
+          priority: 5,
+          dueDate: new Date(),
+          assigneeIds: ['user-1'],
+          projectId: 'invalid-project',
+        },
+        { userId: 'user-1', role: 'STAFF', departmentId: 'dept-1' }
+      )
+    ).rejects.toThrow('Project not found');
   });
 });
 ```
@@ -314,11 +481,54 @@ Use the configured path mappings:
 
 ### Continuous Integration
 
-The project includes CI-ready test commands:
+The CI/CD pipeline ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs tests automatically on every pull request:
 
-- `npm run test:ci` - Runs all tests with coverage, no watch mode
-- All tests must pass before deployment
-- Coverage reports are generated for CI/CD analysis
+**Pipeline Stages:**
+
+1. **Code Quality** (`code-quality` job):
+   - TypeScript type checking (`npx tsc --noEmit`)
+   - Code formatting check (`npm run format:check`)
+   - Linting (`npm run lint`)
+
+2. **Unit Tests** (`base-tests` job):
+   - Runs `npm run test:unit` with coverage
+   - Outputs coverage to `coverage/unit/`
+   - Uploads coverage artifact for later merging
+
+3. **Security Scan** (`security` job):
+   - Dependency vulnerability scan (`npm audit`)
+   - Secrets leak detection (gitleaks)
+   - Static Application Security Testing (CodeQL)
+
+4. **Staging Deploy & Integration Testing** (`staging-deploy` job):
+   - Build verification
+   - Database migrations (`npx prisma migrate deploy`)
+   - Integration tests: `npm run test:integration` with coverage
+   - Vercel preview deployment
+   - E2E tests: `npm run test:e2e` against deployed preview
+   - Coverage merging (unit + integration)
+   - Coverage upload to Coveralls
+
+**Test Execution in CI:**
+
+- **Unit tests** run first (fast feedback)
+- **Integration tests** run after successful deployment
+- **E2E tests** run against the deployed Vercel preview URL
+- All tests must pass for the pipeline to succeed
+
+**Coverage Reporting:**
+
+- Unit and integration coverage are collected separately
+- Coverage files are merged: `coverage/unit/lcov.info` + `coverage/integration/lcov.info`
+- Merged coverage uploaded to [Coveralls](https://coveralls.io) for tracking
+- E2E tests do not generate coverage (focused on user flow validation)
+
+**Manual CI Commands:**
+
+```bash
+# Run tests as CI does (no watch mode)
+npm run test:ci
+```
 
 ## 🧹 Code Quality & Development Standards
 
@@ -436,6 +646,261 @@ NEXT_PUBLIC_ANON_KEY=your-production-anon-key
 
 The authentication code automatically adapts to the environment.
 
+## 🔔 Real-time Notification System
+
+### Overview
+
+The application includes a **real-time notification system** built with Supabase Realtime and custom Toast components. It supports displaying notifications in real-time across all connected clients with a clean, animated UI.
+
+### Notification Features
+
+- **Real-time Broadcasting**: Notifications appear instantly across all connected clients
+- **Auto-dismiss**: Notifications automatically disappear after 5 seconds (configurable)
+- **Manual Dismiss**: Users can close notifications manually
+- **Animated Transitions**: Smooth slide-in and slide-out animations
+- **Type Safety**: Full TypeScript support with defined notification types
+- **Connection Status**: Real-time connection monitoring (shown in development mode)
+- **Multiple Types**: Support for `info`, `success`, `warning`, and `error` notifications
+
+### Notification Types
+
+```typescript
+type NotificationType = 'info' | 'success' | 'warning' | 'error';
+```
+
+Each type has distinct visual styling:
+
+- **Info**: Blue theme for informational messages
+- **Success**: Green theme for successful operations
+- **Warning**: Yellow theme for warnings
+- **Error**: Red theme for errors
+
+### Setup
+
+The notification system is already set up globally in [src/app/layout.tsx](src/app/layout.tsx). The `NotificationProvider` wraps your application and `ToastContainer` displays the notifications.
+
+```typescript
+import { NotificationProvider } from '@/lib/context/NotificationContext'
+import { ToastContainer } from '@/app/components/ToastContainer'
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <NotificationProvider autoRemoveDelay={5000} maxNotifications={5}>
+      {children}
+      <ToastContainer />
+    </NotificationProvider>
+  )
+}
+```
+
+### Using Notifications in Components
+
+#### Displaying Notifications
+
+```typescript
+'use client'
+import { useNotifications } from '@/lib/context/NotificationContext'
+
+export function MyComponent() {
+  const { addNotification, isConnected } = useNotifications()
+
+  const handleSuccess = () => {
+    addNotification('success', 'Task Completed', 'Your task was successfully saved!')
+  }
+
+  const handleError = () => {
+    addNotification('error', 'Error', 'Failed to save task. Please try again.')
+  }
+
+  const handleWarning = () => {
+    addNotification('warning', 'Warning', 'This action cannot be undone.')
+  }
+
+  const handleInfo = () => {
+    addNotification('info', 'New Update', 'A new version is available.')
+  }
+
+  return (
+    <div>
+      <button onClick={handleSuccess}>Show Success</button>
+      <button onClick={handleError}>Show Error</button>
+      <button onClick={handleWarning}>Show Warning</button>
+      <button onClick={handleInfo}>Show Info</button>
+
+      {/* Connection status */}
+      <p>Status: {isConnected ? 'Connected' : 'Disconnected'}</p>
+    </div>
+  )
+}
+```
+
+#### Broadcasting Real-time Notifications
+
+To send notifications that appear on all connected clients:
+
+```typescript
+'use client'
+import { useRealtimeNotifications } from '@/lib/hooks/useRealtimeNotifications'
+
+export function BroadcastComponent() {
+  const { sendBroadcast, isConnected } = useRealtimeNotifications()
+
+  const notifyAllUsers = async () => {
+    try {
+      await sendBroadcast({
+        type: 'info',
+        title: 'System Announcement',
+        message: 'Maintenance scheduled for tonight at 10 PM',
+      })
+    } catch (error) {
+      console.error('Failed to broadcast notification:', error)
+    }
+  }
+
+  return (
+    <button onClick={notifyAllUsers} disabled={!isConnected}>
+      Notify All Users
+    </button>
+  )
+}
+```
+
+### API Reference
+
+#### `useNotifications()` Hook
+
+Returns notification context with the following methods and properties:
+
+```typescript
+interface NotificationContextType {
+  // Array of current notifications
+  notifications: Notification[];
+
+  // Add a new notification
+  addNotification: (
+    type: NotificationType,
+    title: string,
+    message: string
+  ) => void;
+
+  // Remove a notification immediately
+  removeNotification: (id: string) => void;
+
+  // Dismiss with animation
+  dismissNotification: (id: string) => void;
+
+  // Clear all notifications
+  clearAll: () => void;
+
+  // Connection status
+  isConnected: boolean;
+
+  // Connection error (if any)
+  error: Error | null;
+}
+```
+
+#### `useRealtimeNotifications()` Hook
+
+Lower-level hook for custom real-time notification handling:
+
+```typescript
+interface UseRealtimeNotificationsOptions {
+  channel?: string; // Default: 'notifications'
+  onNotification?: (notification: RealtimeNotification) => void;
+  autoReconnect?: boolean; // Default: true
+}
+
+interface UseRealtimeNotificationsReturn {
+  isConnected: boolean;
+  error: Error | null;
+  sendBroadcast: (
+    notification: Omit<RealtimeNotification, 'broadcast_at'>
+  ) => Promise<void>;
+}
+```
+
+#### `NotificationProvider` Props
+
+```typescript
+interface NotificationProviderProps {
+  children: ReactNode;
+  autoRemoveDelay?: number; // Default: 5000ms (5 seconds)
+  maxNotifications?: number; // Default: 5
+}
+```
+
+### Configuration Options
+
+Customize the notification behavior by adjusting the provider props:
+
+```typescript
+<NotificationProvider
+  autoRemoveDelay={10000}     // Keep notifications for 10 seconds
+  maxNotifications={3}        // Show max 3 notifications at once
+>
+  {children}
+</NotificationProvider>
+```
+
+### File Structure
+
+```
+src/
+├── app/components/
+│   ├── Toast.tsx              # Individual toast notification component
+│   └── ToastContainer.tsx     # Container for rendering all toasts
+├── lib/
+│   ├── context/
+│   │   └── NotificationContext.tsx  # Notification state management
+│   └── hooks/
+│       └── useRealtimeNotifications.ts  # Supabase Realtime hook
+└── types/
+    └── notification.ts        # TypeScript type definitions
+```
+
+### Best Practices
+
+1. **Use Appropriate Types**: Choose the correct notification type to convey the message intent
+2. **Keep Messages Concise**: Titles should be 2-4 words, messages 1-2 sentences
+3. **Avoid Spam**: Don't trigger multiple notifications for the same event
+4. **Handle Errors**: Wrap `sendBroadcast` in try-catch blocks
+5. **Check Connection**: Verify `isConnected` before broadcasting
+
+### Notification Examples
+
+**Task Assignment:**
+
+```typescript
+addNotification('success', 'Task Assigned', `Task assigned to ${userName}`);
+```
+
+**Error Handling:**
+
+```typescript
+addNotification('error', 'Upload Failed', 'File size exceeds 10MB limit');
+```
+
+**System Announcements:**
+
+```typescript
+await sendBroadcast({
+  type: 'warning',
+  title: 'Scheduled Maintenance',
+  message: 'System will be down for 30 minutes starting at 2 AM',
+});
+```
+
+**Real-time Updates:**
+
+```typescript
+await sendBroadcast({
+  type: 'info',
+  title: 'New Comment',
+  message: `${userName} commented on your task`,
+});
+```
+
 ## 📁 Project Structure
 
 ```
@@ -445,29 +910,57 @@ all-in-one/
 │   ├── seed.ts            # Seed script
 │   ├── data/              # Seed data JSON files
 │   └── migrations/        # Migration history
-├── src/app/
-│   ├── server/           # Backend API Layer
-│   │   ├── services/     # OOP Service Classes (business logic)
-│   │   ├── routers/      # tRPC routers (thin wrappers)
-│   │   ├── types/        # Shared TypeScript types
-│   │   └── trpc.ts       # tRPC configuration
-│   └── ...               # Next.js app directory
+├── src/
+│   ├── app/
+│   │   ├── server/       # Backend API Layer
+│   │   │   ├── services/ # OOP Service Classes (simpler domains)
+│   │   │   ├── routers/  # tRPC routers (thin wrappers)
+│   │   │   ├── types/    # Shared TypeScript types
+│   │   │   └── trpc.ts   # tRPC configuration
+│   │   └── ...           # Next.js app directory
+│   ├── domain/           # DDD Domain Layer (complex domains)
+│   │   └── task/         # Task domain (rich entities)
+│   │       ├── Task.ts            # Aggregate Root
+│   │       ├── PriorityBucket.ts  # Value Object
+│   │       └── errors/            # Domain errors
+│   ├── services/         # DDD Application Layer
+│   │   ├── task/         # Task use cases
+│   │   └── storage/      # Storage service
+│   └── repositories/     # DDD Infrastructure Layer
+│       ├── ITaskRepository.ts       # Repository interface
+│       └── PrismaTaskRepository.ts  # Prisma adapter
 ├── tests/                # Test suite organization
-│   ├── unit/             # Unit tests (components, utilities, services)
-│   ├── integration/      # Integration tests (database, API)
-│   └── e2e/             # End-to-end tests (future)
+│   ├── unit/
+│   │   ├── domain/       # DDD domain entity tests (pure logic)
+│   │   ├── services/     # Service layer tests (OOP + DDD)
+│   │   ├── components/   # React component tests
+│   │   └── lib/          # Utility function tests
+│   ├── integration/      # Integration tests (database + services)
+│   └── e2e/              # End-to-end tests (Playwright)
 ├── supabase/             # Supabase Docker configuration
-├── OOP.md                # OOP Architecture documentation
+├── OOP.md                # OOP & DDD Architecture documentation
 └── .env.example          # Environment template
 ```
 
-### Backend Architecture (OOP)
+### Backend Architecture (Hybrid: OOP + DDD)
 
-This project uses an **Object-Oriented Programming architecture** for the backend API layer:
+This project uses **two architectural patterns** based on domain complexity:
 
-- **Service Layer** (`src/app/server/services/`): TypeScript classes encapsulating business logic
+#### OOP Service Layer (Simpler Domains)
+
+- **Service Layer** (`src/app/server/services/`): TypeScript classes for business logic
 - **Router Layer** (`src/app/server/routers/`): Thin tRPC wrappers delegating to services
-- **OOP Principles**: Encapsulation, Inheritance, Single Responsibility, Dependency Injection
+- **Used for**: Department, UserProfile, Team, Project, Comment, Notification
+- **Pattern**: Anemic domain model with service layer orchestration
+
+#### Domain-Driven Design (Complex Domains)
+
+- **Domain Layer** (`src/domain/task/`): Rich entities with business logic
+- **Application Layer** (`src/services/task/`): Use case orchestration
+- **Infrastructure Layer** (`src/repositories/`): Database abstraction
+- **Presentation Layer** (`src/app/server/routers/`): tRPC API endpoints
+- **Used for**: Task Management (complex rules, rich behavior)
+- **Pattern**: Clean architecture with rich domain model
 
 For complete architecture details, implementation guide, and examples, see [OOP.md](./OOP.md).
 

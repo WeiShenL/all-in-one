@@ -58,12 +58,12 @@ describe('Integration Tests - Task Creation (SCRUM-12)', () => {
     );
     testUserId = ownerResult.rows[0].id;
 
-    // Create 5 assignees for testing max assignee limit
+    // Create 5 assignees for testing max assignee limit (unique emails)
     const assignee1Result = await pgClient.query(
       `INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt")
        VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
        RETURNING id`,
-      ['assignee1@test.com', 'Assignee 1', 'STAFF', testDepartmentId]
+      ['creation-assignee1@test.com', 'Assignee 1', 'STAFF', testDepartmentId]
     );
     testAssignee1Id = assignee1Result.rows[0].id;
 
@@ -71,7 +71,7 @@ describe('Integration Tests - Task Creation (SCRUM-12)', () => {
       `INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt")
        VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
        RETURNING id`,
-      ['assignee2@test.com', 'Assignee 2', 'STAFF', testDepartmentId]
+      ['creation-assignee2@test.com', 'Assignee 2', 'STAFF', testDepartmentId]
     );
     testAssignee2Id = assignee2Result.rows[0].id;
 
@@ -79,7 +79,7 @@ describe('Integration Tests - Task Creation (SCRUM-12)', () => {
       `INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt")
        VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
        RETURNING id`,
-      ['assignee3@test.com', 'Assignee 3', 'STAFF', testDepartmentId]
+      ['creation-assignee3@test.com', 'Assignee 3', 'STAFF', testDepartmentId]
     );
     testAssignee3Id = assignee3Result.rows[0].id;
 
@@ -87,7 +87,7 @@ describe('Integration Tests - Task Creation (SCRUM-12)', () => {
       `INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt")
        VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
        RETURNING id`,
-      ['assignee4@test.com', 'Assignee 4', 'STAFF', testDepartmentId]
+      ['creation-assignee4@test.com', 'Assignee 4', 'STAFF', testDepartmentId]
     );
     testAssignee4Id = assignee4Result.rows[0].id;
 
@@ -95,7 +95,7 @@ describe('Integration Tests - Task Creation (SCRUM-12)', () => {
       `INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt")
        VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
        RETURNING id`,
-      ['assignee5@test.com', 'Assignee 5', 'STAFF', testDepartmentId]
+      ['creation-assignee5@test.com', 'Assignee 5', 'STAFF', testDepartmentId]
     );
     testAssignee5Id = assignee5Result.rows[0].id;
 
