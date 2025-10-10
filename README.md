@@ -125,22 +125,37 @@ For more advanced database management and development practices, see [DEVELOPMEN
 
 - **Frontend**: Next.js 15 with TypeScript, App Router
 - **Backend**: Supabase (PostgreSQL, Auth, Storage, Realtime), tRPC
-- **API Layer**: tRPC with OOP Service Architecture
+- **API Layer**: tRPC with Hybrid Architecture (OOP + DDD)
 - **Database ORM**: Prisma
 - **Development**: Docker, Docker Compose
 - **Code Quality**: ESLint, Prettier, Husky pre-commit hooks
+- **Testing**: Jest, React Testing Library, Playwright
 
 ## 🏗️ Architecture
 
-This project uses an **Object-Oriented Programming (OOP) architecture** for the backend:
+This project uses a **Hybrid Backend Architecture** combining two patterns based on domain complexity:
 
-- **Service Layer Pattern**: Business logic encapsulated in TypeScript classes
-- **Full CRUD Operations**: Complete service classes for all entities
-- **OOP Principles**: Encapsulation, Inheritance, Single Responsibility, Dependency Injection
-- **tRPC Integration**: Thin router wrappers delegate to service classes
-- **Fully Tested**: Comprehensive unit and integration test coverage
+### OOP Service Layer (Simpler Domains)
 
-For detailed architecture documentation and implementation guide, see [OOP.md](./OOP.md).
+- **Pattern**: Anemic domain model with service layer orchestration
+- **Used for**: Department, UserProfile, Team, Project, Comment, Notification
+- **Benefits**: Clear separation, easy to maintain, suitable for CRUD operations
+
+### Domain-Driven Design (Complex Domains)
+
+- **Pattern**: Rich domain models with clean architecture
+- **Used for**: Task Management (complex business rules, rich behavior)
+- **Layers**: Domain → Application → Infrastructure → Presentation
+- **Benefits**: Enforced invariants, database-agnostic, highly testable
+
+### Key Features
+
+- **Encapsulation**: Business logic isolated in appropriate layers
+- **Testability**: Comprehensive test coverage (unit, integration, e2e)
+- **Type Safety**: Full TypeScript support across all layers
+- **Flexibility**: Choose architecture pattern based on domain complexity
+
+For detailed architecture documentation, patterns, and implementation guide, see [OOP.md](./OOP.md).
 
 ## 🧪 Testing
 

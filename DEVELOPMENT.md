@@ -268,53 +268,183 @@ describe('User Database Operations', () => {
 
 #### Creating Service Tests (OOP Implementation)
 
-**For Service Classes:**
+**For OOP Service Classes:**
 Create tests in `tests/unit/services/ServiceName.test.ts`
 
 ```typescript
-// tests/unit/services/TaskService.test.ts
-import { TaskService } from '@/services/TaskService';
-import { ITaskRepository } from '@/repositories/interfaces/ITaskRepository';
+// tests/unit/services/DepartmentService.test.ts
+import { DepartmentService } from '@/app/server/services/DepartmentService';
+import { PrismaClient } from '@prisma/client';
 
-describe('TaskService', () => {
+describe('DepartmentService - OOP Pattern', () => {
+  let departmentService: DepartmentService;
+  let mockPrisma: jest.Mocked<PrismaClient>;
+
+  beforeEach(() => {
+    mockPrisma = {
+      department: {
+        findMany: jest.fn(),
+        create: jest.fn(),
+        update: jest.fn(),
+      },
+    } as any;
+
+    departmentService = new DepartmentService(mockPrisma);
+  });
+
+  test('should get all departments with hierarchy', async () => {
+    mockPrisma.department.findMany.mockResolvedValue([
+      { id: '1', name: 'Engineering', parentId: null },
+      { id: '2', name: 'Backend', parentId: '1' },
+    ]);
+
+    const result = await departmentService.getAll();
+
+    expect(result).toHaveLength(2);
+    expect(result[0].level).toBe(0); // Top level
+    expect(result[1].level).toBe(1); // Child level
+  });
+});
+```
+
+#### Creating Domain Tests (DDD Implementation)
+
+**For Domain Entities (Pure Business Logic):**
+Create tests in `tests/unit/domain/[entity]/[Entity].test.ts`
+
+```typescript
+// tests/unit/domain/task/Task.create.test.ts
+import { Task, TaskStatus } from '@/domain/task/Task';
+import {
+  MinAssigneeRequiredError,
+  MaxAssigneesReachedError,
+} from '@/domain/task/errors/TaskErrors';
+
+describe('Task Entity - DDD Pattern', () => {
+  const validTaskData = {
+    title: 'Test Task',
+    description: 'Test Description',
+    priorityBucket: 5,
+    dueDate: new Date('2025-12-31'),
+    status: TaskStatus.TO_DO,
+    ownerId: 'user-1',
+    departmentId: 'dept-1',
+    projectId: null,
+    parentTaskId: null,
+    recurringInterval: null,
+    isArchived: false,
+    assignments: new Set(['user-1']),
+    tags: new Set(),
+  };
+
+  describe('create', () => {
+    test('should create task with valid data', () => {
+      const task = Task.create(validTaskData);
+
+      expect(task.getTitle()).toBe('Test Task');
+      expect(task.getPriorityBucket()).toBe(5);
+    });
+
+    test('should enforce minimum 1 assignee rule', () => {
+      expect(() =>
+        Task.create({
+          ...validTaskData,
+          assignments: new Set(), // Empty set
+        })
+      ).toThrow(MinAssigneeRequiredError);
+    });
+
+    test('should enforce maximum 5 assignees rule', () => {
+      expect(() =>
+        Task.create({
+          ...validTaskData,
+          assignments: new Set(['u1', 'u2', 'u3', 'u4', 'u5', 'u6']),
+        })
+      ).toThrow(MaxAssigneesReachedError);
+    });
+  });
+
+  describe('updateTitle', () => {
+    test('should update title successfully', () => {
+      const task = Task.create(validTaskData);
+
+      task.updateTitle('Updated Title');
+
+      expect(task.getTitle()).toBe('Updated Title');
+    });
+
+    test('should reject empty title', () => {
+      const task = Task.create(validTaskData);
+
+      expect(() => task.updateTitle('')).toThrow('Title cannot be empty');
+    });
+  });
+});
+```
+
+**For Application Services (DDD Pattern):**
+Create tests in `tests/unit/services/[Service].test.ts`
+
+```typescript
+// tests/unit/services/TaskService.test.ts
+import { TaskService } from '@/services/task/TaskService';
+import { ITaskRepository } from '@/repositories/ITaskRepository';
+
+describe('TaskService - DDD Pattern', () => {
   let taskService: TaskService;
   let mockTaskRepository: jest.Mocked<ITaskRepository>;
 
   beforeEach(() => {
     mockTaskRepository = {
-      findById: jest.fn(),
-      save: jest.fn(),
-      findByUserId: jest.fn(),
-      // ... other methods
-    };
+      createTask: jest.fn(),
+      getTaskByIdFull: jest.fn(),
+      updateTask: jest.fn(),
+      validateProjectExists: jest.fn(),
+      validateAssignees: jest.fn(),
+      logTaskAction: jest.fn(),
+    } as any;
 
     taskService = new TaskService(mockTaskRepository);
   });
 
-  test('should create task with valid data', async () => {
-    const taskData = {
-      title: 'Test Task',
-      description: 'Test Description',
-      priority: 'HIGH',
-      dueDate: new Date(),
-      ownerId: 'user-id',
-    };
+  test('should create task via domain model', async () => {
+    mockTaskRepository.validateAssignees.mockResolvedValue({
+      allExist: true,
+      allActive: true,
+    });
+    mockTaskRepository.createTask.mockResolvedValue({ id: 'task-1' });
 
-    await taskService.createTask(taskData);
-
-    expect(mockTaskRepository.save).toHaveBeenCalledWith(
-      expect.objectContaining({
-        title: 'Test Task',
-      })
+    const result = await taskService.createTask(
+      {
+        title: 'New Task',
+        description: 'Description',
+        priority: 8,
+        dueDate: new Date(),
+        assigneeIds: ['user-1'],
+      },
+      { userId: 'user-1', role: 'STAFF', departmentId: 'dept-1' }
     );
+
+    expect(result.id).toBe('task-1');
+    expect(mockTaskRepository.createTask).toHaveBeenCalled();
   });
 
-  test('should throw error for invalid task data', async () => {
-    const invalidData = { title: '', description: 'Test' };
+  test('should reject invalid project ID', async () => {
+    mockTaskRepository.validateProjectExists.mockResolvedValue(false);
 
-    await expect(taskService.createTask(invalidData)).rejects.toThrow(
-      'Task title is required'
-    );
+    await expect(
+      taskService.createTask(
+        {
+          title: 'Task',
+          description: 'Description',
+          priority: 5,
+          dueDate: new Date(),
+          assigneeIds: ['user-1'],
+          projectId: 'invalid-project',
+        },
+        { userId: 'user-1', role: 'STAFF', departmentId: 'dept-1' }
+      )
+    ).rejects.toThrow('Project not found');
   });
 });
 ```
@@ -780,29 +910,57 @@ all-in-one/
 │   ├── seed.ts            # Seed script
 │   ├── data/              # Seed data JSON files
 │   └── migrations/        # Migration history
-├── src/app/
-│   ├── server/           # Backend API Layer
-│   │   ├── services/     # OOP Service Classes (business logic)
-│   │   ├── routers/      # tRPC routers (thin wrappers)
-│   │   ├── types/        # Shared TypeScript types
-│   │   └── trpc.ts       # tRPC configuration
-│   └── ...               # Next.js app directory
+├── src/
+│   ├── app/
+│   │   ├── server/       # Backend API Layer
+│   │   │   ├── services/ # OOP Service Classes (simpler domains)
+│   │   │   ├── routers/  # tRPC routers (thin wrappers)
+│   │   │   ├── types/    # Shared TypeScript types
+│   │   │   └── trpc.ts   # tRPC configuration
+│   │   └── ...           # Next.js app directory
+│   ├── domain/           # DDD Domain Layer (complex domains)
+│   │   └── task/         # Task domain (rich entities)
+│   │       ├── Task.ts            # Aggregate Root
+│   │       ├── PriorityBucket.ts  # Value Object
+│   │       └── errors/            # Domain errors
+│   ├── services/         # DDD Application Layer
+│   │   ├── task/         # Task use cases
+│   │   └── storage/      # Storage service
+│   └── repositories/     # DDD Infrastructure Layer
+│       ├── ITaskRepository.ts       # Repository interface
+│       └── PrismaTaskRepository.ts  # Prisma adapter
 ├── tests/                # Test suite organization
-│   ├── unit/             # Unit tests (components, utilities, services)
-│   ├── integration/      # Integration tests (database, API)
-│   └── e2e/             # End-to-end tests (future)
+│   ├── unit/
+│   │   ├── domain/       # DDD domain entity tests (pure logic)
+│   │   ├── services/     # Service layer tests (OOP + DDD)
+│   │   ├── components/   # React component tests
+│   │   └── lib/          # Utility function tests
+│   ├── integration/      # Integration tests (database + services)
+│   └── e2e/              # End-to-end tests (Playwright)
 ├── supabase/             # Supabase Docker configuration
-├── OOP.md                # OOP Architecture documentation
+├── OOP.md                # OOP & DDD Architecture documentation
 └── .env.example          # Environment template
 ```
 
-### Backend Architecture (OOP)
+### Backend Architecture (Hybrid: OOP + DDD)
 
-This project uses an **Object-Oriented Programming architecture** for the backend API layer:
+This project uses **two architectural patterns** based on domain complexity:
 
-- **Service Layer** (`src/app/server/services/`): TypeScript classes encapsulating business logic
+#### OOP Service Layer (Simpler Domains)
+
+- **Service Layer** (`src/app/server/services/`): TypeScript classes for business logic
 - **Router Layer** (`src/app/server/routers/`): Thin tRPC wrappers delegating to services
-- **OOP Principles**: Encapsulation, Inheritance, Single Responsibility, Dependency Injection
+- **Used for**: Department, UserProfile, Team, Project, Comment, Notification
+- **Pattern**: Anemic domain model with service layer orchestration
+
+#### Domain-Driven Design (Complex Domains)
+
+- **Domain Layer** (`src/domain/task/`): Rich entities with business logic
+- **Application Layer** (`src/services/task/`): Use case orchestration
+- **Infrastructure Layer** (`src/repositories/`): Database abstraction
+- **Presentation Layer** (`src/app/server/routers/`): tRPC API endpoints
+- **Used for**: Task Management (complex rules, rich behavior)
+- **Pattern**: Clean architecture with rich domain model
 
 For complete architecture details, implementation guide, and examples, see [OOP.md](./OOP.md).
 

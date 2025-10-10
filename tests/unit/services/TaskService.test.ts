@@ -1,679 +1,683 @@
-import { TaskService } from '@/app/server/services/TaskService';
-import { PrismaClient } from '@prisma/client';
+import { TaskService, UserContext } from '@/services/task/TaskService';
+import { ITaskRepository } from '@/repositories/ITaskRepository';
+import { TaskStatus } from '@/domain/task/Task';
 
-// Mock Prisma Client
-const mockPrisma = {
-  task: {
-    findMany: jest.fn(),
-    findUnique: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    delete: jest.fn(),
-  },
-  userProfile: {
-    findUnique: jest.fn(),
-    findMany: jest.fn(),
-  },
-  department: {
-    findUnique: jest.fn(),
-  },
-  project: {
-    findUnique: jest.fn(),
-  },
-  taskAssignment: {
-    findMany: jest.fn(),
-    findUnique: jest.fn(),
-    create: jest.fn(),
-    createMany: jest.fn(),
-    delete: jest.fn(),
-  },
-  calendarEvent: {
-    create: jest.fn(),
-    findMany: jest.fn(),
-  },
-  tag: {
-    findUnique: jest.fn(),
-    create: jest.fn(),
-  },
-  taskTag: {
-    findUnique: jest.fn(),
-    create: jest.fn(),
-    createMany: jest.fn(),
-    delete: jest.fn(),
-    findMany: jest.fn(),
-  },
-} as unknown as PrismaClient;
+// Mock SupabaseStorageService to prevent real Supabase client creation
+jest.mock('@/services/storage/SupabaseStorageService', () => {
+  return {
+    SupabaseStorageService: jest.fn().mockImplementation(() => ({
+      uploadFile: jest.fn(),
+      getFileDownloadUrl: jest.fn(),
+      deleteFile: jest.fn(),
+      validateFile: jest.fn(),
+      validateTaskFileLimit: jest.fn(),
+    })),
+  };
+});
 
-describe('TaskService', () => {
+/**
+ * TaskService Test Suite - READ and UPDATE Operations
+ * Tests service orchestration with DDD architecture
+ * Mocks ITaskRepository interface (not Prisma directly)
+ */
+
+describe('TaskService - READ and UPDATE Operations', () => {
   let service: TaskService;
+  let mockRepository: jest.Mocked<ITaskRepository>;
+
+  const testUser: UserContext = {
+    userId: 'user-123',
+    role: 'STAFF',
+    departmentId: 'dept-456',
+  };
+
+  const mockTaskData = {
+    id: 'task-001',
+    title: 'Implement Login Feature',
+    description: 'Create login functionality',
+    priority: 8,
+    dueDate: new Date('2025-12-31'),
+    status: 'TO_DO',
+    ownerId: 'user-123',
+    departmentId: 'dept-456',
+    projectId: 'project-789',
+    parentTaskId: null,
+    recurringInterval: null,
+    isArchived: false,
+    createdAt: new Date('2025-01-01'),
+    updatedAt: new Date('2025-01-01'),
+    assignments: [{ userId: 'user-123' }],
+    tags: [{ tag: { name: 'backend' } }],
+    comments: [],
+    files: [],
+  };
 
   beforeEach(() => {
-    service = new TaskService(mockPrisma);
+    mockRepository = {
+      createTask: jest.fn(),
+      createTaskFile: jest.fn(),
+      getTaskFiles: jest.fn(),
+      getTaskFileById: jest.fn(),
+      deleteTaskFile: jest.fn(),
+      getTaskById: jest.fn(),
+      getTaskByIdFull: jest.fn(),
+      logTaskAction: jest.fn(),
+      validateProjectExists: jest.fn(),
+      getParentTaskDepth: jest.fn(),
+      validateAssignees: jest.fn(),
+      getUserTasks: jest.fn(),
+      getDepartmentTasks: jest.fn(),
+      updateTask: jest.fn(),
+      addTaskTag: jest.fn(),
+      removeTaskTag: jest.fn(),
+      addTaskAssignment: jest.fn(),
+      createComment: jest.fn(),
+      updateComment: jest.fn(),
+    } as any;
+
+    service = new TaskService(mockRepository);
     jest.clearAllMocks();
   });
 
-  describe('CRUD Operations', () => {
-    describe('Create', () => {
-      it('should create a new task', async () => {
-        const input = {
-          title: 'Implement Login',
-          description: 'Implement user login functionality',
-          priority: 8, // Changed from 'HIGH' to number (1-10 scale)
-          dueDate: new Date('2025-12-31'),
-          ownerId: 'user1',
-          departmentId: 'dept1',
-          projectId: 'proj1',
-          assigneeIds: ['user2'], // Added required assigneeIds
-        };
+  // ============================================
+  // READ OPERATIONS
+  // ============================================
 
-        (mockPrisma.userProfile.findUnique as jest.Mock).mockResolvedValue({
-          id: 'user1',
-          isActive: true,
-        });
+  describe('READ Operations', () => {
+    describe('getTaskById', () => {
+      it('should retrieve task by ID for authorized user (assignee)', async () => {
+        mockRepository.getTaskByIdFull.mockResolvedValue(mockTaskData);
 
-        (mockPrisma.department.findUnique as jest.Mock).mockResolvedValue({
-          id: 'dept1',
-        });
+        const result = await service.getTaskById('task-001', testUser);
 
-        (mockPrisma.project.findUnique as jest.Mock).mockResolvedValue({
-          id: 'proj1',
-        });
+        expect(mockRepository.getTaskByIdFull).toHaveBeenCalledWith('task-001');
+        expect(result).toBeDefined();
+        expect(result?.getTitle()).toBe('Implement Login Feature');
+        expect(result?.getPriorityBucket()).toBe(8);
+      });
 
-        // Mock assignee validation
-        (mockPrisma.userProfile.findMany as jest.Mock).mockResolvedValue([
-          { id: 'user2', isActive: true },
-        ]);
+      it('should retrieve task by ID for authorized user (owner)', async () => {
+        const taskData = { ...mockTaskData, ownerId: 'user-123' };
+        mockRepository.getTaskByIdFull.mockResolvedValue(taskData);
 
-        const mockCreated = {
-          id: 'task1',
-          title: input.title,
-          description: input.description,
-          priority: 8, // Number instead of enum
-          dueDate: input.dueDate,
-          ownerId: input.ownerId,
-          departmentId: input.departmentId,
-          projectId: input.projectId,
-          status: 'TO_DO',
-          isArchived: false,
-          parentTaskId: null,
-          recurringInterval: null,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          owner: { id: 'user1', name: 'Owner', email: 'owner@example.com' },
-          department: { id: 'dept1', name: 'Engineering' },
-          project: { id: 'proj1', name: 'Project' },
-          parentTask: null,
-        };
-
-        (mockPrisma.task.create as jest.Mock).mockResolvedValue(mockCreated);
-
-        // Mock createMany for task assignments
-        (mockPrisma.taskAssignment.createMany as jest.Mock).mockResolvedValue({
-          count: 1,
-        });
-
-        // Mock getById for final return
-        (mockPrisma.task.findUnique as jest.Mock).mockResolvedValue({
-          ...mockCreated,
-          owner: {
-            id: 'user1',
-            name: 'Owner',
-            email: 'owner@example.com',
-            role: 'STAFF',
-          },
-          subtasks: [],
-          assignments: [],
-          comments: [],
-          files: [],
-          tags: [],
-        });
-
-        const result = await service.create(input);
-
-        expect(mockPrisma.task.create).toHaveBeenCalledWith({
-          data: {
-            title: input.title,
-            description: input.description,
-            priority: 8,
-            dueDate: input.dueDate,
-            ownerId: input.ownerId,
-            departmentId: input.departmentId,
-            projectId: input.projectId,
-            parentTaskId: undefined,
-            recurringInterval: undefined,
-          },
-          include: expect.any(Object),
-        });
+        const result = await service.getTaskById('task-001', testUser);
 
         expect(result).toBeDefined();
-        expect(result!.title).toBe('Implement Login');
-        expect(result!.priority).toBe(8); // Expect number, not 'HIGH'
+        expect(result?.getTitle()).toBe('Implement Login Feature');
       });
 
-      it('should throw error when owner not found', async () => {
-        const input = {
-          title: 'Task',
-          description: 'Description',
-          dueDate: new Date(),
-          ownerId: 'nonexistent',
-          departmentId: 'dept1',
-          assigneeIds: ['user1'], // Added required field
+      it('should throw error for unauthorized user (not assignee or owner)', async () => {
+        const taskData = {
+          ...mockTaskData,
+          ownerId: 'other-user',
+          assignments: [{ userId: 'other-user' }],
         };
+        mockRepository.getTaskByIdFull.mockResolvedValue(taskData);
 
-        (mockPrisma.userProfile.findUnique as jest.Mock).mockResolvedValue(
-          null
-        );
-
-        await expect(service.create(input)).rejects.toThrow(
-          'Owner not found or inactive'
-        );
-      });
-
-      it('should throw error when department not found', async () => {
-        const input = {
-          title: 'Task',
-          description: 'Description',
-          dueDate: new Date(),
-          ownerId: 'user1',
-          departmentId: 'nonexistent',
-          assigneeIds: ['user1'], // Added required field
-        };
-
-        (mockPrisma.userProfile.findUnique as jest.Mock).mockResolvedValue({
-          id: 'user1',
-          isActive: true,
-        });
-
-        (mockPrisma.department.findUnique as jest.Mock).mockResolvedValue(null);
-
-        await expect(service.create(input)).rejects.toThrow(
-          'Department not found'
-        );
-      });
-    });
-
-    describe('Read', () => {
-      it('should get all tasks', async () => {
-        const mockTasks = [
-          {
-            id: 'task1',
-            title: 'Task 1',
-            status: 'TO_DO',
-            isArchived: false,
-            owner: { id: 'user1', name: 'Owner', email: 'owner@example.com' },
-            project: { id: 'proj1', name: 'Project' },
-            department: { id: 'dept1', name: 'Engineering' },
-            assignments: [],
-            subtasks: [],
-          },
-        ];
-
-        (mockPrisma.task.findMany as jest.Mock).mockResolvedValue(mockTasks);
-
-        const result = await service.getAll();
-
-        expect(mockPrisma.task.findMany).toHaveBeenCalledWith({
-          where: {
-            ownerId: undefined,
-            projectId: undefined,
-            departmentId: undefined,
-            status: undefined,
-            isArchived: false,
-            parentTaskId: undefined,
-          },
-          include: expect.any(Object),
-          orderBy: { dueDate: 'asc' },
-        });
-
-        expect(result).toHaveLength(1);
-      });
-
-      it('should get tasks with filters', async () => {
-        const mockTasks = [
-          {
-            id: 'task1',
-            title: 'Task 1',
-            status: 'IN_PROGRESS',
-            ownerId: 'user1',
-          },
-        ];
-
-        (mockPrisma.task.findMany as jest.Mock).mockResolvedValue(mockTasks);
-
-        await service.getAll({
-          ownerId: 'user1',
-          status: 'IN_PROGRESS',
-        });
-
-        expect(mockPrisma.task.findMany).toHaveBeenCalledWith({
-          where: {
-            ownerId: 'user1',
-            projectId: undefined,
-            departmentId: undefined,
-            status: 'IN_PROGRESS',
-            isArchived: false,
-            parentTaskId: undefined,
-          },
-          include: expect.any(Object),
-          orderBy: { dueDate: 'asc' },
-        });
-      });
-
-      it('should get task by ID', async () => {
-        const mockTask = {
-          id: 'task1',
-          title: 'Task 1',
-          owner: {
-            id: 'user1',
-            name: 'Owner',
-            email: 'owner@example.com',
-            role: 'STAFF',
-          },
-          project: { id: 'proj1', name: 'Project', status: 'ACTIVE' },
-          department: { id: 'dept1', name: 'Engineering' },
-          parentTask: null,
-          subtasks: [],
-          assignments: [],
-          comments: [],
-          files: [],
-          tags: [],
-        };
-
-        (mockPrisma.task.findUnique as jest.Mock).mockResolvedValue(mockTask);
-
-        const result = await service.getById('task1');
-
-        expect(mockPrisma.task.findUnique).toHaveBeenCalledWith({
-          where: { id: 'task1' },
-          include: expect.any(Object),
-        });
-
-        expect(result?.title).toBe('Task 1');
-      });
-
-      it('should get tasks by assignee', async () => {
-        const mockAssignments = [
-          {
-            userId: 'user1',
-            task: {
-              id: 'task1',
-              title: 'Task 1',
-              owner: { id: 'user2', name: 'Owner', email: 'owner@example.com' },
-              project: { id: 'proj1', name: 'Project' },
-              department: { id: 'dept1', name: 'Engineering' },
-            },
-          },
-        ];
-
-        (mockPrisma.taskAssignment.findMany as jest.Mock).mockResolvedValue(
-          mockAssignments
-        );
-
-        const result = await service.getByAssignee('user1');
-
-        expect(mockPrisma.taskAssignment.findMany).toHaveBeenCalledWith({
-          where: { userId: 'user1' },
-          include: expect.any(Object),
-        });
-
-        expect(result).toHaveLength(1);
-        expect(result[0].title).toBe('Task 1');
-      });
-    });
-
-    describe('Update', () => {
-      it('should update a task', async () => {
-        const existingTask = {
-          id: 'task1',
-          title: 'Old Title',
-        };
-
-        const updateData = {
-          title: 'New Title',
-          status: 'COMPLETED' as const,
-        };
-
-        (mockPrisma.task.findUnique as jest.Mock).mockResolvedValue(
-          existingTask
-        );
-
-        const mockUpdated = {
-          ...existingTask,
-          ...updateData,
-          updatedAt: new Date(),
-        };
-
-        (mockPrisma.task.update as jest.Mock).mockResolvedValue(mockUpdated);
-
-        const result = await service.update('task1', updateData);
-
-        expect(mockPrisma.task.update).toHaveBeenCalledWith({
-          where: { id: 'task1' },
-          data: updateData,
-          include: expect.any(Object),
-        });
-
-        expect(result.title).toBe('New Title');
-        expect(result.status).toBe('COMPLETED');
-      });
-
-      it('should throw error when task not found', async () => {
-        (mockPrisma.task.findUnique as jest.Mock).mockResolvedValue(null);
-
+        const unauthorizedUser = { ...testUser, userId: 'user-999' };
         await expect(
-          service.update('nonexistent', { title: 'New' })
-        ).rejects.toThrow('Task not found');
+          service.getTaskById('task-001', unauthorizedUser)
+        ).rejects.toThrow(
+          'Unauthorized: You must be the task owner or assigned to view this task'
+        );
       });
 
-      it('should update task status', async () => {
-        const existingTask = {
-          id: 'task1',
-          status: 'TO_DO',
-        };
+      it('should return null when task not found', async () => {
+        mockRepository.getTaskByIdFull.mockResolvedValue(null);
 
-        (mockPrisma.task.findUnique as jest.Mock).mockResolvedValue(
-          existingTask
-        );
+        const result = await service.getTaskById('nonexistent', testUser);
 
-        const mockUpdated = {
-          ...existingTask,
-          status: 'IN_PROGRESS',
-        };
-
-        (mockPrisma.task.update as jest.Mock).mockResolvedValue(mockUpdated);
-
-        const result = await service.updateStatus('task1', 'IN_PROGRESS');
-
-        expect(result.status).toBe('IN_PROGRESS');
+        expect(result).toBeNull();
       });
     });
 
-    describe('Delete', () => {
-      it('should delete task when no subtasks exist', async () => {
-        (mockPrisma.task.findMany as jest.Mock).mockResolvedValue([]);
-
-        const mockDeleted = {
-          id: 'task1',
-          title: 'Task',
-        };
-
-        (mockPrisma.task.delete as jest.Mock).mockResolvedValue(mockDeleted);
-
-        const result = await service.delete('task1');
-
-        expect(mockPrisma.task.delete).toHaveBeenCalledWith({
-          where: { id: 'task1' },
-        });
-
-        expect(result.id).toBe('task1');
-      });
-
-      it('should throw error when task has subtasks', async () => {
-        (mockPrisma.task.findMany as jest.Mock).mockResolvedValue([
-          { id: 'subtask1', parentTaskId: 'task1' },
+    describe('getUserTasks', () => {
+      it('should retrieve all tasks assigned to user', async () => {
+        mockRepository.getUserTasks.mockResolvedValue([
+          mockTaskData,
+          {
+            ...mockTaskData,
+            id: 'task-002',
+            title: 'Another Task',
+          },
         ]);
 
-        await expect(service.delete('task1')).rejects.toThrow(
-          'Cannot delete task with subtasks. Archive it instead.'
+        const result = await service.getUserTasks('user-123', false);
+
+        expect(mockRepository.getUserTasks).toHaveBeenCalledWith(
+          'user-123',
+          false
+        );
+        expect(result).toHaveLength(2);
+        expect(result[0].getTitle()).toBe('Implement Login Feature');
+        expect(result[1].getTitle()).toBe('Another Task');
+      });
+
+      it('should retrieve tasks including archived when requested', async () => {
+        const archivedTask = { ...mockTaskData, isArchived: true };
+        mockRepository.getUserTasks.mockResolvedValue([archivedTask]);
+
+        const result = await service.getUserTasks('user-123', true);
+
+        expect(mockRepository.getUserTasks).toHaveBeenCalledWith(
+          'user-123',
+          true
+        );
+        expect(result).toHaveLength(1);
+      });
+    });
+
+    describe('getDepartmentTasks', () => {
+      it('should retrieve all tasks in department for MANAGER', async () => {
+        const managerUser: UserContext = {
+          ...testUser,
+          role: 'MANAGER',
+        };
+
+        mockRepository.getDepartmentTasks.mockResolvedValue([
+          mockTaskData,
+          {
+            ...mockTaskData,
+            id: 'task-002',
+            title: 'Department Task',
+          },
+        ]);
+
+        const result = await service.getDepartmentTasks(
+          'dept-456',
+          managerUser,
+          false
+        );
+
+        expect(mockRepository.getDepartmentTasks).toHaveBeenCalledWith(
+          'dept-456',
+          false
+        );
+        expect(result).toHaveLength(2);
+      });
+
+      it('should throw error for STAFF role', async () => {
+        await expect(
+          service.getDepartmentTasks('dept-456', testUser, false)
+        ).rejects.toThrow(
+          'Unauthorized: Only managers and HR admins can view all department tasks'
+        );
+      });
+    });
+  });
+
+  // ============================================
+  // UPDATE OPERATIONS
+  // ============================================
+
+  describe('UPDATE Operations', () => {
+    describe('updateTaskTitle', () => {
+      it('should update task title for authorized user', async () => {
+        mockRepository.getTaskByIdFull.mockResolvedValue(mockTaskData);
+        mockRepository.updateTask.mockResolvedValue(undefined);
+
+        await service.updateTaskTitle('task-001', 'New Title', testUser);
+
+        expect(mockRepository.updateTask).toHaveBeenCalledWith('task-001', {
+          title: 'New Title',
+          updatedAt: expect.any(Date),
+        });
+        expect(mockRepository.logTaskAction).toHaveBeenCalledWith(
+          'task-001',
+          'user-123',
+          'UPDATED',
+          { field: 'title', newValue: 'New Title' }
         );
       });
 
-      it('should archive task', async () => {
-        const existingTask = {
-          id: 'task1',
-          isArchived: false,
-        };
+      it('should throw error when title is empty', async () => {
+        mockRepository.getTaskByIdFull.mockResolvedValue(mockTaskData);
 
-        (mockPrisma.task.findUnique as jest.Mock).mockResolvedValue(
-          existingTask
+        await expect(
+          service.updateTaskTitle('task-001', '', testUser)
+        ).rejects.toThrow('Task title must be between 1 and 255 characters');
+      });
+
+      it('should throw error for unauthorized user', async () => {
+        const taskData = {
+          ...mockTaskData,
+          ownerId: 'other-user',
+          assignments: [{ userId: 'other-user' }],
+        };
+        mockRepository.getTaskByIdFull.mockResolvedValue(taskData);
+
+        const unauthorizedUser = { ...testUser, userId: 'user-999' };
+        await expect(
+          service.updateTaskTitle('task-001', 'New Title', unauthorizedUser)
+        ).rejects.toThrow(
+          'Unauthorized: You must be the task owner or assigned to view this task'
+        );
+      });
+    });
+
+    describe('updateTaskDescription', () => {
+      it('should update task description for authorized user', async () => {
+        mockRepository.getTaskByIdFull.mockResolvedValue(mockTaskData);
+        mockRepository.updateTask.mockResolvedValue(undefined);
+
+        await service.updateTaskDescription(
+          'task-001',
+          'New description',
+          testUser
         );
 
-        const mockArchived = {
-          ...existingTask,
-          isArchived: true,
+        expect(mockRepository.updateTask).toHaveBeenCalledWith('task-001', {
+          description: 'New description',
+          updatedAt: expect.any(Date),
+        });
+      });
+
+      it('should allow empty description', async () => {
+        mockRepository.getTaskByIdFull.mockResolvedValue(mockTaskData);
+        mockRepository.updateTask.mockResolvedValue(undefined);
+
+        await service.updateTaskDescription('task-001', '', testUser);
+
+        expect(mockRepository.updateTask).toHaveBeenCalledWith('task-001', {
+          description: '',
+          updatedAt: expect.any(Date),
+        });
+      });
+    });
+
+    describe('updateTaskPriority', () => {
+      it('should update task priority for authorized user', async () => {
+        mockRepository.getTaskByIdFull.mockResolvedValue(mockTaskData);
+        mockRepository.updateTask.mockResolvedValue(undefined);
+
+        await service.updateTaskPriority('task-001', 5, testUser);
+
+        expect(mockRepository.updateTask).toHaveBeenCalledWith('task-001', {
+          priority: 5,
+          updatedAt: expect.any(Date),
+        });
+        expect(mockRepository.logTaskAction).toHaveBeenCalledWith(
+          'task-001',
+          'user-123',
+          'UPDATED',
+          { field: 'priority', newValue: 5 }
+        );
+      });
+
+      it('should throw error for invalid priority (below 1)', async () => {
+        mockRepository.getTaskByIdFull.mockResolvedValue(mockTaskData);
+
+        await expect(
+          service.updateTaskPriority('task-001', 0, testUser)
+        ).rejects.toThrow('Priority must be between 1 and 10');
+      });
+
+      it('should throw error for invalid priority (above 10)', async () => {
+        mockRepository.getTaskByIdFull.mockResolvedValue(mockTaskData);
+
+        await expect(
+          service.updateTaskPriority('task-001', 11, testUser)
+        ).rejects.toThrow('Priority must be between 1 and 10');
+      });
+    });
+
+    describe('updateTaskDeadline', () => {
+      it('should update task deadline for authorized user', async () => {
+        mockRepository.getTaskByIdFull.mockResolvedValue(mockTaskData);
+        mockRepository.updateTask.mockResolvedValue(undefined);
+
+        const newDeadline = new Date('2026-01-15');
+        await service.updateTaskDeadline('task-001', newDeadline, testUser);
+
+        expect(mockRepository.updateTask).toHaveBeenCalledWith('task-001', {
+          dueDate: newDeadline,
+          updatedAt: expect.any(Date),
+        });
+      });
+
+      it('should enforce DST014: subtask deadline cannot exceed parent deadline', async () => {
+        const parentDueDate = new Date('2025-12-31');
+        const subtaskData = {
+          ...mockTaskData,
+          parentTaskId: 'parent-001',
+          dueDate: new Date('2025-12-15'),
         };
 
-        (mockPrisma.task.update as jest.Mock).mockResolvedValue(mockArchived);
+        // First call returns subtask, second call returns parent
+        mockRepository.getTaskByIdFull
+          .mockResolvedValueOnce(subtaskData)
+          .mockResolvedValueOnce({
+            ...mockTaskData,
+            id: 'parent-001',
+            dueDate: parentDueDate,
+            parentTaskId: null,
+          } as any);
 
-        const result = await service.archive('task1');
+        // Attempt to set subtask deadline after parent deadline
+        const invalidDeadline = new Date('2026-01-15');
+        await expect(
+          service.updateTaskDeadline('task-001', invalidDeadline, testUser)
+        ).rejects.toThrow(
+          'Subtask deadline cannot be after parent task deadline'
+        );
+      });
+    });
 
-        expect(result.isArchived).toBe(true);
+    describe('updateTaskStatus', () => {
+      it('should update task status for authorized user', async () => {
+        mockRepository.getTaskByIdFull.mockResolvedValue(mockTaskData);
+        mockRepository.updateTask.mockResolvedValue(undefined);
+
+        await service.updateTaskStatus(
+          'task-001',
+          TaskStatus.IN_PROGRESS,
+          testUser
+        );
+
+        expect(mockRepository.updateTask).toHaveBeenCalledWith('task-001', {
+          status: 'IN_PROGRESS',
+          updatedAt: expect.any(Date),
+        });
+        expect(mockRepository.logTaskAction).toHaveBeenCalledWith(
+          'task-001',
+          'user-123',
+          'STATUS_CHANGED',
+          { newStatus: 'IN_PROGRESS' }
+        );
+      });
+
+      // Note: Recurring task generation on COMPLETED status is tested separately
+      // in TaskService.recurring.test.ts - that feature will be implemented later
+    });
+
+    describe('updateTaskRecurring', () => {
+      it('should enable recurring with valid interval', async () => {
+        mockRepository.getTaskByIdFull.mockResolvedValue(mockTaskData);
+        mockRepository.updateTask.mockResolvedValue(undefined);
+
+        await service.updateTaskRecurring('task-001', true, 14, testUser);
+
+        expect(mockRepository.updateTask).toHaveBeenCalledWith('task-001', {
+          recurringInterval: 14,
+          updatedAt: expect.any(Date),
+        });
+      });
+
+      it('should disable recurring when enabled is false', async () => {
+        mockRepository.getTaskByIdFull.mockResolvedValue(mockTaskData);
+        mockRepository.updateTask.mockResolvedValue(undefined);
+
+        await service.updateTaskRecurring('task-001', false, null, testUser);
+
+        expect(mockRepository.updateTask).toHaveBeenCalledWith('task-001', {
+          recurringInterval: null,
+          updatedAt: expect.any(Date),
+        });
+      });
+
+      it('should throw error when enabled but days is null', async () => {
+        mockRepository.getTaskByIdFull.mockResolvedValue(mockTaskData);
+
+        await expect(
+          service.updateTaskRecurring('task-001', true, null, testUser)
+        ).rejects.toThrow(
+          'Recurrence days must be greater than 0 when recurring is enabled'
+        );
+      });
+
+      it('should throw error when enabled but days is negative', async () => {
+        mockRepository.getTaskByIdFull.mockResolvedValue(mockTaskData);
+
+        await expect(
+          service.updateTaskRecurring('task-001', true, -5, testUser)
+        ).rejects.toThrow(
+          'Recurrence days must be greater than 0 when recurring is enabled'
+        );
       });
     });
   });
 
-  describe('Task Assignment', () => {
-    it('should assign user to task', async () => {
-      (mockPrisma.task.findUnique as jest.Mock).mockResolvedValue({
-        id: 'task1',
-        assignments: [], // Include assignments array for length check
+  // ============================================
+  // TAG OPERATIONS
+  // ============================================
+
+  describe('TAG Operations', () => {
+    describe('addTagToTask', () => {
+      it('should add tag to task for authorized user', async () => {
+        mockRepository.getTaskByIdFull.mockResolvedValue(mockTaskData);
+        mockRepository.addTaskTag.mockResolvedValue(undefined);
+
+        await service.addTagToTask('task-001', 'urgent', testUser);
+
+        expect(mockRepository.addTaskTag).toHaveBeenCalledWith(
+          'task-001',
+          'urgent'
+        );
+        expect(mockRepository.logTaskAction).toHaveBeenCalledWith(
+          'task-001',
+          'user-123',
+          'UPDATED',
+          { action: 'addTag', tag: 'urgent' }
+        );
       });
 
-      (mockPrisma.userProfile.findUnique as jest.Mock).mockResolvedValue({
-        id: 'user1',
-        isActive: true,
+      it('should throw error for unauthorized user', async () => {
+        const taskData = {
+          ...mockTaskData,
+          ownerId: 'other-user',
+          assignments: [{ userId: 'other-user' }],
+        };
+        mockRepository.getTaskByIdFull.mockResolvedValue(taskData);
+
+        const unauthorizedUser = { ...testUser, userId: 'user-999' };
+        await expect(
+          service.addTagToTask('task-001', 'urgent', unauthorizedUser)
+        ).rejects.toThrow(
+          'Unauthorized: You must be the task owner or assigned to view this task'
+        );
       });
-
-      (mockPrisma.taskAssignment.findUnique as jest.Mock).mockResolvedValue(
-        null
-      );
-
-      const mockCreated = {
-        taskId: 'task1',
-        userId: 'user1',
-        assignedById: 'user2',
-        assignedAt: new Date(),
-        user: {
-          id: 'user1',
-          name: 'User',
-          email: 'user@example.com',
-          role: 'STAFF',
-        },
-        assignedBy: {
-          id: 'user2',
-          name: 'Assigner',
-        },
-      };
-
-      (mockPrisma.taskAssignment.create as jest.Mock).mockResolvedValue(
-        mockCreated
-      );
-
-      const result = await service.assignUser('task1', 'user1', 'user2');
-
-      expect(mockPrisma.taskAssignment.create).toHaveBeenCalledWith({
-        data: {
-          taskId: 'task1',
-          userId: 'user1',
-          assignedById: 'user2',
-        },
-        include: expect.any(Object),
-      });
-
-      expect(result.userId).toBe('user1');
     });
 
-    it('should throw error when user already assigned', async () => {
-      (mockPrisma.task.findUnique as jest.Mock).mockResolvedValue({
-        id: 'task1',
-        assignments: [], // Include assignments array
+    describe('removeTagFromTask', () => {
+      it('should remove tag from task for authorized user', async () => {
+        mockRepository.getTaskByIdFull.mockResolvedValue(mockTaskData);
+        mockRepository.removeTaskTag.mockResolvedValue(undefined);
+
+        await service.removeTagFromTask('task-001', 'backend', testUser);
+
+        expect(mockRepository.removeTaskTag).toHaveBeenCalledWith(
+          'task-001',
+          'backend'
+        );
+        expect(mockRepository.logTaskAction).toHaveBeenCalledWith(
+          'task-001',
+          'user-123',
+          'UPDATED',
+          { action: 'removeTag', tag: 'backend' }
+        );
       });
-
-      (mockPrisma.userProfile.findUnique as jest.Mock).mockResolvedValue({
-        id: 'user1',
-        isActive: true,
-      });
-
-      (mockPrisma.taskAssignment.findUnique as jest.Mock).mockResolvedValue({
-        taskId: 'task1',
-        userId: 'user1',
-      });
-
-      await expect(
-        service.assignUser('task1', 'user1', 'user2')
-      ).rejects.toThrow('User is already assigned to this task');
-    });
-
-    it('should unassign user from task', async () => {
-      (mockPrisma.taskAssignment.delete as jest.Mock).mockResolvedValue({
-        taskId: 'task1',
-        userId: 'user1',
-      });
-
-      const result = await service.unassignUser('task1', 'user1');
-
-      expect(mockPrisma.taskAssignment.delete).toHaveBeenCalledWith({
-        where: {
-          taskId_userId: {
-            taskId: 'task1',
-            userId: 'user1',
-          },
-        },
-      });
-
-      expect(result.userId).toBe('user1');
     });
   });
 
-  describe('Calendar Events', () => {
-    it('should create calendar event', async () => {
-      (mockPrisma.task.findUnique as jest.Mock).mockResolvedValue({
-        id: 'task1',
+  // ============================================
+  // ASSIGNMENT OPERATIONS
+  // ============================================
+
+  describe('ASSIGNMENT Operations', () => {
+    describe('addAssigneeToTask', () => {
+      it('should add assignee to task for authorized user', async () => {
+        const taskWithLessThan5Assignees = {
+          ...mockTaskData,
+          assignments: [
+            { userId: 'user-123' }, // testUser must be assigned
+            { userId: 'user-2' },
+            { userId: 'user-3' },
+          ],
+        };
+        mockRepository.getTaskByIdFull.mockResolvedValue(
+          taskWithLessThan5Assignees
+        );
+        mockRepository.validateAssignees.mockResolvedValue({
+          allExist: true,
+          allActive: true,
+        });
+        mockRepository.addTaskAssignment.mockResolvedValue(undefined);
+
+        await service.addAssigneeToTask('task-001', 'user-new', testUser);
+
+        expect(mockRepository.addTaskAssignment).toHaveBeenCalledWith(
+          'task-001',
+          'user-new',
+          'user-123'
+        );
       });
 
-      const mockCreated = {
-        id: 'event1',
-        taskId: 'task1',
-        userId: 'user1',
-        title: 'Task Deadline',
-        eventDate: new Date('2025-12-31'),
-        task: {
-          id: 'task1',
-          title: 'Task',
-        },
-      };
+      it('should throw error when max assignees reached (TM023)', async () => {
+        const taskWith5Assignees = {
+          ...mockTaskData,
+          assignments: [
+            { userId: 'user-123' }, // testUser must be assigned
+            { userId: 'user-2' },
+            { userId: 'user-3' },
+            { userId: 'user-4' },
+            { userId: 'user-5' },
+          ],
+        };
+        mockRepository.getTaskByIdFull.mockResolvedValue(taskWith5Assignees);
+        mockRepository.validateAssignees.mockResolvedValue({
+          allExist: true,
+          allActive: true,
+        });
 
-      (mockPrisma.calendarEvent.create as jest.Mock).mockResolvedValue(
-        mockCreated
-      );
-
-      const result = await service.createCalendarEvent(
-        'task1',
-        'user1',
-        'Task Deadline',
-        new Date('2025-12-31')
-      );
-
-      expect(mockPrisma.calendarEvent.create).toHaveBeenCalled();
-      expect(result.title).toBe('Task Deadline');
-    });
-
-    it('should get calendar events for task', async () => {
-      const mockEvents = [
-        {
-          id: 'event1',
-          taskId: 'task1',
-          userId: 'user1',
-          title: 'Event',
-          eventDate: new Date(),
-          user: {
-            id: 'user1',
-            name: 'User',
-            email: 'user@example.com',
-          },
-        },
-      ];
-
-      (mockPrisma.calendarEvent.findMany as jest.Mock).mockResolvedValue(
-        mockEvents
-      );
-
-      const result = await service.getCalendarEvents('task1');
-
-      expect(mockPrisma.calendarEvent.findMany).toHaveBeenCalledWith({
-        where: { taskId: 'task1' },
-        include: expect.any(Object),
-        orderBy: { eventDate: 'asc' },
+        await expect(
+          service.addAssigneeToTask('task-001', 'user-6', testUser)
+        ).rejects.toThrow('Maximum of 5 assignees allowed per task');
       });
 
-      expect(result).toHaveLength(1);
+      it('should throw error when assignee does not exist', async () => {
+        mockRepository.getTaskByIdFull.mockResolvedValue(mockTaskData);
+        mockRepository.validateAssignees.mockResolvedValue({
+          allExist: false,
+          allActive: false,
+        });
+
+        await expect(
+          service.addAssigneeToTask('task-001', 'nonexistent', testUser)
+        ).rejects.toThrow('Assignee not found');
+      });
+
+      it('should throw error when assignee is inactive', async () => {
+        mockRepository.getTaskByIdFull.mockResolvedValue(mockTaskData);
+        mockRepository.validateAssignees.mockResolvedValue({
+          allExist: true,
+          allActive: false,
+        });
+
+        await expect(
+          service.addAssigneeToTask('task-001', 'inactive-user', testUser)
+        ).rejects.toThrow('Assignee is inactive');
+      });
     });
   });
 
-  describe('Task Tags', () => {
-    it('should add tag to task', async () => {
-      (mockPrisma.task.findUnique as jest.Mock).mockResolvedValue({
-        id: 'task1',
+  // ============================================
+  // COMMENT OPERATIONS
+  // ============================================
+
+  describe('COMMENT Operations', () => {
+    describe('addCommentToTask', () => {
+      it('should add comment to task for authorized user', async () => {
+        mockRepository.getTaskByIdFull.mockResolvedValue(mockTaskData);
+        mockRepository.createComment.mockResolvedValue(undefined);
+
+        await service.addCommentToTask(
+          'task-001',
+          'This is a comment',
+          testUser
+        );
+
+        expect(mockRepository.createComment).toHaveBeenCalledWith(
+          'task-001',
+          'This is a comment',
+          'user-123'
+        );
       });
 
-      (mockPrisma.tag.findUnique as jest.Mock).mockResolvedValue({
-        id: 'tag1',
-        name: 'urgent',
+      it('should throw error for unauthorized user (not assigned)', async () => {
+        const taskData = {
+          ...mockTaskData,
+          ownerId: 'other-user',
+          assignments: [{ userId: 'other-user' }],
+        };
+        mockRepository.getTaskByIdFull.mockResolvedValue(taskData);
+
+        const unauthorizedUser = { ...testUser, userId: 'user-999' };
+        await expect(
+          service.addCommentToTask(
+            'task-001',
+            'This is a comment',
+            unauthorizedUser
+          )
+        ).rejects.toThrow(
+          'Unauthorized: You must be the task owner or assigned to view this task'
+        );
       });
-
-      (mockPrisma.taskTag.findUnique as jest.Mock).mockResolvedValue(null);
-
-      const mockCreated = {
-        taskId: 'task1',
-        tagId: 'tag1',
-        tag: {
-          id: 'tag1',
-          name: 'urgent',
-        },
-      };
-
-      (mockPrisma.taskTag.create as jest.Mock).mockResolvedValue(mockCreated);
-
-      const result = await service.addTag('task1', 'tag1');
-
-      expect(mockPrisma.taskTag.create).toHaveBeenCalledWith({
-        data: {
-          taskId: 'task1',
-          tagId: 'tag1',
-        },
-        include: { tag: true },
-      });
-
-      expect(result.tag.name).toBe('urgent');
     });
 
-    it('should throw error when tag already added', async () => {
-      (mockPrisma.task.findUnique as jest.Mock).mockResolvedValue({
-        id: 'task1',
+    describe('updateComment', () => {
+      it('should update comment content for comment author', async () => {
+        const taskDataWithComment = {
+          ...mockTaskData,
+          comments: [
+            {
+              id: 'comment-001',
+              content: 'Original comment',
+              userId: 'user-123',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+          ],
+        };
+        mockRepository.getTaskByIdFull.mockResolvedValue(taskDataWithComment);
+        mockRepository.updateComment.mockResolvedValue(undefined);
+
+        await service.updateComment(
+          'task-001',
+          'comment-001',
+          'Updated comment content',
+          testUser
+        );
+
+        expect(mockRepository.updateComment).toHaveBeenCalledWith(
+          'comment-001',
+          'Updated comment content'
+        );
       });
 
-      (mockPrisma.tag.findUnique as jest.Mock).mockResolvedValue({
-        id: 'tag1',
+      it('should throw error when updating comment by non-author', async () => {
+        const taskDataWithComment = {
+          ...mockTaskData,
+          comments: [
+            {
+              id: 'comment-001',
+              content: 'Original comment',
+              userId: 'other-user',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+          ],
+        };
+        mockRepository.getTaskByIdFull.mockResolvedValue(taskDataWithComment);
+
+        await expect(
+          service.updateComment(
+            'task-001',
+            'comment-001',
+            'Updated comment',
+            testUser
+          )
+        ).rejects.toThrow('User is not authorized to perform this action');
       });
-
-      (mockPrisma.taskTag.findUnique as jest.Mock).mockResolvedValue({
-        taskId: 'task1',
-        tagId: 'tag1',
-      });
-
-      await expect(service.addTag('task1', 'tag1')).rejects.toThrow(
-        'Task already has this tag'
-      );
-    });
-
-    it('should remove tag from task', async () => {
-      (mockPrisma.taskTag.delete as jest.Mock).mockResolvedValue({
-        taskId: 'task1',
-        tagId: 'tag1',
-      });
-
-      const result = await service.removeTag('task1', 'tag1');
-
-      expect(mockPrisma.taskTag.delete).toHaveBeenCalledWith({
-        where: {
-          taskId_tagId: {
-            taskId: 'task1',
-            tagId: 'tag1',
-          },
-        },
-      });
-
-      expect(result.tagId).toBe('tag1');
     });
   });
 });

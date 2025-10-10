@@ -1,5 +1,6 @@
 import { ITaskRepository } from '../../repositories/ITaskRepository';
 import { SupabaseStorageService } from '../storage/SupabaseStorageService';
+import { Task, TaskStatus } from '../../domain/task/Task';
 
 /**
  * User context for authorization
@@ -12,12 +13,733 @@ export interface UserContext {
 
 /**
  * Task Service
- * Business logic for task file operations
+ * Business logic for task operations (create, update) and file operations
  */
 export class TaskService {
   private storageService = new SupabaseStorageService();
 
   constructor(private taskRepository: ITaskRepository) {}
+
+  // ============================================
+  // CREATE OPERATIONS
+  // ============================================
+
+  /**
+   * Create a new task
+   *
+   * Acceptance Criteria:
+   * - Create tasks within projects or standalone
+   * - Mandatory fields: title, description, priority, deadline, assignee (TM016)
+   * - Up to 5 assignees (TM023)
+   * - Auto-associate with department
+   * - Default "To Do" status
+   * - Optional tags/files
+   * - Optional recurring with interval
+   * - Subtask depth max 2 levels (TGO026)
+   *
+   * @param data - Task creation data
+   * @param creator - User creating the task
+   * @returns Created task ID
+   */
+  async createTask(
+    data: {
+      title: string;
+      description: string;
+      priority: number;
+      dueDate: Date;
+      assigneeIds: string[];
+      projectId?: string;
+      parentTaskId?: string;
+      tags?: string[];
+      recurringInterval?: number;
+    },
+    creator: UserContext
+  ): Promise<{ id: string }> {
+    // Validate project if provided
+    if (data.projectId) {
+      const projectExists = await this.taskRepository.validateProjectExists(
+        data.projectId
+      );
+      if (!projectExists) {
+        throw new Error('Project not found');
+      }
+    }
+
+    // Validate parent task if provided (for subtasks) - TGO026
+    if (data.parentTaskId) {
+      const parentTask = await this.taskRepository.getParentTaskDepth(
+        data.parentTaskId
+      );
+      if (!parentTask) {
+        throw new Error('Parent task not found');
+      }
+      // Check subtask depth limit (2 levels max)
+      if (parentTask.parentTaskId) {
+        throw new Error('Maximum subtask depth is 2 levels (TGO026)');
+      }
+    }
+
+    // Validate all assignees exist and are active
+    if (data.assigneeIds && data.assigneeIds.length > 0) {
+      const validAssignees = await this.taskRepository.validateAssignees(
+        data.assigneeIds
+      );
+      if (!validAssignees.allExist) {
+        throw new Error('One or more assignees not found');
+      }
+      if (!validAssignees.allActive) {
+        throw new Error('One or more assignees are inactive');
+      }
+    }
+
+    // Use Task domain factory to create and validate
+    const task = Task.create({
+      title: data.title,
+      description: data.description,
+      priorityBucket: data.priority,
+      dueDate: data.dueDate,
+      status: TaskStatus.TO_DO, // Default status for new tasks
+      ownerId: creator.userId,
+      departmentId: creator.departmentId,
+      projectId: data.projectId || null,
+      parentTaskId: data.parentTaskId || null,
+      recurringInterval: data.recurringInterval || null,
+      isArchived: false, // New tasks are never archived
+      assignments: new Set(data.assigneeIds),
+      tags: new Set(data.tags || []),
+    });
+
+    // Persist via repository
+    const result = await this.taskRepository.createTask({
+      id: task.getId(),
+      title: task.getTitle(),
+      description: task.getDescription(),
+      priority: task.getPriority().getLevel(),
+      dueDate: task.getDueDate(),
+      ownerId: creator.userId,
+      departmentId: creator.departmentId,
+      projectId: data.projectId,
+      parentTaskId: data.parentTaskId,
+      assigneeIds: data.assigneeIds,
+      tags: data.tags,
+      recurringInterval: data.recurringInterval,
+    });
+
+    // Log task creation
+    await this.taskRepository.logTaskAction(
+      result.id,
+      creator.userId,
+      'CREATED',
+      {
+        title: data.title,
+        assigneeCount: data.assigneeIds.length,
+      }
+    );
+
+    return result;
+  }
+
+  // ============================================
+  // QUERY OPERATIONS
+  // ============================================
+
+  /**
+   * Get task by ID - reconstructs full Task domain object
+   *
+   * @param taskId - Task ID
+   * @param user - User context for authorization
+   * @returns Task domain object or null
+   */
+  async getTaskById(taskId: string, user: UserContext): Promise<Task | null> {
+    const taskData = await this.taskRepository.getTaskByIdFull(taskId);
+
+    if (!taskData) {
+      return null;
+    }
+
+    // Check authorization: user must be owner or assigned
+    const isOwner = taskData.ownerId === user.userId;
+    const isAssigned = taskData.assignments.some(a => a.userId === user.userId);
+
+    if (!isOwner && !isAssigned) {
+      throw new Error(
+        'Unauthorized: You must be the task owner or assigned to view this task'
+      );
+    }
+
+    // Reconstruct Task domain object from Prisma data
+    return new Task({
+      id: taskData.id,
+      title: taskData.title,
+      description: taskData.description,
+      priorityBucket: taskData.priority,
+      dueDate: taskData.dueDate,
+      status: taskData.status as any, // TaskStatus enum
+      ownerId: taskData.ownerId,
+      departmentId: taskData.departmentId,
+      projectId: taskData.projectId,
+      parentTaskId: taskData.parentTaskId,
+      recurringInterval: taskData.recurringInterval,
+      isArchived: taskData.isArchived,
+      createdAt: taskData.createdAt,
+      updatedAt: taskData.updatedAt,
+      assignments: new Set(taskData.assignments.map(a => a.userId)),
+      tags: new Set(taskData.tags.map(t => t.tag.name)),
+      comments: taskData.comments.map(c => ({
+        id: c.id,
+        content: c.content,
+        authorId: c.userId,
+        createdAt: c.createdAt,
+        updatedAt: c.updatedAt,
+      })),
+      files: taskData.files.map(f => ({
+        id: f.id,
+        fileName: f.fileName,
+        fileSize: f.fileSize,
+        fileType: f.fileType,
+        storagePath: f.storagePath,
+        uploadedById: f.uploadedById,
+        uploadedAt: f.uploadedAt,
+      })),
+    });
+  }
+
+  /**
+   * Get all tasks assigned to a user
+   *
+   * @param userId - User ID
+   * @param includeArchived - Include archived tasks
+   * @returns Array of Task domain objects
+   */
+  async getUserTasks(
+    userId: string,
+    includeArchived: boolean = false
+  ): Promise<Task[]> {
+    const tasks = await this.taskRepository.getUserTasks(
+      userId,
+      includeArchived
+    );
+    return tasks.map(taskData => this.reconstructTaskFromData(taskData));
+  }
+
+  /**
+   * Get all tasks in a department
+   *
+   * @param departmentId - Department ID
+   * @param user - User context for authorization
+   * @param includeArchived - Include archived tasks
+   * @returns Array of Task domain objects
+   */
+  async getDepartmentTasks(
+    departmentId: string,
+    user: UserContext,
+    includeArchived: boolean = false
+  ): Promise<Task[]> {
+    // Only managers and HR admins can view all department tasks
+    if (user.role !== 'MANAGER' && user.role !== 'HR_ADMIN') {
+      throw new Error(
+        'Unauthorized: Only managers and HR admins can view all department tasks'
+      );
+    }
+
+    // Verify user belongs to this department
+    if (user.departmentId !== departmentId) {
+      throw new Error(
+        'Unauthorized: You can only view tasks from your own department'
+      );
+    }
+
+    const tasks = await this.taskRepository.getDepartmentTasks(
+      departmentId,
+      includeArchived
+    );
+    return tasks.map(taskData => this.reconstructTaskFromData(taskData));
+  }
+
+  /**
+   * Helper to reconstruct Task domain object from Prisma data
+   */
+  private reconstructTaskFromData(taskData: any): Task {
+    return new Task({
+      id: taskData.id,
+      title: taskData.title,
+      description: taskData.description,
+      priorityBucket: taskData.priority,
+      dueDate: taskData.dueDate,
+      status: taskData.status as any,
+      ownerId: taskData.ownerId,
+      departmentId: taskData.departmentId,
+      projectId: taskData.projectId,
+      parentTaskId: taskData.parentTaskId,
+      recurringInterval: taskData.recurringInterval,
+      isArchived: taskData.isArchived,
+      createdAt: taskData.createdAt,
+      updatedAt: taskData.updatedAt,
+      assignments: new Set(
+        taskData.assignments?.map((a: any) => a.userId) || []
+      ),
+      tags: new Set(taskData.tags?.map((t: any) => t.tag.name) || []),
+      comments:
+        taskData.comments?.map((c: any) => ({
+          id: c.id,
+          content: c.content,
+          authorId: c.userId,
+          createdAt: c.createdAt,
+          updatedAt: c.updatedAt,
+        })) || [],
+      files:
+        taskData.files?.map((f: any) => ({
+          id: f.id,
+          fileName: f.fileName,
+          fileSize: f.fileSize,
+          fileType: f.fileType,
+          storagePath: f.storagePath,
+          uploadedById: f.uploadedById,
+          uploadedAt: f.uploadedAt,
+        })) || [],
+    });
+  }
+
+  // ============================================
+  // UPDATE OPERATIONS
+  // ============================================
+
+  /**
+   * Update task title
+   * Authorization: Only assigned users can update (Update User Story AC)
+   *
+   * @param taskId - Task ID
+   * @param newTitle - New title
+   * @param user - User context for authorization
+   * @returns Updated task
+   */
+  async updateTaskTitle(
+    taskId: string,
+    newTitle: string,
+    user: UserContext
+  ): Promise<Task> {
+    const task = await this.getTaskById(taskId, user);
+    if (!task) {
+      throw new Error('Task not found');
+    }
+
+    // Update via domain method (validates title)
+    task.updateTitle(newTitle);
+
+    // Persist changes
+    await this.taskRepository.updateTask(taskId, {
+      title: task.getTitle(),
+      updatedAt: new Date(),
+    });
+
+    // Log action
+    await this.taskRepository.logTaskAction(taskId, user.userId, 'UPDATED', {
+      field: 'title',
+      newValue: newTitle,
+    });
+
+    return task;
+  }
+
+  /**
+   * Update task description
+   * Authorization: Only assigned users can update
+   */
+  async updateTaskDescription(
+    taskId: string,
+    newDescription: string,
+    user: UserContext
+  ): Promise<Task> {
+    const task = await this.getTaskById(taskId, user);
+    if (!task) {
+      throw new Error('Task not found');
+    }
+
+    task.updateDescription(newDescription);
+
+    await this.taskRepository.updateTask(taskId, {
+      description: task.getDescription(),
+      updatedAt: new Date(),
+    });
+
+    await this.taskRepository.logTaskAction(taskId, user.userId, 'UPDATED', {
+      field: 'description',
+    });
+
+    return task;
+  }
+
+  /**
+   * Update task priority (1-10 scale)
+   * Authorization: Only assigned users can update
+   */
+  async updateTaskPriority(
+    taskId: string,
+    newPriority: number,
+    user: UserContext
+  ): Promise<Task> {
+    const task = await this.getTaskById(taskId, user);
+    if (!task) {
+      throw new Error('Task not found');
+    }
+
+    task.updatePriority(newPriority);
+
+    await this.taskRepository.updateTask(taskId, {
+      priority: task.getPriority().getLevel(),
+      updatedAt: new Date(),
+    });
+
+    await this.taskRepository.logTaskAction(taskId, user.userId, 'UPDATED', {
+      field: 'priority',
+      newValue: newPriority,
+    });
+
+    return task;
+  }
+
+  /**
+   * Update task deadline
+   * Authorization: Only assigned users can update
+   * Validation: Subtask deadline <= parent deadline (DST014)
+   */
+  async updateTaskDeadline(
+    taskId: string,
+    newDeadline: Date,
+    user: UserContext
+  ): Promise<Task> {
+    const task = await this.getTaskById(taskId, user);
+    if (!task) {
+      throw new Error('Task not found');
+    }
+
+    // DST014: If subtask, fetch parent deadline for validation
+    let parentDeadline: Date | undefined;
+    if (task.isSubtask()) {
+      const parentTaskId = task.getParentTaskId();
+      if (parentTaskId) {
+        const parentTaskData =
+          await this.taskRepository.getTaskByIdFull(parentTaskId);
+        if (parentTaskData) {
+          parentDeadline = parentTaskData.dueDate;
+        }
+      }
+    }
+
+    // Domain method validates subtask deadline <= parent deadline
+    task.updateDeadline(newDeadline, parentDeadline);
+
+    await this.taskRepository.updateTask(taskId, {
+      dueDate: task.getDueDate(),
+      updatedAt: new Date(),
+    });
+
+    await this.taskRepository.logTaskAction(taskId, user.userId, 'UPDATED', {
+      field: 'dueDate',
+      newValue: newDeadline.toISOString(),
+    });
+
+    return task;
+  }
+
+  /**
+   * Update task status
+   * Authorization: Only assigned users can update
+   * Automatically generates next recurring task instance when a recurring task is completed
+   */
+  async updateTaskStatus(
+    taskId: string,
+    newStatus: string,
+    user: UserContext
+  ): Promise<Task> {
+    const task = await this.getTaskById(taskId, user);
+    if (!task) {
+      throw new Error('Task not found');
+    }
+
+    task.updateStatus(newStatus as any);
+
+    await this.taskRepository.updateTask(taskId, {
+      status: task.getStatus(),
+      updatedAt: new Date(),
+    });
+
+    await this.taskRepository.logTaskAction(
+      taskId,
+      user.userId,
+      'STATUS_CHANGED',
+      {
+        newStatus,
+      }
+    );
+
+    // Generate next recurring instance if status is COMPLETED and task is recurring
+    if (newStatus === TaskStatus.COMPLETED && task.isTaskRecurring()) {
+      await this.generateNextRecurringInstance(task, user);
+    }
+
+    return task;
+  }
+
+  /**
+   * Generate the next instance of a recurring task
+   * Called automatically when a recurring task is marked as COMPLETED
+   * @private
+   */
+  private async generateNextRecurringInstance(
+    completedTask: Task,
+    user: UserContext
+  ): Promise<void> {
+    const recurringInterval = completedTask.getRecurringInterval();
+    if (!recurringInterval) {
+      return;
+    }
+
+    // Calculate next due date by adding recurring interval (in days)
+    const currentDueDate = completedTask.getDueDate();
+    const nextDueDate = new Date(currentDueDate);
+    nextDueDate.setDate(nextDueDate.getDate() + recurringInterval);
+
+    // Validate assignees still exist and are active
+    const assigneeIds = Array.from(completedTask.getAssignees());
+    const validAssignees =
+      await this.taskRepository.validateAssignees(assigneeIds);
+    if (!validAssignees.allExist || !validAssignees.allActive) {
+      throw new Error(
+        'Cannot generate recurring task: one or more assignees are invalid'
+      );
+    }
+
+    // Create next instance using Domain factory
+    const nextTask = Task.create({
+      title: completedTask.getTitle(),
+      description: completedTask.getDescription(),
+      priorityBucket: completedTask.getPriorityBucket(),
+      dueDate: nextDueDate,
+      status: TaskStatus.TO_DO,
+      ownerId: completedTask.getOwnerId(),
+      departmentId: completedTask.getDepartmentId(),
+      projectId: completedTask.getProjectId(),
+      parentTaskId: completedTask.getParentTaskId(),
+      recurringInterval: recurringInterval,
+      isArchived: false,
+      assignments: completedTask.getAssignees(),
+      tags: completedTask.getTags(),
+    });
+
+    // Persist next instance
+    await this.taskRepository.createTask({
+      id: nextTask.getId(),
+      title: nextTask.getTitle(),
+      description: nextTask.getDescription(),
+      priority: nextTask.getPriorityBucket(),
+      dueDate: nextTask.getDueDate(),
+      ownerId: nextTask.getOwnerId(),
+      departmentId: nextTask.getDepartmentId(),
+      projectId: nextTask.getProjectId() ?? undefined,
+      parentTaskId: nextTask.getParentTaskId() ?? undefined,
+      assigneeIds: assigneeIds,
+      tags: Array.from(nextTask.getTags()),
+      recurringInterval: nextTask.getRecurringInterval() ?? undefined,
+    });
+
+    // Log the recurring task generation
+    await this.taskRepository.logTaskAction(
+      completedTask.getId(),
+      user.userId,
+      'RECURRING_TASK_GENERATED',
+      {
+        nextTaskId: nextTask.getId(),
+        nextDueDate: nextDueDate.toISOString(),
+        sourceTaskId: completedTask.getId(),
+      }
+    );
+  }
+
+  /**
+   * Update recurring settings
+   * Authorization: Only assigned users can update
+   */
+  async updateTaskRecurring(
+    taskId: string,
+    enabled: boolean,
+    days: number | null,
+    user: UserContext
+  ): Promise<Task> {
+    const task = await this.getTaskById(taskId, user);
+    if (!task) {
+      throw new Error('Task not found');
+    }
+
+    task.updateRecurring(enabled, days);
+
+    await this.taskRepository.updateTask(taskId, {
+      recurringInterval: task.getRecurringInterval(),
+      updatedAt: new Date(),
+    });
+
+    await this.taskRepository.logTaskAction(taskId, user.userId, 'UPDATED', {
+      field: 'recurring',
+      enabled,
+      days,
+    });
+
+    return task;
+  }
+
+  /**
+   * Add tag to task
+   * Authorization: Only assigned users can update
+   */
+  async addTagToTask(
+    taskId: string,
+    tag: string,
+    user: UserContext
+  ): Promise<Task> {
+    const task = await this.getTaskById(taskId, user);
+    if (!task) {
+      throw new Error('Task not found');
+    }
+
+    task.addTag(tag);
+
+    // Persist tag (connectOrCreate in Prisma)
+    await this.taskRepository.addTaskTag(taskId, tag);
+
+    await this.taskRepository.logTaskAction(taskId, user.userId, 'UPDATED', {
+      action: 'addTag',
+      tag,
+    });
+
+    return task;
+  }
+
+  /**
+   * Remove tag from task
+   * Authorization: Only assigned users can update
+   */
+  async removeTagFromTask(
+    taskId: string,
+    tag: string,
+    user: UserContext
+  ): Promise<Task> {
+    const task = await this.getTaskById(taskId, user);
+    if (!task) {
+      throw new Error('Task not found');
+    }
+
+    task.removeTag(tag);
+
+    await this.taskRepository.removeTaskTag(taskId, tag);
+
+    await this.taskRepository.logTaskAction(taskId, user.userId, 'UPDATED', {
+      action: 'removeTag',
+      tag,
+    });
+
+    return task;
+  }
+
+  /**
+   * Add assignee to task (max 5 - TM023)
+   * Authorization: Only assigned users can update (Update User Story AC)
+   */
+  async addAssigneeToTask(
+    taskId: string,
+    newUserId: string,
+    user: UserContext
+  ): Promise<Task> {
+    const task = await this.getTaskById(taskId, user);
+    if (!task) {
+      throw new Error('Task not found');
+    }
+
+    // Validate new assignee exists and is active
+    const validAssignees = await this.taskRepository.validateAssignees([
+      newUserId,
+    ]);
+    if (!validAssignees.allExist) {
+      throw new Error('Assignee not found');
+    }
+    if (!validAssignees.allActive) {
+      throw new Error('Assignee is inactive');
+    }
+
+    task.addAssignee(newUserId, user.userId);
+
+    // Persist assignment
+    await this.taskRepository.addTaskAssignment(taskId, newUserId, user.userId);
+
+    await this.taskRepository.logTaskAction(taskId, user.userId, 'UPDATED', {
+      action: 'addAssignee',
+      newUserId,
+    });
+
+    return task;
+  }
+
+  /**
+   * Add comment to task
+   * Authorization: Only assigned users can comment (Update User Story AC - TM021)
+   */
+  async addCommentToTask(
+    taskId: string,
+    content: string,
+    user: UserContext
+  ): Promise<Task> {
+    const task = await this.getTaskById(taskId, user);
+    if (!task) {
+      throw new Error('Task not found');
+    }
+
+    const comment = task.addComment(content, user.userId);
+
+    // Persist comment
+    await this.taskRepository.createComment(taskId, content, user.userId);
+
+    await this.taskRepository.logTaskAction(
+      taskId,
+      user.userId,
+      'COMMENT_ADDED',
+      {
+        commentId: comment.id,
+      }
+    );
+
+    return task;
+  }
+
+  /**
+   * Update comment (only own comments - TM021)
+   * Authorization: Only comment author can update their own comments
+   */
+  async updateComment(
+    taskId: string,
+    commentId: string,
+    newContent: string,
+    user: UserContext
+  ): Promise<Task> {
+    const task = await this.getTaskById(taskId, user);
+    if (!task) {
+      throw new Error('Task not found');
+    }
+
+    task.updateComment(commentId, newContent, user.userId);
+
+    // Persist comment update
+    await this.taskRepository.updateComment(commentId, newContent);
+
+    await this.taskRepository.logTaskAction(taskId, user.userId, 'UPDATED', {
+      action: 'updateComment',
+      commentId,
+    });
+
+    return task;
+  }
+
+  // ============================================
+  // FILE OPERATIONS
+  // ============================================
 
   /**
    * Upload a file to a task
@@ -233,5 +955,329 @@ export class TaskService {
 
     // 2. Get files
     return await this.taskRepository.getTaskFiles(taskId);
+  }
+
+  // ============================================
+  // QUERY OPERATIONS (NEW)
+  // ============================================
+
+  /**
+   * Get all tasks with optional filters
+   * @param filters - Filter criteria
+   * @param user - User context for authorization
+   * @returns Array of Task domain objects
+   */
+  async getAllTasks(
+    filters: {
+      ownerId?: string;
+      projectId?: string;
+      departmentId?: string;
+      status?: string;
+      isArchived?: boolean;
+      parentTaskId?: string;
+    },
+    _user: UserContext
+  ): Promise<Task[]> {
+    // TODO: Add authorization checks based on _user role/department
+    const tasks = await this.taskRepository.getAllTasks(filters);
+    return tasks.map(taskData => this.reconstructTaskFromData(taskData));
+  }
+
+  /**
+   * Get all tasks in a project
+   * @param projectId - Project ID
+   * @param user - User context for authorization
+   * @param includeArchived - Include archived tasks
+   * @returns Array of Task domain objects
+   */
+  async getProjectTasks(
+    projectId: string,
+    user: UserContext,
+    includeArchived: boolean = false
+  ): Promise<Task[]> {
+    // Validate project exists
+    const projectExists =
+      await this.taskRepository.validateProjectExists(projectId);
+    if (!projectExists) {
+      throw new Error('Project not found');
+    }
+
+    const tasks = await this.taskRepository.getProjectTasks(
+      projectId,
+      includeArchived
+    );
+    return tasks.map(taskData => this.reconstructTaskFromData(taskData));
+  }
+
+  /**
+   * Get all subtasks of a parent task
+   * @param parentTaskId - Parent task ID
+   * @param user - User context for authorization
+   * @returns Array of Task domain objects
+   */
+  async getSubtasks(parentTaskId: string, user: UserContext): Promise<Task[]> {
+    // Verify parent task exists and user has access
+    const parentTask = await this.getTaskById(parentTaskId, user);
+    if (!parentTask) {
+      throw new Error('Parent task not found');
+    }
+
+    const subtasks = await this.taskRepository.getSubtasks(parentTaskId);
+    return subtasks.map(taskData => this.reconstructTaskFromData(taskData));
+  }
+
+  /**
+   * Get all tasks owned by a user
+   * @param ownerId - Owner user ID
+   * @param includeArchived - Include archived tasks
+   * @returns Array of Task domain objects
+   */
+  async getOwnerTasks(
+    ownerId: string,
+    includeArchived: boolean = false
+  ): Promise<Task[]> {
+    const tasks = await this.taskRepository.getOwnerTasks(
+      ownerId,
+      includeArchived
+    );
+    return tasks.map(taskData => this.reconstructTaskFromData(taskData));
+  }
+
+  // ============================================
+  // ASSIGNMENT OPERATIONS (NEW)
+  // ============================================
+
+  /**
+   * Remove assignee from task
+   * Authorization: Only assigned users can update
+   * Business rule: Must maintain at least 1 assignee (TM016)
+   */
+  async removeAssigneeFromTask(
+    taskId: string,
+    userId: string,
+    user: UserContext
+  ): Promise<Task> {
+    const task = await this.getTaskById(taskId, user);
+    if (!task) {
+      throw new Error('Task not found');
+    }
+
+    // Use domain to validate and remove (checks min 1 assignee rule)
+    task.removeAssignee(userId);
+
+    // Persist removal
+    await this.taskRepository.removeTaskAssignment(taskId, userId);
+
+    // Log action
+    await this.taskRepository.logTaskAction(taskId, user.userId, 'UPDATED', {
+      action: 'removeAssignee',
+      removedUserId: userId,
+    });
+
+    return task;
+  }
+
+  // ============================================
+  // ARCHIVE/DELETE OPERATIONS (NEW)
+  // ============================================
+
+  /**
+   * Archive a task (soft delete)
+   * Authorization: Only assigned users can archive
+   */
+  async archiveTask(taskId: string, user: UserContext): Promise<Task> {
+    const task = await this.getTaskById(taskId, user);
+    if (!task) {
+      throw new Error('Task not found');
+    }
+
+    // Use domain method
+    task.archive();
+
+    // Persist
+    await this.taskRepository.archiveTask(taskId);
+
+    // Log action
+    await this.taskRepository.logTaskAction(taskId, user.userId, 'ARCHIVED', {
+      taskTitle: task.getTitle(),
+    });
+
+    return task;
+  }
+
+  /**
+   * Unarchive a task
+   * Authorization: Only assigned users can unarchive
+   */
+  async unarchiveTask(taskId: string, user: UserContext): Promise<Task> {
+    const task = await this.getTaskById(taskId, user);
+    if (!task) {
+      throw new Error('Task not found');
+    }
+
+    // Use domain method
+    task.unarchive();
+
+    // Persist
+    await this.taskRepository.unarchiveTask(taskId);
+
+    // Log action
+    await this.taskRepository.logTaskAction(taskId, user.userId, 'UPDATED', {
+      action: 'unarchived',
+      taskTitle: task.getTitle(),
+    });
+
+    return task;
+  }
+
+  /**
+   * Delete a task (hard delete)
+   * Authorization: Only assigned users can delete
+   * Business rule: Cannot delete task with subtasks (must archive instead)
+   */
+  async deleteTask(taskId: string, user: UserContext): Promise<void> {
+    const task = await this.getTaskById(taskId, user);
+    if (!task) {
+      throw new Error('Task not found');
+    }
+
+    // Check for subtasks
+    const hasSubtasks = await this.taskRepository.hasSubtasks(taskId);
+    if (hasSubtasks) {
+      throw new Error('Cannot delete task with subtasks. Archive it instead.');
+    }
+
+    // Log action BEFORE deletion
+    await this.taskRepository.logTaskAction(taskId, user.userId, 'DELETED', {
+      taskTitle: task.getTitle(),
+    });
+
+    // Delete
+    await this.taskRepository.deleteTask(taskId);
+  }
+
+  // ============================================
+  // HELPER METHODS
+  // ============================================
+
+  // ============================================
+  // TASK HIERARCHY OPERATIONS
+  // ============================================
+
+  /**
+   * Get task hierarchy (parent chain + subtask tree)
+   *
+   * Returns:
+   * - parentChain: All parent tasks from root to current
+   * - currentTask: The task itself with full details
+   * - subtaskTree: Recursive tree of all subtasks
+   *
+   * Authorization: User must have access to the task (owner or assigned)
+   */
+  async getTaskHierarchy(
+    taskId: string,
+    user: UserContext
+  ): Promise<{
+    parentChain: Array<{
+      id: string;
+      title: string;
+      status: string;
+      parentTaskId: string | null;
+    }>;
+    currentTask: any;
+    subtaskTree: any[];
+  }> {
+    // Verify user has access to the task
+    const task = await this.getTaskById(taskId, user);
+    if (!task) {
+      throw new Error('Task not found or access denied');
+    }
+
+    // Delegate to repository for hierarchy data
+    return await this.taskRepository.getTaskHierarchy(taskId);
+  }
+
+  // ============================================
+  // CALENDAR EVENT OPERATIONS
+  // ============================================
+
+  /**
+   * Create a calendar event for a task
+   *
+   * Authorization:
+   * - User must have access to the task (owner or assigned)
+   * - The userId in the event must be a valid, active user
+   *
+   * @param taskId - Task ID
+   * @param eventUserId - User ID for whom the event is created
+   * @param title - Event title
+   * @param eventDate - Event date/time
+   * @param requestingUser - User making the request
+   */
+  async createCalendarEvent(
+    taskId: string,
+    eventUserId: string,
+    title: string,
+    eventDate: Date,
+    requestingUser: UserContext
+  ): Promise<any> {
+    // Verify requesting user has access to the task
+    const task = await this.getTaskById(taskId, requestingUser);
+    if (!task) {
+      throw new Error('Task not found or access denied');
+    }
+
+    // Verify the event user exists and is active
+    const validUsers = await this.taskRepository.validateAssignees([
+      eventUserId,
+    ]);
+    if (!validUsers.allExist) {
+      throw new Error('Event user not found');
+    }
+    if (!validUsers.allActive) {
+      throw new Error('Event user is inactive');
+    }
+
+    // Create the calendar event
+    const calendarEvent = await this.taskRepository.createCalendarEvent({
+      taskId,
+      userId: eventUserId,
+      title,
+      eventDate,
+    });
+
+    // Log the action
+    await this.taskRepository.logTaskAction(
+      taskId,
+      requestingUser.userId,
+      'UPDATED',
+      {
+        action: 'createCalendarEvent',
+        eventId: calendarEvent.id,
+        eventUserId,
+        eventDate: eventDate.toISOString(),
+      }
+    );
+
+    return calendarEvent;
+  }
+
+  /**
+   * Get all calendar events for a task
+   *
+   * Authorization: User must have access to the task (owner or assigned)
+   *
+   * @param taskId - Task ID
+   * @param user - User making the request
+   */
+  async getCalendarEvents(taskId: string, user: UserContext): Promise<any[]> {
+    // Verify user has access to the task
+    const task = await this.getTaskById(taskId, user);
+    if (!task) {
+      throw new Error('Task not found or access denied');
+    }
+
+    // Get calendar events from repository
+    return await this.taskRepository.getCalendarEvents(taskId);
   }
 }
