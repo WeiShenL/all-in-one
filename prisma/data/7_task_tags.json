@@ -1,14 +1,1 @@
-[
-  {
-    "taskId": "task-001",
-    "tagId": "tag-001"
-  },
-  {
-    "taskId": "task-001",
-    "tagId": "tag-002"
-  },
-  {
-    "taskId": "task-003",
-    "tagId": "tag-003"
-  }
-]
+[]

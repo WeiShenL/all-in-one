@@ -426,15 +426,16 @@ export class Task {
 
   /**
    * Add a comment to the task
-   * AC: Assigned Staff member can add comments
+   * AC: Assigned Staff member OR managers with access can add comments
+   * Note: Authorization is handled by the service layer (checks assignment + manager hierarchy)
    */
   addComment(content: string, userId: string): CommentData {
-    // 1. Check user is assigned (authorization)
-    if (!this.isUserAssigned(userId)) {
-      throw new UnauthorizedError();
-    }
+    // Authorization is handled by service layer (TaskService.addCommentToTask)
+    // Service layer checks:
+    // 1. Staff: must be assigned to task
+    // 2. Manager: must have department hierarchy access
 
-    // 2. Create comment with ID, timestamp
+    // 1. Create comment with ID, timestamp
     const now = new Date();
     const comment: CommentData = {
       id: `comment-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,

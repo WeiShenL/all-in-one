@@ -186,28 +186,32 @@ export const taskFileRouter = router({
   getTaskFiles: publicProcedure
     .input(getTaskFilesSchema)
     .query(async ({ ctx, input }) => {
-      const repository = new PrismaTaskRepository(ctx.prisma);
-      const service = new TaskService(repository);
+      try {
+        const repository = new PrismaTaskRepository(ctx.prisma);
+        const service = new TaskService(repository);
 
-      const user = {
-        userId: input.userId,
-        role: input.userRole,
-        departmentId: input.departmentId,
-      };
+        const user = {
+          userId: input.userId,
+          role: input.userRole,
+          departmentId: input.departmentId,
+        };
 
-      const files = await service.getTaskFiles(input.taskId, user);
+        const files = await service.getTaskFiles(input.taskId, user);
 
-      return {
-        files: files.map(f => ({
-          id: f.id,
-          fileName: f.fileName,
-          fileSize: f.fileSize,
-          fileType: f.fileType,
-          uploadedById: f.uploadedById,
-          uploadedAt: f.uploadedAt,
-        })),
-        totalSize: files.reduce((sum, f) => sum + f.fileSize, 0),
-        count: files.length,
-      };
+        return {
+          files: files.map(f => ({
+            id: f.id,
+            fileName: f.fileName,
+            fileSize: f.fileSize,
+            fileType: f.fileType,
+            uploadedById: f.uploadedById,
+            uploadedAt: f.uploadedAt,
+          })),
+          totalSize: files.reduce((sum, f) => sum + f.fileSize, 0),
+          count: files.length,
+        };
+      } catch (error: any) {
+        throw new Error(`Error in getTaskFiles: ${error.message}`);
+      }
     }),
 });
