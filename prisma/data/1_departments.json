@@ -1,6 +1,7 @@
 [
   {
     "id": "ce21d5ea-02b0-4f21-8cc3-a8220d53c738",
+    "id": "ce21d5ea-02b0-4f21-8cc3-a8220d53c738",
     "name": "Managing Director",
     "parentId": null,
     "managerId": null,
@@ -9,7 +10,9 @@
   },
   {
     "id": "70fa1603-cf66-4f30-80c6-80988fbe94b6",
+    "id": "70fa1603-cf66-4f30-80c6-80988fbe94b6",
     "name": "Sales",
+    "parentId": "ce21d5ea-02b0-4f21-8cc3-a8220d53c738",
     "parentId": "ce21d5ea-02b0-4f21-8cc3-a8220d53c738",
     "managerId": null,
     "createdAt": "2025-01-01T00:00:00.000Z",
@@ -17,7 +20,9 @@
   },
   {
     "id": "670b01da-a014-4e7a-a194-fb85e60b2983",
+    "id": "670b01da-a014-4e7a-a194-fb85e60b2983",
     "name": "Consultancy Division",
+    "parentId": "ce21d5ea-02b0-4f21-8cc3-a8220d53c738",
     "parentId": "ce21d5ea-02b0-4f21-8cc3-a8220d53c738",
     "managerId": null,
     "createdAt": "2025-01-01T00:00:00.000Z",
@@ -25,7 +30,9 @@
   },
   {
     "id": "e2e6d9b5-aa3b-4eea-ada1-f7cc0b01c81d",
+    "id": "e2e6d9b5-aa3b-4eea-ada1-f7cc0b01c81d",
     "name": "System Solutioning Division",
+    "parentId": "ce21d5ea-02b0-4f21-8cc3-a8220d53c738",
     "parentId": "ce21d5ea-02b0-4f21-8cc3-a8220d53c738",
     "managerId": null,
     "createdAt": "2025-01-01T00:00:00.000Z",
@@ -33,7 +40,9 @@
   },
   {
     "id": "68fbff0d-51f6-4847-bc05-b3f815ea7a68",
+    "id": "68fbff0d-51f6-4847-bc05-b3f815ea7a68",
     "name": "Engineering Operation Division",
+    "parentId": "ce21d5ea-02b0-4f21-8cc3-a8220d53c738",
     "parentId": "ce21d5ea-02b0-4f21-8cc3-a8220d53c738",
     "managerId": null,
     "createdAt": "2025-01-01T00:00:00.000Z",
@@ -41,7 +50,9 @@
   },
   {
     "id": "60e6fc6e-b46c-4b78-9687-40e45546599f",
+    "id": "60e6fc6e-b46c-4b78-9687-40e45546599f",
     "name": "HR and Admin",
+    "parentId": "ce21d5ea-02b0-4f21-8cc3-a8220d53c738",
     "parentId": "ce21d5ea-02b0-4f21-8cc3-a8220d53c738",
     "managerId": null,
     "createdAt": "2025-01-01T00:00:00.000Z",
@@ -49,7 +60,9 @@
   },
   {
     "id": "884d672c-97c6-4987-b582-c54f99fbdb7a",
+    "id": "884d672c-97c6-4987-b582-c54f99fbdb7a",
     "name": "Finance",
+    "parentId": "ce21d5ea-02b0-4f21-8cc3-a8220d53c738",
     "parentId": "ce21d5ea-02b0-4f21-8cc3-a8220d53c738",
     "managerId": null,
     "createdAt": "2025-01-01T00:00:00.000Z",
@@ -57,7 +70,9 @@
   },
   {
     "id": "8ce56303-aab4-42dd-94a4-3d3b086ac875",
+    "id": "8ce56303-aab4-42dd-94a4-3d3b086ac875",
     "name": "IT",
+    "parentId": "ce21d5ea-02b0-4f21-8cc3-a8220d53c738",
     "parentId": "ce21d5ea-02b0-4f21-8cc3-a8220d53c738",
     "managerId": null,
     "createdAt": "2025-01-01T00:00:00.000Z",
@@ -65,40 +80,25 @@
   },
   {
     "id": "3ca06c0c-8c40-4235-a58c-2b043b0f24c4",
+    "id": "3ca06c0c-8c40-4235-a58c-2b043b0f24c4",
     "name": "Sales Manager",
-    "parentId": "dept-sales-001",
+    "parentId": "70fa1603-cf66-4f30-80c6-80988fbe94b6",
     "managerId": null,
     "createdAt": "2025-01-01T00:00:00.000Z",
     "updatedAt": "2025-01-01T00:00:00.000Z"
   },
   {
-    "id": "dept-acc-mgr-001",
+    "id": "50e52f12-b178-462f-b735-485ffe816c74",
     "name": "Account Managers",
-    "parentId": "dept-sales-mgr-001",
+    "parentId": "3ca06c0c-8c40-4235-a58c-2b043b0f24c4",
     "managerId": null,
     "createdAt": "2025-01-01T00:00:00.000Z",
     "updatedAt": "2025-01-01T00:00:00.000Z"
   },
   {
-    "id": "dept-consultant-001",
+    "id": "0ee58fab-9a45-4d6e-8389-654a7047bfad",
     "name": "Consultant",
-    "parentId": "dept-consultancy-001",
-    "managerId": null,
-    "createdAt": "2025-01-01T00:00:00.000Z",
-    "updatedAt": "2025-01-01T00:00:00.000Z"
-  },
-  {
-    "id": "dept-developers-001",
-    "name": "Developers",
-    "parentId": "dept-sys-sol-001",
-    "managerId": null,
-    "createdAt": "2025-01-01T00:00:00.000Z",
-    "updatedAt": "2025-01-01T00:00:00.000Z"
-  },
-  {
-    "id": "dept-support-001",
-    "name": "Support Team",
-    "parentId": "dept-sys-sol-001",
+    "parentId": "670b01da-a014-4e7a-a194-fb85e60b2983",
     "managerId": null,
     "createdAt": "2025-01-01T00:00:00.000Z",
     "updatedAt": "2025-01-01T00:00:00.000Z"
@@ -112,57 +112,67 @@
     "updatedAt": "2025-01-01T00:00:00.000Z"
   },
   {
-    "id": "dept-junior-eng-001",
+    "id": "a4f5a77c-ab3d-42cd-975d-d216d4c9c589",
+    "name": "Support Team",
+    "parentId": "e2e6d9b5-aa3b-4eea-ada1-f7cc0b01c81d",
+    "managerId": null,
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "52db10ee-1a2e-43a3-a7da-d6fd85fa604b",
+    "name": "Senior Engineers",
+    "parentId": "68fbff0d-51f6-4847-bc05-b3f815ea7a68",
+    "managerId": null,
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "dd826d0f-df32-4932-a62d-25d02add0721",
     "name": "Junior Engineers",
-    "parentId": "dept-eng-op-001",
+    "parentId": "68fbff0d-51f6-4847-bc05-b3f815ea7a68",
     "managerId": null,
     "createdAt": "2025-01-01T00:00:00.000Z",
     "updatedAt": "2025-01-01T00:00:00.000Z"
   },
   {
-    "id": "dept-call-centre-001",
+    "id": "003e9e60-d5cd-48cb-a54c-13f3c5ba4d66",
     "name": "Call Centre",
-    "parentId": "dept-eng-op-001",
+    "parentId": "68fbff0d-51f6-4847-bc05-b3f815ea7a68",
     "managerId": null,
     "createdAt": "2025-01-01T00:00:00.000Z",
     "updatedAt": "2025-01-01T00:00:00.000Z"
   },
   {
-    "id": "dept-op-planning-001",
+    "id": "dfa74aba-7b72-42e4-9ae2-0db2ebc8dbf6",
     "name": "Operation Planning Team",
-    "parentId": "dept-eng-op-001",
+    "parentId": "68fbff0d-51f6-4847-bc05-b3f815ea7a68",
     "managerId": null,
     "createdAt": "2025-01-01T00:00:00.000Z",
     "updatedAt": "2025-01-01T00:00:00.000Z"
   },
   {
-    "id": "dept-hr-team-001",
+    "id": "106a22e4-8f92-40e8-9cdc-366cec808c4c",
     "name": "HR Team",
-    "parentId": "dept-hr-admin-001",
+    "parentId": "60e6fc6e-b46c-4b78-9687-40e45546599f",
     "managerId": null,
     "createdAt": "2025-01-01T00:00:00.000Z",
     "updatedAt": "2025-01-01T00:00:00.000Z"
   },
   {
     "id": "785c4263-8112-4e56-abb9-c0ce5a2102c9",
+    "id": "785c4263-8112-4e56-abb9-c0ce5a2102c9",
     "name": "L&D Team",
-    "parentId": "dept-hr-admin-001",
+    "parentId": "60e6fc6e-b46c-4b78-9687-40e45546599f",
     "managerId": null,
     "createdAt": "2025-01-01T00:00:00.000Z",
     "updatedAt": "2025-01-01T00:00:00.000Z"
   },
   {
     "id": "ebf099a4-ed19-4f8e-8f24-137a36e994ec",
+    "id": "ebf099a4-ed19-4f8e-8f24-137a36e994ec",
     "name": "Admin Team",
-    "parentId": "dept-hr-admin-001",
-    "managerId": null,
-    "createdAt": "2025-01-01T00:00:00.000Z",
-    "updatedAt": "2025-01-01T00:00:00.000Z"
-  },
-  {
-    "id": "dept-finance-mgr-001",
-    "name": "Finance Managers",
-    "parentId": "dept-finance-001",
+    "parentId": "60e6fc6e-b46c-4b78-9687-40e45546599f",
     "managerId": null,
     "createdAt": "2025-01-01T00:00:00.000Z",
     "updatedAt": "2025-01-01T00:00:00.000Z"
@@ -176,9 +186,17 @@
     "updatedAt": "2025-01-01T00:00:00.000Z"
   },
   {
-    "id": "dept-it-team-001",
+    "id": "d5699276-1162-4c99-8352-501eb845ad3b",
+    "name": "Finance Executive",
+    "parentId": "1580eb26-dcfe-489f-9658-5befbadb5886",
+    "managerId": null,
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "afb6476b-5791-4552-837c-2283a1526066",
     "name": "IT Team",
-    "parentId": "dept-it-001",
+    "parentId": "8ce56303-aab4-42dd-94a4-3d3b086ac875",
     "managerId": null,
     "createdAt": "2025-01-01T00:00:00.000Z",
     "updatedAt": "2025-01-01T00:00:00.000Z"

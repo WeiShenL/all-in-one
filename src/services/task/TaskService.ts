@@ -1381,10 +1381,14 @@ export class TaskService {
   /**
    * Check if a manager can access a specific department
    *
-   * Implements UAA0022, UAA0023, UAA0024:
+   * Implements UAA0022, UAA0023:
    * - Managers can see tasks in their own department
-   * - Managers can see tasks in departments 1 level down only
-   * - Managers CANNOT see tasks in departments 2+ levels down or peer departments
+   * - Managers can see tasks in ALL subordinate departments (full recursive hierarchy)
+   * - Managers CANNOT see tasks in peer departments or parent departments
+   *
+   * Example from UAA0023: "engineering operation division director department
+   * can see Senior engineers, junior engineers, call centre and operation planning"
+   * This proves full hierarchical access at ALL levels below.
    *
    * @param managerDepartmentId - Manager's department ID
    * @param targetDepartmentId - Target department ID to check access for
@@ -1399,21 +1403,28 @@ export class TaskService {
       return true;
     }
 
-    // Check if target department is exactly 1 level below manager's department
-    // Get the target department's parent
-    const targetDepartment =
-      await this.taskRepository.getDepartmentWithParent(targetDepartmentId);
+    // Recursively check if target department is a subordinate of manager's department
+    // by traversing UP the hierarchy from the target department
+    let currentDepartmentId: string | null = targetDepartmentId;
 
-    if (!targetDepartment) {
-      return false;
+    while (currentDepartmentId) {
+      const department =
+        await this.taskRepository.getDepartmentWithParent(currentDepartmentId);
+
+      if (!department) {
+        return false;
+      }
+
+      // If we find the manager's department as a parent, access is allowed
+      if (department.parentId === managerDepartmentId) {
+        return true;
+      }
+
+      // Move up to the parent department
+      currentDepartmentId = department.parentId;
     }
 
-    // If target department's parent is the manager's department, access is allowed (1 level down)
-    if (targetDepartment.parentId === managerDepartmentId) {
-      return true;
-    }
-
-    // Otherwise, no access (peer department, 2+ levels down, or unrelated)
+    // If we reached the root without finding the manager's department, no access
     return false;
   }
 }
