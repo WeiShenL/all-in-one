@@ -13,11 +13,6 @@ const mockPrisma = {
   task: {
     findMany: jest.fn(),
   },
-  $transaction: jest.fn(),
-  $disconnect: jest.fn(),
-  $connect: jest.fn(),
-  $executeRaw: jest.fn(),
-  $queryRaw: jest.fn(),
 } as unknown as PrismaClient;
 
 describe('TaskService - Manager Dashboard', () => {
@@ -41,8 +36,11 @@ describe('TaskService - Manager Dashboard', () => {
         isActive: true,
       });
 
-      // Mock department hierarchy - only manager's own department (no children)
+      // Mock department hierarchy - only manager's own department
       (mockPrisma.department.findMany as jest.Mock).mockResolvedValue([]);
+
+      // Mock userProfile.findMany for subordinate users (empty in this case)
+      (mockPrisma.userProfile.findMany as jest.Mock).mockResolvedValue([]);
 
       // Mock tasks in manager's department
       (mockPrisma.task.findMany as jest.Mock).mockResolvedValue([
@@ -103,23 +101,21 @@ describe('TaskService - Manager Dashboard', () => {
       expect(result!.metrics.completed).toBe(0);
       expect(result!.metrics.blocked).toBe(0);
 
-      // Verify the prisma.task.findMany was called with department-based OR condition
+      // Verify the prisma.task.findMany was called with ownership-based OR condition
       expect(mockPrisma.task.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
             isArchived: false,
             OR: expect.arrayContaining([
               expect.objectContaining({
-                departmentId: {
-                  in: expect.arrayContaining([managerDeptId]),
-                },
+                ownerId: managerId,
               }),
               expect.objectContaining({
                 assignments: {
                   some: {
                     user: {
                       departmentId: {
-                        in: expect.arrayContaining([managerDeptId]),
+                        in: [managerDeptId],
                       },
                       isActive: true,
                     },
@@ -146,10 +142,11 @@ describe('TaskService - Manager Dashboard', () => {
       });
 
       // Mock department hierarchy - one direct child department only
-      // First call returns child, second call (recursive) returns empty array
-      (mockPrisma.department.findMany as jest.Mock)
-        .mockResolvedValueOnce([{ id: childDeptId }])
-        .mockResolvedValue([]);
+      (mockPrisma.department.findMany as jest.Mock).mockResolvedValue([
+        {
+          id: childDeptId,
+        },
+      ]);
 
       // Mock userProfile.findMany for subordinate users in child department
       (mockPrisma.userProfile.findMany as jest.Mock).mockResolvedValue([
@@ -213,15 +210,18 @@ describe('TaskService - Manager Dashboard', () => {
       expect(result).toBeDefined();
       expect(result!.tasks).toHaveLength(2);
 
-      // Verify the query includes department hierarchy
+      // Verify the query includes ownership and subordinate department logic
       expect(mockPrisma.task.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
             isArchived: false,
             OR: expect.arrayContaining([
               expect.objectContaining({
+                ownerId: managerId,
+              }),
+              expect.objectContaining({
                 departmentId: {
-                  in: expect.arrayContaining([managerDeptId, childDeptId]),
+                  in: [childDeptId],
                 },
               }),
               expect.objectContaining({
@@ -295,23 +295,21 @@ describe('TaskService - Manager Dashboard', () => {
       expect(result).toBeDefined();
       expect(result!.tasks).toHaveLength(1);
 
-      // Verify the query only includes manager's own department
+      // Verify the query only includes manager's own tasks and assignee-based tasks
       expect(mockPrisma.task.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
             isArchived: false,
             OR: expect.arrayContaining([
               expect.objectContaining({
-                departmentId: {
-                  in: expect.arrayContaining([managerDeptId]),
-                },
+                ownerId: managerId,
               }),
               expect.objectContaining({
                 assignments: {
                   some: {
                     user: {
                       departmentId: {
-                        in: expect.arrayContaining([managerDeptId]),
+                        in: [managerDeptId],
                       },
                       isActive: true,
                     },

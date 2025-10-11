@@ -1,7 +1,7 @@
 'use client';
 
 import { trpc } from '../lib/trpc';
-import { useMemo, useState, useEffect, useRef } from 'react';
+import { useMemo, useState } from 'react';
 import { TaskEditCard } from './TaskEditCard';
 import departmentData from '@/../prisma/data/1_departments.json';
 
@@ -145,8 +145,6 @@ const styles = {
     maxHeight: '90vh',
     overflowY: 'auto' as const,
     boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-    // Fix scrollbar cutting off rounded corners
-    backgroundClip: 'padding-box',
   },
   filterBar: {
     marginBottom: '1.5rem',
@@ -270,18 +268,6 @@ export function ManagerDashboard() {
   const [userSort, setUserSort] = useState<SortCriterion[]>([]);
   const [userHasSorted, setUserHasSorted] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
-  const modalContentRef = useRef<HTMLDivElement>(null);
-
-  // ESC key handler to close modal
-  useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && editingTaskId) {
-        setEditingTaskId(null);
-      }
-    };
-    window.addEventListener('keydown', handleEsc);
-    return () => window.removeEventListener('keydown', handleEsc);
-  }, [editingTaskId]);
 
   const { departments, assignees } = useMemo(() => {
     if (!data?.tasks) {
@@ -596,16 +582,8 @@ export function ManagerDashboard() {
       </div>
 
       {editingTaskId && (
-        <div
-          style={styles.modalOverlay}
-          onClick={e => {
-            // Close modal if clicking outside the modal content
-            if (e.target === e.currentTarget) {
-              setEditingTaskId(null);
-            }
-          }}
-        >
-          <div style={styles.modalContent} ref={modalContentRef}>
+        <div style={styles.modalOverlay}>
+          <div style={styles.modalContent}>
             <button
               onClick={() => setEditingTaskId(null)}
               style={styles.closeButton}

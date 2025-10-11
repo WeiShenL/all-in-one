@@ -1028,14 +1028,20 @@ export class TaskService extends BaseService {
     departmentId: string
   ): Promise<string[]> {
     const departmentIds: string[] = [departmentId];
+
+    // Find ONLY direct children (one level down)
     const children = await this.prisma.department.findMany({
-      where: { parentId: departmentId, isActive: true },
-      select: { id: true },
+      where: {
+        parentId: departmentId,
+        isActive: true,
+      },
+      select: {
+        id: true,
+      },
     });
 
     for (const child of children) {
-      const subordinateIds = await this.getSubordinateDepartments(child.id);
-      departmentIds.push(...subordinateIds);
+      departmentIds.push(child.id);
     }
 
     return departmentIds;
@@ -1112,16 +1118,73 @@ export class TaskService extends BaseService {
         manager.departmentId
       );
 
+      // Get only the subordinate department IDs (exclude manager's own department)
+      const subordinateDeptIds = departmentIds.filter(
+        id => id !== manager.departmentId
+      );
+
+      // Get all users in subordinate departments (any role)
+      const subordinateUserIds =
+        subordinateDeptIds.length > 0
+          ? (
+              await this.prisma.userProfile.findMany({
+                where: {
+                  departmentId: { in: subordinateDeptIds },
+                  isActive: true,
+                },
+                select: { id: true },
+              })
+            ).map(u => u.id)
+          : [];
+
+      // Get STAFF (non-manager) users in the same department as the manager
+      const staffInSameDept = await this.prisma.userProfile.findMany({
+        where: {
+          departmentId: manager.departmentId,
+          role: { not: 'MANAGER' }, // Only STAFF, ADMIN, etc - not other managers
+          isActive: true,
+        },
+        select: { id: true },
+      });
+      const staffInSameDeptIds = staffInSameDept.map(u => u.id);
+
+      // Fetch tasks where EITHER:
+      // 1. Task is owned by the manager themselves, OR
+      // 2. Task is owned by STAFF in manager's same department (not other managers), OR
+      // 3. Task is owned by any user in subordinate departments, OR
+      // 4. Task is in subordinate departments (department-level tasks), OR
+      // 5. Task has an assignee from manager's department hierarchy
       const tasks = await this.prisma.task.findMany({
         where: {
           isArchived: false,
           OR: [
             {
-              departmentId: {
-                in: departmentIds,
-              },
+              // Tasks owned by the manager themselves
+              ownerId: managerId,
             },
             {
+              // Tasks owned by STAFF in the same department (not peer managers)
+              ownerId:
+                staffInSameDeptIds.length > 0
+                  ? { in: staffInSameDeptIds }
+                  : undefined,
+            },
+            {
+              // Tasks owned by users in subordinate departments
+              ownerId:
+                subordinateUserIds.length > 0
+                  ? { in: subordinateUserIds }
+                  : undefined,
+            },
+            {
+              // Tasks assigned to subordinate departments
+              departmentId:
+                subordinateDeptIds.length > 0
+                  ? { in: subordinateDeptIds }
+                  : undefined,
+            },
+            {
+              // Tasks with assignees from manager's department hierarchy
               assignments: {
                 some: {
                   user: {
@@ -1133,7 +1196,19 @@ export class TaskService extends BaseService {
                 },
               },
             },
-          ],
+          ].filter(condition => {
+            // Filter out undefined conditions
+            if ('ownerId' in condition && condition.ownerId === undefined) {
+              return false;
+            }
+            if (
+              'departmentId' in condition &&
+              condition.departmentId === undefined
+            ) {
+              return false;
+            }
+            return true;
+          }),
         },
         select: {
           id: true,
@@ -1176,7 +1251,6 @@ export class TaskService extends BaseService {
       };
     } catch (error) {
       this.handleError(error, 'getManagerDashboardTasks');
-      throw error;
     }
   }
 }

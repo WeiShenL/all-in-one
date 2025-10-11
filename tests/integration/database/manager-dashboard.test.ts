@@ -21,8 +21,6 @@ import { TaskService } from '@/app/server/services/TaskService';
 import { PrismaClient } from '@prisma/client';
 
 describe('Integration Tests - Manager Dashboard', () => {
-  jest.setTimeout(70000);
-
   let pgClient: Client;
   let prisma: PrismaClient;
   let taskService: TaskService;
@@ -48,28 +46,28 @@ describe('Integration Tests - Manager Dashboard', () => {
     prisma = new PrismaClient();
     taskService = new TaskService(prisma);
 
-    // // Clean up any leftover test data from previous failed runs
-    // await pgClient.query(
-    //   `DELETE FROM "task_assignment" WHERE "assignedById" IN (
-    //     SELECT id FROM "user_profile" WHERE email LIKE '%@test.com'
-    //   )`
-    // );
-    // await pgClient.query(
-    //   `DELETE FROM "task" WHERE "ownerId" IN (
-    //     SELECT id FROM "user_profile" WHERE email LIKE '%@test.com'
-    //   )`
-    // );
-    // await pgClient.query(
-    //   `DELETE FROM "project" WHERE "creatorId" IN (
-    //     SELECT id FROM "user_profile" WHERE email LIKE '%@test.com'
-    //   )`
-    // );
-    // await pgClient.query(
-    //   `DELETE FROM "user_profile" WHERE email LIKE '%@test.com'`
-    // );
-    // await pgClient.query(
-    //   `DELETE FROM "department" WHERE name IN ('Engineering', 'Backend Team', 'Marketing', 'Empty Department')`
-    // );
+    // Clean up any leftover test data from previous failed runs
+    await pgClient.query(
+      `DELETE FROM "task_assignment" WHERE "assignedById" IN (
+        SELECT id FROM "user_profile" WHERE email LIKE '%@test.com'
+      )`
+    );
+    await pgClient.query(
+      `DELETE FROM "task" WHERE "ownerId" IN (
+        SELECT id FROM "user_profile" WHERE email LIKE '%@test.com'
+      )`
+    );
+    await pgClient.query(
+      `DELETE FROM "project" WHERE "creatorId" IN (
+        SELECT id FROM "user_profile" WHERE email LIKE '%@test.com'
+      )`
+    );
+    await pgClient.query(
+      `DELETE FROM "user_profile" WHERE email LIKE '%@test.com'`
+    );
+    await pgClient.query(
+      `DELETE FROM "department" WHERE name IN ('Engineering', 'Backend Team', 'Marketing', 'Empty Department')`
+    );
 
     // Create parent department (manager's department)
     const parentDeptResult = await pgClient.query(
@@ -138,57 +136,40 @@ describe('Integration Tests - Manager Dashboard', () => {
   afterAll(async () => {
     // Clean up in proper order to avoid foreign key constraint violations
 
-    // 1. Delete task_logs first (before users)
-    await pgClient.query(
-      `DELETE FROM "task_log" WHERE "userId" IN (
-        SELECT id FROM "user_profile" WHERE email IN (
-          'manager@test.com', 'staff-parent@test.com', 'staff-child@test.com', 'staff-peer@test.com', 'empty-manager@test.com'
-        )
-      )`
-    );
-
-    // 2. Delete task assignments
+    // 1. Delete task assignments first
     await pgClient.query(
       `DELETE FROM "task_assignment" WHERE "assignedById" IN (
-        SELECT id FROM "user_profile" WHERE email IN (
-          'manager@test.com', 'staff-parent@test.com', 'staff-child@test.com', 'staff-peer@test.com', 'empty-manager@test.com'
-        )
+        SELECT id FROM "user_profile" WHERE email LIKE '%@test.com'
       )`
     );
 
-    // 3. Delete created tasks
+    // 2. Delete created tasks
     if (createdTaskIds.length > 0) {
       await pgClient.query(`DELETE FROM "task" WHERE id = ANY($1::uuid[])`, [
         createdTaskIds,
       ]);
     }
 
-    // 4. Delete all tasks owned by this test's users
+    // 3. Delete all tasks related to test users
     await pgClient.query(
       `DELETE FROM "task" WHERE "ownerId" IN (
-        SELECT id FROM "user_profile" WHERE email IN (
-          'manager@test.com', 'staff-parent@test.com', 'staff-child@test.com', 'staff-peer@test.com', 'empty-manager@test.com'
-        )
+        SELECT id FROM "user_profile" WHERE email LIKE '%@test.com'
       )`
     );
 
-    // 5. Clean up projects
+    // 4. Clean up projects created by test users
     await pgClient.query(
       `DELETE FROM "project" WHERE "creatorId" IN (
-        SELECT id FROM "user_profile" WHERE email IN (
-          'manager@test.com', 'staff-parent@test.com', 'staff-child@test.com', 'staff-peer@test.com', 'empty-manager@test.com'
-        )
+        SELECT id FROM "user_profile" WHERE email LIKE '%@test.com'
       )`
     );
 
-    // 6. Clean up this test's specific users only
+    // 5. Clean up test users
     await pgClient.query(
-      `DELETE FROM "user_profile" WHERE email IN (
-        'manager@test.com', 'staff-parent@test.com', 'staff-child@test.com', 'staff-peer@test.com', 'empty-manager@test.com'
-      )`
+      `DELETE FROM "user_profile" WHERE email LIKE '%@test.com'`
     );
 
-    // 7. Clean up this test's departments only
+    // 6. Clean up test departments
     await pgClient.query(
       `DELETE FROM "department" WHERE name IN ('Engineering', 'Backend Team', 'Marketing', 'Empty Department')`
     );
