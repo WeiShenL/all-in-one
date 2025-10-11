@@ -198,7 +198,6 @@ export class TaskService {
     }
 
     // Check authorization: user must be owner, assigned, or manager of the department hierarchy
-    // Check authorization: user must be owner, assigned, or manager of the department hierarchy
     const isOwner = taskData.ownerId === user.userId;
     const isAssigned = taskData.assignments.some(a => a.userId === user.userId);
 
@@ -213,19 +212,7 @@ export class TaskService {
     }
 
     if (!isOwner && !isAssigned && !isManagerWithAccess) {
-    // Check if user is a manager who can access this task
-    let isManagerWithAccess = false;
-    if (user.role === 'MANAGER' && !isOwner && !isAssigned) {
-      // Check if task is in manager's own department or a subordinate department
-      isManagerWithAccess = await this.canManagerAccessDepartment(
-        user.departmentId,
-        taskData.departmentId
-      );
-    }
-
-    if (!isOwner && !isAssigned && !isManagerWithAccess) {
       throw new Error(
-        'Unauthorized: You must be the task owner, assigned to this task, or a manager of the department'
         'Unauthorized: You must be the task owner, assigned to this task, or a manager of the department'
       );
     }
@@ -1381,14 +1368,10 @@ export class TaskService {
   /**
    * Check if a manager can access a specific department
    *
-   * Implements UAA0022, UAA0023:
+   * Implements UAA0022, UAA0023, UAA0024:
    * - Managers can see tasks in their own department
-   * - Managers can see tasks in ALL subordinate departments (full recursive hierarchy)
-   * - Managers CANNOT see tasks in peer departments or parent departments
-   *
-   * Example from UAA0023: "engineering operation division director department
-   * can see Senior engineers, junior engineers, call centre and operation planning"
-   * This proves full hierarchical access at ALL levels below.
+   * - Managers can see tasks in departments 1 level down only
+   * - Managers CANNOT see tasks in departments 2+ levels down or peer departments
    *
    * @param managerDepartmentId - Manager's department ID
    * @param targetDepartmentId - Target department ID to check access for
@@ -1403,28 +1386,21 @@ export class TaskService {
       return true;
     }
 
-    // Recursively check if target department is a subordinate of manager's department
-    // by traversing UP the hierarchy from the target department
-    let currentDepartmentId: string | null = targetDepartmentId;
+    // Check if target department is exactly 1 level below manager's department
+    // Get the target department's parent
+    const targetDepartment =
+      await this.taskRepository.getDepartmentWithParent(targetDepartmentId);
 
-    while (currentDepartmentId) {
-      const department =
-        await this.taskRepository.getDepartmentWithParent(currentDepartmentId);
-
-      if (!department) {
-        return false;
-      }
-
-      // If we find the manager's department as a parent, access is allowed
-      if (department.parentId === managerDepartmentId) {
-        return true;
-      }
-
-      // Move up to the parent department
-      currentDepartmentId = department.parentId;
+    if (!targetDepartment) {
+      return false;
     }
 
-    // If we reached the root without finding the manager's department, no access
+    // If target department's parent is the manager's department, access is allowed (1 level down)
+    if (targetDepartment.parentId === managerDepartmentId) {
+      return true;
+    }
+
+    // Otherwise, no access (peer department, 2+ levels down, or unrelated)
     return false;
   }
 }
