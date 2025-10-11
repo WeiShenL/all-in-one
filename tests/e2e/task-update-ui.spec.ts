@@ -507,6 +507,8 @@ test.describe('Task Update - Complete UI Flow', () => {
   });
 
   test('AC6 + TM021: should edit own comment only', async ({ page }) => {
+    test.setTimeout(70000); // Extended timeout for multiple slow assertions in CI/CD
+
     await loginAndNavigateToTaskEdit(page);
 
     // Scroll to comments section
@@ -526,7 +528,7 @@ test.describe('Task Update - Complete UI Flow', () => {
 
     // Verify edit button exists for own comment (longer timeout for CI/CD as it depends on previous test)
     await expect(editButton).toBeVisible({
-      timeout: 25000,
+      timeout: 30000,
     });
 
     // Click edit button
@@ -544,19 +546,19 @@ test.describe('Task Update - Complete UI Flow', () => {
 
     // Verify success message
     await expect(page.getByText(/comment updated/i)).toBeVisible({
-      timeout: 25000,
+      timeout: 30000,
     });
 
     // Verify comment was updated (longer timeout for CI/CD)
     await expect(
       page.getByText('This is my EDITED e2e test comment')
     ).toBeVisible({
-      timeout: 25000,
+      timeout: 30000,
     });
 
     // Verify (edited) indicator appears (longer timeout for CI/CD)
     await expect(page.getByText(/\(edited\)/i)).toBeVisible({
-      timeout: 25000,
+      timeout: 30000,
     });
   });
 
@@ -665,7 +667,7 @@ test.describe('Task Update - Complete UI Flow', () => {
   });
 
   test('AC8 + TM044: should upload file attachment', async ({ page }) => {
-    test.setTimeout(60000); // Extended timeout for file upload mutation in slow CI/CD
+    test.setTimeout(70000); // Extended timeout for file upload mutation in slow CI/CD
 
     await loginAndNavigateToTaskEdit(page);
 
@@ -695,14 +697,16 @@ startxref
     await fileInput.setInputFiles(testFilePath);
 
     // Wait for file to be selected (should show checkmark)
-    await expect(page.getByText(/✓ test-file-e2e.pdf/i)).toBeVisible();
+    await expect(page.getByText(/✓ test-file-e2e.pdf/i)).toBeVisible({
+      timeout: 20000,
+    });
 
     // Click Upload button
     await page.getByRole('button', { name: /⬆️ Upload|upload/i }).click();
 
     // Verify upload progress or success message (AC9) - increased timeout for slow CI/CD
     await expect(page.getByText(/file.*uploaded|uploading/i)).toBeVisible({
-      timeout: 20000,
+      timeout: 30000,
     });
 
     // Wait for upload to complete
@@ -710,12 +714,12 @@ startxref
 
     // Verify file appears in the list using data-testid (longer timeout for CI/CD)
     await expect(page.getByTestId('file-entry-test-file-e2e.pdf')).toBeVisible({
-      timeout: 20000,
+      timeout: 30000,
     });
 
     // Verify storage usage updates (longer timeout for CI/CD)
     await expect(page.getByText(/Storage Usage:/i)).toBeVisible({
-      timeout: 20000,
+      timeout: 30000,
     });
 
     // Clean up test file
@@ -736,7 +740,7 @@ startxref
     // Verify the file exists in the list (longer timeout for CI/CD as it depends on previous test)
     const fileEntry = page.getByTestId('file-entry-test-file-e2e.pdf');
     await expect(fileEntry).toBeVisible({
-      timeout: 20000,
+      timeout: 30000,
     });
 
     // Find the download button using data-testid (longer timeout for CI/CD)
@@ -744,7 +748,7 @@ startxref
       'file-download-button-test-file-e2e.pdf'
     );
     await expect(downloadButton).toBeVisible({
-      timeout: 25000,
+      timeout: 30000,
     });
 
     const newPagePromise = context.waitForEvent('page', { timeout: 35000 });
@@ -762,7 +766,7 @@ startxref
   });
 
   test('AC8: should delete file attachment', async ({ page }) => {
-    test.setTimeout(60000); // Extended timeout for file deletion mutation in slow CI/CD.
+    test.setTimeout(70000); // Extended timeout for file deletion mutation in slow CI/CD.
 
     await loginAndNavigateToTaskEdit(page);
 
@@ -782,12 +786,12 @@ startxref
 
     // Verify success message (AC9) - increased timeout for slow CI/CD
     await expect(page.getByText(/file.*deleted/i)).toBeVisible({
-      timeout: 25000,
+      timeout: 30000,
     });
 
     // Verify file is removed from list (longer timeout for CI/CD)
     await expect(fileRow).not.toBeVisible({
-      timeout: 25000,
+      timeout: 30000,
     });
   });
 });
