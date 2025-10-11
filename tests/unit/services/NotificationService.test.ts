@@ -94,8 +94,8 @@ describe('NotificationService', () => {
           html: expect.any(String),
         });
 
-        expect(result.title).toBe('New Task Assigned');
-        expect(result.isRead).toBe(false);
+        expect(result!.title).toBe('New Task Assigned');
+        expect(result!.isRead).toBe(false);
       });
 
       it('should not throw an error if email sending fails', async () => {
@@ -168,7 +168,7 @@ describe('NotificationService', () => {
 
         const result = await service.create(input);
 
-        expect(result.taskId).toBeNull();
+        expect(result!.taskId).toBeNull();
         expect(mockEmailService.sendEmail).toHaveBeenCalled();
       });
 
@@ -289,7 +289,7 @@ describe('NotificationService', () => {
         });
 
         expect(result).toHaveLength(1);
-        expect(result[0].isRead).toBe(false);
+        expect(result![0].isRead).toBe(false);
       });
 
       it('should get notification by ID', async () => {
@@ -376,7 +376,7 @@ describe('NotificationService', () => {
           data: { isRead: true },
         });
 
-        expect(result.isRead).toBe(true);
+        expect(result!.isRead).toBe(true);
       });
 
       it('should mark all notifications as read for a user', async () => {
@@ -398,7 +398,7 @@ describe('NotificationService', () => {
           data: { isRead: true },
         });
 
-        expect(result.count).toBe(5);
+        expect(result!.count).toBe(5);
       });
     });
 
@@ -419,7 +419,7 @@ describe('NotificationService', () => {
           where: { id: 'notif1' },
         });
 
-        expect(result.id).toBe('notif1');
+        expect(result!.id).toBe('notif1');
       });
 
       it('should delete all read notifications for a user', async () => {
@@ -440,7 +440,7 @@ describe('NotificationService', () => {
           },
         });
 
-        expect(result.count).toBe(3);
+        expect(result!.count).toBe(3);
       });
     });
   });
