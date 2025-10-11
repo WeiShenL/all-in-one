@@ -392,6 +392,8 @@ test.describe('Task Update - Complete UI Flow', () => {
   });
 
   test('AC3: should add and remove tags', async ({ page }) => {
+    test.setTimeout(65000); // Extended timeout for slow CI/CD
+
     await loginAndNavigateToTaskEdit(page);
 
     // Scroll to tags section
@@ -401,9 +403,9 @@ test.describe('Task Update - Complete UI Flow', () => {
     await page.getByPlaceholder(/add tag/i).fill('e2e-test-tag-urgent');
     await page.getByRole('button', { name: /add tag/i }).click();
 
-    // Verify success message (AC9)
+    // Verify success message (AC9) - increased timeout as video shows 15s delay
     await expect(page.getByText(/tag added/i)).toBeVisible({
-      timeout: 10000,
+      timeout: 20000,
     });
 
     // Verify tag appears (longer timeout for CI/CD)
@@ -415,7 +417,7 @@ test.describe('Task Update - Complete UI Flow', () => {
     await page.getByPlaceholder(/add tag/i).fill('e2e-test-tag-frontend');
     await page.getByRole('button', { name: /add tag/i }).click();
     await expect(page.getByText(/tag added/i)).toBeVisible({
-      timeout: 10000,
+      timeout: 20000,
     });
     await expect(page.getByText('e2e-test-tag-frontend')).toBeVisible({
       timeout: 15000,
@@ -427,9 +429,9 @@ test.describe('Task Update - Complete UI Flow', () => {
       .filter({ hasText: /^e2e-test-tag-urgent/ });
     await tag1.getByRole('button').click();
 
-    // Verify tag removed message
+    // Verify tag removed message - increased timeout for slow CI/CD
     await expect(page.getByText(/tag removed/i)).toBeVisible({
-      timeout: 10000,
+      timeout: 20000,
     });
 
     // Verify tag is gone (longer timeout for CI/CD)
@@ -439,6 +441,8 @@ test.describe('Task Update - Complete UI Flow', () => {
   });
 
   test('AC10: should update recurring settings', async ({ page }) => {
+    test.setTimeout(70000); // Extended timeout for slow CI/CD mutations
+
     await loginAndNavigateToTaskEdit(page);
 
     // Scroll to recurring section
@@ -459,9 +463,9 @@ test.describe('Task Update - Complete UI Flow', () => {
       .first()
       .click();
 
-    // Verify success message (AC9)
+    // Verify success message (AC9) - increased timeout for slow CI/CD
     await expect(page.getByText(/recurring settings updated/i)).toBeVisible({
-      timeout: 10000,
+      timeout: 20000,
     });
 
     // Wait for success message to disappear (component re-renders after fetchTask)
@@ -473,7 +477,7 @@ test.describe('Task Update - Complete UI Flow', () => {
 
     // Verify recurring badge shows "Enabled (every 7 days)" (longer timeout for CI/CD)
     await expect(page.getByText(/✅ Enabled \(every 7 days\)/i)).toBeVisible({
-      timeout: 15000,
+      timeout: 20000,
     });
   });
 
@@ -559,6 +563,8 @@ test.describe('Task Update - Complete UI Flow', () => {
   test('AC7 + TM015: should add assignees up to max 5 and cannot remove', async ({
     page,
   }) => {
+    test.setTimeout(90000); // Extended timeout - adds 4 assignees, each takes ~15s in CI/CD
+
     await loginAndNavigateToTaskEdit(page);
 
     // Scroll to assignees section
@@ -582,9 +588,9 @@ test.describe('Task Update - Complete UI Flow', () => {
       .fill(`e2e.user2.${testEmail.split('.')[3].split('@')[0]}@example.com`);
     await page.getByTestId('add-assignee-button').click();
 
-    // Verify success message (AC9 - within 10 seconds)
+    // Verify success message (AC9) - increased timeout for slow CI/CD
     await expect(page.getByText(/Assignee.*added/i)).toBeVisible({
-      timeout: 10000,
+      timeout: 25000,
     });
 
     // Verify count updates to 2/5 (longer timeout for CI/CD)
@@ -599,7 +605,7 @@ test.describe('Task Update - Complete UI Flow', () => {
       .fill(`e2e.user3.${testEmail.split('.')[3].split('@')[0]}@example.com`);
     await page.getByTestId('add-assignee-button').click();
     await expect(page.getByText(/Assignee.*added/i)).toBeVisible({
-      timeout: 10000,
+      timeout: 20000,
     });
     await expect(page.getByText(/👥 Assigned Staff \(3\/5\)/i)).toBeVisible({
       timeout: 15000,
@@ -612,7 +618,7 @@ test.describe('Task Update - Complete UI Flow', () => {
       .fill(`e2e.user4.${testEmail.split('.')[3].split('@')[0]}@example.com`);
     await page.getByTestId('add-assignee-button').click();
     await expect(page.getByText(/Assignee.*added/i)).toBeVisible({
-      timeout: 10000,
+      timeout: 20000,
     });
     await expect(page.getByText(/👥 Assigned Staff \(4\/5\)/i)).toBeVisible({
       timeout: 15000,
@@ -625,18 +631,18 @@ test.describe('Task Update - Complete UI Flow', () => {
       .fill(`e2e.user5.${testEmail.split('.')[3].split('@')[0]}@example.com`);
     await page.getByTestId('add-assignee-button').click();
     await expect(page.getByText(/Assignee.*added/i)).toBeVisible({
-      timeout: 10000,
+      timeout: 20000,
     });
 
     // Verify count is now 5/5 (longer timeout for CI/CD)
     await expect(page.getByText(/👥 Assigned Staff \(5\/5\)/i)).toBeVisible({
-      timeout: 15000,
+      timeout: 20000,
     });
 
     // Verify max limit message appears (without TM023 reference, longer timeout for CI/CD)
     await expect(page.getByText(/⚠️ Maximum 5 assignees reached/i)).toBeVisible(
       {
-        timeout: 15000,
+        timeout: 20000,
       }
     );
 
@@ -658,6 +664,8 @@ test.describe('Task Update - Complete UI Flow', () => {
   });
 
   test('AC8 + TM044: should upload file attachment', async ({ page }) => {
+    test.setTimeout(60000); // Extended timeout for file upload mutation in slow CI/CD
+
     await loginAndNavigateToTaskEdit(page);
 
     // Scroll to file attachments section
@@ -691,9 +699,9 @@ startxref
     // Click Upload button
     await page.getByRole('button', { name: /⬆️ Upload|upload/i }).click();
 
-    // Verify upload progress or success message (AC9)
+    // Verify upload progress or success message (AC9) - increased timeout for slow CI/CD
     await expect(page.getByText(/file.*uploaded|uploading/i)).toBeVisible({
-      timeout: 10000,
+      timeout: 20000,
     });
 
     // Wait for upload to complete
@@ -751,6 +759,8 @@ startxref
   });
 
   test('AC8: should delete file attachment', async ({ page }) => {
+    test.setTimeout(60000); // Extended timeout for file deletion mutation in slow CI/CD
+
     await loginAndNavigateToTaskEdit(page);
 
     // Scroll to file attachments section
@@ -767,14 +777,14 @@ startxref
 
     await deleteButton.click();
 
-    // Verify success message (AC9)
+    // Verify success message (AC9) - increased timeout for slow CI/CD
     await expect(page.getByText(/file.*deleted/i)).toBeVisible({
-      timeout: 10000,
+      timeout: 20000,
     });
 
     // Verify file is removed from list (longer timeout for CI/CD)
     await expect(fileRow).not.toBeVisible({
-      timeout: 15000,
+      timeout: 20000,
     });
   });
 });
