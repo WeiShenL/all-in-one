@@ -140,3 +140,36 @@ export interface CreateNotificationInput {
   message: string;
   taskId?: string;
 }
+
+// Dashboard Types
+export interface DashboardMetrics {
+  toDo: number;
+  inProgress: number;
+  completed: number;
+  blocked: number;
+}
+
+export interface DashboardData {
+  tasks: Array<{
+    id: string;
+    title: string;
+    description: string;
+    priority: number;
+    dueDate: Date;
+    status: 'TO_DO' | 'IN_PROGRESS' | 'COMPLETED' | 'BLOCKED';
+    ownerId: string;
+    departmentId: string;
+    assignments: Array<{
+      user: {
+        id: string;
+        name: string | null;
+        email: string;
+      };
+    }>;
+    department: {
+      id: string;
+      name: string;
+    };
+  }>;
+  metrics: DashboardMetrics;
+}

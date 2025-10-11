@@ -1,15 +1,42 @@
 [
   {
-    "id": "user-staff-001",
-    "email": "john.doe@allinone.com",
-    "name": "John Doe",
-    "role": "STAFF",
-    "departmentId": "dept-developers-001",
+    "id": "user-md-001",
+    "email": "jack.sim@allinone.com",
+    "name": "Jack Sim",
+    "role": "MANAGER",
+    "departmentId": "dept-md-001",
     "createdAt": "2025-01-01T00:00:00.000Z",
     "updatedAt": "2025-01-01T00:00:00.000Z"
   },
   {
-    "id": "user-manager-001",
+    "id": "user-sales-dir-001",
+    "email": "derek.tan@allinone.com",
+    "name": "Derek Tan",
+    "role": "MANAGER",
+    "departmentId": "dept-sales-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-consult-dir-001",
+    "email": "ernst.sim@allinone.com",
+    "name": "Ernst Sim",
+    "role": "MANAGER",
+    "departmentId": "dept-consultancy-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-syssol-dir-001",
+    "email": "eric.loh@allinone.com",
+    "name": "Eric Loh",
+    "role": "MANAGER",
+    "departmentId": "dept-sys-sol-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-engop-dir-001",
     "email": "philip.lee@allinone.com",
     "name": "Philip Lee",
     "role": "MANAGER",
@@ -18,11 +45,434 @@
     "updatedAt": "2025-01-01T00:00:00.000Z"
   },
   {
-    "id": "user-hradmin-001",
+    "id": "user-hr-dir-001",
     "email": "sally.loh@allinone.com",
     "name": "Sally Loh",
     "role": "HR_ADMIN",
     "departmentId": "dept-hr-admin-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-finance-dir-001",
+    "email": "david.yap@allinone.com",
+    "name": "David Yap",
+    "role": "MANAGER",
+    "departmentId": "dept-finance-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-it-dir-001",
+    "email": "peter.yap@allinone.com",
+    "name": "Peter Yap",
+    "role": "MANAGER",
+    "departmentId": "dept-it-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-salesmgr-001",
+    "email": "salesmgr1@allinone.com",
+    "name": "Sales Manager One",
+    "role": "MANAGER",
+    "departmentId": "dept-sales-mgr-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-salesmgr-002",
+    "email": "salesmgr2@allinone.com",
+    "name": "Sales Manager Two",
+    "role": "MANAGER",
+    "departmentId": "dept-sales-mgr-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-salesmgr-003",
+    "email": "salesmgr3@allinone.com",
+    "name": "Sales Manager Three",
+    "role": "MANAGER",
+    "departmentId": "dept-sales-mgr-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-accmgr-001",
+    "email": "accmgr1@allinone.com",
+    "name": "Account Manager One",
+    "role": "STAFF",
+    "departmentId": "dept-acc-mgr-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-accmgr-002",
+    "email": "accmgr2@allinone.com",
+    "name": "Account Manager Two",
+    "role": "STAFF",
+    "departmentId": "dept-acc-mgr-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-accmgr-003",
+    "email": "accmgr3@allinone.com",
+    "name": "Account Manager Three",
+    "role": "STAFF",
+    "departmentId": "dept-acc-mgr-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-consultant-001",
+    "email": "consultant1@allinone.com",
+    "name": "Consultant One",
+    "role": "STAFF",
+    "departmentId": "dept-consultant-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-consultant-002",
+    "email": "consultant2@allinone.com",
+    "name": "Consultant Two",
+    "role": "STAFF",
+    "departmentId": "dept-consultant-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-consultant-003",
+    "email": "consultant3@allinone.com",
+    "name": "Consultant Three",
+    "role": "STAFF",
+    "departmentId": "dept-consultant-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-developer-001",
+    "email": "developer1@allinone.com",
+    "name": "Developer One",
+    "role": "STAFF",
+    "departmentId": "dept-developers-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-developer-002",
+    "email": "developer2@allinone.com",
+    "name": "Developer Two",
+    "role": "STAFF",
+    "departmentId": "dept-developers-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-developer-003",
+    "email": "developer3@allinone.com",
+    "name": "Developer Three",
+    "role": "STAFF",
+    "departmentId": "dept-developers-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-support-001",
+    "email": "support1@allinone.com",
+    "name": "Support One",
+    "role": "STAFF",
+    "departmentId": "dept-support-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-support-002",
+    "email": "support2@allinone.com",
+    "name": "Support Two",
+    "role": "STAFF",
+    "departmentId": "dept-support-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-support-003",
+    "email": "support3@allinone.com",
+    "name": "Support Three",
+    "role": "STAFF",
+    "departmentId": "dept-support-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-senioreng-001",
+    "email": "senioreng1@allinone.com",
+    "name": "Senior Engineer One",
+    "role": "STAFF",
+    "departmentId": "dept-senior-eng-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-senioreng-002",
+    "email": "senioreng2@allinone.com",
+    "name": "Senior Engineer Two",
+    "role": "STAFF",
+    "departmentId": "dept-senior-eng-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-senioreng-003",
+    "email": "senioreng3@allinone.com",
+    "name": "Senior Engineer Three",
+    "role": "STAFF",
+    "departmentId": "dept-senior-eng-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-junioreng-001",
+    "email": "junioreng1@allinone.com",
+    "name": "Junior Engineer One",
+    "role": "STAFF",
+    "departmentId": "dept-junior-eng-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-junioreng-002",
+    "email": "junioreng2@allinone.com",
+    "name": "Junior Engineer Two",
+    "role": "STAFF",
+    "departmentId": "dept-junior-eng-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-junioreng-003",
+    "email": "junioreng3@allinone.com",
+    "name": "Junior Engineer Three",
+    "role": "STAFF",
+    "departmentId": "dept-junior-eng-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-callcentre-001",
+    "email": "callcentre1@allinone.com",
+    "name": "Call Centre One",
+    "role": "STAFF",
+    "departmentId": "dept-call-centre-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-callcentre-002",
+    "email": "callcentre2@allinone.com",
+    "name": "Call Centre Two",
+    "role": "STAFF",
+    "departmentId": "dept-call-centre-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-callcentre-003",
+    "email": "callcentre3@allinone.com",
+    "name": "Call Centre Three",
+    "role": "STAFF",
+    "departmentId": "dept-call-centre-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-opplanning-001",
+    "email": "opplanning1@allinone.com",
+    "name": "Operation Planning One",
+    "role": "STAFF",
+    "departmentId": "dept-op-planning-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-opplanning-002",
+    "email": "opplanning2@allinone.com",
+    "name": "Operation Planning Two",
+    "role": "STAFF",
+    "departmentId": "dept-op-planning-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-opplanning-003",
+    "email": "opplanning3@allinone.com",
+    "name": "Operation Planning Three",
+    "role": "STAFF",
+    "departmentId": "dept-op-planning-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-hrteam-001",
+    "email": "hrteam1@allinone.com",
+    "name": "HR Team One",
+    "role": "STAFF",
+    "departmentId": "dept-hr-team-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-hrteam-002",
+    "email": "hrteam2@allinone.com",
+    "name": "HR Team Two",
+    "role": "STAFF",
+    "departmentId": "dept-hr-team-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-hrteam-003",
+    "email": "hrteam3@allinone.com",
+    "name": "HR Team Three",
+    "role": "STAFF",
+    "departmentId": "dept-hr-team-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-ldteam-001",
+    "email": "ldteam1@allinone.com",
+    "name": "L&D Team One",
+    "role": "STAFF",
+    "departmentId": "dept-ld-team-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-ldteam-002",
+    "email": "ldteam2@allinone.com",
+    "name": "L&D Team Two",
+    "role": "STAFF",
+    "departmentId": "dept-ld-team-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-ldteam-003",
+    "email": "ldteam3@allinone.com",
+    "name": "L&D Team Three",
+    "role": "STAFF",
+    "departmentId": "dept-ld-team-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-adminteam-001",
+    "email": "adminteam1@allinone.com",
+    "name": "Admin Team One",
+    "role": "STAFF",
+    "departmentId": "dept-admin-team-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-adminteam-002",
+    "email": "adminteam2@allinone.com",
+    "name": "Admin Team Two",
+    "role": "STAFF",
+    "departmentId": "dept-admin-team-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-adminteam-003",
+    "email": "adminteam3@allinone.com",
+    "name": "Admin Team Three",
+    "role": "STAFF",
+    "departmentId": "dept-admin-team-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-financemgr-001",
+    "email": "financemgr1@allinone.com",
+    "name": "Finance Manager One",
+    "role": "MANAGER",
+    "departmentId": "dept-finance-mgr-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-financemgr-002",
+    "email": "financemgr2@allinone.com",
+    "name": "Finance Manager Two",
+    "role": "MANAGER",
+    "departmentId": "dept-finance-mgr-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-financemgr-003",
+    "email": "financemgr3@allinone.com",
+    "name": "Finance Manager Three",
+    "role": "MANAGER",
+    "departmentId": "dept-finance-mgr-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-financeexec-001",
+    "email": "financeexec1@allinone.com",
+    "name": "Finance Executive One",
+    "role": "STAFF",
+    "departmentId": "dept-finance-exec-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-financeexec-002",
+    "email": "financeexec2@allinone.com",
+    "name": "Finance Executive Two",
+    "role": "STAFF",
+    "departmentId": "dept-finance-exec-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-financeexec-003",
+    "email": "financeexec3@allinone.com",
+    "name": "Finance Executive Three",
+    "role": "STAFF",
+    "departmentId": "dept-finance-exec-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-itteam-001",
+    "email": "itteam1@allinone.com",
+    "name": "IT Team One",
+    "role": "STAFF",
+    "departmentId": "dept-it-team-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-itteam-002",
+    "email": "itteam2@allinone.com",
+    "name": "IT Team Two",
+    "role": "STAFF",
+    "departmentId": "dept-it-team-001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-itteam-003",
+    "email": "itteam3@allinone.com",
+    "name": "IT Team Three",
+    "role": "STAFF",
+    "departmentId": "dept-it-team-001",
     "createdAt": "2025-01-01T00:00:00.000Z",
     "updatedAt": "2025-01-01T00:00:00.000Z"
   }
