@@ -7,9 +7,15 @@ dotenv.config();
 export default defineConfig({
   testDir: './tests/e2e',
   timeout: 30_000,
-  expect: { timeout: 5_000 },
+  expect: {
+    timeout: process.env.CI ? 15_000 : 5_000, // Longer timeouts in CI/CD
+  },
 
-  // Use the dev server’s URL for tests; update the port if you use a different one
+  // Run e2e tests sequentially to prevent auth/database conflicts
+  fullyParallel: false,
+  workers: 1,
+
+  // Use the dev server's URL for tests; update the port if you use a different one
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000',
     trace: 'on-first-retry',

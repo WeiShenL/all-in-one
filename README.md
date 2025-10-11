@@ -86,22 +86,31 @@ A Next.js application with Supabase backend, designed for local development with
    npx prisma db seed
    ```
 
-7. **Start the Next.js Development Server**
+7. **Configure Supabase Storage (Required for file uploads)**
+
+   If you need to use the file upload feature for tasks, you must configure Supabase Storage:
+   - Create `task-attachments` bucket
+   - Configure RLS policies for upload/download/delete
+
+   **📋 Follow the complete guide**: [DEVELOPMENT.md - File Upload & Storage System](./DEVELOPMENT.md#-file-upload--storage-system)
+
+8. **Start the Next.js Development Server**
 
    ```bash
    npm run dev
    ```
 
-8. **Accessing the Services**
+9. **Accessing the Services**
    - **Next.js App**: [http://localhost:3000](http://localhost:3000)
    - **Supabase Studio**: [http://localhost:8000](http://localhost:8000)(Use credentials from `.env` file if prompted)
    - **Prisma Studio**: [http://localhost:5555](http://localhost:5555)(You'll need to run `npx prisma studio`)
 
-9. **Stopping the Services**
-   ```bash
-   cd supabase
-   docker compose --env-file ../.env down
-   ```
+10. **Stopping the Services**
+
+```bash
+cd supabase
+docker compose --env-file ../.env down
+```
 
 ### When You Pull New Changes
 
