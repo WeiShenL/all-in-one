@@ -52,6 +52,7 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "superjson": "^2.2.2",
+    "resend": "^6.1.2",
     "zod": "^4.1.9"
   },
   "lint-staged": {
@@ -91,6 +92,8 @@
     "tailwindcss": "^4",
     "ts-jest": "^29.4.4",
     "tsx": "^4.20.5",
-    "typescript": "^5"
+    "typescript": "^5",
+    "undici": "^7.16.0",
+    "whatwg-fetch": "^3.6.20"
   }
 }

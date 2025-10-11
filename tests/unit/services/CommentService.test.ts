@@ -69,7 +69,7 @@ describe('CommentService', () => {
           include: expect.any(Object),
         });
 
-        expect(result.content).toBe('This is a comment');
+        expect(result!.content).toBe('This is a comment');
       });
 
       it('should throw error when task not found', async () => {
@@ -170,7 +170,7 @@ describe('CommentService', () => {
         });
 
         expect(result).toHaveLength(2);
-        expect(result[0].content).toBe('Comment 1');
+        expect(result![0].content).toBe('Comment 1');
       });
 
       it('should get comment by ID', async () => {
@@ -284,7 +284,7 @@ describe('CommentService', () => {
           include: expect.any(Object),
         });
 
-        expect(result.content).toBe('Updated content');
+        expect(result!.content).toBe('Updated content');
       });
 
       it('should throw error when comment not found', async () => {
@@ -328,7 +328,7 @@ describe('CommentService', () => {
           where: { id: 'comment1' },
         });
 
-        expect(result.id).toBe('comment1');
+        expect(result!.id).toBe('comment1');
       });
     });
   });

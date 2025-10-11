@@ -33,7 +33,7 @@ export class DepartmentService extends BaseService {
 
       return this.buildHierarchy(departments);
     } catch (error) {
-      this.handleError(error, 'getAll');
+      throw this.handleError(error, 'getAll');
     }
   }
 

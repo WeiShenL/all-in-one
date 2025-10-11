@@ -176,7 +176,7 @@ describe('DepartmentService', () => {
 
       const result = await service.create(input);
 
-      expect(result.parentId).toBe('eng-id');
+      expect(result!.parentId).toBe('eng-id');
     });
 
     it('should throw error when parent department not found', async () => {
@@ -226,7 +226,7 @@ describe('DepartmentService', () => {
         data: updateData,
       });
 
-      expect(result.name).toBe('Engineering Department');
+      expect(result!.name).toBe('Engineering Department');
     });
 
     it('should throw error when department not found', async () => {
@@ -276,7 +276,7 @@ describe('DepartmentService', () => {
         data: { isActive: false },
       });
 
-      expect(result.isActive).toBe(false);
+      expect(result!.isActive).toBe(false);
     });
 
     it('should throw error when department has active children', async () => {

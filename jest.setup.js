@@ -1,3 +1,4 @@
+// import 'whatwg-fetch';
 // Mock Supabase with a pass-through that works for both unit and integration tests
 jest.mock('@supabase/supabase-js', () => {
   const actual = jest.requireActual('@supabase/supabase-js');

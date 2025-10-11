@@ -140,7 +140,7 @@ describe('UserProfileService', () => {
         select: expect.any(Object),
       });
 
-      expect(result.email).toBe('newuser@example.com');
+      expect(result!.email).toBe('newuser@example.com');
     });
 
     it('should throw error when department not found', async () => {
@@ -209,7 +209,7 @@ describe('UserProfileService', () => {
 
       const result = await service.create(input);
 
-      expect(result.role).toBe('STAFF');
+      expect(result!.role).toBe('STAFF');
     });
   });
 
@@ -249,7 +249,7 @@ describe('UserProfileService', () => {
         select: expect.any(Object),
       });
 
-      expect(result.name).toBe('New Name');
+      expect(result!.name).toBe('New Name');
     });
 
     it('should throw error when user not found', async () => {
@@ -282,7 +282,7 @@ describe('UserProfileService', () => {
         select: expect.any(Object),
       });
 
-      expect(result.isActive).toBe(false);
+      expect(result!.isActive).toBe(false);
     });
   });
 
@@ -364,7 +364,7 @@ describe('UserProfileService', () => {
       });
 
       expect(result).toHaveLength(1);
-      expect(result[0].role).toBe('MANAGER');
+      expect(result![0].role).toBe('MANAGER');
     });
   });
 
@@ -403,7 +403,7 @@ describe('UserProfileService', () => {
         select: expect.any(Object),
       });
 
-      expect(result.departmentId).toBe(departmentId);
+      expect(result!.departmentId).toBe(departmentId);
     });
 
     it('should throw error when department not found', async () => {
