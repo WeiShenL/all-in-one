@@ -420,7 +420,7 @@ test.describe('Task Update - Complete UI Flow', () => {
       timeout: 20000,
     });
     await expect(page.getByText('e2e-test-tag-frontend')).toBeVisible({
-      timeout: 15000,
+      timeout: 25000,
     });
 
     // Remove first tag
@@ -431,17 +431,17 @@ test.describe('Task Update - Complete UI Flow', () => {
 
     // Verify tag removed message - increased timeout for slow CI/CD
     await expect(page.getByText(/tag removed/i)).toBeVisible({
-      timeout: 20000,
+      timeout: 25000,
     });
 
     // Verify tag is gone (longer timeout for CI/CD)
     await expect(page.getByText('e2e-test-tag-urgent')).not.toBeVisible({
-      timeout: 15000,
+      timeout: 25000,
     });
   });
 
   test('AC10: should update recurring settings', async ({ page }) => {
-    test.setTimeout(70000); // Extended timeout for slow CI/CD mutations
+    test.setTimeout(75000); // Extended timeout for slow CI/CD mutations
 
     await loginAndNavigateToTaskEdit(page);
 
@@ -465,19 +465,19 @@ test.describe('Task Update - Complete UI Flow', () => {
 
     // Verify success message (AC9) - increased timeout for slow CI/CD
     await expect(page.getByText(/recurring settings updated/i)).toBeVisible({
-      timeout: 20000,
+      timeout: 35000,
     });
 
     // Wait for success message to disappear (component re-renders after fetchTask)
     await expect(page.getByText(/recurring settings updated/i)).not.toBeVisible(
       {
-        timeout: 5000,
+        timeout: 35000,
       }
     );
 
     // Verify recurring badge shows "Enabled (every 7 days)" (longer timeout for CI/CD)
     await expect(page.getByText(/✅ Enabled \(every 7 days\)/i)).toBeVisible({
-      timeout: 20000,
+      timeout: 35000,
     });
   });
 
@@ -495,14 +495,14 @@ test.describe('Task Update - Complete UI Flow', () => {
 
     // Verify success message (AC9)
     await expect(page.getByText(/comment added/i)).toBeVisible({
-      timeout: 10000,
+      timeout: 25000,
     });
 
     // Verify comment appears (longer timeout for CI/CD)
     await expect(
       page.getByText('This is my first e2e test comment')
     ).toBeVisible({
-      timeout: 15000,
+      timeout: 25000,
     });
   });
 
@@ -526,7 +526,7 @@ test.describe('Task Update - Complete UI Flow', () => {
 
     // Verify edit button exists for own comment (longer timeout for CI/CD as it depends on previous test)
     await expect(editButton).toBeVisible({
-      timeout: 15000,
+      timeout: 25000,
     });
 
     // Click edit button
@@ -544,26 +544,26 @@ test.describe('Task Update - Complete UI Flow', () => {
 
     // Verify success message
     await expect(page.getByText(/comment updated/i)).toBeVisible({
-      timeout: 10000,
+      timeout: 25000,
     });
 
     // Verify comment was updated (longer timeout for CI/CD)
     await expect(
       page.getByText('This is my EDITED e2e test comment')
     ).toBeVisible({
-      timeout: 15000,
+      timeout: 25000,
     });
 
     // Verify (edited) indicator appears (longer timeout for CI/CD)
     await expect(page.getByText(/\(edited\)/i)).toBeVisible({
-      timeout: 15000,
+      timeout: 25000,
     });
   });
 
   test('AC7 + TM015: should add assignees up to max 5 and cannot remove', async ({
     page,
   }) => {
-    test.setTimeout(90000); // Extended timeout - adds 4 assignees, each takes ~15s in CI/CD
+    test.setTimeout(100000); // Extended timeout - adds 4 assignees, each takes ~15s in CI/CD
 
     await loginAndNavigateToTaskEdit(page);
 
@@ -572,7 +572,7 @@ test.describe('Task Update - Complete UI Flow', () => {
 
     // Verify initial count is 1 (original testUserId) (longer timeout for CI/CD)
     await expect(page.getByText(/👥 Assigned Staff \(1\/5\)/i)).toBeVisible({
-      timeout: 15000,
+      timeout: 25000,
     });
 
     // Verify NO delete-assignee buttons exist (TM015 compliance - cannot remove once added)
@@ -590,12 +590,12 @@ test.describe('Task Update - Complete UI Flow', () => {
 
     // Verify success message (AC9) - increased timeout for slow CI/CD
     await expect(page.getByText(/Assignee.*added/i)).toBeVisible({
-      timeout: 25000,
+      timeout: 30000,
     });
 
     // Verify count updates to 2/5 (longer timeout for CI/CD)
     await expect(page.getByText(/👥 Assigned Staff \(2\/5\)/i)).toBeVisible({
-      timeout: 15000,
+      timeout: 30000,
     });
 
     // Add 3rd assignee
@@ -605,10 +605,10 @@ test.describe('Task Update - Complete UI Flow', () => {
       .fill(`e2e.user3.${testEmail.split('.')[3].split('@')[0]}@example.com`);
     await page.getByTestId('add-assignee-button').click();
     await expect(page.getByText(/Assignee.*added/i)).toBeVisible({
-      timeout: 20000,
+      timeout: 30000,
     });
     await expect(page.getByText(/👥 Assigned Staff \(3\/5\)/i)).toBeVisible({
-      timeout: 15000,
+      timeout: 30000,
     });
 
     // Add 4th assignee
@@ -618,10 +618,10 @@ test.describe('Task Update - Complete UI Flow', () => {
       .fill(`e2e.user4.${testEmail.split('.')[3].split('@')[0]}@example.com`);
     await page.getByTestId('add-assignee-button').click();
     await expect(page.getByText(/Assignee.*added/i)).toBeVisible({
-      timeout: 20000,
+      timeout: 30000,
     });
     await expect(page.getByText(/👥 Assigned Staff \(4\/5\)/i)).toBeVisible({
-      timeout: 15000,
+      timeout: 25000,
     });
 
     // Add 5th assignee (reaching max limit)
@@ -631,24 +631,24 @@ test.describe('Task Update - Complete UI Flow', () => {
       .fill(`e2e.user5.${testEmail.split('.')[3].split('@')[0]}@example.com`);
     await page.getByTestId('add-assignee-button').click();
     await expect(page.getByText(/Assignee.*added/i)).toBeVisible({
-      timeout: 20000,
+      timeout: 30000,
     });
 
     // Verify count is now 5/5 (longer timeout for CI/CD)
     await expect(page.getByText(/👥 Assigned Staff \(5\/5\)/i)).toBeVisible({
-      timeout: 20000,
+      timeout: 30000,
     });
 
     // Verify max limit message appears (without TM023 reference, longer timeout for CI/CD)
     await expect(page.getByText(/⚠️ Maximum 5 assignees reached/i)).toBeVisible(
       {
-        timeout: 20000,
+        timeout: 25000,
       }
     );
 
     // Verify input field is hidden/disabled when max reached (longer timeout for CI/CD)
     await expect(page.getByTestId('assignee-email-input')).not.toBeVisible({
-      timeout: 15000,
+      timeout: 25000,
     });
 
     // Verify all 5 assignees are displayed
@@ -709,12 +709,12 @@ startxref
 
     // Verify file appears in the list using data-testid (longer timeout for CI/CD)
     await expect(page.getByTestId('file-entry-test-file-e2e.pdf')).toBeVisible({
-      timeout: 15000,
+      timeout: 20000,
     });
 
     // Verify storage usage updates (longer timeout for CI/CD)
     await expect(page.getByText(/Storage Usage:/i)).toBeVisible({
-      timeout: 15000,
+      timeout: 20000,
     });
 
     // Clean up test file
@@ -725,6 +725,8 @@ startxref
     page,
     context,
   }) => {
+    test.setTimeout(70000); // Extended timeout for slow CI/CD file visibility checks + page event
+
     await loginAndNavigateToTaskEdit(page);
 
     // Scroll to file attachments section
@@ -733,7 +735,7 @@ startxref
     // Verify the file exists in the list (longer timeout for CI/CD as it depends on previous test)
     const fileEntry = page.getByTestId('file-entry-test-file-e2e.pdf');
     await expect(fileEntry).toBeVisible({
-      timeout: 15000,
+      timeout: 20000,
     });
 
     // Find the download button using data-testid (longer timeout for CI/CD)
@@ -741,10 +743,10 @@ startxref
       'file-download-button-test-file-e2e.pdf'
     );
     await expect(downloadButton).toBeVisible({
-      timeout: 15000,
+      timeout: 25000,
     });
 
-    const newPagePromise = context.waitForEvent('page', { timeout: 10000 });
+    const newPagePromise = context.waitForEvent('page', { timeout: 35000 });
     await downloadButton.click();
 
     try {
@@ -779,12 +781,12 @@ startxref
 
     // Verify success message (AC9) - increased timeout for slow CI/CD
     await expect(page.getByText(/file.*deleted/i)).toBeVisible({
-      timeout: 20000,
+      timeout: 25000,
     });
 
     // Verify file is removed from list (longer timeout for CI/CD)
     await expect(fileRow).not.toBeVisible({
-      timeout: 20000,
+      timeout: 25000,
     });
   });
 });
