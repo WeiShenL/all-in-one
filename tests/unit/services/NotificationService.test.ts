@@ -30,8 +30,8 @@ describe('NotificationService', () => {
 
   beforeEach(() => {
     mockEmailService = new EmailService() as jest.Mocked<EmailService>;
-    service = new NotificationService(mockEmailService);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    service = new NotificationService(mockPrisma, mockEmailService);
+
     (service as any).prisma = mockPrisma;
     jest.clearAllMocks();
   });
