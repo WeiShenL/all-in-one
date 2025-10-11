@@ -754,7 +754,7 @@ export class TaskService {
   /**
    * Upload a file to a task
    *
-   * Authorization: Task owner can always upload, otherwise must be assigned
+   * Authorization: Task owner can always upload, otherwise must be assigned or be a manager with access
    * Validation:
    * - Individual file max 10MB (TM005)
    * - Task total max 50MB (TM044)
@@ -774,20 +774,29 @@ export class TaskService {
     fileType: string,
     user: UserContext
   ) {
-    // 1. Authorization: Check if user is task owner or assigned to task
-    const task = await this.taskRepository.getTaskById(taskId);
-    if (!task) {
+    // 1. Get task with department info for authorization check
+    const taskData = await this.taskRepository.getTaskByIdFull(taskId);
+    if (!taskData) {
       throw new Error('Task not found');
     }
 
-    const isOwner = task.ownerId === user.userId;
-    const isAssigned = task.assignments.some(
+    const isOwner = taskData.ownerId === user.userId;
+    const isAssigned = taskData.assignments.some(
       assignment => assignment.userId === user.userId
     );
 
-    if (!isOwner && !isAssigned) {
+    // Check if user is a manager who can access this task
+    let isManagerWithAccess = false;
+    if (user.role === 'MANAGER' && !isOwner && !isAssigned) {
+      isManagerWithAccess = await this.canManagerAccessDepartment(
+        user.departmentId,
+        taskData.departmentId
+      );
+    }
+
+    if (!isOwner && !isAssigned && !isManagerWithAccess) {
       throw new Error(
-        'Unauthorized: You must be the task owner or assigned to this task to upload files'
+        'Unauthorized: You must be the task owner, assigned to this task, or a manager of the department to upload files'
       );
     }
 
@@ -852,7 +861,7 @@ export class TaskService {
   /**
    * Get download URL for a file
    *
-   * Authorization: Task owner can always download, otherwise must be assigned
+   * Authorization: Task owner can always download, otherwise must be assigned or be a manager with access
    *
    * @param fileId - File ID
    * @param user - User context for authorization
@@ -865,20 +874,31 @@ export class TaskService {
       throw new Error('File not found');
     }
 
-    // 2. Authorization: Check if user is task owner or assigned to the task
-    const task = await this.taskRepository.getTaskById(fileRecord.taskId);
-    if (!task) {
+    // 2. Get task with department info for authorization check
+    const taskData = await this.taskRepository.getTaskByIdFull(
+      fileRecord.taskId
+    );
+    if (!taskData) {
       throw new Error('Task not found');
     }
 
-    const isOwner = task.ownerId === user.userId;
-    const isAssigned = task.assignments.some(
+    const isOwner = taskData.ownerId === user.userId;
+    const isAssigned = taskData.assignments.some(
       assignment => assignment.userId === user.userId
     );
 
-    if (!isOwner && !isAssigned) {
+    // Check if user is a manager who can access this task
+    let isManagerWithAccess = false;
+    if (user.role === 'MANAGER' && !isOwner && !isAssigned) {
+      isManagerWithAccess = await this.canManagerAccessDepartment(
+        user.departmentId,
+        taskData.departmentId
+      );
+    }
+
+    if (!isOwner && !isAssigned && !isManagerWithAccess) {
       throw new Error(
-        'Unauthorized: You must be the task owner or assigned to this task to download files'
+        'Unauthorized: You must be the task owner, assigned to this task, or a manager of the department to download files'
       );
     }
 
@@ -939,27 +959,37 @@ export class TaskService {
   /**
    * Get all files for a task
    *
-   * Authorization: Task owner can always view files, otherwise must be assigned
+   * Authorization: Task owner can always view files, otherwise must be assigned, or must be a manager with access
    *
    * @param taskId - Task ID
    * @param user - User context for authorization
    * @returns Array of file records
    */
   async getTaskFiles(taskId: string, user: UserContext) {
-    // 1. Authorization: Check if user is task owner or assigned to task
-    const task = await this.taskRepository.getTaskById(taskId);
-    if (!task) {
+    // 1. Get task with department info for authorization check
+    const taskData = await this.taskRepository.getTaskByIdFull(taskId);
+    if (!taskData) {
       throw new Error('Task not found');
     }
 
-    const isOwner = task.ownerId === user.userId;
-    const isAssigned = task.assignments.some(
+    const isOwner = taskData.ownerId === user.userId;
+    const isAssigned = taskData.assignments.some(
       assignment => assignment.userId === user.userId
     );
 
-    if (!isOwner && !isAssigned) {
+    // Check if user is a manager who can access this task
+    let isManagerWithAccess = false;
+    if (user.role === 'MANAGER' && !isOwner && !isAssigned) {
+      // Check if task is in manager's own department or a subordinate department
+      isManagerWithAccess = await this.canManagerAccessDepartment(
+        user.departmentId,
+        taskData.departmentId
+      );
+    }
+
+    if (!isOwner && !isAssigned && !isManagerWithAccess) {
       throw new Error(
-        'Unauthorized: You must be the task owner or assigned to this task to view files'
+        'Unauthorized: You must be the task owner, assigned to this task, or a manager of the department to view files'
       );
     }
 
@@ -1294,10 +1324,14 @@ export class TaskService {
   /**
    * Check if a manager can access a specific department
    *
-   * Implements UAA0022, UAA0023, UAA0024:
+   * Implements UAA0022, UAA0023:
    * - Managers can see tasks in their own department
-   * - Managers can see tasks in departments 1 level down only
-   * - Managers CANNOT see tasks in departments 2+ levels down or peer departments
+   * - Managers can see tasks in ALL subordinate departments (full recursive hierarchy)
+   * - Managers CANNOT see tasks in peer departments or parent departments
+   *
+   * Example from UAA0023: "engineering operation division director department
+   * can see Senior engineers, junior engineers, call centre and operation planning"
+   * This proves full hierarchical access at ALL levels below.
    *
    * @param managerDepartmentId - Manager's department ID
    * @param targetDepartmentId - Target department ID to check access for
@@ -1312,21 +1346,28 @@ export class TaskService {
       return true;
     }
 
-    // Check if target department is exactly 1 level below manager's department
-    // Get the target department's parent
-    const targetDepartment =
-      await this.taskRepository.getDepartmentWithParent(targetDepartmentId);
+    // Recursively check if target department is a subordinate of manager's department
+    // by traversing UP the hierarchy from the target department
+    let currentDepartmentId: string | null = targetDepartmentId;
 
-    if (!targetDepartment) {
-      return false;
+    while (currentDepartmentId) {
+      const department =
+        await this.taskRepository.getDepartmentWithParent(currentDepartmentId);
+
+      if (!department) {
+        return false;
+      }
+
+      // If we find the manager's department as a parent, access is allowed
+      if (department.parentId === managerDepartmentId) {
+        return true;
+      }
+
+      // Move up to the parent department
+      currentDepartmentId = department.parentId;
     }
 
-    // If target department's parent is the manager's department, access is allowed (1 level down)
-    if (targetDepartment.parentId === managerDepartmentId) {
-      return true;
-    }
-
-    // Otherwise, no access (peer department, 2+ levels down, or unrelated)
+    // If we reached the root without finding the manager's department, no access
     return false;
   }
 }
