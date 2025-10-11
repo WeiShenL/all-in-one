@@ -761,7 +761,7 @@ startxref
   });
 
   test('AC8: should delete file attachment', async ({ page }) => {
-    test.setTimeout(60000); // Extended timeout for file deletion mutation in slow CI/CD
+    test.setTimeout(60000); // Extended timeout for file deletion mutation in slow CI/CD.
 
     await loginAndNavigateToTaskEdit(page);
 
