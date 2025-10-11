@@ -1,5 +1,4 @@
 import { Resend } from 'resend';
-import { BaseService } from './BaseService';
 
 interface EmailOptions {
   to: string | string[];
@@ -8,15 +7,29 @@ interface EmailOptions {
   html?: string;
 }
 
-export class EmailService extends BaseService {
+export class EmailService {
   private resend: Resend;
 
   constructor() {
-    super();
     if (!process.env.RESEND_API_KEY) {
       throw new Error('RESEND_API_KEY is not defined in environment variables');
     }
     this.resend = new Resend(process.env.RESEND_API_KEY);
+  }
+
+  private handleError(
+    error: unknown,
+    context: string,
+    shouldThrow: boolean = true
+  ): void {
+    console.error(`[${this.constructor.name}] Error in ${context}:`, error);
+
+    if (shouldThrow) {
+      if (error instanceof Error) {
+        throw new Error(`${context}: ${error.message}`);
+      }
+      throw new Error(`${context}: An unknown error occurred`);
+    }
   }
 
   async sendEmail(options: EmailOptions) {

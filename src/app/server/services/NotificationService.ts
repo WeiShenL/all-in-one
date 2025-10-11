@@ -1,3 +1,4 @@
+import { PrismaClient } from '@prisma/client';
 import { BaseService } from './BaseService';
 import { CreateNotificationInput } from '../types';
 import { NotificationType } from '@prisma/client';
@@ -14,8 +15,8 @@ import { EmailService } from './EmailService';
 export class NotificationService extends BaseService {
   private emailService: EmailService;
 
-  constructor(emailService: EmailService) {
-    super();
+  constructor(prisma: PrismaClient, emailService: EmailService) {
+    super(prisma);
     this.emailService = emailService;
   }
 
