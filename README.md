@@ -86,22 +86,31 @@ A Next.js application with Supabase backend, designed for local development with
    npx prisma db seed
    ```
 
-7. **Start the Next.js Development Server**
+7. **Configure Supabase Storage (Required for file uploads)**
+
+   If you need to use the file upload feature for tasks, you must configure Supabase Storage:
+   - Create `task-attachments` bucket
+   - Configure RLS policies for upload/download/delete
+
+   **📋 Follow the complete guide**: [DEVELOPMENT.md - File Upload & Storage System](./DEVELOPMENT.md#-file-upload--storage-system)
+
+8. **Start the Next.js Development Server**
 
    ```bash
    npm run dev
    ```
 
-8. **Accessing the Services**
+9. **Accessing the Services**
    - **Next.js App**: [http://localhost:3000](http://localhost:3000)
    - **Supabase Studio**: [http://localhost:8000](http://localhost:8000)(Use credentials from `.env` file if prompted)
    - **Prisma Studio**: [http://localhost:5555](http://localhost:5555)(You'll need to run `npx prisma studio`)
 
-9. **Stopping the Services**
-   ```bash
-   cd supabase
-   docker compose --env-file ../.env down
-   ```
+10. **Stopping the Services**
+
+```bash
+cd supabase
+docker compose --env-file ../.env down
+```
 
 ### When You Pull New Changes
 
@@ -125,47 +134,77 @@ For more advanced database management and development practices, see [DEVELOPMEN
 
 - **Frontend**: Next.js 15 with TypeScript, App Router
 - **Backend**: Supabase (PostgreSQL, Auth, Storage, Realtime), tRPC
-- **API Layer**: tRPC with OOP Service Architecture
+- **API Layer**: tRPC with Hybrid Architecture (OOP + DDD)
 - **Database ORM**: Prisma
 - **Development**: Docker, Docker Compose
 - **Code Quality**: ESLint, Prettier, Husky pre-commit hooks
+- **Testing**: Jest, React Testing Library, Playwright
 
 ## 🏗️ Architecture
 
-This project uses an **Object-Oriented Programming (OOP) architecture** for the backend:
+This project uses a **Hybrid Backend Architecture** combining two patterns based on domain complexity:
 
-- **Service Layer Pattern**: Business logic encapsulated in TypeScript classes
-- **Full CRUD Operations**: Complete service classes for all entities
-- **OOP Principles**: Encapsulation, Inheritance, Single Responsibility, Dependency Injection
-- **tRPC Integration**: Thin router wrappers delegate to service classes
-- **Fully Tested**: Comprehensive unit and integration test coverage
+### OOP Service Layer (Simpler Domains)
 
-For detailed architecture documentation and implementation guide, see [OOP.md](./OOP.md).
+- **Pattern**: Anemic domain model with service layer orchestration
+- **Used for**: Department, UserProfile, Team, Project, Comment, Notification
+- **Benefits**: Clear separation, easy to maintain, suitable for CRUD operations
+
+### Domain-Driven Design (Complex Domains)
+
+- **Pattern**: Rich domain models with clean architecture
+- **Used for**: Task Management (complex business rules, rich behavior)
+- **Layers**: Domain → Application → Infrastructure → Presentation
+- **Benefits**: Enforced invariants, database-agnostic, highly testable
+
+### Key Features
+
+- **Encapsulation**: Business logic isolated in appropriate layers
+- **Testability**: Comprehensive test coverage (unit, integration, e2e)
+- **Type Safety**: Full TypeScript support across all layers
+- **Flexibility**: Choose architecture pattern based on domain complexity
+
+For detailed architecture documentation, patterns, and implementation guide, see [OOP.md](./OOP.md).
 
 ## 🧪 Testing
 
-This project uses Jest and React Testing Library for testing.
+This project uses a comprehensive testing strategy:
+
+- **Unit Tests** (Jest) - Fast, isolated component and utility tests
+- **Integration Tests** (Jest) - Database and API tests
+- **E2E Tests** (Playwright) - Full user flow tests
 
 ### Quick Start
 
 ```bash
-# Run all tests
+# Run ALL tests (unit → integration → E2E)
 npm test
 
-# Run only unit tests (fast, isolated)
+# Run only unit tests (fast, no database required)
 npm run test:unit
 
 # Run only integration tests (requires database)
 npm run test:integration
 
+# Run only E2E tests (requires database)
+npm run test:e2e
+npm run test:e2e:headed
+npm run test:e2e:ui
+npm run test:e2e:debug
+
 # Run tests with coverage
 npm run test:coverage
-
-# Run tests in watch mode
-npm run test:watch
 ```
 
-For detailed testing guidelines, best practices, and examples, see [DEVELOPMENT.md](./DEVELOPMENT.md).
+**For detailed information:**
+
+- Test structure and organization
+- Writing tests (components, services, database operations)
+- Test best practices and guidelines
+- CI/CD pipeline details
+- Coverage reporting
+
+See the comprehensive testing guide in [DEVELOPMENT.md](./DEVELOPMENT.md#-testing).
 
 For development practices, code quality standards, authentication details, and project structure, see [DEVELOPMENT.md](./DEVELOPMENT.md).
 

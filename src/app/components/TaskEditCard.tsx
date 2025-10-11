@@ -8,10 +8,10 @@ interface Task {
   title: string;
   description: string;
   status: 'TO_DO' | 'IN_PROGRESS' | 'COMPLETED' | 'BLOCKED';
-  priority: number;
+  priorityBucket: number;
   dueDate: string;
   isRecurring: boolean;
-  recurrenceDays: number | null;
+  recurringInterval: number | null;
   assignments: string[];
   tags: string[];
   comments: Array<{
@@ -52,7 +52,9 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
   const [statusValue, setStatusValue] = useState<Task['status']>('TO_DO');
   const [editingRecurring, setEditingRecurring] = useState(false);
   const [recurringEnabled, setRecurringEnabled] = useState(false);
-  const [recurringDays, setRecurringDays] = useState<number | null>(null);
+  const [recurringInterval, setRecurringInterval] = useState<number | null>(
+    null
+  );
   const [newTag, setNewTag] = useState('');
   const [newComment, setNewComment] = useState('');
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
@@ -66,9 +68,17 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
   const [loadingFiles, setLoadingFiles] = useState(true);
   const [totalSize, setTotalSize] = useState(0);
 
+  // Assignee management states (AC7 - TM015: can add but NOT remove)
+  const [newAssigneeEmail, setNewAssigneeEmail] = useState('');
+  const [addingAssignee, setAddingAssignee] = useState(false);
+  const [userDetailsMap, setUserDetailsMap] = useState<
+    Map<string, { name: string; email: string }>
+  >(new Map());
+
   useEffect(() => {
     fetchTask();
     fetchFiles();
+    fetchDepartmentUsers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [taskId]);
 
@@ -93,7 +103,7 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
         setDeadlineValue(data.result.data.dueDate.split('T')[0]);
         setStatusValue(data.result.data.status);
         setRecurringEnabled(data.result.data.isRecurring);
-        setRecurringDays(data.result.data.recurrenceDays);
+        setRecurringInterval(data.result.data.recurringInterval);
       }
     } catch {
       setError('Failed to load task');
@@ -109,7 +119,7 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
 
     try {
       const response = await fetch(
-        `/api/trpc/task.getTaskFiles?input=${encodeURIComponent(
+        `/api/trpc/taskFile.getTaskFiles?input=${encodeURIComponent(
           JSON.stringify({
             taskId,
             userId: userProfile.id,
@@ -131,9 +141,35 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
     }
   };
 
+  const fetchDepartmentUsers = async () => {
+    if (!userProfile) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `/api/trpc/userProfile.getByDepartment?input=${encodeURIComponent(
+          JSON.stringify({ departmentId: userProfile.departmentId })
+        )}`
+      );
+      const data = await response.json();
+
+      if (data.result?.data) {
+        const userMap = new Map<string, { name: string; email: string }>();
+        data.result.data.forEach(
+          (user: { id: string; name: string; email: string }) => {
+            userMap.set(user.id, { name: user.name, email: user.email });
+          }
+        );
+        setUserDetailsMap(userMap);
+      }
+    } catch (err) {
+      console.error('Failed to fetch department users:', err);
+    }
+  };
+
   const updateTask = async (
     endpoint: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     payload: any,
     successMsg: string
   ) => {
@@ -210,7 +246,7 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
   const handleUpdateRecurring = async () => {
     await updateTask(
       'updateRecurring',
-      { taskId, enabled: recurringEnabled, days: recurringDays },
+      { taskId, enabled: recurringEnabled, recurringInterval },
       '✅ Recurring settings updated'
     );
     setEditingRecurring(false);
@@ -250,6 +286,90 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
     setEditCommentValue('');
   };
 
+  // AC7: Add assignee by email (max 5, cannot remove - TM015)
+  const handleAddAssignee = async () => {
+    if (!newAssigneeEmail.trim() || !userProfile) {
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newAssigneeEmail.trim())) {
+      setError('Invalid email format');
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+
+    // Check max 5 limit (TM023)
+    if (task && task.assignments.length >= 5) {
+      setError('Maximum 5 assignees allowed');
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+
+    setAddingAssignee(true);
+    setError(null);
+
+    try {
+      // Step 1: Look up user ID from email
+      const lookupResponse = await fetch('/api/trpc/userProfile.findByEmails', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ emails: [newAssigneeEmail.trim()] }),
+      });
+
+      if (!lookupResponse.ok) {
+        throw new Error('Failed to find user by email');
+      }
+
+      const lookupData = await lookupResponse.json();
+      const userIds = lookupData.result?.data || [];
+
+      if (userIds.length === 0) {
+        setError(`User with email "${newAssigneeEmail.trim()}" not found`);
+        setAddingAssignee(false);
+        setTimeout(() => setError(null), 3000);
+        return;
+      }
+
+      const newUserId = userIds[0];
+
+      // Check if already assigned
+      if (task && task.assignments.includes(newUserId)) {
+        setError('User is already assigned to this task');
+        setAddingAssignee(false);
+        setTimeout(() => setError(null), 3000);
+        return;
+      }
+
+      // Step 2: Add assignee via API
+      const addResponse = await fetch('/api/trpc/task.addAssignee', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          taskId,
+          userId: newUserId,
+        }),
+      });
+
+      if (!addResponse.ok) {
+        const errorData = await addResponse.json();
+        throw new Error(errorData.error?.message || 'Failed to add assignee');
+      }
+
+      setSuccess(`✅ Assignee "${newAssigneeEmail.trim()}" added`);
+      setNewAssigneeEmail('');
+      await fetchTask(); // Refresh task data
+
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to add assignee');
+      setTimeout(() => setError(null), 5000);
+    } finally {
+      setAddingAssignee(false);
+    }
+  };
+
   // File upload handlers
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -278,7 +398,6 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       'application/vnd.ms-excel',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'text/plain',
       'application/zip',
     ];
 
@@ -308,7 +427,7 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
 
           setUploadProgress(40);
 
-          const response = await fetch('/api/trpc/task.uploadFile', {
+          const response = await fetch('/api/trpc/taskFile.uploadFile', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -340,7 +459,7 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
             setSuccess(null);
             setUploadProgress(0);
           }, 3000);
-        } catch {
+        } catch (err) {
           setError(err instanceof Error ? err.message : 'Upload failed');
           setUploading(false);
           setUploadProgress(0);
@@ -368,7 +487,7 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
     }
 
     try {
-      const response = await fetch('/api/trpc/task.deleteFile', {
+      const response = await fetch('/api/trpc/taskFile.deleteFile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -392,14 +511,14 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
     }
   };
 
-  const handleDownloadFile = async (fileId: string, fileName: string) => {
+  const handleDownloadFile = async (fileId: string, _fileName: string) => {
     if (!userProfile) {
       return;
     }
 
     try {
       const response = await fetch(
-        `/api/trpc/task.getFileDownloadUrl?input=${encodeURIComponent(
+        `/api/trpc/taskFile.getFileDownloadUrl?input=${encodeURIComponent(
           JSON.stringify({
             fileId,
             userId: userProfile.id,
@@ -411,10 +530,7 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
       const data = await response.json();
 
       if (data.result?.data?.downloadUrl) {
-        const link = document.createElement('a');
-        link.href = data.result.data.downloadUrl;
-        link.download = fileName;
-        link.click();
+        window.open(data.result.data.downloadUrl, '_blank');
       }
     } catch {
       setError('Failed to download file');
@@ -536,6 +652,7 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
               {task.title}
             </h2>
             <button
+              data-testid='title-edit-button'
               onClick={() => setEditingTitle(true)}
               style={{
                 padding: '4px 8px',
@@ -568,6 +685,7 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
           </h3>
           {!editingDescription && (
             <button
+              data-testid='description-edit-button'
               onClick={() => setEditingDescription(true)}
               style={{
                 padding: '4px 8px',
@@ -732,6 +850,7 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
                 {task.status.replace('_', ' ')}
               </span>
               <button
+                data-testid='status-edit-button'
                 onClick={() => setEditingStatus(true)}
                 style={{
                   marginLeft: '8px',
@@ -809,6 +928,7 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
           ) : (
             <div>
               <span
+                data-testid='priority-value'
                 style={{
                   padding: '4px 12px',
                   backgroundColor:
@@ -831,6 +951,7 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
                 {task.priorityBucket}
               </span>
               <button
+                data-testid='priority-edit-button'
                 onClick={() => setEditingPriority(true)}
                 style={{
                   marginLeft: '8px',
@@ -861,6 +982,7 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
           {editingDeadline ? (
             <div>
               <input
+                data-testid='deadline-input'
                 type='date'
                 value={deadlineValue}
                 onChange={e => setDeadlineValue(e.target.value)}
@@ -909,6 +1031,7 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
                 {new Date(task.dueDate).toLocaleDateString()}
               </span>
               <button
+                data-testid='deadline-edit-button'
                 onClick={() => setEditingDeadline(true)}
                 style={{
                   marginLeft: '8px',
@@ -948,6 +1071,7 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
           </h3>
           {!editingRecurring && (
             <button
+              data-testid='recurring-edit-button'
               onClick={() => setEditingRecurring(true)}
               style={{
                 padding: '4px 8px',
@@ -967,6 +1091,7 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
           <div>
             <label style={{ display: 'block', marginBottom: '8px' }}>
               <input
+                data-testid='recurring-checkbox'
                 type='checkbox'
                 checked={recurringEnabled}
                 onChange={e => setRecurringEnabled(e.target.checked)}
@@ -986,10 +1111,11 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
                   Repeat every (days):
                 </label>
                 <input
+                  data-testid='recurring-interval-input'
                   type='number'
                   min='1'
-                  value={recurringDays || ''}
-                  onChange={e => setRecurringDays(Number(e.target.value))}
+                  value={recurringInterval || ''}
+                  onChange={e => setRecurringInterval(Number(e.target.value))}
                   placeholder='e.g., 7'
                   style={{
                     padding: '6px',
@@ -1031,8 +1157,137 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
         ) : (
           <div style={{ fontSize: '0.875rem', color: '#0369a1' }}>
             {task.isRecurring
-              ? `✅ Enabled (every ${task.recurrenceDays} days)`
+              ? `✅ Enabled (every ${task.recurringInterval} days)`
               : '❌ Not recurring'}
+          </div>
+        )}
+      </div>
+
+      {/* Assignees - AC7 (TM015: can add but NOT remove) */}
+      <div
+        style={{
+          marginBottom: '1.5rem',
+          padding: '1rem',
+          backgroundColor: '#fef2f2',
+          borderRadius: '8px',
+        }}
+      >
+        <h3
+          style={{
+            fontSize: '0.875rem',
+            fontWeight: '600',
+            marginBottom: '12px',
+          }}
+        >
+          👥 Assigned Staff ({task.assignments.length}/5)
+        </h3>
+
+        {/* Current Assignees Display */}
+        <div style={{ marginBottom: '1rem' }}>
+          {task.assignments.length === 0 ? (
+            <p style={{ fontSize: '0.875rem', color: '#666' }}>
+              No assignees yet.
+            </p>
+          ) : (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px',
+                marginBottom: '12px',
+              }}
+            >
+              {task.assignments.map(userId => {
+                const userDetails = userDetailsMap.get(userId);
+                return (
+                  <div
+                    key={userId}
+                    style={{
+                      padding: '6px 10px',
+                      backgroundColor: '#dcfce7',
+                      borderRadius: '4px',
+                      fontSize: '0.875rem',
+                      color: '#166534',
+                    }}
+                  >
+                    <span>
+                      👤{' '}
+                      {userDetails
+                        ? `${userDetails.name} (${userDetails.email})`
+                        : 'Loading...'}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Remember that max 5 assignees (TM023) and cannot remove once added (TM015) */}
+        {/* Add Assignee Interface */}
+        {task.assignments.length < 5 ? (
+          <div>
+            <div
+              style={{
+                fontSize: '12px',
+                color: '#7c2d12',
+                marginBottom: '8px',
+              }}
+            >
+              💡 Add assignee by email • Max 5 total
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input
+                type='email'
+                value={newAssigneeEmail}
+                onChange={e => setNewAssigneeEmail(e.target.value)}
+                placeholder='user@example.com'
+                disabled={addingAssignee}
+                style={{
+                  flex: 1,
+                  padding: '6px',
+                  border: '1px solid #cbd5e0',
+                  borderRadius: '4px',
+                  fontSize: '0.875rem',
+                }}
+                data-testid='assignee-email-input'
+              />
+              <button
+                onClick={handleAddAssignee}
+                disabled={addingAssignee || !newAssigneeEmail.trim()}
+                style={{
+                  padding: '6px 12px',
+                  backgroundColor:
+                    addingAssignee || !newAssigneeEmail.trim()
+                      ? '#9ca3af'
+                      : '#dc2626',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor:
+                    addingAssignee || !newAssigneeEmail.trim()
+                      ? 'not-allowed'
+                      : 'pointer',
+                  fontSize: '0.875rem',
+                }}
+                data-testid='add-assignee-button'
+              >
+                {addingAssignee ? '⏳ Adding...' : '➕ Add'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div
+            style={{
+              padding: '8px',
+              backgroundColor: '#fee2e2',
+              borderRadius: '4px',
+              fontSize: '0.875rem',
+              color: '#991b1b',
+              textAlign: 'center',
+            }}
+          >
+            ⚠️ Maximum 5 assignees reached
           </div>
         )}
       </div>
@@ -1156,7 +1411,7 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
             type='file'
             onChange={handleFileSelect}
             disabled={uploading}
-            accept='.pdf,.jpg,.jpeg,.png,.gif,.doc,.docx,.xls,.xlsx,.txt,.zip'
+            accept='.pdf,.jpg,.jpeg,.png,.gif,.doc,.docx,.xls,.xlsx,.zip'
             style={{ display: 'none' }}
           />
           {selectedFile && (
@@ -1277,6 +1532,7 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
             {uploadedFiles.map(file => (
               <div
                 key={file.id}
+                data-testid={`file-entry-${file.fileName}`}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -1298,6 +1554,7 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
                 </div>
                 <div style={{ display: 'flex', gap: '4px' }}>
                   <button
+                    data-testid={`file-download-button-${file.fileName}`}
                     onClick={() => handleDownloadFile(file.id, file.fileName)}
                     style={{
                       padding: '4px 8px',
@@ -1312,6 +1569,7 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
                     ⬇️
                   </button>
                   <button
+                    data-testid={`file-delete-button-${file.fileName}`}
                     onClick={() => handleDeleteFile(file.id, file.fileName)}
                     style={{
                       padding: '4px 8px',
@@ -1380,6 +1638,7 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
                         }}
                       />
                       <button
+                        data-testid={`comment-save-button-${comment.id}`}
                         onClick={() => handleUpdateComment(comment.id)}
                         style={{
                           padding: '4px 8px',
@@ -1438,6 +1697,7 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
                         </div>
                         {comment.authorId === userProfile.id && (
                           <button
+                            data-testid={`comment-edit-button-${comment.id}`}
                             onClick={() => {
                               setEditingCommentId(comment.id);
                               setEditCommentValue(comment.content);

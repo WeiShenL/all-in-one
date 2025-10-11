@@ -59,7 +59,7 @@ export interface UpdateTeamInput {
 export interface CreateProjectInput {
   name: string;
   description?: string;
-  priority?: 'LOW' | 'MEDIUM' | 'HIGH';
+  priority?: number; // 1-10 scale
   dueDate?: Date;
   departmentId: string;
   creatorId: string;
@@ -68,7 +68,7 @@ export interface CreateProjectInput {
 export interface UpdateProjectInput {
   name?: string;
   description?: string;
-  priority?: 'LOW' | 'MEDIUM' | 'HIGH';
+  priority?: number; // 1-10 scale
   dueDate?: Date;
   status?: 'ACTIVE' | 'COMPLETED' | 'ON_HOLD' | 'CANCELLED';
   isArchived?: boolean;
@@ -85,18 +85,21 @@ export interface ProjectFilters {
 export interface CreateTaskInput {
   title: string;
   description: string;
-  priority?: 'LOW' | 'MEDIUM' | 'HIGH';
+  priority?: number; // 1-10 scale
   dueDate: Date;
   ownerId: string;
   departmentId: string;
   projectId?: string;
   parentTaskId?: string;
+  assigneeIds?: string[]; // Up to 5 assignees during creation
+  tags?: string[]; // Optional tag names during creation
+  recurringInterval?: number; // Interval in days for recurring tasks
 }
 
 export interface UpdateTaskInput {
   title?: string;
   description?: string;
-  priority?: 'LOW' | 'MEDIUM' | 'HIGH';
+  priority?: number; // 1-10 scale
   dueDate?: Date;
   status?: 'TO_DO' | 'IN_PROGRESS' | 'COMPLETED' | 'BLOCKED';
   isArchived?: boolean;

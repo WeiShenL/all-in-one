@@ -17,7 +17,7 @@ export function createTestTRPCClient() {
     links: [
       httpBatchLink({
         url: process.env.TRPC_URL || 'http://localhost:3000/api/trpc',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         fetch: fetch as any, // Polyfill for Node.js environment
       }),
     ],

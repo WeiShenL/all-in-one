@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/supabase/auth-context';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { signIn, user, userProfile, loading: authLoading } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
@@ -14,18 +15,51 @@ export default function LoginPage() {
   });
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState(false);
+  const [showSessionExpired, setShowSessionExpired] = useState(false);
+
+  // Check if session expired from localStorage or URL param
+  const redirectUrl = searchParams.get('redirect');
+
+  useEffect(() => {
+    // Check localStorage first
+    const expiredFromStorage = localStorage.getItem('sessionExpired');
+    const redirectFromStorage = localStorage.getItem('sessionExpiredRedirect');
+
+    if (expiredFromStorage === 'true') {
+      setShowSessionExpired(true);
+      // Clear the flag after reading
+      localStorage.removeItem('sessionExpired');
+
+      // Optionally use redirectFromStorage if needed
+      if (redirectFromStorage) {
+        localStorage.removeItem('sessionExpiredRedirect');
+      }
+    } else {
+      // Fallback to URL param
+      const expired = searchParams.get('expired');
+      if (expired === 'true') {
+        setShowSessionExpired(true);
+      }
+    }
+  }, [searchParams]);
 
   // Redirect if already logged in
   useEffect(() => {
     if (!authLoading && user && userProfile) {
-      const roleRoutes = {
-        STAFF: '/dashboard/staff',
-        MANAGER: '/dashboard/manager',
-        HR_ADMIN: '/dashboard/hr',
-      };
-      router.push(roleRoutes[userProfile.role]);
+      // If there's a redirect URL from session expiry, use it
+      if (redirectUrl) {
+        router.push(redirectUrl);
+      } else {
+        // Otherwise, use role-based routing
+        const roleRoutes = {
+          STAFF: '/dashboard/staff',
+          MANAGER: '/dashboard/manager',
+          HR_ADMIN: '/dashboard/hr',
+        };
+        router.push(roleRoutes[userProfile.role]);
+      }
     }
-  }, [user, userProfile, authLoading, router]);
+  }, [user, userProfile, authLoading, router, redirectUrl]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -128,6 +162,72 @@ export default function LoginPage() {
         >
           Sign in to access your dashboard
         </p>
+
+        {showSessionExpired && (
+          <div
+            style={{
+              backgroundColor: '#fff3cd',
+              border: '1px solid #ffeeba',
+              borderRadius: '4px',
+              padding: '0.75rem 1rem',
+              marginBottom: '1.5rem',
+              color: '#856404',
+              fontSize: '0.8125rem',
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '0.75rem',
+            }}
+          >
+            <svg
+              width='16'
+              height='16'
+              viewBox='0 0 16 16'
+              fill='#ffc107'
+              style={{ flexShrink: 0, marginTop: '2px' }}
+            >
+              <path d='M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0zm.93 4.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 4.588zM9 12a1 1 0 1 0-2 0 1 1 0 0 0 2 0z' />
+            </svg>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>
+                Session Expired
+              </div>
+              <div>
+                Your session has expired due to inactivity. Please log in again.
+              </div>
+            </div>
+            <button
+              onClick={() => setShowSessionExpired(false)}
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: '0',
+                cursor: 'pointer',
+                color: '#856404',
+                opacity: 0.6,
+                flexShrink: 0,
+                width: '16px',
+                height: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginTop: '2px',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+              onMouseLeave={e => (e.currentTarget.style.opacity = '0.6')}
+              aria-label='Close notification'
+            >
+              <svg
+                width='12'
+                height='12'
+                viewBox='0 0 12 12'
+                fill='currentColor'
+              >
+                <path d='M6 4.586L9.293 1.293a1 1 0 011.414 1.414L7.414 6l3.293 3.293a1 1 0 01-1.414 1.414L6 7.414l-3.293 3.293a1 1 0 01-1.414-1.414L4.586 6 1.293 2.707a1 1 0 011.414-1.414L6 4.586z' />
+              </svg>
+            </button>
+          </div>
+        )}
 
         {error && (
           <div
@@ -356,5 +456,26 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            height: '100vh',
+          }}
+        >
+          <p>Loading...</p>
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }

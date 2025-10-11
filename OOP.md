@@ -1,413 +1,107 @@
-# OOP Refactoring Guide for tRPC Backend
-
-## ✅ REFACTORING COMPLETED
-
-**Status**: Successfully completed on October 3, 2025
-**All Tests Passing**: ✅ 107 tests (80 existing + 27 new)
-**Breaking Changes**: None
-
----
+# Backend Architecture Guide: OOP and Domain-Driven Design (DDD)
 
 ## Overview
 
-This guide outlines the refactoring of our tRPC backend from a procedural/functional approach to an Object-Oriented Programming (OOP) approach using TypeScript classes.
+This document outlines two architectural approaches used in our tRPC backend:
 
-## Current vs Target Architecture
+1. **OOP Service Layer Pattern** - For simpler domains with straightforward CRUD operations
+2. **Domain-Driven Design (DDD)** - For complex domains with rich business logic
 
-### Current Architecture (Procedural)
+Both patterns coexist in the codebase, applied based on domain complexity.
+
+---
+
+## Table of Contents
+
+1. [When to Use Which Pattern](#when-to-use-which-pattern)
+2. [OOP Service Layer Pattern](#oop-service-layer-pattern)
+3. [Domain-Driven Design Pattern](#domain-driven-design-pattern)
+4. [Testing Strategies](#testing-strategies)
+
+---
+
+## When to Use Which Pattern
+
+### Use OOP Service Layer When:
+
+- ✅ Simple CRUD operations
+- ✅ Few business rules to enforce
+- ✅ Entities are mostly data containers
+- ✅ Read-heavy workloads
+- ✅ Straightforward validation
+
+**Examples**: Department hierarchy, User profiles, Team management
+
+### Use DDD When:
+
+- ✅ Complex business rules and invariants
+- ✅ Rich entity behavior and lifecycle
+- ✅ Many validation requirements
+- ✅ Domain concepts require explicit modeling
+- ✅ High complexity business logic
+
+**Examples**: Task management (priority buckets, recurring tasks, subtask limits), Order processing, Workflow management
+
+---
+
+## OOP Service Layer Pattern
+
+### Architecture
 
 ```
 src/app/server/
-├── routers/
-│   ├── department.ts      # Contains queries + business logic
-│   ├── userProfile.ts     # Contains queries + business logic
-│   └── _app.ts
-└── trpc.ts
-```
-
-- Business logic mixed with tRPC procedures
-- Helper functions scattered in router files
-- Hard to test business logic in isolation
-- No clear separation of concerns
-
-### Target Architecture (OOP)
-
-```
-src/app/server/
-├── services/              # NEW: Service Layer (OOP)
-│   ├── BaseService.ts           # Abstract base class with common CRUD
-│   ├── DepartmentService.ts     # Department business logic
-│   ├── UserProfileService.ts    # UserProfile business logic
-│   ├── TeamService.ts           # Team business logic
-│   ├── ProjectService.ts        # Project business logic
-│   ├── TaskService.ts           # Task business logic
-│   ├── CommentService.ts        # Comment business logic
-│   ├── NotificationService.ts   # Notification business logic
-│   └── index.ts                 # Export all services
-├── routers/               # Thin tRPC wrappers
-│   ├── department.ts            # Delegates to DepartmentService
-│   ├── userProfile.ts           # Delegates to UserProfileService
-│   ├── team.ts                  # Delegates to TeamService
-│   ├── project.ts               # Delegates to ProjectService
-│   ├── task.ts                  # Delegates to TaskService
-│   └── _app.ts                  # Main router
-├── types/                 # NEW: Shared TypeScript types
-│   ├── department.types.ts
-│   ├── userProfile.types.ts
+├── services/              # Business Logic Layer (OOP Classes)
+│   ├── BaseService.ts          # Abstract base with common CRUD
+│   ├── DepartmentService.ts    # Department operations
+│   ├── UserProfileService.ts   # User profile operations
+│   ├── TeamService.ts          # Team operations
+│   ├── ProjectService.ts       # Project operations
 │   └── index.ts
-└── trpc.ts
+├── routers/               # API Layer (tRPC)
+│   ├── department.ts           # Thin wrapper → DepartmentService
+│   ├── userProfile.ts          # Thin wrapper → UserProfileService
+│   └── _app.ts
+└── types/                 # Shared TypeScript types
+    └── index.ts
 ```
 
-## OOP Principles Applied
+### OOP Principles Applied
 
-### 1. **Encapsulation**
+1. **Encapsulation**: Business logic encapsulated within service classes
+2. **Inheritance**: All services extend `BaseService` abstract class
+3. **Single Responsibility**: Each service manages ONE entity type
+4. **Dependency Injection**: Services receive PrismaClient via constructor
+5. **Polymorphism**: Services can override base class methods
 
-- Business logic is encapsulated within service classes
-- Private methods for internal operations
-- Public methods as the API interface
+### Example Implementation
 
-### 2. **Inheritance**
-
-- `BaseService` abstract class provides common CRUD operations
-- All service classes extend `BaseService`
-- Reduces code duplication
-
-### 3. **Single Responsibility Principle (SRP)**
-
-- Each service class manages ONE entity type
-- tRPC routers only handle request/response mapping
-- Clear separation between API layer and business logic
-
-### 4. **Dependency Injection**
-
-- Services receive dependencies (Prisma client) via constructor
-- Makes services testable (can inject mocks)
-
-### 5. **Polymorphism**
-
-- Services can override base class methods
-- Common interface for all services
-
-## Implementation Plan
-
-### Phase 1: Foundation (Core Infrastructure)
-
-#### Step 1.1: Create BaseService
-
-Create abstract base class with common CRUD operations that all services will inherit.
-
-**File**: `src/app/server/services/BaseService.ts`
-
-**Features**:
-
-- Generic CRUD methods (findById, findMany, create, update, delete)
-- Error handling
-- Type-safe operations using TypeScript generics
-
-#### Step 1.2: Create Types Directory
-
-Extract interfaces and types for better organization.
-
-**File**: `src/app/server/types/index.ts`
-
-### Phase 2: Entity Services (Business Logic Layer)
-
-Create service classes for each major entity. Order of implementation based on dependencies:
-
-#### Step 2.1: DepartmentService
-
-- Handles department operations
-- Hierarchical department tree building
-- Department filtering and queries
-
-**Methods**:
-
-- `getAll()`: Get all departments with hierarchy
-- `getById(id)`: Get single department
-- `getChildren(parentId)`: Get child departments
-- `getByManager(managerId)`: Get departments by manager
-- `createDepartment(data)`: Create new department
-- `updateDepartment(id, data)`: Update department
-- `deleteDepartment(id)`: Soft delete (set isActive = false)
-- `buildHierarchy()`: Private method to build tree structure
-
-#### Step 2.2: UserProfileService
-
-- Handles user profile operations
-- User role management
-- Department assignment
-
-**Methods**:
-
-- `getById(id)`: Get user profile
-- `getByEmail(email)`: Get user by email
-- `getByDepartment(departmentId)`: Get users in department
-- `getByRole(role)`: Get users by role
-- `createUser(data)`: Create new user
-- `updateUser(id, data)`: Update user profile
-- `deactivateUser(id)`: Soft delete user
-- `assignDepartment(userId, departmentId)`: Assign user to department
-
-#### Step 2.3: TeamService
-
-- Handles team operations
-- Team member management
-
-**Methods**:
-
-- `getAll()`: Get all teams
-- `getById(id)`: Get team with members
-- `getByDepartment(departmentId)`: Get teams in department
-- `createTeam(data)`: Create new team
-- `updateTeam(id, data)`: Update team
-- `deleteTeam(id)`: Delete team
-- `addMember(teamId, userId)`: Add member to team
-- `removeMember(teamId, userId)`: Remove member from team
-- `getMembers(teamId)`: Get team members
-
-#### Step 2.4: ProjectService
-
-- Handles project operations
-- Project status management
-- Department and creator relationships
-
-**Methods**:
-
-- `getAll(filters?)`: Get all projects with optional filters
-- `getById(id)`: Get project details
-- `getByDepartment(departmentId)`: Get projects in department
-- `getByCreator(creatorId)`: Get projects by creator
-- `getByStatus(status)`: Filter by status
-- `createProject(data)`: Create new project
-- `updateProject(id, data)`: Update project
-- `updateStatus(id, status)`: Change project status
-- `archiveProject(id)`: Archive project
-- `deleteProject(id)`: Delete project
-
-#### Step 2.5: TaskService
-
-- Handles task operations (MOST COMPLEX)
-- Task assignment management
-- Subtask relationships
-- Task hierarchy
-
-**Methods**:
-
-- `getAll(filters?)`: Get tasks with filters
-- `getById(id)`: Get task with full details
-- `getByProject(projectId)`: Get project tasks
-- `getByAssignee(userId)`: Get user's assigned tasks
-- `getByOwner(ownerId)`: Get tasks owned by user
-- `getSubtasks(parentTaskId)`: Get subtasks
-- `createTask(data)`: Create new task
-- `updateTask(id, data)`: Update task
-- `updateStatus(id, status)`: Change task status
-- `assignUser(taskId, userId, assignedById)`: Assign task to user
-- `unassignUser(taskId, userId)`: Remove task assignment
-- `archiveTask(id)`: Archive task
-- `deleteTask(id)`: Delete task
-- `getTaskHierarchy(taskId)`: Get parent and subtask chain
-
-#### Step 2.6: CommentService
-
-- Handles comment operations on tasks
-
-**Methods**:
-
-- `getByTask(taskId)`: Get all comments for a task
-- `getById(id)`: Get single comment
-- `createComment(data)`: Add comment to task
-- `updateComment(id, content)`: Edit comment
-- `deleteComment(id)`: Delete comment
-
-#### Step 2.7: NotificationService
-
-- Handles user notifications
-
-**Methods**:
-
-- `getByUser(userId)`: Get user's notifications
-- `getUnread(userId)`: Get unread notifications
-- `createNotification(data)`: Create notification
-- `markAsRead(id)`: Mark notification as read
-- `markAllAsRead(userId)`: Mark all user notifications as read
-- `deleteNotification(id)`: Delete notification
-
-### Phase 3: Router Refactoring
-
-Update each tRPC router to use the new service classes.
-
-**Pattern**:
+#### BaseService (Abstract Class)
 
 ```typescript
-import { DepartmentService } from '../services/DepartmentService';
+// services/BaseService.ts
+export abstract class BaseService {
+  constructor(protected prisma: PrismaClient) {}
 
-export const departmentRouter = router({
-  getAll: publicProcedure.query(({ ctx }) => {
-    const service = new DepartmentService(ctx.prisma);
-    return service.getAll();
-  }),
-
-  getById: publicProcedure
-    .input(z.object({ id: z.string() }))
-    .query(({ ctx, input }) => {
-      const service = new DepartmentService(ctx.prisma);
-      return service.getById(input.id);
-    }),
-});
-```
-
-### Phase 4: Testing
-
-#### Unit Tests (Service Layer)
-
-Test each service class with mocked Prisma client.
-
-**File Structure**:
-
-```
-tests/unit/services/
-├── DepartmentService.test.ts
-├── UserProfileService.test.ts
-├── TaskService.test.ts
-└── ...
-```
-
-**Testing Approach**:
-
-```typescript
-describe('DepartmentService', () => {
-  let service: DepartmentService;
-  let mockPrisma: DeepMockProxy<PrismaClient>;
-
-  beforeEach(() => {
-    mockPrisma = mockDeep<PrismaClient>();
-    service = new DepartmentService(mockPrisma);
-  });
-
-  it('should get all departments', async () => {
-    mockPrisma.department.findMany.mockResolvedValue([...]);
-    const result = await service.getAll();
-    expect(result).toHaveLength(3);
-  });
-});
-```
-
-#### Integration Tests (Router Layer)
-
-Test tRPC routers with real database (existing tests can be adapted).
-
-## Benefits of OOP Approach
-
-### 1. **Testability**
-
-- Services can be tested independently with mocked dependencies
-- Clear boundaries between layers
-- Easier to write comprehensive unit tests
-
-### 2. **Maintainability**
-
-- Business logic centralized in service classes
-- Changes to business rules only affect service layer
-- Easier to locate and fix bugs
-
-### 3. **Reusability**
-
-- Services can be reused across different routers
-- Common operations inherited from BaseService
-- Can use services outside of tRPC context
-
-### 4. **Scalability**
-
-- Easy to add new services for new entities
-- Clear pattern to follow for new features
-- Can add middleware, caching, etc. to service layer
-
-### 5. **Code Organization**
-
-- Clear separation of concerns
-- Each file has a single, well-defined purpose
-- Easier onboarding for new developers
-
-### 6. **Type Safety**
-
-- TypeScript classes provide better type inference
-- Compile-time checks for method signatures
-- Better IDE autocomplete and refactoring support
-
-## Example: Before & After
-
-### Before (Procedural - department.ts)
-
-```typescript
-import { router, publicProcedure } from '../trpc';
-
-interface DepartmentWithLevel {
-  id: string;
-  name: string;
-  parentId: string | null;
-  level: number;
-}
-
-// Helper function to build hierarchical department tree
-function buildDepartmentHierarchy(
-  departments: Array<{ id: string; name: string; parentId: string | null }>
-): DepartmentWithLevel[] {
-  const result: DepartmentWithLevel[] = [];
-
-  const addDepartmentAndChildren = (parentId: string | null, level: number) => {
-    const children = departments
-      .filter(d => d.parentId === parentId)
-      .sort((a, b) => a.name.localeCompare(b.name));
-
-    for (const child of children) {
-      result.push({
-        id: child.id,
-        name: child.name,
-        parentId: child.parentId,
-        level,
-      });
-      addDepartmentAndChildren(child.id, level + 1);
-    }
-  };
-
-  addDepartmentAndChildren(null, 0);
-  return result;
-}
-
-export const departmentRouter = router({
-  getAll: publicProcedure.query(async ({ ctx }) => {
-    const departments = await ctx.prisma.department.findMany({
-      select: {
-        id: true,
-        name: true,
-        parentId: true,
-      },
-      where: {
-        isActive: true,
-      },
+  protected async validateExists(id: string, model: string): Promise<void> {
+    const record = await (this.prisma as any)[model].findUnique({
+      where: { id },
     });
+    if (!record) {
+      throw new Error(`${model} not found`);
+    }
+  }
 
-    return buildDepartmentHierarchy(departments);
-  }),
-});
+  protected handleError(error: unknown, operation: string): never {
+    console.error(`Error in ${operation}:`, error);
+    throw error instanceof Error ? error : new Error(`Failed to ${operation}`);
+  }
+}
 ```
 
-### After (OOP)
-
-**services/DepartmentService.ts**
+#### Service Class Example
 
 ```typescript
-import { PrismaClient } from '@prisma/client';
-import { BaseService } from './BaseService';
-
-interface DepartmentWithLevel {
-  id: string;
-  name: string;
-  parentId: string | null;
-  level: number;
-}
-
+// services/DepartmentService.ts
 export class DepartmentService extends BaseService {
   constructor(prisma: PrismaClient) {
     super(prisma);
@@ -418,13 +112,11 @@ export class DepartmentService extends BaseService {
    */
   async getAll(): Promise<DepartmentWithLevel[]> {
     const departments = await this.prisma.department.findMany({
+      where: { isActive: true },
       select: {
         id: true,
         name: true,
         parentId: true,
-      },
-      where: {
-        isActive: true,
       },
     });
 
@@ -432,29 +124,20 @@ export class DepartmentService extends BaseService {
   }
 
   /**
-   * Get department by ID
-   */
-  async getById(id: string) {
-    return this.prisma.department.findUnique({
-      where: { id },
-      include: {
-        manager: true,
-        children: true,
-        members: true,
-      },
-    });
-  }
-
-  /**
    * Create new department
    */
-  async createDepartment(data: {
-    name: string;
-    parentId?: string;
-    managerId?: string;
-  }) {
+  async createDepartment(data: CreateDepartmentInput): Promise<Department> {
+    // Validation
+    if (data.parentId) {
+      await this.validateExists(data.parentId, 'department');
+    }
+
     return this.prisma.department.create({
-      data,
+      data: {
+        name: data.name,
+        parentId: data.parentId,
+        managerId: data.managerId,
+      },
     });
   }
 
@@ -462,9 +145,7 @@ export class DepartmentService extends BaseService {
    * Build hierarchical department tree
    * @private
    */
-  private buildHierarchy(
-    departments: Array<{ id: string; name: string; parentId: string | null }>
-  ): DepartmentWithLevel[] {
+  private buildHierarchy(departments: Department[]): DepartmentWithLevel[] {
     const result: DepartmentWithLevel[] = [];
 
     const addDepartmentAndChildren = (
@@ -492,11 +173,12 @@ export class DepartmentService extends BaseService {
 }
 ```
 
-**routers/department.ts**
+#### tRPC Router (Thin Wrapper)
 
 ```typescript
-import { router, publicProcedure } from '../trpc';
+// routers/department.ts
 import { DepartmentService } from '../services/DepartmentService';
+import { router, publicProcedure } from '../trpc';
 import { z } from 'zod';
 
 export const departmentRouter = router({
@@ -527,170 +209,781 @@ export const departmentRouter = router({
 });
 ```
 
-## Migration Strategy
+### Benefits of OOP Service Pattern
 
-### Step-by-Step Migration
+✅ **Clear Separation**: API layer (routers) separated from business logic (services)
+✅ **Reusability**: Services can be used outside tRPC context
+✅ **Testability**: Services can be unit tested with mocked Prisma
+✅ **Maintainability**: Easy to locate and modify business logic
+✅ **Consistency**: All services follow same pattern via BaseService
 
-1. **Create infrastructure** (BaseService, types)
-2. **Pick one entity** (e.g., Department)
-3. **Create service class** for that entity
-4. **Write unit tests** for the service
-5. **Refactor router** to use service
-6. **Test integration** (ensure existing tests pass)
-7. **Repeat** for other entities
+### Limitations
 
-### Testing During Migration
+❌ **Anemic Domain Model**: Data structures lack behavior
+❌ **Business Logic Scattered**: Logic spread across service methods
+❌ **Tight Coupling**: Services directly depend on Prisma schema
+❌ **Invariant Enforcement**: Hard to guarantee domain rules always followed
 
-- Keep existing integration tests running
-- Add unit tests as you create services
-- Ensure no breaking changes to API
-
-## Dependencies
-
-### Required Packages (Already Installed)
-
-- `@prisma/client` - Database access
-- `zod` - Input validation
-- `@trpc/server` - tRPC framework
-
-### Dev Dependencies for Testing
-
-- `jest` - Test runner
-- `ts-jest` - TypeScript support for Jest
-- `@types/jest` - Jest type definitions
-- `jest-mock-extended` - For mocking Prisma (may need to install)
-
-### Install Mocking Library
-
-```bash
-npm install -D jest-mock-extended
-```
-
-## File Checklist
-
-### To Create
-
-- [ ] `src/app/server/services/BaseService.ts`
-- [ ] `src/app/server/services/DepartmentService.ts`
-- [ ] `src/app/server/services/UserProfileService.ts`
-- [ ] `src/app/server/services/TeamService.ts`
-- [ ] `src/app/server/services/ProjectService.ts`
-- [ ] `src/app/server/services/TaskService.ts`
-- [ ] `src/app/server/services/CommentService.ts`
-- [ ] `src/app/server/services/NotificationService.ts`
-- [ ] `src/app/server/services/index.ts`
-- [ ] `src/app/server/types/index.ts`
-- [ ] `tests/unit/services/DepartmentService.test.ts`
-- [ ] `tests/unit/services/UserProfileService.test.ts`
-- [ ] `tests/unit/services/TaskService.test.ts`
-- [ ] (Add more test files as needed)
-
-### To Modify
-
-- [ ] `src/app/server/routers/department.ts`
-- [ ] `src/app/server/routers/userProfile.ts`
-- [ ] `src/app/server/routers/_app.ts` (add new routers)
-
-## Estimated Effort
-
-- **Phase 1 (Foundation)**: 1-2 hours
-- **Phase 2 (Services)**: 4-6 hours (depending on complexity)
-- **Phase 3 (Routers)**: 2-3 hours
-- **Phase 4 (Testing)**: 3-5 hours
-
-**Total**: ~10-16 hours of development time
-
-## Success Criteria
-
-1. ✅ All business logic moved to service classes
-2. ✅ All services extend BaseService
-3. ✅ tRPC routers are thin wrappers (< 5 lines per endpoint)
-4. ✅ Unit tests for each service class
-5. ✅ All existing integration tests pass
-6. ✅ Type safety maintained throughout
-7. ✅ No breaking changes to API contracts
-8. ✅ Code coverage > 80% for service layer
-
-## Notes
-
-- This refactoring maintains the same API surface - frontend code doesn't need to change
-- Services can be used independently of tRPC (reusable in other contexts)
-- The pattern is scalable - easy to add new entities following the same structure
-- Clear separation makes the codebase easier to maintain and test
+**For complex domains with many rules, use DDD instead.**
 
 ---
 
-## ✅ IMPLEMENTATION SUMMARY
+## Domain-Driven Design Pattern
 
-### What Was Completed
+### Why DDD?
 
-#### Phase 1: Foundation ✅
+When a domain has complex business rules, the OOP Service pattern becomes insufficient. DDD provides:
 
-- ✅ Created `BaseService` abstract class with common error handling and validation
-- ✅ Created `types/index.ts` with shared TypeScript interfaces for all entities
+✅ **Rich Domain Models**: Entities encapsulate behavior and enforce invariants
+✅ **Ubiquitous Language**: Code matches business terminology
+✅ **Better Testing**: Domain logic testable without database
+✅ **Flexibility**: Infrastructure (database) can be swapped easily
+✅ **Scalability**: Complex rules managed within bounded contexts
 
-#### Phase 2: Service Classes (OOP Layer) ✅
+### DDD Architecture (4 Layers)
 
-Created **7 service classes** with **63 total methods**:
+```
+┌─────────────────────────────────────────────┐
+│   Presentation Layer (tRPC Routers)        │ ← API Endpoints
+├─────────────────────────────────────────────┤
+│   Application Layer (Services)             │ ← Use Case Orchestration
+├─────────────────────────────────────────────┤
+│   Domain Layer (Entities)                  │ ← Business Logic & Rules
+├─────────────────────────────────────────────┤
+│   Infrastructure Layer (Repositories)      │ ← Data Persistence
+└─────────────────────────────────────────────┘
+```
 
-1. **DepartmentService** - 9 methods
-   - CRUD operations + hierarchy building
-2. **UserProfileService** - 9 methods
-   - CRUD operations + role/department management
-3. **TeamService** - 9 methods
-   - CRUD operations + member management
-4. **ProjectService** - 10 methods
-   - CRUD operations + status/archiving
-5. **TaskService** - 13 methods (most complex)
-   - CRUD operations + assignments + hierarchy
-6. **CommentService** - 5 methods
-   - Comment management for tasks
-7. **NotificationService** - 8 methods
-   - User notification management
+### Example: Task Management Domain
 
-#### Phase 3: Router Refactoring ✅
+```
+src/
+├── domain/task/                    # DOMAIN LAYER
+│   ├── Task.ts                     # Aggregate Root (Rich Entity)
+│   ├── PriorityBucket.ts          # Value Object
+│   └── errors/
+│       └── TaskErrors.ts          # Domain Errors
+│
+├── services/task/                  # APPLICATION LAYER
+│   └── TaskService.ts             # Use Case Orchestration
+│
+├── repositories/                   # INFRASTRUCTURE LAYER
+│   ├── ITaskRepository.ts         # Repository Interface (Port)
+│   └── PrismaTaskRepository.ts    # Prisma Implementation (Adapter)
+│
+└── app/server/routers/             # PRESENTATION LAYER
+    └── task.ts                    # tRPC Router
+```
 
-- ✅ **department.ts** - Refactored to delegate to DepartmentService (6 endpoints)
-- ✅ **userProfile.ts** - Refactored to delegate to UserProfileService (8 endpoints)
-- ✅ All routers are now thin wrappers (< 5 lines per endpoint)
+### Layer 1: Domain Layer (Pure Business Logic)
 
-#### Phase 4: Testing ✅
+**Purpose**: Encapsulate business rules, no dependencies on frameworks
 
-- ✅ All existing tests pass: **80 tests** ✅
-- ✅ Created sample unit tests: **27 tests** ✅
-  - DepartmentService.test.ts - 14 tests
-  - UserProfileService.test.ts - 13 tests
-- ✅ **Total: 107 tests passing**
+#### Aggregate Root Example
 
-### Final Statistics
+```typescript
+// domain/task/Task.ts
+export class Task {
+  private constructor(private data: TaskData) {
+    // Private constructor - only factory methods create tasks
+  }
 
-- **Services Created**: 7
-- **Methods Implemented**: 63
-- **Routers Refactored**: 2
-- **Unit Tests Created**: 27
-- **Total Tests Passing**: 107
-- **Breaking Changes**: 0
-- **Lines of Code Added**: ~2,500
+  /**
+   * Factory method to create new task with validation
+   */
+  static create(data: Omit<TaskData, 'id' | 'createdAt' | 'updatedAt'>): Task {
+    // Enforce business invariants
+    if (data.assignments.size < 1) {
+      throw new MinAssigneeRequiredError('Task must have at least 1 assignee');
+    }
+    if (data.assignments.size > 5) {
+      throw new MaxAssigneesReachedError(
+        'Task cannot have more than 5 assignees'
+      );
+    }
+    if (data.priorityBucket < 1 || data.priorityBucket > 10) {
+      throw new InvalidPriorityError('Priority must be between 1 and 10');
+    }
 
-### OOP Principles Demonstrated
+    return new Task({
+      ...data,
+      id: generateId(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+  }
 
-1. ✅ **Encapsulation** - Business logic in service classes with private methods
-2. ✅ **Inheritance** - All services extend BaseService
-3. ✅ **Single Responsibility** - Each service manages one entity type
-4. ✅ **Dependency Injection** - Prisma injected via constructor
-5. ✅ **Abstraction** - Abstract BaseService with common functionality
+  /**
+   * Business logic method - Update task title
+   */
+  updateTitle(newTitle: string): void {
+    if (!newTitle || newTitle.trim().length === 0) {
+      throw new InvalidTitleError('Title cannot be empty');
+    }
+    if (newTitle.length > 255) {
+      throw new InvalidTitleError('Title cannot exceed 255 characters');
+    }
 
-### Benefits Achieved
+    this.data.title = newTitle;
+    this.data.updatedAt = new Date();
+  }
 
-- ✅ **Testability** - Services can be unit tested with mocked Prisma
-- ✅ **Maintainability** - Business logic centralized and organized
-- ✅ **Reusability** - Services work outside of tRPC context
-- ✅ **Scalability** - Easy to add new services following same pattern
-- ✅ **Type Safety** - TypeScript classes with full type inference
+  /**
+   * Business logic method - Add assignee
+   */
+  addAssignee(userId: string): void {
+    if (this.data.assignments.size >= 5) {
+      throw new MaxAssigneesReachedError('Cannot add more than 5 assignees');
+    }
+    if (this.data.assignments.has(userId)) {
+      throw new Error('User already assigned to this task');
+    }
 
-### Zero Breaking Changes ✅
+    this.data.assignments.add(userId);
+    this.data.updatedAt = new Date();
+  }
 
-- All existing tests pass
-- Frontend code unchanged
-- API contracts identical
-- No deployment issues
+  /**
+   * Business logic method - Remove assignee
+   */
+  removeAssignee(userId: string): void {
+    if (this.data.assignments.size <= 1) {
+      throw new MinAssigneeRequiredError('Task must have at least 1 assignee');
+    }
+    if (!this.data.assignments.has(userId)) {
+      throw new Error('User not assigned to this task');
+    }
+
+    this.data.assignments.delete(userId);
+    this.data.updatedAt = new Date();
+  }
+
+  // Getters (read-only access to internal state)
+  getId(): string {
+    return this.data.id;
+  }
+  getTitle(): string {
+    return this.data.title;
+  }
+  getPriority(): PriorityBucket {
+    return this.data.priorityBucket;
+  }
+  getAssignees(): Set<string> {
+    return new Set(this.data.assignments);
+  }
+  getUpdatedAt(): Date {
+    return this.data.updatedAt;
+  }
+}
+```
+
+#### Value Object Example
+
+```typescript
+// domain/task/PriorityBucket.ts
+export class PriorityBucket {
+  private constructor(private readonly level: number) {}
+
+  static fromLevel(level: number): PriorityBucket {
+    if (level < 1 || level > 10) {
+      throw new InvalidPriorityError('Priority must be between 1 and 10');
+    }
+    return new PriorityBucket(level);
+  }
+
+  getLevel(): number {
+    return this.level;
+  }
+
+  getBucket(): 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' {
+    if (this.level <= 3) return 'LOW';
+    if (this.level <= 6) return 'MEDIUM';
+    if (this.level <= 8) return 'HIGH';
+    return 'CRITICAL';
+  }
+
+  equals(other: PriorityBucket): boolean {
+    return this.level === other.level;
+  }
+}
+```
+
+### Layer 2: Application Layer (Use Case Orchestration)
+
+**Purpose**: Coordinate domain objects and infrastructure
+
+```typescript
+// services/task/TaskService.ts
+export interface UserContext {
+  userId: string;
+  role: 'STAFF' | 'MANAGER' | 'HR_ADMIN';
+  departmentId: string;
+}
+
+export class TaskService {
+  constructor(private taskRepository: ITaskRepository) {}
+
+  /**
+   * Use Case: Create Task
+   * Orchestrates domain creation and persistence
+   */
+  async createTask(
+    data: CreateTaskInput,
+    creator: UserContext
+  ): Promise<{ id: string }> {
+    // 1. Validate external dependencies (database checks)
+    if (data.projectId) {
+      const projectExists = await this.taskRepository.validateProjectExists(
+        data.projectId
+      );
+      if (!projectExists) {
+        throw new Error('Project not found');
+      }
+    }
+
+    if (data.parentTaskId) {
+      const parentTask = await this.taskRepository.getParentTaskDepth(
+        data.parentTaskId
+      );
+      if (!parentTask) {
+        throw new Error('Parent task not found');
+      }
+      if (parentTask.parentTaskId) {
+        throw new Error('Maximum subtask depth is 2 levels');
+      }
+    }
+
+    const validAssignees = await this.taskRepository.validateAssignees(
+      data.assigneeIds
+    );
+    if (!validAssignees.allExist) {
+      throw new Error('One or more assignees not found');
+    }
+
+    // 2. Create domain entity (business rules enforced here)
+    const task = Task.create({
+      title: data.title,
+      description: data.description,
+      priorityBucket: data.priority,
+      dueDate: data.dueDate,
+      status: TaskStatus.TO_DO,
+      ownerId: creator.userId,
+      departmentId: creator.departmentId,
+      projectId: data.projectId || null,
+      parentTaskId: data.parentTaskId || null,
+      recurringInterval: data.recurringInterval || null,
+      isArchived: false,
+      assignments: new Set(data.assigneeIds),
+      tags: new Set(data.tags || []),
+    });
+
+    // 3. Persist via repository
+    const result = await this.taskRepository.createTask({
+      id: task.getId(),
+      title: task.getTitle(),
+      description: task.getDescription(),
+      priority: task.getPriority().getLevel(),
+      // ... map domain to persistence model
+    });
+
+    // 4. Log action
+    await this.taskRepository.logTaskAction(
+      result.id,
+      creator.userId,
+      'CREATED',
+      { title: data.title }
+    );
+
+    return result;
+  }
+
+  /**
+   * Use Case: Update Task Title
+   */
+  async updateTaskTitle(
+    taskId: string,
+    newTitle: string,
+    user: UserContext
+  ): Promise<Task> {
+    // 1. Fetch task data
+    const taskData = await this.taskRepository.getTaskByIdFull(taskId);
+    if (!taskData) {
+      throw new Error('Task not found');
+    }
+
+    // 2. Reconstruct domain entity from persistence
+    const task = this.reconstructTaskFromData(taskData);
+
+    // 3. Authorization check
+    this.ensureUserCanModifyTask(task, user);
+
+    // 4. Execute domain operation (business logic enforced by domain)
+    task.updateTitle(newTitle);
+
+    // 5. Persist changes
+    await this.taskRepository.updateTask(taskId, {
+      title: task.getTitle(),
+      updatedAt: task.getUpdatedAt(),
+    });
+
+    // 6. Log action
+    await this.taskRepository.logTaskAction(
+      taskId,
+      user.userId,
+      'TITLE_CHANGED',
+      { oldTitle: taskData.title, newTitle }
+    );
+
+    return task;
+  }
+
+  private reconstructTaskFromData(data: any): Task {
+    return new Task({
+      id: data.id,
+      title: data.title,
+      description: data.description,
+      priorityBucket: data.priority,
+      dueDate: data.dueDate,
+      // ... full reconstruction
+    });
+  }
+
+  private ensureUserCanModifyTask(task: Task, user: UserContext): void {
+    const isOwner = task.getOwnerId() === user.userId;
+    const isAssigned = task.getAssignees().has(user.userId);
+
+    if (!isOwner && !isAssigned) {
+      throw new Error(
+        'Unauthorized: You must be owner or assigned to modify this task'
+      );
+    }
+  }
+}
+```
+
+### Layer 3: Infrastructure Layer (Persistence)
+
+**Purpose**: Abstract database details, implement repository pattern
+
+#### Repository Interface (Port)
+
+```typescript
+// repositories/ITaskRepository.ts
+export interface ITaskRepository {
+  // Create
+  createTask(data: CreateTaskData): Promise<{ id: string }>;
+
+  // Read
+  getTaskById(taskId: string): Promise<BasicTaskData | null>;
+  getTaskByIdFull(taskId: string): Promise<TaskWithRelations | null>;
+  getUserTasks(userId: string, includeArchived: boolean): Promise<TaskData[]>;
+
+  // Update
+  updateTask(taskId: string, data: Partial<TaskData>): Promise<void>;
+
+  // Validation (external dependencies)
+  validateProjectExists(projectId: string): Promise<boolean>;
+  validateAssignees(userIds: string[]): Promise<{
+    allExist: boolean;
+    allActive: boolean;
+  }>;
+
+  // Actions
+  logTaskAction(
+    taskId: string,
+    userId: string,
+    action: string,
+    metadata?: Record<string, any>
+  ): Promise<void>;
+}
+```
+
+#### Prisma Adapter Implementation
+
+```typescript
+// repositories/PrismaTaskRepository.ts
+export class PrismaTaskRepository implements ITaskRepository {
+  constructor(private prisma: PrismaClient) {}
+
+  async createTask(data: CreateTaskData): Promise<{ id: string }> {
+    const task = await this.prisma.task.create({
+      data: {
+        id: data.id,
+        title: data.title,
+        description: data.description,
+        priority: data.priority,
+        dueDate: data.dueDate,
+        ownerId: data.ownerId,
+        departmentId: data.departmentId,
+        // ... map domain data to Prisma schema
+      },
+    });
+
+    // Create assignments
+    if (data.assigneeIds && data.assigneeIds.length > 0) {
+      await this.prisma.taskAssignment.createMany({
+        data: data.assigneeIds.map(userId => ({
+          taskId: task.id,
+          userId,
+          assignedById: data.ownerId,
+        })),
+      });
+    }
+
+    return { id: task.id };
+  }
+
+  async getTaskByIdFull(taskId: string): Promise<TaskWithRelations | null> {
+    return this.prisma.task.findUnique({
+      where: { id: taskId },
+      include: {
+        assignments: true,
+        tags: { include: { tag: true } },
+        comments: true,
+        files: true,
+      },
+    });
+  }
+
+  async validateProjectExists(projectId: string): Promise<boolean> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    return project !== null;
+  }
+
+  async logTaskAction(
+    taskId: string,
+    userId: string,
+    action: string,
+    metadata?: Record<string, any>
+  ): Promise<void> {
+    await this.prisma.taskLog.create({
+      data: {
+        taskId,
+        userId,
+        action,
+        metadata: metadata ? JSON.stringify(metadata) : null,
+      },
+    });
+  }
+}
+```
+
+### Layer 4: Presentation Layer (API)
+
+**Purpose**: Expose domain operations via tRPC API
+
+```typescript
+// app/server/routers/task.ts
+import { router, publicProcedure } from '../trpc';
+import { TaskService } from '../../../services/task/TaskService';
+import { PrismaTaskRepository } from '../../../repositories/PrismaTaskRepository';
+import { z } from 'zod';
+
+export const taskRouter = router({
+  create: publicProcedure
+    .input(
+      z.object({
+        title: z.string().min(1),
+        description: z.string(),
+        priority: z.number().min(1).max(10),
+        dueDate: z.coerce.date(),
+        assigneeIds: z.array(z.string().uuid()).min(1).max(5),
+        projectId: z.string().uuid().optional(),
+        parentTaskId: z.string().uuid().optional(),
+        tags: z.array(z.string()).optional(),
+        recurringInterval: z.number().positive().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const repository = new PrismaTaskRepository(ctx.prisma);
+      const service = new TaskService(repository);
+      const user = await getUserContext(ctx);
+
+      return await service.createTask(input, user);
+    }),
+
+  updateTitle: publicProcedure
+    .input(
+      z.object({
+        taskId: z.string().uuid(),
+        title: z.string().min(1),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const repository = new PrismaTaskRepository(ctx.prisma);
+      const service = new TaskService(repository);
+      const user = await getUserContext(ctx);
+
+      const task = await service.updateTaskTitle(
+        input.taskId,
+        input.title,
+        user
+      );
+
+      // Serialize domain object to JSON for tRPC
+      return serializeTask(task);
+    }),
+});
+```
+
+### Key DDD Patterns
+
+#### 1. Aggregate Root
+
+**Task** is an Aggregate Root - controls access to related entities
+
+```typescript
+class Task {
+  // Comments must go through Task aggregate
+  addCommentToTask(content: string, authorId: string): void {
+    const comment = {
+      id: generateId(),
+      content,
+      authorId,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.data.comments.push(comment);
+  }
+
+  // Only comment author can edit
+  updateComment(commentId: string, newContent: string, userId: string): void {
+    const comment = this.data.comments.find(c => c.id === commentId);
+    if (!comment) throw new CommentNotFoundError();
+    if (comment.authorId !== userId) throw new UnauthorizedError();
+
+    comment.content = newContent;
+    comment.updatedAt = new Date();
+  }
+}
+```
+
+#### 2. Value Objects
+
+**PriorityBucket** is immutable, identified by value
+
+```typescript
+const p1 = PriorityBucket.fromLevel(8);
+const p2 = PriorityBucket.fromLevel(8);
+// p1.equals(p2) === true (value equality)
+```
+
+#### 3. Repository Pattern (Ports & Adapters)
+
+Dependency Inversion: Domain depends on interface, not Prisma
+
+```typescript
+// Application depends on interface
+class TaskService {
+  constructor(private taskRepository: ITaskRepository) {} // ← Interface
+}
+
+// Infrastructure provides implementation
+const prismaRepo = new PrismaTaskRepository(prisma); // ← Prisma adapter
+const service = new TaskService(prismaRepo);
+
+// OR for testing
+const mockRepo = new InMemoryTaskRepository(); // ← Test adapter
+const service = new TaskService(mockRepo);
+```
+
+### Benefits of DDD
+
+✅ **Invariant Protection**: Impossible to create invalid domain objects
+✅ **Testability**: Domain logic testable without database
+✅ **Maintainability**: Business rules centralized in domain layer
+✅ **Flexibility**: Can swap Prisma for another ORM easily
+✅ **Ubiquitous Language**: Code matches business terminology
+✅ **Complexity Management**: Clear boundaries between layers
+
+---
+
+## Testing Strategies
+
+### OOP Service Testing
+
+```typescript
+// tests/unit/services/DepartmentService.test.ts
+describe('DepartmentService', () => {
+  let service: DepartmentService;
+  let mockPrisma: jest.Mocked<PrismaClient>;
+
+  beforeEach(() => {
+    mockPrisma = {
+      department: {
+        findMany: jest.fn(),
+        create: jest.fn(),
+        update: jest.fn(),
+      },
+    } as any;
+
+    service = new DepartmentService(mockPrisma);
+  });
+
+  it('should get all departments', async () => {
+    mockPrisma.department.findMany.mockResolvedValue([
+      { id: '1', name: 'Engineering', parentId: null },
+      { id: '2', name: 'Backend', parentId: '1' },
+    ]);
+
+    const result = await service.getAll();
+
+    expect(result).toHaveLength(2);
+    expect(result[0].level).toBe(0); // Top level
+    expect(result[1].level).toBe(1); // Child level
+  });
+});
+```
+
+### DDD Testing (3-Layer Approach)
+
+#### Layer 1: Domain Tests (Pure Unit Tests)
+
+```typescript
+// tests/unit/domain/task/Task.create.test.ts
+describe('Task.create', () => {
+  const validData = {
+    title: 'Test Task',
+    description: 'Description',
+    priorityBucket: 5,
+    dueDate: new Date(),
+    status: TaskStatus.TO_DO,
+    ownerId: 'user-1',
+    departmentId: 'dept-1',
+    projectId: null,
+    parentTaskId: null,
+    recurringInterval: null,
+    isArchived: false,
+    assignments: new Set(['user-1']),
+    tags: new Set(),
+  };
+
+  it('should create task with valid data', () => {
+    const task = Task.create(validData);
+
+    expect(task.getTitle()).toBe('Test Task');
+    expect(task.getPriority().getLevel()).toBe(5);
+  });
+
+  it('should enforce minimum 1 assignee', () => {
+    expect(() =>
+      Task.create({
+        ...validData,
+        assignments: new Set(), // Empty
+      })
+    ).toThrow(MinAssigneeRequiredError);
+  });
+
+  it('should enforce maximum 5 assignees', () => {
+    expect(() =>
+      Task.create({
+        ...validData,
+        assignments: new Set(['u1', 'u2', 'u3', 'u4', 'u5', 'u6']),
+      })
+    ).toThrow(MaxAssigneesReachedError);
+  });
+});
+```
+
+#### Layer 2: Service Tests (Mock Repository)
+
+```typescript
+// tests/unit/services/TaskService.test.ts
+describe('TaskService', () => {
+  let service: TaskService;
+  let mockRepository: jest.Mocked<ITaskRepository>;
+
+  beforeEach(() => {
+    mockRepository = {
+      createTask: jest.fn(),
+      getTaskByIdFull: jest.fn(),
+      updateTask: jest.fn(),
+      validateProjectExists: jest.fn(),
+      validateAssignees: jest.fn(),
+      logTaskAction: jest.fn(),
+    } as any;
+
+    service = new TaskService(mockRepository);
+  });
+
+  it('should create task via domain model', async () => {
+    mockRepository.validateAssignees.mockResolvedValue({
+      allExist: true,
+      allActive: true,
+    });
+    mockRepository.createTask.mockResolvedValue({ id: 'task-1' });
+
+    const result = await service.createTask(
+      {
+        title: 'New Task',
+        description: 'Description',
+        priority: 8,
+        dueDate: new Date(),
+        assigneeIds: ['user-1'],
+      },
+      { userId: 'user-1', role: 'STAFF', departmentId: 'dept-1' }
+    );
+
+    expect(result.id).toBe('task-1');
+    expect(mockRepository.createTask).toHaveBeenCalled();
+  });
+});
+```
+
+#### Layer 3: Integration Tests (Real Database)
+
+```typescript
+// tests/integration/task/task-creation.test.ts
+describe('Task Creation - Integration', () => {
+  let taskService: TaskService;
+  let prisma: PrismaClient;
+
+  beforeAll(async () => {
+    prisma = new PrismaClient();
+    const repository = new PrismaTaskRepository(prisma);
+    taskService = new TaskService(repository);
+  });
+
+  it('should persist task to database', async () => {
+    const result = await taskService.createTask(
+      {
+        title: 'Integration Test Task',
+        description: 'Test Description',
+        priority: 7,
+        dueDate: new Date('2025-12-31'),
+        assigneeIds: [testUser.id],
+      },
+      testUser
+    );
+
+    const saved = await prisma.task.findUnique({
+      where: { id: result.id },
+    });
+
+    expect(saved).toBeDefined();
+    expect(saved!.title).toBe('Integration Test Task');
+  });
+});
+```
+
+---
+
+## Summary
+
+| Aspect             | OOP Services       | DDD                       |
+| ------------------ | ------------------ | ------------------------- |
+| **Complexity**     | Low-Medium         | High                      |
+| **Business Logic** | In Service Methods | In Domain Entities        |
+| **Data**           | Prisma Types       | Domain Types              |
+| **Validation**     | Service Layer      | Domain Layer              |
+| **Testing**        | Mock Prisma        | Mock Repository Interface |
+| **Flexibility**    | Tied to Prisma     | Database-Agnostic         |
+| **Use Cases**      | Simple CRUD        | Complex Business Rules    |
+
+**Both patterns are valid and useful** - choose based on domain complexity.
+
+---
+
+**For detailed testing guidelines and project structure, see [DEVELOPMENT.md](./DEVELOPMENT.md)**

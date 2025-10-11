@@ -3,6 +3,9 @@
 // routes are imported here from server/router/ .ts
 import { departmentRouter } from './department';
 import { userProfileRouter } from './userProfile';
+import { taskFileRouter } from './taskFile';
+
+import { notificationRouter } from './notification';
 import { taskRouter } from './task';
 
 // here we import from our init (server/trpc.ts)
@@ -12,6 +15,8 @@ import { router } from '../trpc';
 export const appRouter = router({
   department: departmentRouter,
   userProfile: userProfileRouter,
+  taskFile: taskFileRouter,
+  notification: notificationRouter,
   task: taskRouter,
 });
 

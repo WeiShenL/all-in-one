@@ -47,6 +47,7 @@ enum LogAction {
   DESCRIPTION_CHANGED
   ARCHIVED
   DELETED
+  RECURRING_TASK_GENERATED
 }
 
 // DEPARTMENT
@@ -145,7 +146,7 @@ model Project {
   id           String        @id @default(uuid())
   name         String
   description  String?       @db.Text
-  priority     Int           @default(5) // 1-10 scale
+  priority     Int           @default(5) // Priority scale 1-10
   dueDate      DateTime?
   status       ProjectStatus @default(ACTIVE)
   departmentId String
@@ -168,21 +169,20 @@ model Project {
 
 // TASK
 model Task {
-  id             String       @id @default(uuid())
-  title          String
-  description    String       @db.Text
-  priority       Int          @default(5) // 1-10 scale as per requirements
-  dueDate        DateTime
-  status         TaskStatus   @default(TO_DO)
-  ownerId        String
-  projectId      String?
-  departmentId   String
-  parentTaskId   String?
-  isRecurring    Boolean      @default(false)
-  recurrenceDays Int?         // Number of days for recurrence interval
-  isArchived     Boolean      @default(false)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id           String       @id @default(uuid())
+  title        String
+  description  String       @db.Text
+  priority     Int          @default(5) // Priority scale 1-10
+  dueDate      DateTime
+  status       TaskStatus   @default(TO_DO)
+  ownerId      String
+  projectId    String?
+  departmentId String
+  parentTaskId String?
+  recurringInterval Int? // Interval in days for recurring tasks, optional
+  isArchived   Boolean      @default(false)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 
   owner          UserProfile      @relation("TaskOwner", fields: [ownerId], references: [id])
   project        Project?         @relation(fields: [projectId], references: [id])

@@ -40,8 +40,7 @@ export interface TaskData {
   departmentId: string;
   projectId: string | null;
   parentTaskId: string | null;
-  isRecurring: boolean;
-  recurrenceDays: number | null;
+  recurringInterval: number | null; // null = not recurring, number = days interval
   isArchived: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -65,8 +64,7 @@ export interface CreateTaskData {
   projectId?: string;
   parentTaskId?: string;
   tags?: string[];
-  isRecurring?: boolean;
-  recurrenceDays?: number;
+  recurringInterval?: number; // Optional: days interval (null/undefined = not recurring)
 }
 
 /**
@@ -116,8 +114,7 @@ export class Task {
   private readonly parentTaskId: string | null;
 
   // Recurring settings (Change Document - Week 6)
-  private isRecurring: boolean;
-  private recurrenceDays: number | null;
+  private recurringInterval: number | null; // null = not recurring
 
   // Metadata
   private isArchived: boolean;
@@ -145,8 +142,7 @@ export class Task {
     this.departmentId = data.departmentId;
     this.projectId = data.projectId;
     this.parentTaskId = data.parentTaskId;
-    this.isRecurring = data.isRecurring;
-    this.recurrenceDays = data.recurrenceDays;
+    this.recurringInterval = data.recurringInterval;
     this.isArchived = data.isArchived;
     this.createdAt = data.createdAt;
     this.updatedAt = data.updatedAt;
@@ -163,31 +159,85 @@ export class Task {
 
   /**
    * Factory method to create a new Task
-   * @stub - Create task dev will implement
    */
-  static create(_data: Omit<TaskData, 'id' | 'createdAt' | 'updatedAt'>): Task {
-    // TODO: Implement task creation logic
-    // - Generate UUID
-    // - Validate all mandatory fields (title, description, priority, deadline, assignments)
-    // - Ensure at least 1 assignment, max 5
-    // - Set default status to TO_DO
-    // - Set timestamps
-    throw new Error('Not implemented - Create task dev will implement');
+  static create(data: Omit<TaskData, 'id' | 'createdAt' | 'updatedAt'>): Task {
+    // Generate UUID for new task
+    const id = crypto.randomUUID();
+    const now = new Date();
+
+    // Validate title
+    const trimmedTitle = data.title.trim();
+    if (trimmedTitle.length === 0) {
+      throw new InvalidTitleError();
+    }
+
+    // Validate priority
+    if (data.priorityBucket < 1 || data.priorityBucket > 10) {
+      throw new InvalidPriorityError();
+    }
+
+    // Validate assignments (TM016 - at least 1, TM023 - max 5)
+    if (data.assignments.size === 0) {
+      throw new Error('Task must have at least 1 assignee');
+    }
+    if (data.assignments.size > 5) {
+      throw new MaxAssigneesReachedError();
+    }
+
+    // Validate recurring settings (if recurringInterval is set, must be > 0)
+    if (data.recurringInterval !== null && data.recurringInterval <= 0) {
+      throw new InvalidRecurrenceError();
+    }
+
+    // Create task with validated data
+    const task = new Task({
+      id,
+      title: trimmedTitle,
+      description: data.description,
+      priorityBucket: data.priorityBucket,
+      dueDate: data.dueDate,
+      status: TaskStatus.TO_DO, // Default status for new tasks
+      ownerId: data.ownerId,
+      departmentId: data.departmentId,
+      projectId: data.projectId,
+      parentTaskId: data.parentTaskId,
+      recurringInterval: data.recurringInterval,
+      isArchived: false,
+      createdAt: now,
+      updatedAt: now,
+      assignments: data.assignments,
+      tags: data.tags,
+    });
+
+    return task;
   }
 
   /**
-   * Validate task data on creation
-   * @stub - Create task dev will implement
+   * Validate task data
    */
   validate(): void {
-    // TODO: Implement validation
-    // - Title not empty (TM016)
-    // - Priority between 1-10
-    // - Due date is valid
-    // - At least 1 assignment
-    // - Max 5 assignments
-    // - If recurring, must have recurrenceDays > 0
-    throw new Error('Not implemented - Create task dev will implement');
+    // Title validation
+    if (!this.title || this.title.trim().length === 0) {
+      throw new InvalidTitleError();
+    }
+
+    // Priority validation
+    if (this.priority.getLevel() < 1 || this.priority.getLevel() > 10) {
+      throw new InvalidPriorityError();
+    }
+
+    // Assignments validation
+    if (this.assignments.size === 0) {
+      throw new Error('Task must have at least 1 assignee');
+    }
+    if (this.assignments.size > 5) {
+      throw new MaxAssigneesReachedError();
+    }
+
+    // Recurring validation (if recurringInterval is set, must be > 0)
+    if (this.recurringInterval !== null && this.recurringInterval <= 0) {
+      throw new InvalidRecurrenceError();
+    }
   }
 
   // ============================================
@@ -333,6 +383,48 @@ export class Task {
   }
 
   /**
+   * Remove an assignment from the task
+   * Business rule: Task must have at least 1 assignee (TM016)
+   *
+   * TODO: Make this role-based auth for MANAGER/HR_ADMIN only in future.
+   * Currently violates TM015 for STAFF users: "Assigned Staff member can add
+   * assignees, max 5 only. (but NOT remove them - TM015)"
+   */
+  removeAssignee(userId: string): void {
+    // 1. Check if user is assigned
+    if (!this.assignments.has(userId)) {
+      throw new Error('User is not assigned to this task');
+    }
+
+    // 2. Check minimum assignee requirement (TM016: min 1 assignee)
+    if (this.assignments.size === 1) {
+      throw new Error('Task must have at least 1 assignee (TM016)');
+    }
+
+    // 3. Remove from assignments set
+    this.assignments.delete(userId);
+
+    // 4. Update timestamp
+    this.updatedAt = new Date();
+  }
+
+  /**
+   * Archive the task (soft delete)
+   */
+  archive(): void {
+    this.isArchived = true;
+    this.updatedAt = new Date();
+  }
+
+  /**
+   * Unarchive the task
+   */
+  unarchive(): void {
+    this.isArchived = false;
+    this.updatedAt = new Date();
+  }
+
+  /**
    * Add a comment to the task
    * AC: Assigned Staff member can add comments
    */
@@ -456,18 +548,16 @@ export class Task {
    * AC: Staff member can update recurring settings (enable/disable, change interval)
    * Requirements: Task recurrence (Change Document Week 6)
    */
-  updateRecurring(enabled: boolean, days: number | null): void {
-    // If enabled, validate days > 0 (TM057)
+  updateRecurring(enabled: boolean, recurringInterval: number | null): void {
+    // If enabled, validate recurringInterval > 0 (TM057)
     if (enabled) {
-      if (days === null || days <= 0) {
+      if (recurringInterval === null || recurringInterval <= 0) {
         throw new InvalidRecurrenceError();
       }
-      this.isRecurring = true;
-      this.recurrenceDays = days;
+      this.recurringInterval = recurringInterval;
     } else {
       // If disabled, clear recurrence settings
-      this.isRecurring = false;
-      this.recurrenceDays = null;
+      this.recurringInterval = null;
     }
 
     // Update timestamp
@@ -531,11 +621,11 @@ export class Task {
   }
 
   isTaskRecurring(): boolean {
-    return this.isRecurring;
+    return this.recurringInterval !== null;
   }
 
-  getRecurrenceDays(): number | null {
-    return this.recurrenceDays;
+  getRecurringInterval(): number | null {
+    return this.recurringInterval;
   }
 
   getAssignees(): Set<string> {
@@ -618,24 +708,6 @@ export class Task {
     this.completedAt = new Date();
 
     // 4. Update timestamp
-    this.updatedAt = new Date();
-  }
-
-  /**
-   * Archive task
-   * Archived tasks are hidden from normal views but not deleted
-   * @param userId - User archiving the task (for authorization)
-   */
-  archive(userId: string): void {
-    // 1. Check user is assigned (authorization)
-    if (!this.isUserAssigned(userId)) {
-      throw new UnauthorizedError();
-    }
-
-    // 2. Set archived flag
-    this.isArchived = true;
-
-    // 3. Update timestamp
     this.updatedAt = new Date();
   }
 

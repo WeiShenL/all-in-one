@@ -26,8 +26,7 @@ export function createTestTask(overrides: Partial<TaskData> = {}): Task {
     departmentId: 'dept-1',
     projectId: 'project-1',
     parentTaskId: null,
-    isRecurring: false,
-    recurrenceDays: null,
+    recurringInterval: null, // null = not recurring
     isArchived: false,
     createdAt: new Date('2025-10-01'),
     updatedAt: new Date('2025-10-01'),
@@ -70,12 +69,11 @@ export function createTestTaskWithMaxAssignees(
  * Create a recurring test task
  */
 export function createTestRecurringTask(
-  recurrenceDays: number,
+  recurringInterval: number,
   overrides: Partial<TaskData> = {}
 ): Task {
   return createTestTask({
-    isRecurring: true,
-    recurrenceDays,
+    recurringInterval, // Set interval (non-null = recurring)
     ...overrides,
   });
 }

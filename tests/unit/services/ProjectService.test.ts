@@ -35,7 +35,7 @@ describe('ProjectService', () => {
         const input = {
           name: 'Website Redesign',
           description: 'Redesign company website',
-          priority: 'HIGH' as const,
+          priority: 8,
           dueDate: new Date('2025-12-31'),
           departmentId: 'dept1',
           creatorId: 'user1',
@@ -83,7 +83,7 @@ describe('ProjectService', () => {
         });
 
         expect(result.name).toBe('Website Redesign');
-        expect(result.priority).toBe('HIGH');
+        expect(result.priority).toBe(8);
       });
 
       it('should use default priority MEDIUM when not provided', async () => {
@@ -105,7 +105,7 @@ describe('ProjectService', () => {
         const mockCreated = {
           id: 'proj1',
           name: 'Project',
-          priority: 'MEDIUM',
+          priority: 5,
           departmentId: 'dept1',
           creatorId: 'user1',
         };
@@ -114,7 +114,7 @@ describe('ProjectService', () => {
 
         const result = await service.create(input);
 
-        expect(result.priority).toBe('MEDIUM');
+        expect(result.priority).toBe(5);
       });
 
       it('should throw error when department not found', async () => {
