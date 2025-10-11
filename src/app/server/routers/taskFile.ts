@@ -99,37 +99,42 @@ export const taskFileRouter = router({
   uploadFile: publicProcedure
     .input(uploadFileSchema)
     .mutation(async ({ ctx, input }) => {
-      const repository = new PrismaTaskRepository(ctx.prisma);
-      const service = new TaskService(repository);
+      try {
+        const repository = new PrismaTaskRepository(ctx.prisma);
+        const service = new TaskService(repository);
 
-      // Use user context from frontend
-      const user = {
-        userId: input.userId,
-        role: input.userRole,
-        departmentId: input.departmentId,
-      };
+        // Use user context from frontend
+        const user = {
+          userId: input.userId,
+          role: input.userRole,
+          departmentId: input.departmentId,
+        };
 
-      // Decode base64 file data
-      const fileBuffer = Buffer.from(input.fileData, 'base64');
+        // Decode base64 file data
+        const fileBuffer = Buffer.from(input.fileData, 'base64');
 
-      const fileRecord = await service.uploadFileToTask(
-        input.taskId,
-        fileBuffer,
-        input.fileName,
-        input.fileType,
-        user
-      );
+        const fileRecord = await service.uploadFileToTask(
+          input.taskId,
+          fileBuffer,
+          input.fileName,
+          input.fileType,
+          user
+        );
 
-      return {
-        success: true,
-        file: {
-          id: fileRecord.id,
-          fileName: fileRecord.fileName,
-          fileSize: fileRecord.fileSize,
-          fileType: fileRecord.fileType,
-          uploadedAt: fileRecord.uploadedAt,
-        },
-      };
+        return {
+          success: true,
+          file: {
+            id: fileRecord.id,
+            fileName: fileRecord.fileName,
+            fileSize: fileRecord.fileSize,
+            fileType: fileRecord.fileType,
+            uploadedAt: fileRecord.uploadedAt,
+          },
+        };
+      } catch (error) {
+        console.error('[uploadFile] Error:', error);
+        throw error;
+      }
     }),
 
   /**

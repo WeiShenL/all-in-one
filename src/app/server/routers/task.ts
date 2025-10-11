@@ -96,7 +96,7 @@ const updateStatusSchema = z.object({
 const updateRecurringSchema = z.object({
   taskId: z.string().uuid(),
   enabled: z.boolean(),
-  days: z.number().nullable(),
+  recurringInterval: z.number().nullable(),
 });
 
 const addTagSchema = z.object({
@@ -291,7 +291,7 @@ export const taskRouter = router({
       const task = await service.updateTaskRecurring(
         input.taskId,
         input.enabled,
-        input.days,
+        input.recurringInterval,
         user
       );
       return serializeTask(task);
@@ -352,6 +352,12 @@ export const taskRouter = router({
 
   /**
    * Remove assignee from task
+   *
+   * TODO: Make this role-based auth for MANAGER/HR_ADMIN only in future.
+   * Currently violates TM015 for STAFF users: "Assigned Staff member can add
+   * assignees, max 5 only. (but NOT remove them - TM015)"
+   *
+   * Related: SCRUM-14 Task Update User Story AC7
    */
   removeAssignee: publicProcedure
     .input(
@@ -602,6 +608,153 @@ export const taskRouter = router({
         input.includeArchived
       );
       return tasks.map(serializeTask);
+    }),
+
+  // ============================================
+  // FILE OPERATIONS
+  // ============================================
+
+  /**
+   * Upload a file to a task
+   */
+  uploadFile: publicProcedure
+    .input(
+      z.object({
+        taskId: z.string().uuid(),
+        fileName: z.string().min(1).max(255),
+        fileType: z.string(),
+        fileData: z.string(), // Base64 encoded file
+        userId: z.string().uuid(),
+        userRole: z.enum(['STAFF', 'MANAGER', 'HR_ADMIN']),
+        departmentId: z.string(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const repository = new PrismaTaskRepository(ctx.prisma);
+      const service = new TaskService(repository);
+
+      const user = {
+        userId: input.userId,
+        role: input.userRole,
+        departmentId: input.departmentId,
+      };
+
+      // Decode base64 file data
+      const fileBuffer = Buffer.from(input.fileData, 'base64');
+
+      const fileRecord = await service.uploadFileToTask(
+        input.taskId,
+        fileBuffer,
+        input.fileName,
+        input.fileType,
+        user
+      );
+
+      return {
+        success: true,
+        file: {
+          id: fileRecord.id,
+          fileName: fileRecord.fileName,
+          fileSize: fileRecord.fileSize,
+          fileType: fileRecord.fileType,
+          uploadedAt: fileRecord.uploadedAt,
+        },
+      };
+    }),
+
+  /**
+   * Get download URL for a file
+   */
+  getFileDownloadUrl: publicProcedure
+    .input(
+      z.object({
+        fileId: z.string().uuid(),
+        userId: z.string().uuid(),
+        userRole: z.enum(['STAFF', 'MANAGER', 'HR_ADMIN']),
+        departmentId: z.string(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const repository = new PrismaTaskRepository(ctx.prisma);
+      const service = new TaskService(repository);
+
+      const user = {
+        userId: input.userId,
+        role: input.userRole,
+        departmentId: input.departmentId,
+      };
+
+      const downloadUrl = await service.getFileDownloadUrl(input.fileId, user);
+
+      return {
+        downloadUrl,
+        expiresIn: 3600, // 1 hour
+      };
+    }),
+
+  /**
+   * Delete a file
+   */
+  deleteFile: publicProcedure
+    .input(
+      z.object({
+        fileId: z.string().uuid(),
+        userId: z.string().uuid(),
+        userRole: z.enum(['STAFF', 'MANAGER', 'HR_ADMIN']),
+        departmentId: z.string(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const repository = new PrismaTaskRepository(ctx.prisma);
+      const service = new TaskService(repository);
+
+      const user = {
+        userId: input.userId,
+        role: input.userRole,
+        departmentId: input.departmentId,
+      };
+
+      await service.deleteFile(input.fileId, user);
+
+      return { success: true };
+    }),
+
+  /**
+   * Get all files for a task
+   */
+  getTaskFiles: publicProcedure
+    .input(
+      z.object({
+        taskId: z.string().uuid(),
+        userId: z.string().uuid(),
+        userRole: z.enum(['STAFF', 'MANAGER', 'HR_ADMIN']),
+        departmentId: z.string(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const repository = new PrismaTaskRepository(ctx.prisma);
+      const service = new TaskService(repository);
+
+      const user = {
+        userId: input.userId,
+        role: input.userRole,
+        departmentId: input.departmentId,
+      };
+
+      const files = await service.getTaskFiles(input.taskId, user);
+
+      return {
+        files: files.map(f => ({
+          id: f.id,
+          fileName: f.fileName,
+          fileSize: f.fileSize,
+          fileType: f.fileType,
+          uploadedById: f.uploadedById,
+          uploadedAt: f.uploadedAt,
+        })),
+        totalSize: files.reduce((sum, f) => sum + f.fileSize, 0),
+        count: files.length,
+      };
     }),
 
   /**

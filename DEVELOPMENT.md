@@ -9,6 +9,7 @@ This document covers development practices, guidelines, and advanced topics for 
 - [Code Quality & Standards](#-code-quality--standards)
 - [Authentication System](#-authentication-system)
 - [Real-time Notification System](#-real-time-notification-system)
+- [File Upload & Storage System](#-file-upload--storage-system)
 - [Project Structure](#-project-structure)
 
 ## 💾 Database Management
@@ -900,6 +901,91 @@ await sendBroadcast({
   message: `${userName} commented on your task`,
 });
 ```
+
+## 📁 File Upload & Storage System
+
+### Overview
+
+The application supports file attachments for tasks using **Supabase Storage**. Files are stored in a private bucket with Row Level Security (RLS) policies to ensure users can only access files from tasks they are assigned to.
+
+### Storage Configuration
+
+This section covers the one-time setup required for file upload functionality.
+
+### 2.1 Create Storage Bucket
+
+1. Open Supabase Dashboard: **http://localhost:8000**
+2. Navigate to **Storage** (left sidebar)
+3. Click **Create a new bucket**
+4. Configure bucket:
+   - **Name**: `task-attachments`
+   - **Public bucket**: ❌ **Unchecked** (keep it private)
+5. Click **Additional Configuration** (expand section)
+6. Configure file restrictions:
+   - **File size limit**: Click "Reset file upload size for bucket"
+   - Enter: `10` (10MB)
+   - **Allowed MIME types**: Paste the following:
+   ```
+   image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/plain,application/zip
+   ```
+7. Click **Create bucket**
+
+### 2.2 Configure Policies
+
+Go to **Storage** → Click `task-attachments` bucket → **Policies** tab → task-attachments > Click **New Policy** > For full customisation
+
+#### Policy 1: Allow Upload (INSERT)
+
+- **Policy Name**: `Users can upload to assigned tasks`
+- **Allowed operation**: `INSERT`
+- **Target Roles**: Authenticated
+- **Policy Definition**:
+
+```sql
+bucket_id = 'task-attachments'
+AND
+(storage.foldername(name))[1] IN (
+  SELECT t.id
+  FROM task t
+  INNER JOIN task_assignment ta ON ta."taskId" = t.id
+  WHERE ta."userId" = auth.uid()::text
+)
+```
+
+Click **Review** → **Save policy**
+
+#### Policy 2: Allow Download (SELECT)
+
+- **Policy Name**: `Users can view files from assigned tasks`
+- **Allowed operation**: `SELECT`
+- **Target Roles**: `Authenticated`
+- **Policy Definition**:
+
+```sql
+(bucket_id = 'task-attachments')
+AND
+(storage.foldername(name))[1] IN (
+  SELECT t.id
+  FROM task t
+  INNER JOIN task_assignment ta ON ta."taskId" = t.id
+  WHERE ta."userId" = auth.uid()::text
+)
+```
+
+Click **Review** → **Save policy**
+
+#### Policy 3: Allow Delete (DELETE)
+
+- **Policy Name**: `Users can delete their own uploaded files`
+- **Allowed operation**: `DELETE`
+- **Target Roles**: `Authenticated`
+- **Policy Definition**:
+
+```sql
+(bucket_id = 'task-attachments') AND (owner = uid())
+```
+
+Click **Review** → **Save policy**
 
 ## 📁 Project Structure
 

@@ -545,7 +545,7 @@ describe('Task Update Integration Tests', () => {
         ['urgent', 'backend']
       );
       tagResult.rows.forEach(row => createdTagIds.push(row.id));
-    }, 30000);
+    }, 50000);
   });
 
   // ============================================

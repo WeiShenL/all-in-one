@@ -142,7 +142,7 @@ jobs:
   staging-deploy:
     name: Staging Deployment
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     environment: Preview
     needs: [code-quality, base-tests, security, playwright-setup]
     steps:
@@ -183,7 +183,7 @@ jobs:
           NEXT_PUBLIC_API_EXTERNAL_URL: ${{ secrets.NEXT_PUBLIC_API_EXTERNAL_URL }}
           NEXT_PUBLIC_ANON_KEY: ${{ secrets.NEXT_PUBLIC_ANON_KEY }}
           SERVICE_ROLE_KEY: ${{ secrets.SERVICE_ROLE_KEY }}
-          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL_POOLED }}
         run: npm run test:integration -- --coverage --coverageDirectory=coverage/integration
 
       - name: Deploy to Vercel Preview
@@ -212,8 +212,8 @@ jobs:
         env:
           # Use the deployed preview URL as Playwright baseURL
           PLAYWRIGHT_BASE_URL: ${{ steps.vercel-deploy.outputs.VERCEL_URL }}
-          # Staging database for cleanup and verification
-          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+          # Staging database for cleanup and verification (use pooled connection)
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL_POOLED }}
           # Supabase env for client auth in tests
           NEXT_PUBLIC_API_EXTERNAL_URL: ${{ secrets.NEXT_PUBLIC_API_EXTERNAL_URL }}
           NEXT_PUBLIC_ANON_KEY: ${{ secrets.NEXT_PUBLIC_ANON_KEY }}
