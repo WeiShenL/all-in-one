@@ -1325,4 +1325,19 @@ export class PrismaTaskRepository implements ITaskRepository {
       },
     });
   }
+
+  /**
+   * Get department with parent information for authorization checks
+   */
+  async getDepartmentWithParent(
+    departmentId: string
+  ): Promise<{ id: string; parentId: string | null } | null> {
+    return await this.prisma.department.findUnique({
+      where: { id: departmentId },
+      select: {
+        id: true,
+        parentId: true,
+      },
+    });
+  }
 }

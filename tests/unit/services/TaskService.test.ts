@@ -118,7 +118,7 @@ describe('TaskService - READ and UPDATE Operations', () => {
         await expect(
           service.getTaskById('task-001', unauthorizedUser)
         ).rejects.toThrow(
-          'Unauthorized: You must be the task owner or assigned to view this task'
+          'Unauthorized: You must be the task owner, assigned to this task, or a manager of the department'
         );
       });
 
@@ -250,7 +250,7 @@ describe('TaskService - READ and UPDATE Operations', () => {
         await expect(
           service.updateTaskTitle('task-001', 'New Title', unauthorizedUser)
         ).rejects.toThrow(
-          'Unauthorized: You must be the task owner or assigned to view this task'
+          'Unauthorized: You must be the task owner, assigned to this task, or a manager of the department'
         );
       });
     });
@@ -473,7 +473,7 @@ describe('TaskService - READ and UPDATE Operations', () => {
         await expect(
           service.addTagToTask('task-001', 'urgent', unauthorizedUser)
         ).rejects.toThrow(
-          'Unauthorized: You must be the task owner or assigned to view this task'
+          'Unauthorized: You must be the task owner, assigned to this task, or a manager of the department'
         );
       });
     });
@@ -619,7 +619,7 @@ describe('TaskService - READ and UPDATE Operations', () => {
             unauthorizedUser
           )
         ).rejects.toThrow(
-          'Unauthorized: You must be the task owner or assigned to view this task'
+          'Unauthorized: You must be the task owner, assigned to this task, or a manager of the department'
         );
       });
     });

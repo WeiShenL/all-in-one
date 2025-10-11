@@ -431,4 +431,13 @@ export interface ITaskRepository {
    * @returns Array of calendar events
    */
   getCalendarEvents(taskId: string): Promise<any[]>;
+
+  /**
+   * Get department with parent information for authorization checks
+   * @param departmentId - Department ID
+   * @returns Department with parentId or null
+   */
+  getDepartmentWithParent(
+    departmentId: string
+  ): Promise<{ id: string; parentId: string | null } | null>;
 }

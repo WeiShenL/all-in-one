@@ -1,10 +1,11 @@
-import { router, publicProcedure, Context } from '../trpc';
+import { router, publicProcedure, protectedProcedure, Context } from '../trpc';
 import { TaskService } from '../../../services/task/TaskService';
 import { SubtaskService } from '../services/SubtaskService';
 import { PrismaTaskRepository } from '../../../repositories/PrismaTaskRepository';
 import { z } from 'zod';
 import { TaskStatus, Task } from '../../../domain/task/Task';
 import { UserContext } from '../../../services/task/TaskService';
+import { TaskService as DashboardTaskService } from '../services/TaskService';
 
 /**
  * Task Router - UPDATE Operations
@@ -813,6 +814,17 @@ export const taskRouter = router({
       const hierarchy = await service.getTaskHierarchy(input.taskId, user);
       return hierarchy;
     }),
+
+  /**
+   * Get manager dashboard tasks
+   * Returns tasks from manager's department and all subordinate departments with metrics
+   */
+  getDashboardTasks: protectedProcedure.query(async ({ ctx }) => {
+    // ctx.session.user.id is now available and trustworthy from the authenticated session
+    const managerId = ctx.session.user.id;
+    const taskService = new DashboardTaskService(ctx.prisma);
+    return await taskService.getManagerDashboardTasks(managerId);
+  }),
 
   // ============================================
   // CALENDAR EVENT OPERATIONS

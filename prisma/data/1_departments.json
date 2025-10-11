@@ -72,6 +72,14 @@
     "updatedAt": "2025-01-01T00:00:00.000Z"
   },
   {
+    "id": "dept-acc-mgr-001",
+    "name": "Account Managers",
+    "parentId": "dept-sales-mgr-001",
+    "managerId": null,
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
     "id": "dept-consultant-001",
     "name": "Consultant",
     "parentId": "dept-consultancy-001",
@@ -88,8 +96,40 @@
     "updatedAt": "2025-01-01T00:00:00.000Z"
   },
   {
+    "id": "dept-support-001",
+    "name": "Support Team",
+    "parentId": "dept-sys-sol-001",
+    "managerId": null,
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
     "id": "dept-senior-eng-001",
     "name": "Senior Engineers",
+    "parentId": "dept-eng-op-001",
+    "managerId": null,
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "dept-junior-eng-001",
+    "name": "Junior Engineers",
+    "parentId": "dept-eng-op-001",
+    "managerId": null,
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "dept-call-centre-001",
+    "name": "Call Centre",
+    "parentId": "dept-eng-op-001",
+    "managerId": null,
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "dept-op-planning-001",
+    "name": "Operation Planning Team",
     "parentId": "dept-eng-op-001",
     "managerId": null,
     "createdAt": "2025-01-01T00:00:00.000Z",
@@ -104,49 +144,9 @@
     "updatedAt": "2025-01-01T00:00:00.000Z"
   },
   {
-    "id": "dept-finance-mgr-001",
-    "name": "Finance Managers",
-    "parentId": "dept-finance-001",
-    "managerId": null,
-    "createdAt": "2025-01-01T00:00:00.000Z",
-    "updatedAt": "2025-01-01T00:00:00.000Z"
-  },
-  {
-    "id": "dept-it-team-001",
-    "name": "IT Team",
-    "parentId": "dept-it-001",
-    "managerId": null,
-    "createdAt": "2025-01-01T00:00:00.000Z",
-    "updatedAt": "2025-01-01T00:00:00.000Z"
-  },
-  {
-    "id": "dept-acc-mgr-001",
-    "name": "Account Managers",
-    "parentId": "dept-sales-mgr-001",
-    "managerId": null,
-    "createdAt": "2025-01-01T00:00:00.000Z",
-    "updatedAt": "2025-01-01T00:00:00.000Z"
-  },
-  {
-    "id": "dept-support-001",
-    "name": "Support Team",
-    "parentId": "dept-developers-001",
-    "managerId": null,
-    "createdAt": "2025-01-01T00:00:00.000Z",
-    "updatedAt": "2025-01-01T00:00:00.000Z"
-  },
-  {
-    "id": "dept-junior-eng-001",
-    "name": "Junior Engineers",
-    "parentId": "dept-senior-eng-001",
-    "managerId": null,
-    "createdAt": "2025-01-01T00:00:00.000Z",
-    "updatedAt": "2025-01-01T00:00:00.000Z"
-  },
-  {
     "id": "dept-ld-team-001",
     "name": "L&D Team",
-    "parentId": "dept-hr-team-001",
+    "parentId": "dept-hr-admin-001",
     "managerId": null,
     "createdAt": "2025-01-01T00:00:00.000Z",
     "updatedAt": "2025-01-01T00:00:00.000Z"
@@ -154,7 +154,15 @@
   {
     "id": "dept-admin-team-001",
     "name": "Admin Team",
-    "parentId": "dept-hr-team-001",
+    "parentId": "dept-hr-admin-001",
+    "managerId": null,
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "dept-finance-mgr-001",
+    "name": "Finance Managers",
+    "parentId": "dept-finance-001",
     "managerId": null,
     "createdAt": "2025-01-01T00:00:00.000Z",
     "updatedAt": "2025-01-01T00:00:00.000Z"
@@ -168,17 +176,9 @@
     "updatedAt": "2025-01-01T00:00:00.000Z"
   },
   {
-    "id": "dept-call-centre-001",
-    "name": "Call Centre",
-    "parentId": "dept-junior-eng-001",
-    "managerId": null,
-    "createdAt": "2025-01-01T00:00:00.000Z",
-    "updatedAt": "2025-01-01T00:00:00.000Z"
-  },
-  {
-    "id": "dept-op-planning-001",
-    "name": "Operation Planning Team",
-    "parentId": "dept-call-centre-001",
+    "id": "dept-it-team-001",
+    "name": "IT Team",
+    "parentId": "dept-it-001",
     "managerId": null,
     "createdAt": "2025-01-01T00:00:00.000Z",
     "updatedAt": "2025-01-01T00:00:00.000Z"

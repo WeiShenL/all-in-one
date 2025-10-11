@@ -8,21 +8,25 @@ import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
 import { prisma } from '@/app/lib/prisma';
 import { createClient } from '@/lib/supabase/server';
 
-const handler = (req: Request) => {
+const handler = async (req: Request) => {
   return fetchRequestHandler({
     endpoint: '/api/trpc',
     router: appRouter,
     req,
     createContext: async () => {
-      // Get the logged-in user from Supabase
+      // Get the authenticated user from Supabase (secure method)
       const supabase = await createClient();
       const {
         data: { user },
       } = await supabase.auth.getUser();
 
+      // Build session object from authenticated user data
+      const session = user ? { user } : null;
+
       return {
         prisma,
         userId: user?.id,
+        session,
       };
     },
   });

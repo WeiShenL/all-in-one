@@ -4,8 +4,9 @@ import { useAuth } from '@/lib/supabase/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import Navbar from '@/app/components/Navbar';
+import { ManagerDashboard } from '@/app/components/ManagerDashboard';
 
-export default function ManagerDashboard() {
+export default function ManagerDashboardPage() {
   const { user, userProfile, loading } = useAuth();
   const router = useRouter();
 
@@ -13,7 +14,11 @@ export default function ManagerDashboard() {
     if (!loading && !user) {
       router.push('/auth/login');
     }
-  }, [user, loading, router]);
+    // Redirect non-managers to staff dashboard
+    if (!loading && user && userProfile?.role !== 'MANAGER') {
+      router.push('/dashboard/staff');
+    }
+  }, [user, userProfile, loading, router]);
 
   if (loading) {
     return (
@@ -31,7 +36,7 @@ export default function ManagerDashboard() {
     );
   }
 
-  if (!user) {
+  if (!user || userProfile?.role !== 'MANAGER') {
     return null;
   }
 
@@ -71,7 +76,7 @@ export default function ManagerDashboard() {
             <div
               style={{
                 backgroundColor: '#ffffff',
-                padding: '1.5rem',
+                padding: '0 1.5rem 1.5rem',
                 borderRadius: '12px',
                 marginBottom: '1rem',
                 boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
@@ -79,7 +84,7 @@ export default function ManagerDashboard() {
             >
               <h2
                 style={{
-                  marginBottom: '1rem',
+                  paddingTop: '1.5rem',
                   color: '#2d3748',
                   fontSize: '1.25rem',
                   fontWeight: '600',
@@ -101,121 +106,9 @@ export default function ManagerDashboard() {
             </div>
           </div>
 
+          {/* Manager Task Dashboard */}
           <div>
-            <h2
-              style={{
-                marginBottom: '1rem',
-                color: '#2d3748',
-                fontSize: '1.5rem',
-                fontWeight: '600',
-              }}
-            >
-              Manager Features
-            </h2>
-            <div
-              style={{
-                display: 'grid',
-                gap: '1rem',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-              }}
-            >
-              <div
-                style={{
-                  backgroundColor: '#fef5e7',
-                  padding: '1.5rem',
-                  borderRadius: '12px',
-                  border: '1px solid #f9c74f',
-                }}
-              >
-                <h3
-                  style={{
-                    marginBottom: '0.5rem',
-                    color: '#975a16',
-                    fontSize: '1.125rem',
-                    fontWeight: '600',
-                  }}
-                >
-                  Team Management
-                </h3>
-                <p
-                  style={{ color: '#4a5568', fontSize: '0.875rem', margin: 0 }}
-                >
-                  Manage your team members and assignments
-                </p>
-              </div>
-              <div
-                style={{
-                  backgroundColor: '#fef5e7',
-                  padding: '1.5rem',
-                  borderRadius: '12px',
-                  border: '1px solid #f9c74f',
-                }}
-              >
-                <h3
-                  style={{
-                    marginBottom: '0.5rem',
-                    color: '#975a16',
-                    fontSize: '1.125rem',
-                    fontWeight: '600',
-                  }}
-                >
-                  Task Approval
-                </h3>
-                <p
-                  style={{ color: '#4a5568', fontSize: '0.875rem', margin: 0 }}
-                >
-                  Review and approve team tasks
-                </p>
-              </div>
-              <div
-                style={{
-                  backgroundColor: '#fef5e7',
-                  padding: '1.5rem',
-                  borderRadius: '12px',
-                  border: '1px solid #f9c74f',
-                }}
-              >
-                <h3
-                  style={{
-                    marginBottom: '0.5rem',
-                    color: '#975a16',
-                    fontSize: '1.125rem',
-                    fontWeight: '600',
-                  }}
-                >
-                  Reports
-                </h3>
-                <p
-                  style={{ color: '#4a5568', fontSize: '0.875rem', margin: 0 }}
-                >
-                  View team performance and analytics
-                </p>
-              </div>
-              <div
-                style={{
-                  backgroundColor: '#fef5e7',
-                  padding: '1.5rem',
-                  borderRadius: '12px',
-                  border: '1px solid #f9c74f',
-                }}
-              >
-                <h3
-                  style={{
-                    marginBottom: '0.5rem',
-                    color: '#975a16',
-                    fontSize: '1.125rem',
-                    fontWeight: '600',
-                  }}
-                >
-                  Department Overview
-                </h3>
-                <p
-                  style={{ color: '#4a5568', fontSize: '0.875rem', margin: 0 }}
-                >
-                  Monitor department-wide activities
-                </p>
-              </div>
-            </div>
+            <ManagerDashboard />
           </div>
         </div>
       </div>

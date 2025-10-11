@@ -1,38 +1,58 @@
 [
   {
     "id": "log-001",
-    "taskId": "task-001",
-    "userId": "user-manager-001",
+    "taskId": "4b218722-d38d-424c-a113-46a04d04245e",
+    "userId": "user-engop-dir-001",
     "action": "CREATED",
-    "changes": { "status": "TO_DO", "priority": "HIGH" },
-    "metadata": { "source": "web_ui" },
+    "changes": {
+      "status": "TO_DO",
+      "priority": "HIGH"
+    },
+    "metadata": {
+      "source": "web_ui"
+    },
     "timestamp": "2025-01-05T00:00:00.000Z"
   },
   {
     "id": "log-002",
-    "taskId": "task-001",
-    "userId": "user-manager-001",
+    "taskId": "4b218722-d38d-424c-a113-46a04d04245e",
+    "userId": "user-engop-dir-001",
     "action": "STATUS_CHANGED",
-    "changes": { "from": "TO_DO", "to": "IN_PROGRESS" },
-    "metadata": { "source": "web_ui" },
+    "changes": {
+      "from": "TO_DO",
+      "to": "IN_PROGRESS"
+    },
+    "metadata": {
+      "source": "web_ui"
+    },
     "timestamp": "2025-01-05T09:00:00.000Z"
   },
   {
     "id": "log-003",
-    "taskId": "task-002",
-    "userId": "user-staff-001",
+    "taskId": "170be124-0e34-435b-a056-9d46b5f7711f",
+    "userId": "user-developer-001",
     "action": "CREATED",
-    "changes": { "status": "TO_DO", "priority": "HIGH" },
-    "metadata": { "source": "web_ui" },
+    "changes": {
+      "status": "TO_DO",
+      "priority": "HIGH"
+    },
+    "metadata": {
+      "source": "web_ui"
+    },
     "timestamp": "2025-01-06T00:00:00.000Z"
   },
   {
     "id": "log-004",
-    "taskId": "task-003",
-    "userId": "user-hradmin-001",
+    "taskId": "9e30bb03-f447-4ca7-9695-8d39f22e94ca",
+    "userId": "user-hr-dir-001",
     "action": "CREATED",
-    "changes": { "status": "TO_DO", "priority": "MEDIUM" },
-    "metadata": { "source": "web_ui" },
+    "changes": {
+      "status": "TO_DO",
+      "priority": "MEDIUM"
+    },
+    "metadata": {
+      "source": "web_ui"
+    },
     "timestamp": "2025-01-07T00:00:00.000Z"
   }
 ]
