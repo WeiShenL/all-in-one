@@ -176,28 +176,45 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
         return;
       }
 
-      // Step 2: Create task
+      // Step 2: Create task or subtask
       const tagList = tags
         .split(',')
         .map(t => t.trim())
         .filter(t => t.length > 0);
 
-      const taskData = {
-        title: title.trim(),
-        description: description.trim(),
-        priority,
-        dueDate: new Date(dueDate).toISOString(),
-        ownerId: userProfile.id,
-        assigneeIds,
-        ...(tagList.length > 0 && { tags: tagList }),
-        ...(projectId && { projectId }),
-        ...(parentTaskId && { parentTaskId }),
-        ...(recurringInterval && {
-          recurringInterval: Number(recurringInterval),
-        }),
-      };
+      // Determine endpoint based on whether this is a subtask
+      const isSubtask = !!parentTaskId;
+      const endpoint = isSubtask
+        ? '/api/trpc/task.createSubtask'
+        : '/api/trpc/task.create';
 
-      const response = await fetch('/api/trpc/task.create', {
+      const taskData = isSubtask
+        ? {
+            // Subtask-specific data (no projectId, ownerId, recurringInterval)
+            title: title.trim(),
+            description: description.trim(),
+            priority,
+            dueDate: new Date(dueDate).toISOString(),
+            assigneeIds,
+            parentTaskId,
+            ...(tagList.length > 0 && { tags: tagList }),
+          }
+        : {
+            // Regular task data
+            title: title.trim(),
+            description: description.trim(),
+            priority,
+            dueDate: new Date(dueDate).toISOString(),
+            ownerId: userProfile.id,
+            assigneeIds,
+            ...(tagList.length > 0 && { tags: tagList }),
+            ...(projectId && { projectId }),
+            ...(recurringInterval && {
+              recurringInterval: Number(recurringInterval),
+            }),
+          };
+
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(taskData),
