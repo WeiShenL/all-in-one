@@ -52,7 +52,7 @@ export class TaskService {
   private storageService = new SupabaseStorageService();
 
   constructor(
-    private readonly taskRepository: ITaskRepository
+    protected readonly taskRepository: ITaskRepository
     // Add other repositories as needed (UserRepository, ProjectRepository, etc.)
   ) {}
 

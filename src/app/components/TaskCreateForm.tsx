@@ -176,28 +176,45 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
         return;
       }
 
-      // Step 2: Create task
+      // Step 2: Create task or subtask
       const tagList = tags
         .split(',')
         .map(t => t.trim())
         .filter(t => t.length > 0);
 
-      const taskData = {
-        title: title.trim(),
-        description: description.trim(),
-        priority,
-        dueDate: new Date(dueDate).toISOString(),
-        ownerId: userProfile.id,
-        assigneeIds,
-        ...(tagList.length > 0 && { tags: tagList }),
-        ...(projectId && { projectId }),
-        ...(parentTaskId && { parentTaskId }),
-        ...(recurringInterval && {
-          recurringInterval: Number(recurringInterval),
-        }),
-      };
+      // Determine endpoint based on whether this is a subtask
+      const isSubtask = !!parentTaskId;
+      const endpoint = isSubtask
+        ? '/api/trpc/task.createSubtask'
+        : '/api/trpc/task.create';
 
-      const response = await fetch('/api/trpc/task.create', {
+      const taskData = isSubtask
+        ? {
+            // Subtask-specific data (no projectId, ownerId, recurringInterval)
+            title: title.trim(),
+            description: description.trim(),
+            priority,
+            dueDate: new Date(dueDate).toISOString(),
+            assigneeIds,
+            parentTaskId,
+            ...(tagList.length > 0 && { tags: tagList }),
+          }
+        : {
+            // Regular task data
+            title: title.trim(),
+            description: description.trim(),
+            priority,
+            dueDate: new Date(dueDate).toISOString(),
+            ownerId: userProfile.id,
+            assigneeIds,
+            ...(tagList.length > 0 && { tags: tagList }),
+            ...(projectId && { projectId }),
+            ...(recurringInterval && {
+              recurringInterval: Number(recurringInterval),
+            }),
+          };
+
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(taskData),
@@ -291,6 +308,7 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
         {/* Title - Mandatory */}
         <div style={{ marginBottom: '1rem' }}>
           <label
+            htmlFor='title'
             style={{
               display: 'block',
               marginBottom: '0.5rem',
@@ -300,6 +318,7 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
             Title <span style={{ color: 'red' }}>*</span>
           </label>
           <input
+            id='title'
             type='text'
             value={title}
             onChange={e => setTitle(e.target.value)}
@@ -317,6 +336,7 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
         {/* Description - Mandatory */}
         <div style={{ marginBottom: '1rem' }}>
           <label
+            htmlFor='description'
             style={{
               display: 'block',
               marginBottom: '0.5rem',
@@ -326,6 +346,7 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
             Description <span style={{ color: 'red' }}>*</span>
           </label>
           <textarea
+            id='description'
             value={description}
             onChange={e => setDescription(e.target.value)}
             required
@@ -343,6 +364,7 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
         {/* Priority - Mandatory (1-10 scale) */}
         <div style={{ marginBottom: '1rem' }}>
           <label
+            htmlFor='priority'
             style={{
               display: 'block',
               marginBottom: '0.5rem',
@@ -352,6 +374,7 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
             Priority (1-10) <span style={{ color: 'red' }}>*</span>
           </label>
           <input
+            id='priority'
             type='number'
             value={priority}
             onChange={e => setPriority(Number(e.target.value))}
@@ -373,6 +396,7 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
         {/* Due Date - Mandatory */}
         <div style={{ marginBottom: '1rem' }}>
           <label
+            htmlFor='date'
             style={{
               display: 'block',
               marginBottom: '0.5rem',
@@ -382,6 +406,7 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
             Deadline <span style={{ color: 'red' }}>*</span>
           </label>
           <input
+            id='date'
             type='date'
             value={dueDate}
             onChange={e => setDueDate(e.target.value)}
@@ -489,6 +514,7 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
             Parent Task (Optional - for subtasks)
           </label>
           <select
+            name='parentTaskId'
             value={parentTaskId}
             onChange={e => setParentTaskId(e.target.value)}
             disabled={loadingTasks}
@@ -515,37 +541,56 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
           </small>
         </div>
 
-        {/* Recurring Interval - Optional */}
-        <div style={{ marginBottom: '1.5rem' }}>
-          <label
+        {/* Recurring Interval - Optional (hidden for subtasks) */}
+        {!parentTaskId && (
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label
+              style={{
+                display: 'block',
+                marginBottom: '0.5rem',
+                fontWeight: '500',
+              }}
+            >
+              Recurring Interval (Optional)
+            </label>
+            <input
+              type='number'
+              value={recurringInterval}
+              onChange={e =>
+                setRecurringInterval(
+                  e.target.value ? Number(e.target.value) : ''
+                )
+              }
+              min={1}
+              style={{
+                width: '100%',
+                padding: '0.5rem',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+              }}
+              placeholder='Number of days (e.g., 7 for weekly)'
+            />
+            <small style={{ color: '#666', fontSize: '0.875rem' }}>
+              Leave empty for one-time task. Enter number of days for recurring
+              tasks.
+            </small>
+          </div>
+        )}
+        {parentTaskId && (
+          <div
             style={{
-              display: 'block',
-              marginBottom: '0.5rem',
-              fontWeight: '500',
-            }}
-          >
-            Recurring Interval (Optional)
-          </label>
-          <input
-            type='number'
-            value={recurringInterval}
-            onChange={e =>
-              setRecurringInterval(e.target.value ? Number(e.target.value) : '')
-            }
-            min={1}
-            style={{
-              width: '100%',
-              padding: '0.5rem',
-              border: '1px solid #ccc',
+              marginBottom: '1.5rem',
+              padding: '0.75rem',
+              backgroundColor: '#e3f2fd',
+              border: '1px solid #2196f3',
               borderRadius: '4px',
             }}
-            placeholder='Number of days (e.g., 7 for weekly)'
-          />
-          <small style={{ color: '#666', fontSize: '0.875rem' }}>
-            Leave empty for one-time task. Enter number of days for recurring
-            tasks.
-          </small>
-        </div>
+          >
+            <small style={{ color: '#1976d2', fontSize: '0.875rem' }}>
+              ℹ️ Note: Subtasks cannot be set as recurring tasks.
+            </small>
+          </div>
+        )}
 
         {/* File Attachments - Optional */}
         <div style={{ marginBottom: '1.5rem' }}>

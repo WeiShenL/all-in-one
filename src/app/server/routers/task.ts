@@ -1,5 +1,6 @@
 import { router, publicProcedure, Context } from '../trpc';
 import { TaskService } from '../../../services/task/TaskService';
+import { SubtaskService } from '../services/SubtaskService';
 import { PrismaTaskRepository } from '../../../repositories/PrismaTaskRepository';
 import { z } from 'zod';
 import { TaskStatus, Task } from '../../../domain/task/Task';
@@ -171,6 +172,50 @@ export const taskRouter = router({
           parentTaskId: input.parentTaskId,
           tags: input.tags,
           recurringInterval: input.recurringInterval,
+        },
+        user
+      );
+
+      return result;
+    }),
+
+  /**
+   * Create a subtask under a parent task
+   *
+   * AC (SCRUM-65):
+   * - Staff can create subtasks under tasks they are assigned to
+   * - 2 levels maximum: Task → Subtask (no sub-subtasks)
+   * - Mandatory fields: title, description, priority (1-10), deadline, assignee(s)
+   * - Subtasks cannot be recurring
+   * - Subtasks inherit department and project from parent
+   * - Subtask deadline must be <= parent deadline
+   */
+  createSubtask: publicProcedure
+    .input(
+      z.object({
+        title: z.string().min(1, 'Title is required'),
+        description: z.string().min(1, 'Description is required'),
+        priority: z.number().min(1).max(10),
+        dueDate: z.coerce.date(),
+        assigneeIds: z.array(z.string().uuid()).min(1).max(5),
+        parentTaskId: z.string().uuid(),
+        tags: z.array(z.string()).optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const repository = new PrismaTaskRepository(ctx.prisma);
+      const service = new SubtaskService(repository);
+      const user = await getUserContext(ctx);
+
+      const result = await service.createSubtask(
+        {
+          title: input.title,
+          description: input.description,
+          priority: input.priority,
+          dueDate: input.dueDate,
+          assigneeIds: input.assigneeIds,
+          parentTaskId: input.parentTaskId,
+          tags: input.tags,
         },
         user
       );

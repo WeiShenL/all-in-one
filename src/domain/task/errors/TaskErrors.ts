@@ -63,3 +63,17 @@ export class InvalidFileTypeError extends Error {
     this.name = 'InvalidFileTypeError';
   }
 }
+
+export class SubtaskMustHaveParentError extends Error {
+  constructor() {
+    super('Subtask must have a parent task ID');
+    this.name = 'SubtaskMustHaveParentError';
+  }
+}
+
+export class SubtaskCannotBeRecurringError extends Error {
+  constructor() {
+    super('Subtasks cannot be set as recurring');
+    this.name = 'SubtaskCannotBeRecurringError';
+  }
+}
