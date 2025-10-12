@@ -138,40 +138,57 @@ describe('Integration Tests - Manager Dashboard', () => {
   afterAll(async () => {
     // Clean up in proper order to avoid foreign key constraint violations
 
-    // 1. Delete task assignments first
+    // 1. Delete task_logs first (before users)
     await pgClient.query(
-      `DELETE FROM "task_assignment" WHERE "assignedById" IN (
-        SELECT id FROM "user_profile" WHERE email LIKE '%@test.com'
+      `DELETE FROM "task_log" WHERE "userId" IN (
+        SELECT id FROM "user_profile" WHERE email IN (
+          'manager@test.com', 'staff-parent@test.com', 'staff-child@test.com', 'staff-peer@test.com', 'empty-manager@test.com'
+        )
       )`
     );
 
-    // 2. Delete created tasks
+    // 2. Delete task assignments
+    await pgClient.query(
+      `DELETE FROM "task_assignment" WHERE "assignedById" IN (
+        SELECT id FROM "user_profile" WHERE email IN (
+          'manager@test.com', 'staff-parent@test.com', 'staff-child@test.com', 'staff-peer@test.com', 'empty-manager@test.com'
+        )
+      )`
+    );
+
+    // 3. Delete created tasks
     if (createdTaskIds.length > 0) {
       await pgClient.query(`DELETE FROM "task" WHERE id = ANY($1::uuid[])`, [
         createdTaskIds,
       ]);
     }
 
-    // 3. Delete all tasks related to test users
+    // 4. Delete all tasks owned by this test's users
     await pgClient.query(
       `DELETE FROM "task" WHERE "ownerId" IN (
-        SELECT id FROM "user_profile" WHERE email LIKE '%@test.com'
+        SELECT id FROM "user_profile" WHERE email IN (
+          'manager@test.com', 'staff-parent@test.com', 'staff-child@test.com', 'staff-peer@test.com', 'empty-manager@test.com'
+        )
       )`
     );
 
-    // 4. Clean up projects created by test users
+    // 5. Clean up projects
     await pgClient.query(
       `DELETE FROM "project" WHERE "creatorId" IN (
-        SELECT id FROM "user_profile" WHERE email LIKE '%@test.com'
+        SELECT id FROM "user_profile" WHERE email IN (
+          'manager@test.com', 'staff-parent@test.com', 'staff-child@test.com', 'staff-peer@test.com', 'empty-manager@test.com'
+        )
       )`
     );
 
-    // 5. Clean up test users
+    // 6. Clean up this test's specific users only
     await pgClient.query(
-      `DELETE FROM "user_profile" WHERE email LIKE '%@test.com'`
+      `DELETE FROM "user_profile" WHERE email IN (
+        'manager@test.com', 'staff-parent@test.com', 'staff-child@test.com', 'staff-peer@test.com', 'empty-manager@test.com'
+      )`
     );
 
-    // 6. Clean up test departments
+    // 7. Clean up this test's departments only
     await pgClient.query(
       `DELETE FROM "department" WHERE name IN ('Engineering', 'Backend Team', 'Marketing', 'Empty Department')`
     );
