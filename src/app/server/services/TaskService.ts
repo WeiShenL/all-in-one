@@ -812,6 +812,8 @@ export class TaskService extends BaseService {
             id: true,
             title: true,
             status: true,
+            priority: true,
+            dueDate: true,
             parentTaskId: true,
           },
         });
@@ -856,9 +858,18 @@ export class TaskService extends BaseService {
       const subtaskTree = await getAllSubtasks(taskId);
 
       return {
-        parentChain,
-        currentTask: task,
-        subtaskTree,
+        parentChain: parentChain.map(parent => ({
+          ...parent,
+          priority: parent.priority, // Map priority to priorityBucket for frontend consistency
+        })),
+        currentTask: {
+          ...task,
+          priority: task.priority, // Map priority to priority for frontend consistency
+        },
+        subtaskTree: subtaskTree.map(subtask => ({
+          ...subtask,
+          priority: subtask.priority, // Map priority to priorityBucket for frontend consistency
+        })),
       };
     } catch (error) {
       this.handleError(error, 'getTaskHierarchy');
@@ -1176,6 +1187,7 @@ export class TaskService extends BaseService {
       };
     } catch (error) {
       this.handleError(error, 'getManagerDashboardTasks');
+      throw error; // This will never be reached, but satisfies TypeScript
     }
   }
 }
