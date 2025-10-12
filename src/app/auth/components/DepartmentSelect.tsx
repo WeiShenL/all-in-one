@@ -14,12 +14,14 @@ interface DepartmentSelectProps {
   value: string;
   onChange: (value: string) => void;
   required?: boolean;
+  excludeDefaultDepartment?: boolean;
 }
 
 export function DepartmentSelect({
   departments,
   value,
   onChange,
+  excludeDefaultDepartment = true,
 }: DepartmentSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -41,9 +43,18 @@ export function DepartmentSelect({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const filteredDepartments = departments.filter(dept =>
-    dept.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredDepartments = departments.filter(dept => {
+    const matchesSearch = dept.name
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
+    const isDefaultDept =
+      dept.id === 'default-dept-id' || dept.name === 'Default Department';
+
+    if (excludeDefaultDepartment) {
+      return matchesSearch && !isDefaultDept;
+    }
+    return matchesSearch;
+  });
 
   const getColorForLevel = (level: number) => {
     const colors = [
