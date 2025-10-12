@@ -226,7 +226,16 @@ describe('TaskService - READ and UPDATE Operations', () => {
           'task-001',
           'user-123',
           'UPDATED',
-          { field: 'title', newValue: 'New Title' }
+          'Title',
+          {
+            changes: {
+              from: 'Implement Login Feature',
+              to: 'New Title',
+            },
+            metadata: {
+              source: 'web_ui',
+            },
+          }
         );
       });
 
@@ -300,7 +309,16 @@ describe('TaskService - READ and UPDATE Operations', () => {
           'task-001',
           'user-123',
           'UPDATED',
-          { field: 'priority', newValue: 5 }
+          'Priority',
+          {
+            changes: {
+              from: 8,
+              to: 5,
+            },
+            metadata: {
+              source: 'web_ui',
+            },
+          }
         );
       });
 
@@ -381,8 +399,17 @@ describe('TaskService - READ and UPDATE Operations', () => {
         expect(mockRepository.logTaskAction).toHaveBeenCalledWith(
           'task-001',
           'user-123',
-          'STATUS_CHANGED',
-          { newStatus: 'IN_PROGRESS' }
+          'UPDATED',
+          'Status',
+          {
+            changes: {
+              from: 'TO_DO',
+              to: 'IN_PROGRESS',
+            },
+            metadata: {
+              source: 'web_ui',
+            },
+          }
         );
       });
 
@@ -456,8 +483,18 @@ describe('TaskService - READ and UPDATE Operations', () => {
         expect(mockRepository.logTaskAction).toHaveBeenCalledWith(
           'task-001',
           'user-123',
-          'UPDATED',
-          { action: 'addTag', tag: 'urgent' }
+          'CREATED',
+          'Tag',
+          {
+            changes: {
+              added: 'urgent',
+            },
+            metadata: {
+              source: 'web_ui',
+              action: 'addTag',
+              tag: 'urgent',
+            },
+          }
         );
       });
 
@@ -492,8 +529,18 @@ describe('TaskService - READ and UPDATE Operations', () => {
         expect(mockRepository.logTaskAction).toHaveBeenCalledWith(
           'task-001',
           'user-123',
-          'UPDATED',
-          { action: 'removeTag', tag: 'backend' }
+          'DELETED',
+          'Tag',
+          {
+            changes: {
+              removed: 'backend',
+            },
+            metadata: {
+              source: 'web_ui',
+              action: 'removeTag',
+              tag: 'backend',
+            },
+          }
         );
       });
     });
