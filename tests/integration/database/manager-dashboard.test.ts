@@ -48,28 +48,28 @@ describe('Integration Tests - Manager Dashboard', () => {
     prisma = new PrismaClient();
     taskService = new TaskService(prisma);
 
-    // Clean up any leftover test data from previous failed runs
-    await pgClient.query(
-      `DELETE FROM "task_assignment" WHERE "assignedById" IN (
-        SELECT id FROM "user_profile" WHERE email LIKE '%@test.com'
-      )`
-    );
-    await pgClient.query(
-      `DELETE FROM "task" WHERE "ownerId" IN (
-        SELECT id FROM "user_profile" WHERE email LIKE '%@test.com'
-      )`
-    );
-    await pgClient.query(
-      `DELETE FROM "project" WHERE "creatorId" IN (
-        SELECT id FROM "user_profile" WHERE email LIKE '%@test.com'
-      )`
-    );
-    await pgClient.query(
-      `DELETE FROM "user_profile" WHERE email LIKE '%@test.com'`
-    );
-    await pgClient.query(
-      `DELETE FROM "department" WHERE name IN ('Engineering', 'Backend Team', 'Marketing', 'Empty Department')`
-    );
+    // // Clean up any leftover test data from previous failed runs
+    // await pgClient.query(
+    //   `DELETE FROM "task_assignment" WHERE "assignedById" IN (
+    //     SELECT id FROM "user_profile" WHERE email LIKE '%@test.com'
+    //   )`
+    // );
+    // await pgClient.query(
+    //   `DELETE FROM "task" WHERE "ownerId" IN (
+    //     SELECT id FROM "user_profile" WHERE email LIKE '%@test.com'
+    //   )`
+    // );
+    // await pgClient.query(
+    //   `DELETE FROM "project" WHERE "creatorId" IN (
+    //     SELECT id FROM "user_profile" WHERE email LIKE '%@test.com'
+    //   )`
+    // );
+    // await pgClient.query(
+    //   `DELETE FROM "user_profile" WHERE email LIKE '%@test.com'`
+    // );
+    // await pgClient.query(
+    //   `DELETE FROM "department" WHERE name IN ('Engineering', 'Backend Team', 'Marketing', 'Empty Department')`
+    // );
 
     // Create parent department (manager's department)
     const parentDeptResult = await pgClient.query(
