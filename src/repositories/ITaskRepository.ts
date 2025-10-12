@@ -210,14 +210,44 @@ export interface ITaskRepository {
    * @param taskId - Task ID
    * @param userId - User performing the action
    * @param action - Action type
-   * @param metadata - Additional metadata
+   * @param field - field affected
+   * @param data - Additional data including changes and metadata
    */
   logTaskAction(
     taskId: string,
     userId: string,
     action: string,
-    metadata?: Record<string, string | number | boolean | null>
+    field: string,
+    data?: {
+      field?: string;
+      changes?: any;
+      metadata?: any;
+      [key: string]: any;
+    }
   ): Promise<void>;
+
+  /**
+   * Get task logs for a specific task
+   * @param taskId - Task ID
+   * @returns Array of task logs with user details
+   */
+  getTaskLogs(taskId: string): Promise<
+    Array<{
+      id: string;
+      taskId: string;
+      userId: string;
+      action: string;
+      field: string;
+      changes: any;
+      metadata: any;
+      timestamp: Date;
+      user: {
+        id: string;
+        name: string;
+        email: string;
+      };
+    }>
+  >;
 
   /**
    * Create a new task

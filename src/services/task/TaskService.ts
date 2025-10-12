@@ -166,9 +166,14 @@ export class TaskService {
       result.id,
       creator.userId,
       'CREATED',
+      'Task',
       {
-        title: data.title,
-        assigneeCount: data.assigneeIds.length,
+        changes: {
+          title: data.title,
+        },
+        metadata: {
+          source: 'web_ui',
+        },
       }
     );
 
@@ -373,6 +378,9 @@ export class TaskService {
       throw new Error('Task not found');
     }
 
+    // Capture old value before updating
+    const oldTitle = task.getTitle();
+
     // Update via domain method (validates title)
     task.updateTitle(newTitle);
 
@@ -382,11 +390,22 @@ export class TaskService {
       updatedAt: new Date(),
     });
 
-    // Log action
-    await this.taskRepository.logTaskAction(taskId, user.userId, 'UPDATED', {
-      field: 'title',
-      newValue: newTitle,
-    });
+    // Log action with from/to values and source
+    await this.taskRepository.logTaskAction(
+      taskId,
+      user.userId,
+      'UPDATED',
+      'Title',
+      {
+        changes: {
+          from: oldTitle,
+          to: newTitle,
+        },
+        metadata: {
+          source: 'web_ui',
+        },
+      }
+    );
 
     return task;
   }
@@ -405,6 +424,9 @@ export class TaskService {
       throw new Error('Task not found');
     }
 
+    // Capture old value before updating
+    const oldDescription = task.getDescription();
+
     task.updateDescription(newDescription);
 
     await this.taskRepository.updateTask(taskId, {
@@ -412,9 +434,21 @@ export class TaskService {
       updatedAt: new Date(),
     });
 
-    await this.taskRepository.logTaskAction(taskId, user.userId, 'UPDATED', {
-      field: 'description',
-    });
+    await this.taskRepository.logTaskAction(
+      taskId,
+      user.userId,
+      'UPDATED',
+      'Description',
+      {
+        changes: {
+          from: oldDescription,
+          to: newDescription,
+        },
+        metadata: {
+          source: 'web_ui',
+        },
+      }
+    );
 
     return task;
   }
@@ -433,6 +467,9 @@ export class TaskService {
       throw new Error('Task not found');
     }
 
+    // Capture old value before updating
+    const oldPriority = task.getPriority().getLevel();
+
     task.updatePriority(newPriority);
 
     await this.taskRepository.updateTask(taskId, {
@@ -440,10 +477,21 @@ export class TaskService {
       updatedAt: new Date(),
     });
 
-    await this.taskRepository.logTaskAction(taskId, user.userId, 'UPDATED', {
-      field: 'priority',
-      newValue: newPriority,
-    });
+    await this.taskRepository.logTaskAction(
+      taskId,
+      user.userId,
+      'UPDATED',
+      'Priority',
+      {
+        changes: {
+          from: oldPriority,
+          to: newPriority,
+        },
+        metadata: {
+          source: 'web_ui',
+        },
+      }
+    );
 
     return task;
   }
@@ -462,6 +510,9 @@ export class TaskService {
     if (!task) {
       throw new Error('Task not found');
     }
+
+    // Capture old value before updating
+    const oldDeadline = task.getDueDate();
 
     // DST014: If subtask, fetch parent deadline for validation
     let parentDeadline: Date | undefined;
@@ -484,10 +535,21 @@ export class TaskService {
       updatedAt: new Date(),
     });
 
-    await this.taskRepository.logTaskAction(taskId, user.userId, 'UPDATED', {
-      field: 'dueDate',
-      newValue: newDeadline.toISOString(),
-    });
+    await this.taskRepository.logTaskAction(
+      taskId,
+      user.userId,
+      'UPDATED',
+      'Due Date',
+      {
+        changes: {
+          from: oldDeadline.toISOString(),
+          to: newDeadline.toISOString(),
+        },
+        metadata: {
+          source: 'web_ui',
+        },
+      }
+    );
 
     return task;
   }
@@ -507,6 +569,9 @@ export class TaskService {
       throw new Error('Task not found');
     }
 
+    // Capture old value before updating
+    const oldStatus = task.getStatus();
+
     task.updateStatus(newStatus as any);
 
     await this.taskRepository.updateTask(taskId, {
@@ -517,9 +582,16 @@ export class TaskService {
     await this.taskRepository.logTaskAction(
       taskId,
       user.userId,
-      'STATUS_CHANGED',
+      'UPDATED',
+      'Status',
       {
-        newStatus,
+        changes: {
+          from: oldStatus,
+          to: newStatus,
+        },
+        metadata: {
+          source: 'web_ui',
+        },
       }
     );
 
@@ -598,10 +670,18 @@ export class TaskService {
       completedTask.getId(),
       user.userId,
       'RECURRING_TASK_GENERATED',
+      'recurring',
       {
-        nextTaskId: nextTask.getId(),
-        nextDueDate: nextDueDate.toISOString(),
-        sourceTaskId: completedTask.getId(),
+        changes: {
+          from: null,
+          to: nextTask.getId(),
+        },
+        metadata: {
+          source: 'web_ui',
+          nextTaskId: nextTask.getId(),
+          nextDueDate: nextDueDate.toISOString(),
+          sourceTaskId: completedTask.getId(),
+        },
       }
     );
   }
@@ -621,6 +701,10 @@ export class TaskService {
       throw new Error('Task not found');
     }
 
+    // Capture old values before updating
+    const oldEnabled = task.isTaskRecurring();
+    const oldInterval = task.getRecurringInterval();
+
     task.updateRecurring(enabled, recurringInterval);
 
     await this.taskRepository.updateTask(taskId, {
@@ -628,11 +712,27 @@ export class TaskService {
       updatedAt: new Date(),
     });
 
-    await this.taskRepository.logTaskAction(taskId, user.userId, 'UPDATED', {
-      field: 'recurring',
-      enabled,
-      recurringInterval,
-    });
+    await this.taskRepository.logTaskAction(
+      taskId,
+      user.userId,
+      'UPDATED',
+      'Recurring Settings',
+      {
+        changes: {
+          from: {
+            enabled: oldEnabled,
+            interval: oldInterval,
+          },
+          to: {
+            enabled,
+            interval: recurringInterval,
+          },
+        },
+        metadata: {
+          source: 'web_ui',
+        },
+      }
+    );
 
     return task;
   }
@@ -656,10 +756,22 @@ export class TaskService {
     // Persist tag (connectOrCreate in Prisma)
     await this.taskRepository.addTaskTag(taskId, tag);
 
-    await this.taskRepository.logTaskAction(taskId, user.userId, 'UPDATED', {
-      action: 'addTag',
-      tag,
-    });
+    await this.taskRepository.logTaskAction(
+      taskId,
+      user.userId,
+      'CREATED',
+      'Tag',
+      {
+        changes: {
+          added: tag,
+        },
+        metadata: {
+          source: 'web_ui',
+          action: 'addTag',
+          tag,
+        },
+      }
+    );
 
     return task;
   }
@@ -682,10 +794,22 @@ export class TaskService {
 
     await this.taskRepository.removeTaskTag(taskId, tag);
 
-    await this.taskRepository.logTaskAction(taskId, user.userId, 'UPDATED', {
-      action: 'removeTag',
-      tag,
-    });
+    await this.taskRepository.logTaskAction(
+      taskId,
+      user.userId,
+      'DELETED',
+      'Tag',
+      {
+        changes: {
+          removed: tag,
+        },
+        metadata: {
+          source: 'web_ui',
+          action: 'removeTag',
+          tag,
+        },
+      }
+    );
 
     return task;
   }
@@ -720,10 +844,22 @@ export class TaskService {
     // Persist assignment
     await this.taskRepository.addTaskAssignment(taskId, newUserId, user.userId);
 
-    await this.taskRepository.logTaskAction(taskId, user.userId, 'UPDATED', {
-      action: 'addAssignee',
-      newUserId,
-    });
+    await this.taskRepository.logTaskAction(
+      taskId,
+      user.userId,
+      'UPDATED',
+      'Asignees',
+      {
+        changes: {
+          added: newUserId,
+        },
+        metadata: {
+          source: 'web_ui',
+          action: 'addAssignee',
+          newUserId,
+        },
+      }
+    );
 
     return task;
   }
@@ -750,9 +886,16 @@ export class TaskService {
     await this.taskRepository.logTaskAction(
       taskId,
       user.userId,
-      'COMMENT_ADDED',
+      'CREATED',
+      'Comment',
       {
-        commentId: comment.id,
+        changes: {
+          said: content,
+        },
+        metadata: {
+          source: 'web_ui',
+          commentId: comment.id,
+        },
       }
     );
 
@@ -774,15 +917,32 @@ export class TaskService {
       throw new Error('Task not found');
     }
 
+    // Get old content before updating
+    const comment = task.getComments().find(c => c.id === commentId);
+    const oldContent = comment?.content || '';
+
     task.updateComment(commentId, newContent, user.userId);
 
     // Persist comment update
     await this.taskRepository.updateComment(commentId, newContent);
 
-    await this.taskRepository.logTaskAction(taskId, user.userId, 'UPDATED', {
-      action: 'updateComment',
-      commentId,
-    });
+    await this.taskRepository.logTaskAction(
+      taskId,
+      user.userId,
+      'UPDATED',
+      'Comment',
+      {
+        changes: {
+          from: oldContent,
+          to: newContent,
+        },
+        metadata: {
+          source: 'web_ui',
+          action: 'updateComment',
+          commentId,
+        },
+      }
+    );
 
     return task;
   }
@@ -887,11 +1047,18 @@ export class TaskService {
     await this.taskRepository.logTaskAction(
       taskId,
       user.userId,
-      'FILE_UPLOADED',
+      'CREATED',
+      'File',
       {
-        fileName,
-        fileSize,
-        fileId: fileRecord.id,
+        changes: {
+          added: fileName,
+        },
+        metadata: {
+          source: 'web_ui',
+          fileName,
+          fileSize,
+          fileId: fileRecord.id,
+        },
       }
     );
 
@@ -987,11 +1154,19 @@ export class TaskService {
     await this.taskRepository.logTaskAction(
       fileRecord.taskId,
       user.userId,
-      'FILE_UPLOADED', // Using FILE_UPLOADED enum, add metadata to indicate deletion
+      'DELETED', // Using FILE_UPLOADED enum, add metadata to indicate deletion
+      'File',
       {
-        fileName: fileRecord.fileName,
-        action: 'deleted',
-        fileId: fileId,
+        changes: {
+          from: fileRecord.fileName,
+          to: null,
+        },
+        metadata: {
+          source: 'web_ui',
+          fileName: fileRecord.fileName,
+          action: 'deleted',
+          fileId: fileId,
+        },
       }
     );
   }
@@ -1153,10 +1328,22 @@ export class TaskService {
     await this.taskRepository.removeTaskAssignment(taskId, userId);
 
     // Log action
-    await this.taskRepository.logTaskAction(taskId, user.userId, 'UPDATED', {
-      action: 'removeAssignee',
-      removedUserId: userId,
-    });
+    await this.taskRepository.logTaskAction(
+      taskId,
+      user.userId,
+      'UPDATED',
+      'Assignees',
+      {
+        changes: {
+          removed: userId,
+        },
+        metadata: {
+          source: 'web_ui',
+          action: 'removeAssignee',
+          removedUserId: userId,
+        },
+      }
+    );
 
     return task;
   }
@@ -1182,9 +1369,22 @@ export class TaskService {
     await this.taskRepository.archiveTask(taskId);
 
     // Log action
-    await this.taskRepository.logTaskAction(taskId, user.userId, 'ARCHIVED', {
-      taskTitle: task.getTitle(),
-    });
+    await this.taskRepository.logTaskAction(
+      taskId,
+      user.userId,
+      'ARCHIVED',
+      'Task',
+      {
+        changes: {
+          from: false,
+          to: true,
+        },
+        metadata: {
+          source: 'web_ui',
+          taskTitle: task.getTitle(),
+        },
+      }
+    );
 
     return task;
   }
@@ -1206,10 +1406,23 @@ export class TaskService {
     await this.taskRepository.unarchiveTask(taskId);
 
     // Log action
-    await this.taskRepository.logTaskAction(taskId, user.userId, 'UPDATED', {
-      action: 'unarchived',
-      taskTitle: task.getTitle(),
-    });
+    await this.taskRepository.logTaskAction(
+      taskId,
+      user.userId,
+      'UNARCHIVED',
+      'Task',
+      {
+        changes: {
+          from: true,
+          to: false,
+        },
+        metadata: {
+          source: 'web_ui',
+          action: 'unarchived',
+          taskTitle: task.getTitle(),
+        },
+      }
+    );
 
     return task;
   }
@@ -1232,9 +1445,21 @@ export class TaskService {
     }
 
     // Log action BEFORE deletion
-    await this.taskRepository.logTaskAction(taskId, user.userId, 'DELETED', {
-      taskTitle: task.getTitle(),
-    });
+    await this.taskRepository.logTaskAction(
+      taskId,
+      user.userId,
+      'DELETED',
+      'Task',
+      {
+        changes: {
+          removed: task.getTitle(),
+        },
+        metadata: {
+          source: 'web_ui',
+          taskTitle: task.getTitle(),
+        },
+      }
+    );
 
     // Delete
     await this.taskRepository.deleteTask(taskId);
@@ -1335,6 +1560,7 @@ export class TaskService {
       taskId,
       requestingUser.userId,
       'UPDATED',
+      'Calendar Event',
       {
         action: 'createCalendarEvent',
         eventId: calendarEvent.id,
@@ -1413,5 +1639,28 @@ export class TaskService {
 
     // If we reached the root without finding the manager's department, no access
     return false;
+  }
+
+  /**
+   * Get task logs for a specific task
+   * @param taskId - Task ID
+   * @param user - User context
+   * @returns Array of task logs
+   */
+  async getTaskLogs(taskId: string, user: UserContext) {
+    if (!taskId || taskId.trim() === '') {
+      throw new Error('Task ID is required');
+    }
+
+    // Check if user has access to the task by using the existing getTaskById method
+    // which already includes all the access checking logic
+    const task = await this.getTaskById(taskId, user);
+    if (!task) {
+      throw new Error('Task not found');
+    }
+
+    // Get task logs with user details
+    const logs = await this.taskRepository.getTaskLogs(taskId);
+    return logs;
   }
 }
