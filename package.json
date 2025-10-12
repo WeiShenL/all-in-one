@@ -19,7 +19,7 @@
     "seed": "npx prisma db seed",
     "db:migrate": "node scripts/run-migrations.js",
     "db:push": "node scripts/push-db.js",
-    "test": "jest",
+    "test": "npm run test:unit && npm run test:integration && npm run test:e2e",
     "test:jest": "jest",
     "test:unit": "jest tests/unit",
     "test:integration": "jest tests/integration",
