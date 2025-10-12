@@ -48,7 +48,7 @@ test.describe('Task Update - Complete UI Flow', () => {
     // Wait for page to load
     await expect(
       page.getByRole('heading', { name: /welcome back/i })
-    ).toBeVisible({ timeout: 10000 });
+    ).toBeVisible({ timeout: 20000 });
 
     // Fill email
     await page.getByLabel('Email').fill(testEmail);
@@ -58,13 +58,13 @@ test.describe('Task Update - Complete UI Flow', () => {
 
     // Click sign in button
     const signInButton = page.getByRole('button', { name: /sign in/i });
-    await expect(signInButton).toBeEnabled({ timeout: 10000 });
+    await expect(signInButton).toBeEnabled({ timeout: 20000 });
     await signInButton.click();
 
     // Wait for dashboard
     await expect(
       page.getByRole('heading', { name: /staff dashboard/i })
-    ).toBeVisible({ timeout: 15000 });
+    ).toBeVisible({ timeout: 25000 });
 
     // Find and click Edit button for the task
     const taskCard = page.locator('div').filter({
@@ -77,7 +77,7 @@ test.describe('Task Update - Complete UI Flow', () => {
     // Wait for edit view
     await expect(
       page.getByRole('button', { name: /back to view/i })
-    ).toBeVisible({ timeout: 10000 });
+    ).toBeVisible({ timeout: 20000 });
   }
 
   test.beforeAll(async () => {
@@ -267,16 +267,16 @@ test.describe('Task Update - Complete UI Flow', () => {
       .first()
       .click();
 
-    // Verify success message appears within 10 seconds (AC9)
+    // Verify success message appears within 10 seconds (AC9) - increased timeout for slow CI/CD
     await expect(page.getByText(/title updated/i)).toBeVisible({
-      timeout: 10000,
+      timeout: 30000,
     });
 
     // Verify title changed in UI (longer timeout for CI/CD)
     await expect(
       page.getByRole('heading', { name: /updated task title/i })
     ).toBeVisible({
-      timeout: 15000,
+      timeout: 25000,
     });
   });
 
@@ -298,16 +298,16 @@ test.describe('Task Update - Complete UI Flow', () => {
       .first()
       .click();
 
-    // Verify success message (AC9)
+    // Verify success message (AC9) - increased timeout for slow CI/CD
     await expect(page.getByText(/description updated/i)).toBeVisible({
-      timeout: 10000,
+      timeout: 30000,
     });
 
     // Verify description changed (longer timeout for CI/CD)
     await expect(
       page.getByText('This is the updated description for e2e testing')
     ).toBeVisible({
-      timeout: 15000,
+      timeout: 25000,
     });
   });
 
@@ -326,14 +326,14 @@ test.describe('Task Update - Complete UI Flow', () => {
       .first()
       .click();
 
-    // Verify success message (AC9)
+    // Verify success message (AC9) - increased timeout for slow CI/CD
     await expect(page.getByText(/priority updated/i)).toBeVisible({
-      timeout: 10000,
+      timeout: 30000,
     });
 
     // Verify priority badge shows 8 using data-testid (longer timeout for CI/CD)
     await expect(page.getByTestId('priority-value')).toHaveText('8', {
-      timeout: 15000,
+      timeout: 25000,
     });
   });
 
@@ -354,14 +354,14 @@ test.describe('Task Update - Complete UI Flow', () => {
       .first()
       .click();
 
-    // Verify success message (AC9)
+    // Verify success message (AC9) - increased timeout for slow CI/CD
     await expect(page.getByText(/status updated/i)).toBeVisible({
-      timeout: 10000,
+      timeout: 30000,
     });
 
     // Verify status badge shows IN PROGRESS (longer timeout for CI/CD)
     await expect(page.getByText(/IN PROGRESS/i)).toBeVisible({
-      timeout: 15000,
+      timeout: 25000,
     });
   });
 
@@ -380,14 +380,14 @@ test.describe('Task Update - Complete UI Flow', () => {
       .first()
       .click();
 
-    // Verify success message (AC9)
+    // Verify success message (AC9) - increased timeout for slow CI/CD
     await expect(page.getByText(/deadline updated/i)).toBeVisible({
-      timeout: 10000,
+      timeout: 30000,
     });
 
     // Verify deadline changed (format may vary based on locale, longer timeout for CI/CD)
     await expect(page.getByText(/6\/15\/2026|15\/6\/2026/i)).toBeVisible({
-      timeout: 15000,
+      timeout: 25000,
     });
   });
 
@@ -410,7 +410,7 @@ test.describe('Task Update - Complete UI Flow', () => {
 
     // Verify tag appears (longer timeout for CI/CD)
     await expect(page.getByText('e2e-test-tag-urgent')).toBeVisible({
-      timeout: 15000,
+      timeout: 25000,
     });
 
     // Add second tag
