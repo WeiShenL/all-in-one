@@ -21,6 +21,8 @@ import { TaskService } from '@/app/server/services/TaskService';
 import { PrismaClient } from '@prisma/client';
 
 describe('Integration Tests - Manager Dashboard', () => {
+  jest.setTimeout(70000);
+
   let pgClient: Client;
   let prisma: PrismaClient;
   let taskService: TaskService;

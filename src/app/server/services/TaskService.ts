@@ -1176,6 +1176,7 @@ export class TaskService extends BaseService {
       };
     } catch (error) {
       this.handleError(error, 'getManagerDashboardTasks');
+      throw error;
     }
   }
 }
