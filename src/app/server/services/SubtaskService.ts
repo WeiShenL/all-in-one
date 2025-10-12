@@ -157,10 +157,15 @@ export class SubtaskService extends TaskService {
       result.id,
       creator.userId,
       'CREATED',
+      'Subtask',
       {
-        title: data.title,
-        parentTaskId: data.parentTaskId,
-        assigneeCount: data.assigneeIds.length,
+        changes: {
+          title: data.title,
+        },
+        metadata: {
+          source: 'web_ui',
+          parentTaskId: data.parentTaskId,
+        },
       }
     );
 
