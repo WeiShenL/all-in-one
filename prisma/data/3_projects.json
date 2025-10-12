@@ -1,13 +1,13 @@
 [
   {
-    "id": "proj-001",
+    "id": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
     "name": "Customer Portal Redesign",
     "description": "Modernize the customer-facing portal with new UI/UX",
     "priority": 8,
     "dueDate": "2025-06-30T00:00:00.000Z",
     "status": "ACTIVE",
-    "departmentId": "dept-developers-001",
-    "creatorId": "user-manager-001",
+    "departmentId": "76f638fb-5de9-4843-89f8-e273e892a7e3",
+    "creatorId": "f96ab0f3-35cb-4b42-80cc-3e900b70b691",
     "isArchived": false,
     "createdAt": "2025-01-01T00:00:00.000Z",
     "updatedAt": "2025-01-01T00:00:00.000Z"

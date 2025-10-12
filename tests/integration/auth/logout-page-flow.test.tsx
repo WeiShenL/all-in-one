@@ -23,6 +23,22 @@ jest.mock('@/lib/hooks/useSecureLogout', () => ({
   useSecureLogout: jest.fn(),
 }));
 
+// Mock the tRPC module
+jest.mock('@/app/lib/trpc', () => {
+  return {
+    trpc: {
+      task: {
+        getDashboardTasks: {
+          useQuery: jest.fn(),
+        },
+      },
+    },
+  };
+});
+
+// Import mocked trpc to access the mock function
+import { trpc } from '@/app/lib/trpc';
+
 describe('Logout Page Flow', () => {
   const mockPush = jest.fn();
   const mockSignOut = jest.fn();
@@ -44,6 +60,21 @@ describe('Logout Page Flow', () => {
     (useSecureLogout as jest.Mock).mockReturnValue({
       handleSecureLogout: mockHandleSecureLogout,
       isLoggingOut: false,
+    });
+
+    // Mock tRPC getDashboardTasks query with empty data
+    (trpc.task.getDashboardTasks.useQuery as jest.Mock).mockReturnValue({
+      data: {
+        tasks: [],
+        metrics: {
+          toDo: 0,
+          inProgress: 0,
+          completed: 0,
+          blocked: 0,
+        },
+      },
+      isLoading: false,
+      error: null,
     });
   });
 
@@ -329,14 +360,14 @@ describe('Logout Page Flow', () => {
   });
 
   describe('Navigation', () => {
-    it('should have correct Dashboard link in navbar based on user role - STAFF', () => {
+    it('should have correct Tasks link in navbar based on user role - STAFF', () => {
       render(<StaffDashboard />);
 
-      const dashboardLink = screen.getByText('Dashboard').closest('a');
-      expect(dashboardLink).toHaveAttribute('href', '/dashboard/staff');
+      const tasksLink = screen.getByText('Tasks').closest('a');
+      expect(tasksLink).toHaveAttribute('href', '/dashboard/staff');
     });
 
-    it('should have correct Dashboard link in navbar based on user role - MANAGER', () => {
+    it('should have correct Tasks link in navbar based on user role - MANAGER', () => {
       (useAuth as jest.Mock).mockReturnValue({
         ...mockAuthenticatedUser,
         userProfile: { name: 'Manager User', role: 'MANAGER' },
@@ -344,11 +375,11 @@ describe('Logout Page Flow', () => {
 
       render(<ManagerDashboard />);
 
-      const dashboardLink = screen.getByText('Dashboard').closest('a');
-      expect(dashboardLink).toHaveAttribute('href', '/dashboard/manager');
+      const tasksLink = screen.getByText('Tasks').closest('a');
+      expect(tasksLink).toHaveAttribute('href', '/dashboard/staff');
     });
 
-    it('should have correct Dashboard link in navbar based on user role - HR_ADMIN', () => {
+    it('should have correct Tasks link in navbar based on user role - HR_ADMIN', () => {
       (useAuth as jest.Mock).mockReturnValue({
         ...mockAuthenticatedUser,
         userProfile: { name: 'HR User', role: 'HR_ADMIN' },
@@ -356,8 +387,8 @@ describe('Logout Page Flow', () => {
 
       render(<HRDashboard />);
 
-      const dashboardLink = screen.getByText('Dashboard').closest('a');
-      expect(dashboardLink).toHaveAttribute('href', '/dashboard/hr');
+      const tasksLink = screen.getByText('Tasks').closest('a');
+      expect(tasksLink).toHaveAttribute('href', '/dashboard/hr');
     });
 
     it('should have Profile link in navbar', () => {

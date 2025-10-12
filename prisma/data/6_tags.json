@@ -1,16 +1,16 @@
 [
   {
-    "id": "tag-001",
+    "id": "a77c68e5-7b75-4553-81f1-7d28458242ca",
     "name": "urgent",
     "createdAt": "2025-01-01T00:00:00.000Z"
   },
   {
-    "id": "tag-002",
+    "id": "1e2a9ea4-4b11-436c-819d-ff21315d5c1d",
     "name": "ui-design",
     "createdAt": "2025-01-01T00:00:00.000Z"
   },
   {
-    "id": "tag-003",
+    "id": "764d4322-67b6-4961-bcdd-4c57d49ac8b2",
     "name": "security",
     "createdAt": "2025-01-01T00:00:00.000Z"
   }

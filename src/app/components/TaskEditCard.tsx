@@ -189,8 +189,8 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
         throw new Error(errorData.error?.message || 'Update failed');
       }
 
-      setSuccess(successMsg);
       await fetchTask();
+      setSuccess(successMsg);
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Update failed');

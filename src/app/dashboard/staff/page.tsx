@@ -114,7 +114,7 @@ export default function StaffDashboard() {
             <div
               style={{
                 backgroundColor: '#ffffff',
-                padding: '1.5rem',
+                padding: '0 1.5rem 1.5rem',
                 borderRadius: '12px',
                 marginBottom: '1rem',
                 boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
@@ -122,7 +122,7 @@ export default function StaffDashboard() {
             >
               <h2
                 style={{
-                  marginBottom: '1rem',
+                  paddingTop: '1.5rem',
                   color: '#2d3748',
                   fontSize: '1.25rem',
                   fontWeight: '600',
@@ -168,11 +168,15 @@ export default function StaffDashboard() {
                   padding: '1.5rem',
                   borderRadius: '12px',
                   border: '1px solid #90cdf4',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center',
                 }}
               >
                 <h3
                   style={{
                     marginBottom: '0.5rem',
+                    marginTop: 0,
                     color: '#2c5282',
                     fontSize: '1.125rem',
                     fontWeight: '600',
@@ -192,11 +196,15 @@ export default function StaffDashboard() {
                   padding: '1.5rem',
                   borderRadius: '12px',
                   border: '1px solid #90cdf4',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center',
                 }}
               >
                 <h3
                   style={{
                     marginBottom: '0.5rem',
+                    marginTop: 0,
                     color: '#2c5282',
                     fontSize: '1.125rem',
                     fontWeight: '600',
@@ -216,11 +224,15 @@ export default function StaffDashboard() {
                   padding: '1.5rem',
                   borderRadius: '12px',
                   border: '1px solid #90cdf4',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center',
                 }}
               >
                 <h3
                   style={{
                     marginBottom: '0.5rem',
+                    marginTop: 0,
                     color: '#2c5282',
                     fontSize: '1.125rem',
                     fontWeight: '600',

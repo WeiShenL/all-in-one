@@ -10,11 +10,12 @@ import { createTestTask } from '../../../helpers/taskTestHelpers';
 
 describe('Task - Comments', () => {
   describe('addComment() - Authorization', () => {
-    it('should allow assigned user to add comment', () => {
+    it('should allow any user to add comment (authorization handled by service layer)', () => {
       const task = createTestTask({
         assignments: new Set(['user-1']),
       });
 
+      // Authorization is now handled at service layer, not domain layer
       const comment = task.addComment('Great progress!', 'user-1');
 
       expect(comment).toBeDefined();
@@ -22,14 +23,16 @@ describe('Task - Comments', () => {
       expect(comment.authorId).toBe('user-1');
     });
 
-    it('should throw UnauthorizedError when user is not assigned', () => {
+    it('should allow non-assigned user to add comment (service layer handles auth)', () => {
       const task = createTestTask({
         assignments: new Set(['user-1']),
       });
 
-      expect(() => task.addComment('Comment', 'user-999')).toThrow(
-        UnauthorizedError
-      );
+      // This should work at domain level - service layer handles authorization
+      const comment = task.addComment('Comment', 'user-999');
+
+      expect(comment).toBeDefined();
+      expect(comment.authorId).toBe('user-999');
     });
   });
 

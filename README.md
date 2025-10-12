@@ -177,7 +177,7 @@ This project uses a comprehensive testing strategy:
 ### Quick Start
 
 ```bash
-# Run ALL tests (unit → integration → E2E)
+# Run ALL tests sequentially (unit → integration → E2E)
 npm test
 
 # Run only unit tests (fast, no database required)

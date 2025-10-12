@@ -19,11 +19,22 @@ describe('TaskService - File Operations', () => {
   const mockTask = {
     id: 'task-123',
     title: 'Test Task',
+    description: 'Test description',
+    priority: 5,
+    dueDate: new Date(),
+    status: 'TO_DO',
     ownerId: 'owner-123',
-    assignments: [
-      { userId: 'user-123', taskId: 'task-123' },
-      { userId: 'user-456', taskId: 'task-123' },
-    ],
+    departmentId: 'dept-1',
+    projectId: null,
+    parentTaskId: null,
+    recurringInterval: null,
+    isArchived: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    assignments: [{ userId: 'user-123' }, { userId: 'user-456' }],
+    tags: [],
+    comments: [],
+    files: [],
   };
 
   const mockFile = {
@@ -41,11 +52,13 @@ describe('TaskService - File Operations', () => {
     // Create mock repository
     mockRepository = {
       getTaskById: jest.fn(),
+      getTaskByIdFull: jest.fn(),
       getTaskFileById: jest.fn(),
       getTaskFiles: jest.fn(),
       createTaskFile: jest.fn(),
       deleteTaskFile: jest.fn(),
       logTaskAction: jest.fn(),
+      getDepartmentWithParent: jest.fn(),
     } as any;
 
     // Create mock storage service
@@ -72,7 +85,7 @@ describe('TaskService - File Operations', () => {
     const mimeType = 'application/pdf';
 
     it('should successfully upload a file when user is assigned to task', async () => {
-      mockRepository.getTaskById.mockResolvedValue(mockTask as any);
+      mockRepository.getTaskByIdFull.mockResolvedValue(mockTask as any);
       mockRepository.getTaskFiles.mockResolvedValue([]);
       mockStorageService.validateFile.mockReturnValue({ valid: true });
       mockStorageService.validateTaskFileLimit.mockReturnValue({ valid: true });
@@ -91,7 +104,7 @@ describe('TaskService - File Operations', () => {
         mockUser
       );
 
-      expect(mockRepository.getTaskById).toHaveBeenCalledWith('task-123');
+      expect(mockRepository.getTaskByIdFull).toHaveBeenCalledWith('task-123');
       expect(mockStorageService.validateFile).toHaveBeenCalled();
       expect(mockStorageService.validateTaskFileLimit).toHaveBeenCalled();
       expect(mockStorageService.uploadFile).toHaveBeenCalledWith(
@@ -111,7 +124,7 @@ describe('TaskService - File Operations', () => {
     });
 
     it('should reject upload when task not found', async () => {
-      mockRepository.getTaskById.mockResolvedValue(null);
+      mockRepository.getTaskByIdFull.mockResolvedValue(null);
 
       await expect(
         service.uploadFileToTask(
@@ -133,7 +146,7 @@ describe('TaskService - File Operations', () => {
         departmentId: 'dept-1',
       };
 
-      mockRepository.getTaskById.mockResolvedValue(mockTask as any);
+      mockRepository.getTaskByIdFull.mockResolvedValue(mockTask as any);
       mockRepository.getTaskFiles.mockResolvedValue([]);
       mockStorageService.validateFile.mockReturnValue({ valid: true });
       mockStorageService.validateTaskFileLimit.mockReturnValue({ valid: true });
@@ -152,7 +165,7 @@ describe('TaskService - File Operations', () => {
         taskOwner
       );
 
-      expect(mockRepository.getTaskById).toHaveBeenCalledWith('task-123');
+      expect(mockRepository.getTaskByIdFull).toHaveBeenCalledWith('task-123');
       expect(result).toEqual(mockFile);
     });
 
@@ -163,7 +176,7 @@ describe('TaskService - File Operations', () => {
         departmentId: 'dept-1',
       };
 
-      mockRepository.getTaskById.mockResolvedValue(mockTask as any);
+      mockRepository.getTaskByIdFull.mockResolvedValue(mockTask as any);
 
       await expect(
         service.uploadFileToTask(
@@ -174,14 +187,14 @@ describe('TaskService - File Operations', () => {
           unauthorizedUser
         )
       ).rejects.toThrow(
-        'Unauthorized: You must be the task owner or assigned to this task to upload files'
+        'Unauthorized: You must be the task owner, assigned to this task, or a manager of the department to upload files'
       );
 
       expect(mockStorageService.uploadFile).not.toHaveBeenCalled();
     });
 
     it('should reject upload when task storage limit exceeded', async () => {
-      mockRepository.getTaskById.mockResolvedValue(mockTask as any);
+      mockRepository.getTaskByIdFull.mockResolvedValue(mockTask as any);
       mockRepository.getTaskFiles.mockResolvedValue([]);
       mockStorageService.validateFile.mockReturnValue({ valid: true });
       mockStorageService.validateTaskFileLimit.mockReturnValue({
@@ -203,7 +216,7 @@ describe('TaskService - File Operations', () => {
     });
 
     it('should handle storage upload failures', async () => {
-      mockRepository.getTaskById.mockResolvedValue(mockTask as any);
+      mockRepository.getTaskByIdFull.mockResolvedValue(mockTask as any);
       mockRepository.getTaskFiles.mockResolvedValue([]);
       mockStorageService.validateFile.mockReturnValue({ valid: true });
       mockStorageService.validateTaskFileLimit.mockReturnValue({ valid: true });
@@ -230,13 +243,13 @@ describe('TaskService - File Operations', () => {
       const expectedUrl = 'https://storage.supabase.com/signed-url';
 
       mockRepository.getTaskFileById.mockResolvedValue(mockFile as any);
-      mockRepository.getTaskById.mockResolvedValue(mockTask as any);
+      mockRepository.getTaskByIdFull.mockResolvedValue(mockTask as any);
       mockStorageService.getFileDownloadUrl.mockResolvedValue(expectedUrl);
 
       const result = await service.getFileDownloadUrl('file-123', mockUser);
 
       expect(mockRepository.getTaskFileById).toHaveBeenCalledWith('file-123');
-      expect(mockRepository.getTaskById).toHaveBeenCalledWith('task-123');
+      expect(mockRepository.getTaskByIdFull).toHaveBeenCalledWith('task-123');
       expect(mockStorageService.getFileDownloadUrl).toHaveBeenCalledWith(
         mockFile.storagePath
       );
@@ -261,12 +274,12 @@ describe('TaskService - File Operations', () => {
       };
 
       mockRepository.getTaskFileById.mockResolvedValue(mockFile as any);
-      mockRepository.getTaskById.mockResolvedValue(mockTask as any);
+      mockRepository.getTaskByIdFull.mockResolvedValue(mockTask as any);
 
       await expect(
         service.getFileDownloadUrl('file-123', unauthorizedUser)
       ).rejects.toThrow(
-        'Unauthorized: You must be the task owner or assigned to this task to download files'
+        'Unauthorized: You must be the task owner, assigned to this task, or a manager of the department to download files'
       );
 
       expect(mockStorageService.getFileDownloadUrl).not.toHaveBeenCalled();
@@ -274,7 +287,7 @@ describe('TaskService - File Operations', () => {
 
     it('should reject download when task not found', async () => {
       mockRepository.getTaskFileById.mockResolvedValue(mockFile as any);
-      mockRepository.getTaskById.mockResolvedValue(null);
+      mockRepository.getTaskByIdFull.mockResolvedValue(null);
 
       await expect(
         service.getFileDownloadUrl('file-123', mockUser)
@@ -378,18 +391,18 @@ describe('TaskService - File Operations', () => {
     ];
 
     it('should return all files when user is assigned to task', async () => {
-      mockRepository.getTaskById.mockResolvedValue(mockTask as any);
+      mockRepository.getTaskByIdFull.mockResolvedValue(mockTask as any);
       mockRepository.getTaskFiles.mockResolvedValue(mockFiles as any);
 
       const result = await service.getTaskFiles('task-123', mockUser);
 
-      expect(mockRepository.getTaskById).toHaveBeenCalledWith('task-123');
+      expect(mockRepository.getTaskByIdFull).toHaveBeenCalledWith('task-123');
       expect(mockRepository.getTaskFiles).toHaveBeenCalledWith('task-123');
       expect(result).toEqual(mockFiles);
     });
 
     it('should reject when task not found', async () => {
-      mockRepository.getTaskById.mockResolvedValue(null);
+      mockRepository.getTaskByIdFull.mockResolvedValue(null);
 
       await expect(service.getTaskFiles('task-999', mockUser)).rejects.toThrow(
         'Task not found'
@@ -405,12 +418,12 @@ describe('TaskService - File Operations', () => {
         departmentId: 'dept-1',
       };
 
-      mockRepository.getTaskById.mockResolvedValue(mockTask as any);
+      mockRepository.getTaskByIdFull.mockResolvedValue(mockTask as any);
       mockRepository.getTaskFiles.mockResolvedValue(mockFiles as any);
 
       const result = await service.getTaskFiles('task-123', taskOwner);
 
-      expect(mockRepository.getTaskById).toHaveBeenCalledWith('task-123');
+      expect(mockRepository.getTaskByIdFull).toHaveBeenCalledWith('task-123');
       expect(mockRepository.getTaskFiles).toHaveBeenCalledWith('task-123');
       expect(result).toEqual(mockFiles);
     });
@@ -422,19 +435,19 @@ describe('TaskService - File Operations', () => {
         departmentId: 'dept-1',
       };
 
-      mockRepository.getTaskById.mockResolvedValue(mockTask as any);
+      mockRepository.getTaskByIdFull.mockResolvedValue(mockTask as any);
 
       await expect(
         service.getTaskFiles('task-123', unauthorizedUser)
       ).rejects.toThrow(
-        'Unauthorized: You must be the task owner or assigned to this task to view files'
+        'Unauthorized: You must be the task owner, assigned to this task, or a manager of the department to view files'
       );
 
       expect(mockRepository.getTaskFiles).not.toHaveBeenCalled();
     });
 
     it('should return empty array when task has no files', async () => {
-      mockRepository.getTaskById.mockResolvedValue(mockTask as any);
+      mockRepository.getTaskByIdFull.mockResolvedValue(mockTask as any);
       mockRepository.getTaskFiles.mockResolvedValue([]);
 
       const result = await service.getTaskFiles('task-123', mockUser);
