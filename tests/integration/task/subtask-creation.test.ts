@@ -239,7 +239,7 @@ describe('Integration Tests - Subtask Creation (SCRUM-65)', () => {
     );
     expect(assignmentResult.rows).toHaveLength(1);
     expect(assignmentResult.rows[0].userId).toBe(testStaffUserId);
-  });
+  }, 30000);
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // TEST 2: 2-Level Maximum (No Sub-Subtasks)
@@ -289,7 +289,7 @@ describe('Integration Tests - Subtask Creation (SCRUM-65)', () => {
       [level1Result.id]
     );
     expect(level2Result.rows).toHaveLength(0);
-  });
+  }, 30000);
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // TEST 3: Creator Must Be Assigned to Parent
@@ -322,7 +322,7 @@ describe('Integration Tests - Subtask Creation (SCRUM-65)', () => {
       [testParentTaskId]
     );
     expect(subtasksResult.rows).toHaveLength(0);
-  });
+  }, 30000);
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // TEST 4: Deadline Validation
@@ -356,7 +356,7 @@ describe('Integration Tests - Subtask Creation (SCRUM-65)', () => {
       [testParentTaskId]
     );
     expect(parseInt(count.rows[0].count)).toBe(0);
-  });
+  }, 30000);
 
   it('should allow subtask deadline equal to parent deadline', async () => {
     const result = await service.createSubtask(
@@ -382,7 +382,7 @@ describe('Integration Tests - Subtask Creation (SCRUM-65)', () => {
       [result.id]
     );
     expect(subtaskResult.rows[0].dueDate).toBeTruthy();
-  });
+  }, 30000);
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // TEST 5: Subtasks Cannot Be Recurring
@@ -414,7 +414,7 @@ describe('Integration Tests - Subtask Creation (SCRUM-65)', () => {
       [testParentTaskId]
     );
     expect(recurringResult.rows).toHaveLength(0);
-  });
+  }, 30000);
 
   it('should store recurringInterval as null in database', async () => {
     const result = await service.createSubtask(
@@ -440,7 +440,7 @@ describe('Integration Tests - Subtask Creation (SCRUM-65)', () => {
       [result.id]
     );
     expect(subtaskResult.rows[0].recurringInterval).toBeNull();
-  });
+  }, 30000);
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // TEST 6: Inheritance from Parent
@@ -480,7 +480,7 @@ describe('Integration Tests - Subtask Creation (SCRUM-65)', () => {
     );
     expect(subtask.departmentId).toBe(parentResult.rows[0].departmentId);
     expect(subtask.projectId).toBe(parentResult.rows[0].projectId);
-  });
+  }, 30000);
 
   it('should handle null projectId inheritance', async () => {
     // Create parent without project
@@ -533,7 +533,7 @@ describe('Integration Tests - Subtask Creation (SCRUM-65)', () => {
     await pgClient.query(`DELETE FROM "task" WHERE id = $1`, [
       parentNoProjectId,
     ]);
-  });
+  }, 30000);
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // TEST 7: Action Logging
@@ -567,7 +567,7 @@ describe('Integration Tests - Subtask Creation (SCRUM-65)', () => {
     expect(log.userId).toBe(testStaffUserId);
     expect(log.metadata).toBeTruthy();
     expect(log.metadata.parentTaskId).toBe(testParentTaskId);
-  });
+  }, 30000);
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // TEST 8: Multiple Subtasks
@@ -641,5 +641,5 @@ describe('Integration Tests - Subtask Creation (SCRUM-65)', () => {
     subtasksResult.rows.forEach(subtask => {
       expect(subtask.parentTaskId).toBe(testParentTaskId);
     });
-  });
+  }, 30000);
 });

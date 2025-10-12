@@ -122,7 +122,7 @@ describe('SubtaskService.createSubtask() - TDD Test Suite', () => {
           recurringInterval: undefined, // Cannot be recurring
         })
       );
-    }, 30000);
+    });
 
     it('should REJECT creating sub-subtask (level 1 → level 2 exceeds maximum)', async () => {
       const parentSubtask = {
@@ -154,7 +154,7 @@ describe('SubtaskService.createSubtask() - TDD Test Suite', () => {
       );
 
       expect(mockRepository.createTask).not.toHaveBeenCalled();
-    }, 30000);
+    });
 
     it('should enforce that parent task exists', async () => {
       const subtaskInput = {
@@ -173,7 +173,7 @@ describe('SubtaskService.createSubtask() - TDD Test Suite', () => {
       ).rejects.toThrow('Parent task not found');
 
       expect(mockRepository.createTask).not.toHaveBeenCalled();
-    }, 30000);
+    });
 
     it('should enforce that creator is assigned to parent task', async () => {
       const parentTask = {
@@ -205,7 +205,7 @@ describe('SubtaskService.createSubtask() - TDD Test Suite', () => {
       );
 
       expect(mockRepository.createTask).not.toHaveBeenCalled();
-    }, 30000);
+    });
   });
 
   // ============================================
@@ -245,7 +245,7 @@ describe('SubtaskService.createSubtask() - TDD Test Suite', () => {
       await expect(service.createSubtask(input, testUser)).rejects.toThrow(
         /title/i
       );
-    }, 30000);
+    });
 
     it('should accept description (even if empty)', async () => {
       const input = {
@@ -260,7 +260,7 @@ describe('SubtaskService.createSubtask() - TDD Test Suite', () => {
       // Description can be empty according to Task domain, so this should succeed
       const result = await service.createSubtask(input, testUser);
       expect(result).toEqual({ id: 'subtask-001' });
-    }, 30000);
+    });
 
     it('should require priority (1-10 scale)', async () => {
       const input = {
@@ -275,7 +275,7 @@ describe('SubtaskService.createSubtask() - TDD Test Suite', () => {
       await expect(service.createSubtask(input, testUser)).rejects.toThrow(
         /priority/i
       );
-    }, 30000);
+    });
 
     it('should require deadline', async () => {
       const input = {
@@ -288,7 +288,7 @@ describe('SubtaskService.createSubtask() - TDD Test Suite', () => {
       };
 
       await expect(service.createSubtask(input, testUser)).rejects.toThrow();
-    }, 30000);
+    });
 
     it('should require at least one assignee', async () => {
       const input = {
@@ -303,7 +303,7 @@ describe('SubtaskService.createSubtask() - TDD Test Suite', () => {
       await expect(service.createSubtask(input, testUser)).rejects.toThrow(
         /assignee/i
       );
-    }, 30000);
+    });
 
     it('should accept tags (optional field)', async () => {
       const input = {
@@ -324,7 +324,7 @@ describe('SubtaskService.createSubtask() - TDD Test Suite', () => {
           tags: ['urgent', 'bug'],
         })
       );
-    }, 30000);
+    });
   });
 
   // ============================================
@@ -364,7 +364,7 @@ describe('SubtaskService.createSubtask() - TDD Test Suite', () => {
       await expect(service.createSubtask(input, testUser)).rejects.toThrow(
         /recurring/i
       );
-    }, 30000);
+    });
 
     it('should create subtask with recurringInterval explicitly null', async () => {
       const input = {
@@ -387,7 +387,7 @@ describe('SubtaskService.createSubtask() - TDD Test Suite', () => {
           recurringInterval: undefined,
         })
       );
-    }, 30000);
+    });
 
     it('should create subtask without recurringInterval field (defaults to null)', async () => {
       const input = {
@@ -410,7 +410,7 @@ describe('SubtaskService.createSubtask() - TDD Test Suite', () => {
           recurringInterval: undefined, // Should default to null
         })
       );
-    }, 30000);
+    });
   });
 
   // ============================================
@@ -452,7 +452,7 @@ describe('SubtaskService.createSubtask() - TDD Test Suite', () => {
           departmentId: 'dept-engineering', // Inherited!
         })
       );
-    }, 30000);
+    });
 
     it('should inherit projectId from parent task (if parent has project)', async () => {
       const parentTask = {
@@ -489,7 +489,7 @@ describe('SubtaskService.createSubtask() - TDD Test Suite', () => {
           projectId: 'project-abc', // Inherited!
         })
       );
-    }, 30000);
+    });
 
     it('should inherit null projectId if parent has no project', async () => {
       const parentTask = {
@@ -526,7 +526,7 @@ describe('SubtaskService.createSubtask() - TDD Test Suite', () => {
           projectId: undefined, // Inherited as null/undefined
         })
       );
-    }, 30000);
+    });
   });
 
   // ============================================
@@ -564,7 +564,7 @@ describe('SubtaskService.createSubtask() - TDD Test Suite', () => {
       const result = await service.createSubtask(input, testUser);
 
       expect(result).toEqual({ id: 'subtask-001' });
-    }, 30000);
+    });
 
     it('should allow subtask deadline before parent deadline', async () => {
       const parentTask = {
@@ -597,7 +597,7 @@ describe('SubtaskService.createSubtask() - TDD Test Suite', () => {
       const result = await service.createSubtask(input, testUser);
 
       expect(result).toEqual({ id: 'subtask-001' });
-    }, 30000);
+    });
 
     it('should REJECT subtask deadline after parent deadline', async () => {
       const parentTask = {
@@ -631,7 +631,7 @@ describe('SubtaskService.createSubtask() - TDD Test Suite', () => {
       );
 
       expect(mockRepository.createTask).not.toHaveBeenCalled();
-    }, 30000);
+    });
   });
 
   // ============================================
@@ -671,7 +671,7 @@ describe('SubtaskService.createSubtask() - TDD Test Suite', () => {
       await expect(service.createSubtask(input, testUser)).rejects.toThrow(
         /assignees not found/i
       );
-    }, 30000);
+    });
 
     it('should validate assignees are active', async () => {
       const input = {
@@ -691,7 +691,7 @@ describe('SubtaskService.createSubtask() - TDD Test Suite', () => {
       await expect(service.createSubtask(input, testUser)).rejects.toThrow(
         /assignees are inactive/i
       );
-    }, 30000);
+    });
 
     it('should allow up to 5 assignees', async () => {
       const input = {
@@ -712,7 +712,7 @@ describe('SubtaskService.createSubtask() - TDD Test Suite', () => {
       const result = await service.createSubtask(input, testUser);
 
       expect(result).toEqual({ id: 'subtask-001' });
-    }, 30000);
+    });
 
     it('should reject more than 5 assignees', async () => {
       const input = {
@@ -739,7 +739,7 @@ describe('SubtaskService.createSubtask() - TDD Test Suite', () => {
       await expect(service.createSubtask(input, testUser)).rejects.toThrow(
         /5 assignees/i
       );
-    }, 30000);
+    });
   });
 
   // ============================================
@@ -785,6 +785,6 @@ describe('SubtaskService.createSubtask() - TDD Test Suite', () => {
           parentTaskId: 'parent-123',
         })
       );
-    }, 30000);
+    });
   });
 });
