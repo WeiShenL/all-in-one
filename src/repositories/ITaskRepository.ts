@@ -1,9 +1,93 @@
 /**
- * Task Repository Interface
- * Defines data access methods for task-related operations
+ * ITaskRepository Interface
+ *
+ * Repository pattern interface for Task persistence
+ * This defines the contract that any Task repository implementation must follow
  */
 
+import { Task, TaskStatus } from '../domain/task/Task';
+
 export interface ITaskRepository {
+  // ============================================
+  // CORE TASK OPERATIONS (Domain-driven)
+  // ============================================
+
+  /**
+   * Save a task (create or update)
+   */
+  save(task: Task): Promise<Task>;
+
+  /**
+   * Find a task by ID
+   */
+  findById(id: string): Promise<Task | null>;
+
+  /**
+   * Find all tasks in a department
+   */
+  findByDepartment(
+    departmentId: string,
+    includeArchived?: boolean
+  ): Promise<Task[]>;
+
+  /**
+   * Find all tasks assigned to a user
+   */
+  findByAssignee(userId: string, includeArchived?: boolean): Promise<Task[]>;
+
+  /**
+   * Find tasks in department with assignees (for staff visibility)
+   */
+  findByDepartmentWithAssignees(
+    departmentId: string,
+    includeArchived?: boolean
+  ): Promise<Task[]>;
+
+  /**
+   * Find subtasks of a parent task
+   */
+  findSubtasks(parentTaskId: string): Promise<Task[]>;
+
+  /**
+   * Find parent task
+   */
+  findParentTask(taskId: string): Promise<Task | null>;
+
+  /**
+   * Delete a task
+   */
+  delete(id: string): Promise<void>;
+
+  /**
+   * Check if a task exists
+   */
+  exists(id: string): Promise<boolean>;
+
+  /**
+   * Find tasks by criteria
+   */
+  findByCriteria(criteria: {
+    departmentId?: string;
+    status?: TaskStatus;
+    assigneeId?: string;
+    creatorId?: string;
+    tag?: string;
+  }): Promise<Task[]>;
+
+  /**
+   * Find all tasks by project
+   */
+  findByProject(projectId: string, includeArchived?: boolean): Promise<Task[]>;
+
+  /**
+   * Find all tasks (admin only)
+   */
+  findAll(includeArchived?: boolean): Promise<Task[]>;
+
+  // ============================================
+  // FILE ATTACHMENT OPERATIONS
+  // ============================================
+
   /**
    * Create a new task file record in the database
    * @param data - File metadata
@@ -66,6 +150,10 @@ export interface ITaskRepository {
    * @param fileId - File ID
    */
   deleteTaskFile(fileId: string): Promise<void>;
+
+  // ============================================
+  // AUTHORIZATION & LOGGING HELPERS
+  // ============================================
 
   /**
    * Get task by ID (needed for authorization checks)

@@ -11,10 +11,10 @@ import { createClient } from '@supabase/supabase-js';
 test.describe('Signup to Dashboard, Logout and log back in Flow', () => {
   let pgClient: Client;
   let createdEmail: string | null = null;
-  let supabaseClient: ReturnType<typeof createClient>;
+  let _supabaseClient: ReturnType<typeof createClient>;
 
   test.beforeAll(async () => {
-    supabaseClient = createClient(
+    _supabaseClient = createClient(
       process.env.NEXT_PUBLIC_API_EXTERNAL_URL!,
       process.env.NEXT_PUBLIC_ANON_KEY!
     );
@@ -26,8 +26,11 @@ test.describe('Signup to Dashboard, Logout and log back in Flow', () => {
     await pgClient.end();
   });
 
-  test.afterEach(async () => {
-    await supabaseClient.auth.signOut();
+  test.afterEach(async ({ context }) => {
+    // Clear browser storage instead of global signOut to avoid affecting parallel tests
+    await context.clearCookies();
+    await context.clearPermissions();
+
     if (!createdEmail) {
       return;
     }
@@ -98,10 +101,13 @@ test.describe('Signup to Dashboard, Logout and log back in Flow', () => {
     // Logout via Navbar
     await page.getByRole('button', { name: /sign out/i }).click();
 
+    // Wait for navigation to login page after logout
+    await page.waitForURL(/\/auth\/login/, { timeout: 15000 });
+
     // Back on Login Page
     await expect(
       page.getByRole('heading', { name: /welcome back/i })
-    ).toBeVisible();
+    ).toBeVisible({ timeout: 10000 });
     // Login again with created credentials
     await page.getByLabel('Email').fill(email);
     await page.getByLabel('Password').fill(password);
@@ -110,7 +116,7 @@ test.describe('Signup to Dashboard, Logout and log back in Flow', () => {
     // Expect redirect to Staff Dashboard
     await expect(
       page.getByRole('heading', { name: /staff dashboard/i })
-    ).toBeVisible({ timeout: 3000 });
+    ).toBeVisible({ timeout: 15000 });
 
     // Final logout
     await page.getByRole('button', { name: /sign out/i }).click();

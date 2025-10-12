@@ -1,10 +1,42 @@
+/**
+ * TaskService - Application Service Layer
+ *
+ * Handles:
+ * - Authorization logic (manager permissions)
+ * - Orchestration between domain and infrastructure
+ * - Transaction management
+ * - Cross-aggregate operations
+ */
+
+import { Task, TaskStatus } from '../../domain/task/Task';
 import { ITaskRepository } from '../../repositories/ITaskRepository';
 import { SupabaseStorageService } from '../storage/SupabaseStorageService';
-import { Task, TaskStatus } from '../../domain/task/Task';
 
-/**
- * User context for authorization
- */
+export interface CreateTaskDTO {
+  title: string;
+  description: string;
+  priorityBucket: number;
+  dueDate: Date;
+  ownerId: string;
+  departmentId: string;
+  projectId: string | null;
+  parentTaskId?: string | null;
+  isRecurring?: boolean;
+  recurringInterval?: number | null;
+  assignments?: string[];
+  tags?: string[];
+}
+
+export interface UpdateTaskDTO {
+  title?: string;
+  description?: string;
+  priorityBucket?: number;
+  dueDate?: Date;
+  status?: TaskStatus;
+  isRecurring?: boolean;
+  recurringInterval?: number | null;
+}
+
 export interface UserContext {
   userId: string;
   role: 'STAFF' | 'MANAGER' | 'HR_ADMIN';
@@ -15,10 +47,14 @@ export interface UserContext {
  * Task Service
  * Business logic for task operations (create, update) and file operations
  */
+
 export class TaskService {
   private storageService = new SupabaseStorageService();
 
-  constructor(private taskRepository: ITaskRepository) {}
+  constructor(
+    private readonly taskRepository: ITaskRepository
+    // Add other repositories as needed (UserRepository, ProjectRepository, etc.)
+  ) {}
 
   // ============================================
   // CREATE OPERATIONS
@@ -138,6 +174,10 @@ export class TaskService {
 
     return result;
   }
+
+  // ============================================
+  // UPDATE OPERATIONS
+  // ============================================
 
   // ============================================
   // QUERY OPERATIONS
@@ -563,7 +603,7 @@ export class TaskService {
   async updateTaskRecurring(
     taskId: string,
     enabled: boolean,
-    days: number | null,
+    recurringInterval: number | null,
     user: UserContext
   ): Promise<Task> {
     const task = await this.getTaskById(taskId, user);
@@ -571,7 +611,7 @@ export class TaskService {
       throw new Error('Task not found');
     }
 
-    task.updateRecurring(enabled, days);
+    task.updateRecurring(enabled, recurringInterval);
 
     await this.taskRepository.updateTask(taskId, {
       recurringInterval: task.getRecurringInterval(),
@@ -581,7 +621,7 @@ export class TaskService {
     await this.taskRepository.logTaskAction(taskId, user.userId, 'UPDATED', {
       field: 'recurring',
       enabled,
-      days,
+      recurringInterval,
     });
 
     return task;
@@ -1051,6 +1091,10 @@ export class TaskService {
    * Remove assignee from task
    * Authorization: Only assigned users can update
    * Business rule: Must maintain at least 1 assignee (TM016)
+   *
+   * TODO: Make this role-based auth for MANAGER/HR_ADMIN only in future.
+   * Currently violates TM015 for STAFF users: "Assigned Staff member can add
+   * assignees, max 5 only. (but NOT remove them - TM015)"
    */
   async removeAssigneeFromTask(
     taskId: string,

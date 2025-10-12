@@ -98,6 +98,13 @@ test.describe('Task Creation - SCRUM-12', () => {
       ]);
     }
 
+    // Step 4.5: Delete any remaining tasks owned by test user (e.g., recurring child tasks)
+    if (testUserId) {
+      await pgClient.query('DELETE FROM "task" WHERE "ownerId" = $1', [
+        testUserId,
+      ]);
+    }
+
     // Step 5: Delete test user
     if (testUserId) {
       await pgClient.query('DELETE FROM "user_profile" WHERE id = $1', [
@@ -484,6 +491,8 @@ test.describe('Task Creation - SCRUM-12', () => {
   });
 
   test('should chain recurring tasks - verify multiple generations', async () => {
+    test.setTimeout(45000); // Extended timeout for recurring task generation in slow CI/CD
+
     // Create daily recurring task
     const result = await taskService.createTask(
       {

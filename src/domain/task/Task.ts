@@ -385,6 +385,10 @@ export class Task {
   /**
    * Remove an assignment from the task
    * Business rule: Task must have at least 1 assignee (TM016)
+   *
+   * TODO: Make this role-based auth for MANAGER/HR_ADMIN only in future.
+   * Currently violates TM015 for STAFF users: "Assigned Staff member can add
+   * assignees, max 5 only. (but NOT remove them - TM015)"
    */
   removeAssignee(userId: string): void {
     // 1. Check if user is assigned
@@ -544,13 +548,13 @@ export class Task {
    * AC: Staff member can update recurring settings (enable/disable, change interval)
    * Requirements: Task recurrence (Change Document Week 6)
    */
-  updateRecurring(enabled: boolean, days: number | null): void {
-    // If enabled, validate days > 0 (TM057)
+  updateRecurring(enabled: boolean, recurringInterval: number | null): void {
+    // If enabled, validate recurringInterval > 0 (TM057)
     if (enabled) {
-      if (days === null || days <= 0) {
+      if (recurringInterval === null || recurringInterval <= 0) {
         throw new InvalidRecurrenceError();
       }
-      this.recurringInterval = days;
+      this.recurringInterval = recurringInterval;
     } else {
       // If disabled, clear recurrence settings
       this.recurringInterval = null;
