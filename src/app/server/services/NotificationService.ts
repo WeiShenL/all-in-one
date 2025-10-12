@@ -1,6 +1,8 @@
+import { PrismaClient } from '@prisma/client';
 import { BaseService } from './BaseService';
 import { CreateNotificationInput } from '../types';
 import { NotificationType } from '@prisma/client';
+import { EmailService } from './EmailService';
 
 /**
  * NotificationService
@@ -11,6 +13,13 @@ import { NotificationType } from '@prisma/client';
  * - Read/unread status tracking
  */
 export class NotificationService extends BaseService {
+  private emailService: EmailService;
+
+  constructor(prisma: PrismaClient, emailService: EmailService) {
+    super(prisma);
+    this.emailService = emailService;
+  }
+
   /**
    * Get all notifications for a user
    * @param userId - User ID
@@ -112,6 +121,7 @@ export class NotificationService extends BaseService {
       // Validate user exists
       const user = await this.prisma.userProfile.findUnique({
         where: { id: data.userId },
+        select: { email: true, name: true, isActive: true }, // Select email and name
       });
 
       if (!user || !user.isActive) {
@@ -129,7 +139,7 @@ export class NotificationService extends BaseService {
         }
       }
 
-      return await this.prisma.notification.create({
+      const newNotification = await this.prisma.notification.create({
         data: {
           userId: data.userId,
           type: data.type,
@@ -146,6 +156,23 @@ export class NotificationService extends BaseService {
           },
         },
       });
+
+      // Send email notification
+      if (user.email) {
+        try {
+          await this.emailService.sendEmail({
+            to: user.email,
+            subject: `New Notification: ${data.title}`,
+            text: data.message,
+            html: `<p>Dear ${user.name || 'User'},</p><p>${data.message}</p><p>Regards,<br>Your Application Team</p>`,
+          });
+        } catch (emailError) {
+          console.error('Failed to send notification email:', emailError);
+          // We don't re-throw the error, as the notification has been created successfully.
+        }
+      }
+
+      return newNotification;
     } catch (error) {
       this.handleError(error, 'create');
     }

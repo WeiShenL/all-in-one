@@ -82,8 +82,8 @@ describe('ProjectService', () => {
           include: expect.any(Object),
         });
 
-        expect(result.name).toBe('Website Redesign');
-        expect(result.priority).toBe(8);
+        expect(result!.name).toBe('Website Redesign');
+        expect(result!.priority).toBe(8);
       });
 
       it('should use default priority MEDIUM when not provided', async () => {
@@ -114,7 +114,7 @@ describe('ProjectService', () => {
 
         const result = await service.create(input);
 
-        expect(result.priority).toBe(5);
+        expect(result!.priority).toBe(5);
       });
 
       it('should throw error when department not found', async () => {
@@ -309,8 +309,8 @@ describe('ProjectService', () => {
           include: expect.any(Object),
         });
 
-        expect(result.name).toBe('New Name');
-        expect(result.status).toBe('COMPLETED');
+        expect(result!.name).toBe('New Name');
+        expect(result!.status).toBe('COMPLETED');
       });
 
       it('should throw error when project not found', async () => {
@@ -340,7 +340,7 @@ describe('ProjectService', () => {
 
         const result = await service.updateStatus('proj1', 'ON_HOLD');
 
-        expect(result.status).toBe('ON_HOLD');
+        expect(result!.status).toBe('ON_HOLD');
       });
     });
 
@@ -366,7 +366,7 @@ describe('ProjectService', () => {
 
         const result = await service.archive('proj1');
 
-        expect(result.isArchived).toBe(true);
+        expect(result!.isArchived).toBe(true);
       });
 
       it('should unarchive a project', async () => {
@@ -390,7 +390,7 @@ describe('ProjectService', () => {
 
         const result = await service.unarchive('proj1');
 
-        expect(result.isArchived).toBe(false);
+        expect(result!.isArchived).toBe(false);
       });
     });
 
@@ -411,7 +411,7 @@ describe('ProjectService', () => {
           where: { id: 'proj1' },
         });
 
-        expect(result.id).toBe('proj1');
+        expect(result!.id).toBe('proj1');
       });
 
       it('should throw error when project has tasks', async () => {
