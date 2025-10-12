@@ -577,6 +577,19 @@ const TaskRow = ({
                 flex: 1,
                 fontStyle: isSubtask ? 'italic' : 'normal',
                 opacity: isSubtask ? 0.9 : 1,
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.color = '#3b82f6';
+                e.currentTarget.style.backgroundColor = '#f0f9ff';
+                e.currentTarget.style.padding = '2px 4px';
+                e.currentTarget.style.borderRadius = '4px';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.color = isSubtask ? '#4b5563' : '#1976d2';
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.padding = '0';
+                e.currentTarget.style.borderRadius = '0';
               }}
             >
               {isSubtask}
