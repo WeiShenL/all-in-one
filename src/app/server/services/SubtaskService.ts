@@ -146,7 +146,7 @@ export class SubtaskService extends TaskService {
       parentTaskId: task.getParentTaskId() ?? undefined,
       assigneeIds: data.assigneeIds,
       tags: data.tags,
-      recurringInterval: null, // Always null for subtasks
+      recurringInterval: undefined, // Always null for subtasks
     });
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -169,4 +169,4 @@ export class SubtaskService extends TaskService {
 }
 
 // Re-export UserContext for convenience
-export { UserContext } from '@/services/task/TaskService';
+export type { UserContext } from '@/services/task/TaskService';

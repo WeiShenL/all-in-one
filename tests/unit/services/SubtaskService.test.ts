@@ -119,7 +119,7 @@ describe('SubtaskService.createSubtask() - TDD Test Suite', () => {
           parentTaskId: 'parent-task-123',
           departmentId: 'dept-456', // Inherited from parent
           projectId: 'project-789', // Inherited from parent
-          recurringInterval: null, // Cannot be recurring
+          recurringInterval: undefined, // Cannot be recurring
         })
       );
     });
@@ -374,7 +374,7 @@ describe('SubtaskService.createSubtask() - TDD Test Suite', () => {
         dueDate: new Date('2025-12-30'),
         assigneeIds: ['staff-123'],
         parentTaskId: 'parent-123',
-        recurringInterval: null, // Explicitly null
+        recurringInterval: undefined,
       };
 
       mockRepository.createTask.mockResolvedValue({ id: 'subtask-001' });
@@ -384,7 +384,7 @@ describe('SubtaskService.createSubtask() - TDD Test Suite', () => {
       expect(result).toEqual({ id: 'subtask-001' });
       expect(mockRepository.createTask).toHaveBeenCalledWith(
         expect.objectContaining({
-          recurringInterval: null,
+          recurringInterval: undefined,
         })
       );
     });
@@ -407,7 +407,7 @@ describe('SubtaskService.createSubtask() - TDD Test Suite', () => {
       expect(result).toEqual({ id: 'subtask-001' });
       expect(mockRepository.createTask).toHaveBeenCalledWith(
         expect.objectContaining({
-          recurringInterval: null, // Should default to null
+          recurringInterval: undefined, // Should default to null
         })
       );
     });
