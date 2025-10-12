@@ -123,13 +123,33 @@ test.describe('Subtask Creation E2E - SCRUM-65', () => {
   test.afterAll(async () => {
     // Cleanup in reverse order of dependencies
 
-    // 1. Delete subtasks
+    // 1. Delete task-related records for subtasks
     for (const subtaskId of createdSubtaskIds) {
+      await pgClient.query(
+        'DELETE FROM "task_assignment" WHERE "taskId" = $1',
+        [subtaskId]
+      );
+      await pgClient.query('DELETE FROM "task_log" WHERE "taskId" = $1', [
+        subtaskId,
+      ]);
+      await pgClient.query('DELETE FROM "task_tag" WHERE "taskId" = $1', [
+        subtaskId,
+      ]);
       await pgClient.query('DELETE FROM "task" WHERE id = $1', [subtaskId]);
     }
 
-    // 2. Delete parent task
+    // 2. Delete task-related records for parent task
     if (testParentTaskId) {
+      await pgClient.query(
+        'DELETE FROM "task_assignment" WHERE "taskId" = $1',
+        [testParentTaskId]
+      );
+      await pgClient.query('DELETE FROM "task_log" WHERE "taskId" = $1', [
+        testParentTaskId,
+      ]);
+      await pgClient.query('DELETE FROM "task_tag" WHERE "taskId" = $1', [
+        testParentTaskId,
+      ]);
       await pgClient.query('DELETE FROM "task" WHERE id = $1', [
         testParentTaskId,
       ]);
