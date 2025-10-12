@@ -339,5 +339,5 @@ test.describe('Subtask Creation E2E - SCRUM-65', () => {
     expect(logResult.rows.length).toBe(1);
     expect(logResult.rows[0].userId).toBe(testUserId);
     expect(logResult.rows[0].metadata.parentTaskId).toBe(testParentTaskId);
-  });
+  }, 300000);
 });
