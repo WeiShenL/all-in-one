@@ -22,14 +22,20 @@ export abstract class BaseService {
    * @param error - The error to handle
    * @param context - Additional context about where the error occurred
    */
-  protected handleError(error: unknown, context: string): never {
+  protected handleError(
+    error: unknown,
+    context: string,
+    shouldThrow: boolean = true
+  ): void {
     console.error(`[${this.constructor.name}] Error in ${context}:`, error);
 
-    if (error instanceof Error) {
-      throw new Error(`${context}: ${error.message}`);
-    }
+    if (shouldThrow) {
+      if (error instanceof Error) {
+        throw new Error(`${context}: ${error.message}`);
+      }
 
-    throw new Error(`${context}: An unknown error occurred`);
+      throw new Error(`${context}: An unknown error occurred`);
+    }
   }
 
   /**
