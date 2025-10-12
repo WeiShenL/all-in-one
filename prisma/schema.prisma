@@ -40,12 +40,8 @@ enum NotificationType {
 enum LogAction {
   CREATED
   UPDATED
-  STATUS_CHANGED
-  COMMENT_ADDED
-  FILE_UPLOADED
-  ASSIGNMENT_CHANGED
-  DESCRIPTION_CHANGED
   ARCHIVED
+  UNARCHIVED
   DELETED
   RECURRING_TASK_GENERATED
 }
@@ -291,6 +287,7 @@ model TaskLog {
   taskId    String
   userId    String
   action    LogAction
+  field     String
   changes   Json?
   metadata  Json?
   timestamp DateTime  @default(now())
