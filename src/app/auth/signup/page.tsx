@@ -94,7 +94,7 @@ export default function SignupPage() {
           departmentId: formData.departmentId,
         }
       );
-      console.error('🔍 SignUp response:', { error: signUpError });
+      console.warn('🔍 SignUp response:', { error: signUpError });
       if (signUpError) {
         setError(
           typeof signUpError === 'string'
@@ -264,34 +264,54 @@ export default function SignupPage() {
             >
               Role
             </label>
-            <select
-              id='role'
-              value={formData.role}
-              onChange={e =>
-                setFormData({
-                  ...formData,
-                  role: e.target.value as 'STAFF' | 'MANAGER' | 'HR_ADMIN',
-                })
-              }
-              required
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                border: '1px solid #e2e8f0',
-                borderRadius: '8px',
-                fontSize: '1rem',
-                transition: 'border-color 0.2s',
-                outline: 'none',
-                boxSizing: 'border-box',
-                backgroundColor: '#ffffff',
-              }}
-              onFocus={e => (e.target.style.borderColor = '#3182ce')}
-              onBlur={e => (e.target.style.borderColor = '#e2e8f0')}
-            >
-              <option value='STAFF'>Staff</option>
-              <option value='MANAGER'>Manager</option>
-              <option value='HR_ADMIN'>HR Admin</option>
-            </select>
+            <div style={{ position: 'relative' }}>
+              <select
+                id='role'
+                value={formData.role}
+                onChange={e =>
+                  setFormData({
+                    ...formData,
+                    role: e.target.value as 'STAFF' | 'MANAGER' | 'HR_ADMIN',
+                  })
+                }
+                required
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  paddingRight: '2.5rem',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  fontSize: '1rem',
+                  transition: 'border-color 0.2s',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                  backgroundColor: '#ffffff',
+                  appearance: 'none',
+                  WebkitAppearance: 'none',
+                  MozAppearance: 'none',
+                  cursor: 'pointer',
+                }}
+                onFocus={e => (e.target.style.borderColor = '#3182ce')}
+                onBlur={e => (e.target.style.borderColor = '#e2e8f0')}
+              >
+                <option value='STAFF'>Staff</option>
+                <option value='MANAGER'>Manager</option>
+                <option value='HR_ADMIN'>HR Admin</option>
+              </select>
+              <span
+                style={{
+                  position: 'absolute',
+                  right: '0.75rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  fontSize: '0.75rem',
+                  color: '#718096',
+                  pointerEvents: 'none',
+                }}
+              >
+                ▼
+              </span>
+            </div>
           </div>
 
           <div style={{ marginBottom: '1rem' }}>
