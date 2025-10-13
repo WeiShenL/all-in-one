@@ -3,7 +3,6 @@
 import { trpc } from '../lib/trpc';
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { TaskEditCard } from './TaskEditCard';
 import { TaskCard } from './TaskCard';
 import departmentData from '@/../prisma/data/1_departments.json';
 import { useAuth } from '@/lib/supabase/auth-context';
@@ -1199,7 +1198,10 @@ export function StaffDashboard() {
             >
               ×
             </button>
-            <TaskEditCard taskId={editingTaskId} />
+            <TaskCard
+              taskId={editingTaskId}
+              onTaskChange={newTaskId => setEditingTaskId(newTaskId)}
+            />
           </div>
         </div>
       )}
