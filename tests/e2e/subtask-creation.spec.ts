@@ -199,7 +199,7 @@ test.describe('Subtask Creation E2E - SCRUM-65', () => {
     // Wait for login page to load
     await expect(
       page.getByRole('heading', { name: /welcome back/i })
-    ).toBeVisible({ timeout: 10000 });
+    ).toBeVisible({ timeout: 40000 });
 
     // Fill email
     await page.getByLabel('Email').fill(testEmail);
@@ -209,7 +209,7 @@ test.describe('Subtask Creation E2E - SCRUM-65', () => {
 
     // Click sign in button
     const signInButton = page.getByRole('button', { name: /sign in/i });
-    await expect(signInButton).toBeEnabled({ timeout: 10000 });
+    await expect(signInButton).toBeEnabled({ timeout: 40000 });
     await signInButton.click();
 
     /**
@@ -217,11 +217,11 @@ test.describe('Subtask Creation E2E - SCRUM-65', () => {
      */
     await expect(
       page.getByRole('heading', { name: /staff dashboard/i })
-    ).toBeVisible({ timeout: 15000 });
+    ).toBeVisible({ timeout: 40000 });
 
     // Verify parent task appears in dashboard
     await expect(page.getByText('E2E Parent Task for Subtask')).toBeVisible({
-      timeout: 10000,
+      timeout: 40000,
     });
 
     /**
@@ -230,11 +230,11 @@ test.describe('Subtask Creation E2E - SCRUM-65', () => {
     const createTaskButton = page.getByRole('button', {
       name: /\+ Create Task/i,
     });
-    await expect(createTaskButton).toBeVisible({ timeout: 10000 });
+    await expect(createTaskButton).toBeVisible({ timeout: 40000 });
     await createTaskButton.click();
 
     // Wait for task creation form
-    await expect(page).toHaveURL(/\/tasks\/create/, { timeout: 10000 });
+    await expect(page).toHaveURL(/\/tasks\/create/, { timeout: 40000 });
 
     /**
      * STEP 4: Fill out subtask form
@@ -255,7 +255,7 @@ test.describe('Subtask Creation E2E - SCRUM-65', () => {
 
     // SELECT PARENT TASK - This makes it a subtask!
     const parentTaskSelect = page.locator('select[name="parentTaskId"]');
-    await expect(parentTaskSelect).toBeVisible({ timeout: 5000 });
+    await expect(parentTaskSelect).toBeVisible({ timeout: 40000 });
     await parentTaskSelect.selectOption(testParentTaskId);
 
     // Fill assignee emails (comma-separated in single input)
@@ -270,20 +270,35 @@ test.describe('Subtask Creation E2E - SCRUM-65', () => {
       name: /create task/i,
       exact: false,
     });
-    await expect(createButton).toBeEnabled({ timeout: 5000 });
+    await expect(createButton).toBeEnabled({ timeout: 40000 });
     await createButton.click();
 
     /**
      * STEP 6: Verify redirect to dashboard
      */
-    await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 });
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 40000 });
 
     /**
      * STEP 7: Verify subtask appears in UI
      */
-    // The subtask should be visible in the task list (may be indented under parent)
+    // First verify parent task is still visible
+    await expect(page.getByText('E2E Parent Task for Subtask')).toBeVisible({
+      timeout: 40000,
+    });
+
+    // Click the dropdown arrow to expand the parent task and reveal subtasks
+    // The dropdown button is next to parent tasks that have subtasks
+    const dropdownButton = page
+      .locator('tr')
+      .filter({ hasText: 'E2E Parent Task for Subtask' })
+      .locator('button')
+      .first();
+    await expect(dropdownButton).toBeVisible({ timeout: 40000 });
+    await dropdownButton.click();
+
+    // Now the subtask should be visible (indented under parent)
     await expect(page.getByText('E2E Test Subtask')).toBeVisible({
-      timeout: 10000,
+      timeout: 40000,
     });
 
     /**

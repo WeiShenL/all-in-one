@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/supabase/auth-context';
+import LogItem from './LogItem';
+import { ConnectedTasks } from './ConnectedTasks';
 
 interface Task {
   id: string;
@@ -12,6 +14,7 @@ interface Task {
   dueDate: string;
   isRecurring: boolean;
   recurringInterval: number | null;
+  ownerId: string;
   assignments: string[];
   tags: string[];
   comments: Array<{
@@ -32,7 +35,13 @@ interface UploadedFile {
   uploadedAt: string;
 }
 
-export function TaskEditCard({ taskId }: { taskId: string }) {
+export function TaskCard({
+  taskId,
+  onTaskChange,
+}: {
+  taskId: string;
+  onTaskChange?: (newTaskId: string) => void;
+}) {
   const { userProfile } = useAuth();
   const [task, setTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
@@ -60,6 +69,31 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editCommentValue, setEditCommentValue] = useState('');
 
+  // Tab state
+  const [activeTab, setActiveTab] = useState<'comments' | 'history'>(
+    'comments'
+  );
+
+  // Task logs state
+  const [taskLogs, setTaskLogs] = useState<
+    Array<{
+      id: string;
+      taskId: string;
+      userId: string;
+      action: string;
+      field: string;
+      changes: any;
+      metadata: any;
+      timestamp: string;
+      user: {
+        id: string;
+        name: string;
+        email: string;
+      };
+    }>
+  >([]);
+  const [loadingLogs, setLoadingLogs] = useState(false);
+
   // File upload states
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -79,6 +113,7 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
     fetchTask();
     fetchFiles();
     fetchDepartmentUsers();
+    fetchTaskLogs();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [taskId]);
 
@@ -104,6 +139,28 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
         setStatusValue(data.result.data.status);
         setRecurringEnabled(data.result.data.isRecurring);
         setRecurringInterval(data.result.data.recurringInterval);
+
+        // Fetch user details for any assignees and comment authors we don't have details for
+        const allUserIds = new Set<string>();
+
+        if (
+          data.result.data.assignments &&
+          data.result.data.assignments.length > 0
+        ) {
+          data.result.data.assignments.forEach((userId: string) =>
+            allUserIds.add(userId)
+          );
+        }
+
+        if (data.result.data.comments && data.result.data.comments.length > 0) {
+          data.result.data.comments.forEach((comment: any) =>
+            allUserIds.add(comment.authorId)
+          );
+        }
+
+        if (allUserIds.size > 0) {
+          await fetchUserDetailsForAssignees(Array.from(allUserIds));
+        }
       }
     } catch {
       setError('Failed to load task');
@@ -168,6 +225,120 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
     }
   };
 
+  const fetchUserDetailsForAssignees = async (assigneeIds: string[]) => {
+    if (!userProfile) {
+      return;
+    }
+
+    // Find assignees that we don't have details for
+    const missingUserIds = assigneeIds.filter(
+      userId => !userDetailsMap.has(userId)
+    );
+
+    if (missingUserIds.length === 0) {
+      return; // All user details already available
+    }
+
+    // console.log('Fetching user details for:', missingUserIds);
+
+    // Fetch details for each missing user using the existing getById endpoint
+    const newUserMap = new Map(userDetailsMap);
+
+    for (const userId of missingUserIds) {
+      let retryCount = 0;
+      const maxRetries = 2;
+
+      while (retryCount <= maxRetries) {
+        try {
+          const response = await fetch(
+            `/api/trpc/userProfile.getById?input=${encodeURIComponent(
+              JSON.stringify({ id: userId })
+            )}`
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+            // console.log(`User details for ${userId}:`, data);
+            if (data.result?.data) {
+              newUserMap.set(userId, {
+                name: data.result.data.name,
+                email: data.result.data.email,
+              });
+              //   console.log(`Successfully loaded user: ${data.result.data.name} (${data.result.data.email})`);
+              break; // Success, exit retry loop
+            } else {
+              console.warn(`No data returned for user ${userId}:`, data);
+              if (retryCount === maxRetries) {
+                // Set a fallback entry for failed users
+                newUserMap.set(userId, {
+                  name: `User ${userId.slice(0, 8)}`,
+                  email: 'Unknown',
+                });
+              }
+            }
+          } else {
+            console.error(
+              `Failed to fetch user details for ${userId}:`,
+              response.status,
+              response.statusText
+            );
+            if (retryCount === maxRetries) {
+              // Set a fallback entry for failed users
+              newUserMap.set(userId, {
+                name: `User ${userId.slice(0, 8)}`,
+                email: 'Unknown',
+              });
+            }
+          }
+        } catch (err) {
+          console.error(
+            `Failed to fetch user details for ${userId} (attempt ${retryCount + 1}):`,
+            err
+          );
+          if (retryCount === maxRetries) {
+            // Set a fallback entry for failed users
+            newUserMap.set(userId, {
+              name: `User ${userId.slice(0, 8)}`,
+              email: 'Unknown',
+            });
+          }
+        }
+
+        retryCount++;
+        if (retryCount <= maxRetries) {
+          // Wait before retry
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+    }
+
+    setUserDetailsMap(newUserMap);
+  };
+
+  const fetchTaskLogs = async () => {
+    if (!userProfile) {
+      return;
+    }
+
+    setLoadingLogs(true);
+    try {
+      const response = await fetch(
+        `/api/trpc/task.getTaskLogs?input=${encodeURIComponent(
+          JSON.stringify({ taskId })
+        )}`
+      );
+      const data = await response.json();
+
+      if (data.result?.data) {
+        setTaskLogs(data.result.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch task logs:', err);
+    } finally {
+      setLoadingLogs(false);
+    }
+  };
+
   const updateTask = async (
     endpoint: string,
     payload: any,
@@ -190,6 +361,7 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
       }
 
       await fetchTask();
+      await fetchTaskLogs();
       setSuccess(successMsg);
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
@@ -551,11 +723,12 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
     <div
       style={{
         backgroundColor: '#ffffff',
-        borderRadius: '12px',
-        padding: '1.5rem',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        borderRadius: '8px',
+        padding: '2rem',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06)',
         maxWidth: '900px',
         margin: '0 auto',
+        border: '1px solid #e5e7eb',
       }}
     >
       {/* Error/Success Messages */}
@@ -592,6 +765,7 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
           <div>
             <input
               type='text'
+              data-testid='task-title-input'
               value={titleValue}
               onChange={e => setTitleValue(e.target.value)}
               style={{
@@ -602,8 +776,10 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
                 border: '2px solid #4a90e2',
                 borderRadius: '4px',
               }}
+              autoFocus
+              onFocus={e => e.target.select()}
             />
-            <div style={{ marginTop: '8px' }}>
+            <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
               <button
                 onClick={handleUpdateTitle}
                 style={{
@@ -612,11 +788,13 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
                   color: 'white',
                   border: 'none',
                   borderRadius: '4px',
-                  marginRight: '8px',
                   cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
                 }}
               >
-                Save
+                ✓ Save
               </button>
               <button
                 onClick={() => setEditingTitle(false)}
@@ -627,18 +805,36 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
                   border: 'none',
                   borderRadius: '4px',
                   cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
                 }}
               >
-                Cancel
+                ✗ Cancel
               </button>
             </div>
           </div>
         ) : (
           <div
+            data-testid='task-title-display'
+            onClick={() => {
+              setTitleValue(task.title);
+              setEditingTitle(true);
+            }}
             style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
+              padding: '8px',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              border: '1px solid transparent',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.backgroundColor = '#f8fafc';
+              e.currentTarget.style.border = '1px solid #e2e8f0';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.border = '1px solid transparent';
             }}
           >
             <h2
@@ -651,59 +847,25 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
             >
               {task.title}
             </h2>
-            <button
-              data-testid='title-edit-button'
-              onClick={() => setEditingTitle(true)}
-              style={{
-                padding: '4px 8px',
-                backgroundColor: '#e3f2fd',
-                color: '#1976d2',
-                border: '1px solid #1976d2',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '12px',
-              }}
-            >
-              ✏️ Edit
-            </button>
           </div>
         )}
       </div>
 
       {/* Description */}
       <div style={{ marginBottom: '1.5rem' }}>
-        <div
+        <h3
           style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '8px',
+            fontSize: '0.875rem',
+            fontWeight: '600',
+            margin: '0 0 8px 0',
           }}
         >
-          <h3 style={{ fontSize: '0.875rem', fontWeight: '600', margin: 0 }}>
-            Description
-          </h3>
-          {!editingDescription && (
-            <button
-              data-testid='description-edit-button'
-              onClick={() => setEditingDescription(true)}
-              style={{
-                padding: '4px 8px',
-                backgroundColor: '#e3f2fd',
-                color: '#1976d2',
-                border: '1px solid #1976d2',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '12px',
-              }}
-            >
-              ✏️ Edit
-            </button>
-          )}
-        </div>
+          Description
+        </h3>
         {editingDescription ? (
           <div>
             <textarea
+              data-testid='task-description-input'
               value={descriptionValue}
               onChange={e => setDescriptionValue(e.target.value)}
               rows={4}
@@ -714,8 +876,10 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
                 borderRadius: '4px',
                 fontFamily: 'inherit',
               }}
+              autoFocus
+              onFocus={e => e.target.select()}
             />
-            <div style={{ marginTop: '8px' }}>
+            <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
               <button
                 onClick={handleUpdateDescription}
                 style={{
@@ -724,11 +888,13 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
                   color: 'white',
                   border: 'none',
                   borderRadius: '4px',
-                  marginRight: '8px',
                   cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
                 }}
               >
-                Save
+                ✓ Save
               </button>
               <button
                 onClick={() => setEditingDescription(false)}
@@ -739,16 +905,42 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
                   border: 'none',
                   borderRadius: '4px',
                   cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
                 }}
               >
-                Cancel
+                ✗ Cancel
               </button>
             </div>
           </div>
         ) : (
-          <p style={{ color: '#4a5568', whiteSpace: 'pre-wrap' }}>
-            {task.description}
-          </p>
+          <div
+            data-testid='task-description-display'
+            onClick={() => {
+              setDescriptionValue(task.description);
+              setEditingDescription(true);
+            }}
+            style={{
+              padding: '8px',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              border: '1px solid transparent',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.backgroundColor = '#f8fafc';
+              e.currentTarget.style.border = '1px solid #e2e8f0';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.border = '1px solid transparent';
+            }}
+          >
+            <p style={{ color: '#4a5568', whiteSpace: 'pre-wrap', margin: 0 }}>
+              {task.description}
+            </p>
+          </div>
         )}
       </div>
 
@@ -775,6 +967,7 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
           {editingStatus ? (
             <div>
               <select
+                data-testid='task-status-select'
                 value={statusValue}
                 onChange={e => setStatusValue(e.target.value as Task['status'])}
                 style={{
@@ -783,65 +976,90 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
                   border: '2px solid #4a90e2',
                   borderRadius: '4px',
                 }}
+                autoFocus
               >
                 <option value='TO_DO'>To Do</option>
                 <option value='IN_PROGRESS'>In Progress</option>
                 <option value='COMPLETED'>Completed</option>
                 <option value='BLOCKED'>Blocked</option>
               </select>
-              <div style={{ marginTop: '4px' }}>
+              <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
                 <button
                   onClick={handleUpdateStatus}
                   style={{
-                    padding: '4px 8px',
+                    padding: '6px 12px',
                     backgroundColor: '#28a745',
                     color: 'white',
                     border: 'none',
                     borderRadius: '4px',
-                    marginRight: '4px',
                     cursor: 'pointer',
-                    fontSize: '11px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    fontSize: '12px',
                   }}
                 >
-                  Save
+                  ✓ Save
                 </button>
                 <button
                   onClick={() => setEditingStatus(false)}
                   style={{
-                    padding: '4px 8px',
+                    padding: '6px 12px',
                     backgroundColor: '#6c757d',
                     color: 'white',
                     border: 'none',
                     borderRadius: '4px',
                     cursor: 'pointer',
-                    fontSize: '11px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    fontSize: '12px',
                   }}
                 >
-                  Cancel
+                  ✗ Cancel
                 </button>
               </div>
             </div>
           ) : (
-            <div>
+            <div
+              data-testid='task-status-display'
+              onClick={() => setEditingStatus(true)}
+              style={{
+                padding: '8px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                display: 'inline-block',
+                border: '1px solid transparent',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.backgroundColor = '#f8fafc';
+                e.currentTarget.style.border = '1px solid #e2e8f0';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.border = '1px solid transparent';
+              }}
+            >
               <span
                 style={{
                   padding: '4px 12px',
                   backgroundColor:
                     task.status === 'COMPLETED'
-                      ? '#d4edda'
+                      ? '#dcfce7'
                       : task.status === 'IN_PROGRESS'
-                        ? '#cce5ff'
+                        ? '#dbeafe'
                         : task.status === 'BLOCKED'
-                          ? '#f8d7da'
-                          : '#e2e3e5',
+                          ? '#fee2e2'
+                          : '#f3f4f6',
                   color:
                     task.status === 'COMPLETED'
-                      ? '#155724'
+                      ? '#166534'
                       : task.status === 'IN_PROGRESS'
-                        ? '#004085'
+                        ? '#1e40af'
                         : task.status === 'BLOCKED'
-                          ? '#721c24'
-                          : '#383d41',
+                          ? '#dc2626'
+                          : '#6b7280',
                   borderRadius: '4px',
                   fontSize: '0.875rem',
                   fontWeight: '500',
@@ -849,20 +1067,6 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
               >
                 {task.status.replace('_', ' ')}
               </span>
-              <button
-                data-testid='status-edit-button'
-                onClick={() => setEditingStatus(true)}
-                style={{
-                  marginLeft: '8px',
-                  padding: '2px 6px',
-                  backgroundColor: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: '12px',
-                }}
-              >
-                ✏️
-              </button>
             </div>
           )}
         </div>
@@ -881,6 +1085,7 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
           {editingPriority ? (
             <div>
               <input
+                data-testid='task-priority-input'
                 type='number'
                 min='1'
                 max='10'
@@ -892,57 +1097,82 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
                   border: '2px solid #4a90e2',
                   borderRadius: '4px',
                 }}
+                autoFocus
               />
-              <div style={{ marginTop: '4px' }}>
+              <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
                 <button
                   onClick={handleUpdatePriority}
                   style={{
-                    padding: '4px 8px',
+                    padding: '6px 12px',
                     backgroundColor: '#28a745',
                     color: 'white',
                     border: 'none',
                     borderRadius: '4px',
-                    marginRight: '4px',
                     cursor: 'pointer',
-                    fontSize: '11px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    fontSize: '12px',
                   }}
                 >
-                  Save
+                  ✓ Save
                 </button>
                 <button
                   onClick={() => setEditingPriority(false)}
                   style={{
-                    padding: '4px 8px',
+                    padding: '6px 12px',
                     backgroundColor: '#6c757d',
                     color: 'white',
                     border: 'none',
                     borderRadius: '4px',
                     cursor: 'pointer',
-                    fontSize: '11px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    fontSize: '12px',
                   }}
                 >
-                  Cancel
+                  ✗ Cancel
                 </button>
               </div>
             </div>
           ) : (
-            <div>
+            <div
+              data-testid='task-priority-display'
+              onClick={() => setEditingPriority(true)}
+              style={{
+                padding: '8px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                display: 'inline-block',
+                border: '1px solid transparent',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.backgroundColor = '#f8fafc';
+                e.currentTarget.style.border = '1px solid #e2e8f0';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.border = '1px solid transparent';
+              }}
+            >
               <span
                 data-testid='priority-value'
                 style={{
                   padding: '4px 12px',
                   backgroundColor:
                     task.priorityBucket >= 8
-                      ? '#f8d7da'
-                      : task.priorityBucket >= 5
-                        ? '#fff3cd'
-                        : '#d4edda',
+                      ? '#fee2e2'
+                      : task.priorityBucket >= 4
+                        ? '#fef3c7'
+                        : '#dcfce7',
                   color:
                     task.priorityBucket >= 8
-                      ? '#721c24'
-                      : task.priorityBucket >= 5
-                        ? '#856404'
-                        : '#155724',
+                      ? '#dc2626'
+                      : task.priorityBucket >= 4
+                        ? '#d97706'
+                        : '#166534',
                   borderRadius: '4px',
                   fontSize: '0.875rem',
                   fontWeight: '500',
@@ -950,20 +1180,6 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
               >
                 {task.priorityBucket}
               </span>
-              <button
-                data-testid='priority-edit-button'
-                onClick={() => setEditingPriority(true)}
-                style={{
-                  marginLeft: '8px',
-                  padding: '2px 6px',
-                  backgroundColor: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: '12px',
-                }}
-              >
-                ✏️
-              </button>
             </div>
           )}
         </div>
@@ -992,58 +1208,80 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
                   border: '2px solid #4a90e2',
                   borderRadius: '4px',
                 }}
+                autoFocus
               />
-              <div style={{ marginTop: '4px' }}>
+              <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
                 <button
                   onClick={handleUpdateDeadline}
                   style={{
-                    padding: '4px 8px',
+                    padding: '6px 12px',
                     backgroundColor: '#28a745',
                     color: 'white',
                     border: 'none',
                     borderRadius: '4px',
-                    marginRight: '4px',
                     cursor: 'pointer',
-                    fontSize: '11px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    fontSize: '12px',
                   }}
                 >
-                  Save
+                  ✓ Save
                 </button>
                 <button
                   onClick={() => setEditingDeadline(false)}
                   style={{
-                    padding: '4px 8px',
+                    padding: '6px 12px',
                     backgroundColor: '#6c757d',
                     color: 'white',
                     border: 'none',
                     borderRadius: '4px',
                     cursor: 'pointer',
-                    fontSize: '11px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    fontSize: '12px',
                   }}
                 >
-                  Cancel
+                  ✗ Cancel
                 </button>
               </div>
             </div>
           ) : (
-            <div>
-              <span style={{ fontSize: '0.875rem', color: '#4a5568' }}>
-                {new Date(task.dueDate).toLocaleDateString()}
-              </span>
-              <button
-                data-testid='deadline-edit-button'
-                onClick={() => setEditingDeadline(true)}
+            <div
+              data-testid='task-deadline-display'
+              onClick={() => setEditingDeadline(true)}
+              style={{
+                padding: '8px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                display: 'inline-block',
+                border: '1px solid transparent',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.backgroundColor = '#f8fafc';
+                e.currentTarget.style.border = '1px solid #e2e8f0';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.border = '1px solid transparent';
+              }}
+            >
+              <span
                 style={{
-                  marginLeft: '8px',
-                  padding: '2px 6px',
-                  backgroundColor: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: '12px',
+                  fontSize: '0.875rem',
+                  color:
+                    new Date(task.dueDate) < new Date() ? '#dc2626' : '#6b7280',
+                  backgroundColor:
+                    new Date(task.dueDate) < new Date() ? '#fee2e2' : '#f3f4f6',
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                  fontWeight: '500',
                 }}
               >
-                ✏️
-              </button>
+                {new Date(task.dueDate).toLocaleDateString()}
+              </span>
             </div>
           )}
         </div>
@@ -1058,35 +1296,15 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
           borderRadius: '8px',
         }}
       >
-        <div
+        <h3
           style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '8px',
+            fontSize: '0.875rem',
+            fontWeight: '600',
+            margin: '0 0 8px 0',
           }}
         >
-          <h3 style={{ fontSize: '0.875rem', fontWeight: '600', margin: 0 }}>
-            🔄 Recurring Settings
-          </h3>
-          {!editingRecurring && (
-            <button
-              data-testid='recurring-edit-button'
-              onClick={() => setEditingRecurring(true)}
-              style={{
-                padding: '4px 8px',
-                backgroundColor: '#0284c7',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '12px',
-              }}
-            >
-              ✏️ Edit
-            </button>
-          )}
-        </div>
+          🔄 Recurring Settings
+        </h3>
         {editingRecurring ? (
           <div>
             <label style={{ display: 'block', marginBottom: '8px' }}>
@@ -1126,42 +1344,72 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
                 />
               </div>
             )}
-            <button
-              onClick={handleUpdateRecurring}
-              style={{
-                padding: '6px 12px',
-                backgroundColor: '#28a745',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                marginRight: '8px',
-                cursor: 'pointer',
-              }}
-            >
-              Save
-            </button>
-            <button
-              onClick={() => setEditingRecurring(false)}
-              style={{
-                padding: '6px 12px',
-                backgroundColor: '#6c757d',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-              }}
-            >
-              Cancel
-            </button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={handleUpdateRecurring}
+                style={{
+                  padding: '6px 12px',
+                  backgroundColor: '#28a745',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                ✓ Save
+              </button>
+              <button
+                onClick={() => setEditingRecurring(false)}
+                style={{
+                  padding: '6px 12px',
+                  backgroundColor: '#6c757d',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                ✗ Cancel
+              </button>
+            </div>
           </div>
         ) : (
-          <div style={{ fontSize: '0.875rem', color: '#0369a1' }}>
-            {task.isRecurring
-              ? `✅ Enabled (every ${task.recurringInterval} days)`
-              : '❌ Not recurring'}
+          <div
+            data-testid='task-recurring-display'
+            onClick={() => setEditingRecurring(true)}
+            style={{
+              padding: '8px',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              border: '1px solid transparent',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.backgroundColor = '#e0f2fe';
+              e.currentTarget.style.border = '1px solid #bae6fd';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.border = '1px solid transparent';
+            }}
+          >
+            <div style={{ fontSize: '0.875rem', color: '#0369a1' }}>
+              {task.isRecurring
+                ? `✅ Enabled (every ${task.recurringInterval} days)`
+                : '❌ Not recurring'}
+            </div>
           </div>
         )}
       </div>
+
+      {/* Connected Tasks */}
+      <ConnectedTasks taskId={taskId} onTaskClick={onTaskChange} />
 
       {/* Assignees - AC7 (TM015: can add but NOT remove) */}
       <div
@@ -1199,22 +1447,39 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
             >
               {task.assignments.map(userId => {
                 const userDetails = userDetailsMap.get(userId);
+                const isOwner = userId === task.ownerId;
                 return (
                   <div
                     key={userId}
                     style={{
                       padding: '6px 10px',
-                      backgroundColor: '#dcfce7',
+                      backgroundColor: isOwner ? '#fef3c7' : '#dcfce7',
                       borderRadius: '4px',
                       fontSize: '0.875rem',
-                      color: '#166534',
+                      color: isOwner ? '#92400e' : '#166534',
+                      border: isOwner ? '1px solid #f59e0b' : 'none',
                     }}
                   >
                     <span>
-                      👤{' '}
+                      {isOwner ? '👑' : '👤'}{' '}
                       {userDetails
                         ? `${userDetails.name} (${userDetails.email})`
-                        : 'Loading...'}
+                        : `User ${userId.slice(0, 8)}...`}
+                      {isOwner && (
+                        <span
+                          style={{
+                            marginLeft: '8px',
+                            padding: '2px 6px',
+                            backgroundColor: '#f59e0b',
+                            color: 'white',
+                            borderRadius: '3px',
+                            fontSize: '11px',
+                            fontWeight: '600',
+                          }}
+                        >
+                          OWNER
+                        </span>
+                      )}
                     </span>
                   </div>
                 );
@@ -1327,6 +1592,7 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
             >
               {tag}
               <button
+                data-testid={`remove-tag-${tag}`}
                 onClick={() => handleRemoveTag(tag)}
                 style={{
                   background: 'none',
@@ -1344,6 +1610,7 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
           <input
+            data-testid='tag-input'
             type='text'
             value={newTag}
             onChange={e => setNewTag(e.target.value)}
@@ -1356,6 +1623,7 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
             }}
           />
           <button
+            data-testid='add-tag-button'
             onClick={handleAddTag}
             style={{
               padding: '6px 12px',
@@ -1408,6 +1676,7 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
           </label>
           <input
             id={`file-input-${taskId}`}
+            data-testid='file-input'
             type='file'
             onChange={handleFileSelect}
             disabled={uploading}
@@ -1416,6 +1685,7 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
           />
           {selectedFile && (
             <button
+              data-testid='upload-button'
               onClick={handleUpload}
               disabled={uploading}
               style={{
@@ -1590,170 +1860,310 @@ export function TaskEditCard({ taskId }: { taskId: string }) {
         )}
       </div>
 
-      {/* Comments */}
+      {/* Comments and History Tabs */}
       <div>
-        <h3
+        {/* Tab Navigation */}
+        <div
           style={{
-            fontSize: '0.875rem',
-            fontWeight: '600',
-            marginBottom: '12px',
+            display: 'flex',
+            borderBottom: '2px solid #e5e7eb',
+            marginBottom: '1rem',
           }}
         >
-          💬 Comments ({task.comments.length})
-        </h3>
-
-        {/* Comments List */}
-        <div style={{ marginBottom: '1rem' }}>
-          {task.comments.length === 0 ? (
-            <p style={{ fontSize: '0.875rem', color: '#666' }}>
-              No comments yet.
-            </p>
-          ) : (
-            <div
-              style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
-            >
-              {task.comments.map(comment => (
-                <div
-                  key={comment.id}
-                  style={{
-                    padding: '12px',
-                    backgroundColor: '#f9fafb',
-                    borderRadius: '8px',
-                    border: '1px solid #e5e7eb',
-                  }}
-                >
-                  {editingCommentId === comment.id ? (
-                    <div>
-                      <textarea
-                        value={editCommentValue}
-                        onChange={e => setEditCommentValue(e.target.value)}
-                        rows={3}
-                        style={{
-                          width: '100%',
-                          padding: '8px',
-                          border: '2px solid #4a90e2',
-                          borderRadius: '4px',
-                          fontFamily: 'inherit',
-                          marginBottom: '8px',
-                        }}
-                      />
-                      <button
-                        data-testid={`comment-save-button-${comment.id}`}
-                        onClick={() => handleUpdateComment(comment.id)}
-                        style={{
-                          padding: '4px 8px',
-                          backgroundColor: '#28a745',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '4px',
-                          marginRight: '8px',
-                          cursor: 'pointer',
-                          fontSize: '12px',
-                        }}
-                      >
-                        Save
-                      </button>
-                      <button
-                        onClick={() => {
-                          setEditingCommentId(null);
-                          setEditCommentValue('');
-                        }}
-                        style={{
-                          padding: '4px 8px',
-                          backgroundColor: '#6c757d',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          fontSize: '12px',
-                        }}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  ) : (
-                    <div>
-                      <div
-                        style={{
-                          fontSize: '0.875rem',
-                          color: '#1f2937',
-                          whiteSpace: 'pre-wrap',
-                        }}
-                      >
-                        {comment.content}
-                      </div>
-                      <div
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          marginTop: '8px',
-                        }}
-                      >
-                        <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                          {new Date(comment.createdAt).toLocaleString()}
-                          {comment.updatedAt !== comment.createdAt &&
-                            ' (edited)'}
-                        </div>
-                        {comment.authorId === userProfile.id && (
-                          <button
-                            data-testid={`comment-edit-button-${comment.id}`}
-                            onClick={() => {
-                              setEditingCommentId(comment.id);
-                              setEditCommentValue(comment.content);
-                            }}
-                            style={{
-                              padding: '2px 6px',
-                              backgroundColor: '#e3f2fd',
-                              color: '#1976d2',
-                              border: '1px solid #1976d2',
-                              borderRadius: '4px',
-                              cursor: 'pointer',
-                              fontSize: '11px',
-                            }}
-                          >
-                            ✏️ Edit
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Add Comment */}
-        <div>
-          <textarea
-            value={newComment}
-            onChange={e => setNewComment(e.target.value)}
-            placeholder='Add a comment...'
-            rows={3}
-            style={{
-              width: '100%',
-              padding: '8px',
-              border: '1px solid #cbd5e0',
-              borderRadius: '4px',
-              fontFamily: 'inherit',
-              marginBottom: '8px',
-            }}
-          />
           <button
-            onClick={handleAddComment}
+            onClick={() => setActiveTab('comments')}
             style={{
-              padding: '8px 16px',
-              backgroundColor: '#1976d2',
-              color: 'white',
+              padding: '12px 24px',
+              backgroundColor:
+                activeTab === 'comments' ? '#3b82f6' : 'transparent',
+              color: activeTab === 'comments' ? 'white' : '#6b7280',
               border: 'none',
-              borderRadius: '4px',
+              borderTopLeftRadius: '8px',
+              borderTopRightRadius: '8px',
               cursor: 'pointer',
+              fontSize: '0.875rem',
+              fontWeight: '600',
+              transition: 'all 0.2s ease',
             }}
           >
-            Add Comment
+            💬 Comments ({task.comments.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('history')}
+            style={{
+              padding: '12px 24px',
+              backgroundColor:
+                activeTab === 'history' ? '#3b82f6' : 'transparent',
+              color: activeTab === 'history' ? 'white' : '#6b7280',
+              border: 'none',
+              borderTopLeftRadius: '8px',
+              borderTopRightRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '0.875rem',
+              fontWeight: '600',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            📋 History ({taskLogs.length})
           </button>
         </div>
+
+        {/* Tab Content */}
+        {activeTab === 'comments' && (
+          <div>
+            <h3
+              style={{
+                fontSize: '0.875rem',
+                fontWeight: '600',
+                marginBottom: '12px',
+              }}
+            >
+              💬 Comments ({task.comments.length})
+            </h3>
+
+            {/* Comments List */}
+            <div style={{ marginBottom: '1rem' }}>
+              {task.comments.length === 0 ? (
+                <p style={{ fontSize: '0.875rem', color: '#666' }}>
+                  No comments yet.
+                </p>
+              ) : (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                  }}
+                >
+                  {task.comments.map(comment => (
+                    <div
+                      key={comment.id}
+                      style={{
+                        padding: '12px',
+                        backgroundColor: '#f9fafb',
+                        borderRadius: '8px',
+                        border: '1px solid #e5e7eb',
+                      }}
+                    >
+                      {editingCommentId === comment.id ? (
+                        <div>
+                          <textarea
+                            value={editCommentValue}
+                            onChange={e => setEditCommentValue(e.target.value)}
+                            rows={3}
+                            style={{
+                              width: '100%',
+                              padding: '8px',
+                              border: '2px solid #4a90e2',
+                              borderRadius: '4px',
+                              fontFamily: 'inherit',
+                              marginBottom: '8px',
+                            }}
+                            autoFocus
+                          />
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button
+                              data-testid={`comment-save-button-${comment.id}`}
+                              onClick={() => handleUpdateComment(comment.id)}
+                              style={{
+                                padding: '6px 12px',
+                                backgroundColor: '#28a745',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                fontSize: '12px',
+                              }}
+                            >
+                              ✓ Save
+                            </button>
+                            <button
+                              onClick={() => {
+                                setEditingCommentId(null);
+                                setEditCommentValue('');
+                              }}
+                              style={{
+                                padding: '6px 12px',
+                                backgroundColor: '#6c757d',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                fontSize: '12px',
+                              }}
+                            >
+                              ✗ Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          {/* Header with user name and edit button */}
+                          <div
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'flex-start',
+                              marginBottom: '0px',
+                            }}
+                          >
+                            {/* User name */}
+                            <div
+                              style={{
+                                fontSize: '0.875rem',
+                                fontWeight: '800',
+                                color: '#1f2937',
+                              }}
+                            >
+                              {userDetailsMap.get(comment.authorId)?.name ||
+                                'Unknown User'}
+                            </div>
+
+                            {/* Edit button for comment author */}
+                            {comment.authorId === userProfile.id && (
+                              <div
+                                data-testid={`comment-edit-button-${comment.id}`}
+                                onClick={() => {
+                                  setEditingCommentId(comment.id);
+                                  setEditCommentValue(comment.content);
+                                }}
+                                style={{
+                                  padding: '4px 8px',
+                                  backgroundColor: 'transparent',
+                                  border: '1px solid #e5e7eb',
+                                  borderRadius: '4px',
+                                  cursor: 'pointer',
+                                  fontSize: '11px',
+                                  transition: 'all 0.2s ease',
+                                  display: 'inline-block',
+                                }}
+                                onMouseEnter={e => {
+                                  e.currentTarget.style.backgroundColor =
+                                    '#f3f4f6';
+                                  e.currentTarget.style.border =
+                                    '1px solid #d1d5db';
+                                }}
+                                onMouseLeave={e => {
+                                  e.currentTarget.style.backgroundColor =
+                                    'transparent';
+                                  e.currentTarget.style.border =
+                                    '1px solid #e5e7eb';
+                                }}
+                              >
+                                ✏️ Edit
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Date and time stamp */}
+                          <div
+                            style={{
+                              fontSize: '8px',
+                              color: '#6b7280',
+                              marginBottom: '15px',
+                            }}
+                          >
+                            {new Date(comment.createdAt).toLocaleString()}
+                            {comment.updatedAt !== comment.createdAt &&
+                              ' (edited)'}
+                          </div>
+
+                          {/* Comment content */}
+                          <div
+                            style={{
+                              fontSize: '0.875rem',
+                              color: '#1f2937',
+                              whiteSpace: 'pre-wrap',
+                              marginBottom: '8px',
+                            }}
+                          >
+                            {comment.content}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Add Comment */}
+            <div>
+              <textarea
+                data-testid='comment-input'
+                value={newComment}
+                onChange={e => setNewComment(e.target.value)}
+                placeholder='Add a comment...'
+                rows={3}
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #cbd5e0',
+                  borderRadius: '4px',
+                  fontFamily: 'inherit',
+                  marginBottom: '8px',
+                }}
+              />
+              <button
+                data-testid='add-comment-button'
+                onClick={handleAddComment}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#1976d2',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                }}
+              >
+                Add Comment
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* History Tab Content */}
+        {activeTab === 'history' && (
+          <div>
+            <h3
+              style={{
+                fontSize: '0.875rem',
+                fontWeight: '600',
+                marginBottom: '12px',
+              }}
+            >
+              📋 Task History ({taskLogs.length})
+            </h3>
+
+            {loadingLogs ? (
+              <p style={{ fontSize: '0.875rem', color: '#666' }}>
+                Loading history...
+              </p>
+            ) : taskLogs.length === 0 ? (
+              <p style={{ fontSize: '0.875rem', color: '#666' }}>
+                No history available.
+              </p>
+            ) : (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                }}
+              >
+                {taskLogs.map(log => (
+                  <LogItem key={log.id} log={log} />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

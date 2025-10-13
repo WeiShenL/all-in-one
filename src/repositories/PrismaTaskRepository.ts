@@ -542,7 +542,12 @@ export class PrismaTaskRepository implements ITaskRepository {
     taskId: string,
     userId: string,
     action: string,
-    metadata?: Record<string, string | number | boolean | null>
+    field: string,
+    data?: {
+      changes?: any;
+      metadata?: any;
+      [key: string]: any;
+    }
   ): Promise<void> {
     await this.prisma.taskLog.create({
       data: {
@@ -551,15 +556,13 @@ export class PrismaTaskRepository implements ITaskRepository {
         action: action as
           | 'CREATED'
           | 'UPDATED'
-          | 'STATUS_CHANGED'
-          | 'COMMENT_ADDED'
-          | 'FILE_UPLOADED'
-          | 'ASSIGNMENT_CHANGED'
-          | 'DESCRIPTION_CHANGED'
           | 'ARCHIVED'
+          | 'UNARCHIVED'
           | 'DELETED'
-          | 'RECURRING_TASK_GENERATED', // All 10 LogAction enum values from schema
-        metadata: metadata || {},
+          | 'RECURRING_TASK_GENERATED', // All 6 LogAction enum values from schema
+        field,
+        changes: data?.changes || null,
+        metadata: data?.metadata || {},
       },
     });
   }
@@ -1222,6 +1225,8 @@ export class PrismaTaskRepository implements ITaskRepository {
           id: true,
           title: true,
           status: true,
+          priority: true,
+          dueDate: true,
           parentTaskId: true,
         },
       });
@@ -1339,5 +1344,58 @@ export class PrismaTaskRepository implements ITaskRepository {
         parentId: true,
       },
     });
+  }
+
+  /**
+   * Get task logs for a specific task
+   */
+  async getTaskLogs(taskId: string): Promise<
+    Array<{
+      id: string;
+      taskId: string;
+      userId: string;
+      action: string;
+      field: string;
+      changes: any;
+      metadata: any;
+      timestamp: Date;
+      user: {
+        id: string;
+        name: string;
+        email: string;
+      };
+    }>
+  > {
+    const logs = await this.prisma.taskLog.findMany({
+      where: { taskId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: {
+        timestamp: 'desc',
+      },
+    });
+
+    return logs.map(log => ({
+      id: log.id,
+      taskId: log.taskId,
+      userId: log.userId,
+      action: log.action,
+      field: log.field,
+      changes: log.changes,
+      metadata: log.metadata,
+      timestamp: log.timestamp,
+      user: {
+        id: log.user.id,
+        name: log.user.name || 'Unknown User',
+        email: log.user.email,
+      },
+    }));
   }
 }

@@ -2,7 +2,7 @@
 
 import { trpc } from '../lib/trpc';
 import { useMemo, useState, useEffect, useRef } from 'react';
-import { TaskEditCard } from './TaskEditCard';
+import { TaskCard } from './TaskCard';
 import departmentData from '@/../prisma/data/1_departments.json';
 
 // --- TYPE DEFINITIONS ---
@@ -612,7 +612,10 @@ export function ManagerDashboard() {
             >
               ×
             </button>
-            <TaskEditCard taskId={editingTaskId} />
+            <TaskCard
+              taskId={editingTaskId}
+              onTaskChange={newTaskId => setEditingTaskId(newTaskId)}
+            />
           </div>
         </div>
       )}
