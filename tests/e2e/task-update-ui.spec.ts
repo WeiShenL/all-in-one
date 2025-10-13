@@ -574,11 +574,9 @@ test.describe('Task Update - Complete UI Flow', () => {
     // Wait a bit for the field to be ready
     await page.waitForTimeout(2000);
 
-    // Type comment slowly
+    // Fill comment in one go
     await commentInput.clear();
-    await commentInput.type('This is my first e2e test comment', {
-      delay: 1000,
-    });
+    await commentInput.fill('This is my first e2e test comment');
 
     // Wait and click add button
     await page.waitForTimeout(500);
@@ -623,25 +621,30 @@ test.describe('Task Update - Complete UI Flow', () => {
     // Click edit button
     await editButton.click();
 
-    // Wait for the textarea to appear after clicking edit
-    const textarea = page.getByRole('textbox').first();
+    // Wait for the textarea to appear after clicking edit (scope to the edited comment's container)
+    const scopedSaveButton = page
+      .locator('button[data-testid^="comment-save-button-"]')
+      .first();
+    await expect(scopedSaveButton).toBeVisible({ timeout: 65000 });
+
+    const editedCommentContainer = scopedSaveButton.locator('..').locator('..');
+    const textarea = editedCommentContainer.locator('textarea');
+    await textarea.scrollIntoViewIfNeeded();
     await expect(textarea).toBeVisible({ timeout: 65000 });
+    await textarea.click();
 
     // Wait a bit for the field to be ready
     await page.waitForTimeout(1000);
 
-    // Clear and type new comment slowly
+    // Clear and fill new comment
     await textarea.clear();
-    await textarea.type('This is my EDITED e2e test comment', { delay: 500 });
+    await textarea.fill('This is my EDITED e2e test comment');
 
     // Wait a bit to ensure the text is registered
     await page.waitForTimeout(1000);
 
-    // Click Save button using data-testid (page-level since we only have 1 comment)
-    const saveButton = page
-      .locator('button[data-testid^="comment-save-button-"]')
-      .first();
-    await saveButton.click();
+    // Click Save button for the edited comment
+    await scopedSaveButton.click();
 
     // Verify success message
     await expect(page.getByText(/comment updated/i)).toBeVisible({
