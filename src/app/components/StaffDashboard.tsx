@@ -619,7 +619,11 @@ const TaskRow = ({
           {departmentData.find(d => d.id === task.departmentId)?.name || 'N/A'}
         </td>
         <td style={styles.td}>
-          <button onClick={() => onEditTask(task.id)} style={styles.button}>
+          <button
+            data-testid={`edit-task-button-${task.id}`}
+            onClick={() => onEditTask(task.id)}
+            style={styles.button}
+          >
             Edit
           </button>
         </td>

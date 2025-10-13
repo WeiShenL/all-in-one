@@ -765,6 +765,7 @@ export function TaskCard({
           <div>
             <input
               type='text'
+              data-testid='task-title-input'
               value={titleValue}
               onChange={e => setTitleValue(e.target.value)}
               style={{
@@ -776,6 +777,7 @@ export function TaskCard({
                 borderRadius: '4px',
               }}
               autoFocus
+              onFocus={e => e.target.select()}
             />
             <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
               <button
@@ -814,7 +816,11 @@ export function TaskCard({
           </div>
         ) : (
           <div
-            onClick={() => setEditingTitle(true)}
+            data-testid='task-title-display'
+            onClick={() => {
+              setTitleValue(task.title);
+              setEditingTitle(true);
+            }}
             style={{
               padding: '8px',
               borderRadius: '4px',
@@ -859,6 +865,7 @@ export function TaskCard({
         {editingDescription ? (
           <div>
             <textarea
+              data-testid='task-description-input'
               value={descriptionValue}
               onChange={e => setDescriptionValue(e.target.value)}
               rows={4}
@@ -870,6 +877,7 @@ export function TaskCard({
                 fontFamily: 'inherit',
               }}
               autoFocus
+              onFocus={e => e.target.select()}
             />
             <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
               <button
@@ -908,7 +916,11 @@ export function TaskCard({
           </div>
         ) : (
           <div
-            onClick={() => setEditingDescription(true)}
+            data-testid='task-description-display'
+            onClick={() => {
+              setDescriptionValue(task.description);
+              setEditingDescription(true);
+            }}
             style={{
               padding: '8px',
               borderRadius: '4px',
@@ -955,6 +967,7 @@ export function TaskCard({
           {editingStatus ? (
             <div>
               <select
+                data-testid='task-status-select'
                 value={statusValue}
                 onChange={e => setStatusValue(e.target.value as Task['status'])}
                 style={{
@@ -1009,6 +1022,7 @@ export function TaskCard({
             </div>
           ) : (
             <div
+              data-testid='task-status-display'
               onClick={() => setEditingStatus(true)}
               style={{
                 padding: '8px',
@@ -1071,6 +1085,7 @@ export function TaskCard({
           {editingPriority ? (
             <div>
               <input
+                data-testid='task-priority-input'
                 type='number'
                 min='1'
                 max='10'
@@ -1123,6 +1138,7 @@ export function TaskCard({
             </div>
           ) : (
             <div
+              data-testid='task-priority-display'
               onClick={() => setEditingPriority(true)}
               style={{
                 padding: '8px',
@@ -1233,6 +1249,7 @@ export function TaskCard({
             </div>
           ) : (
             <div
+              data-testid='task-deadline-display'
               onClick={() => setEditingDeadline(true)}
               style={{
                 padding: '8px',
@@ -1364,6 +1381,7 @@ export function TaskCard({
           </div>
         ) : (
           <div
+            data-testid='task-recurring-display'
             onClick={() => setEditingRecurring(true)}
             style={{
               padding: '8px',
@@ -1574,6 +1592,7 @@ export function TaskCard({
             >
               {tag}
               <button
+                data-testid={`remove-tag-${tag}`}
                 onClick={() => handleRemoveTag(tag)}
                 style={{
                   background: 'none',
@@ -1591,6 +1610,7 @@ export function TaskCard({
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
           <input
+            data-testid='tag-input'
             type='text'
             value={newTag}
             onChange={e => setNewTag(e.target.value)}
@@ -1603,6 +1623,7 @@ export function TaskCard({
             }}
           />
           <button
+            data-testid='add-tag-button'
             onClick={handleAddTag}
             style={{
               padding: '6px 12px',
@@ -1655,6 +1676,7 @@ export function TaskCard({
           </label>
           <input
             id={`file-input-${taskId}`}
+            data-testid='file-input'
             type='file'
             onChange={handleFileSelect}
             disabled={uploading}
@@ -1663,6 +1685,7 @@ export function TaskCard({
           />
           {selectedFile && (
             <button
+              data-testid='upload-button'
               onClick={handleUpload}
               disabled={uploading}
               style={{
@@ -2005,6 +2028,7 @@ export function TaskCard({
                             {/* Edit button for comment author */}
                             {comment.authorId === userProfile.id && (
                               <div
+                                data-testid={`comment-edit-button-${comment.id}`}
                                 onClick={() => {
                                   setEditingCommentId(comment.id);
                                   setEditCommentValue(comment.content);
@@ -2072,6 +2096,7 @@ export function TaskCard({
             {/* Add Comment */}
             <div>
               <textarea
+                data-testid='comment-input'
                 value={newComment}
                 onChange={e => setNewComment(e.target.value)}
                 placeholder='Add a comment...'
@@ -2086,6 +2111,7 @@ export function TaskCard({
                 }}
               />
               <button
+                data-testid='add-comment-button'
                 onClick={handleAddComment}
                 style={{
                   padding: '8px 16px',
