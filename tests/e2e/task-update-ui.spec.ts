@@ -457,9 +457,9 @@ test.describe('Task Update - Complete UI Flow', () => {
     // Wait a bit for the field to be ready
     await page.waitForTimeout(2000);
 
-    // Type first tag slowly
+    // Fill first tag
     await tagInput.clear();
-    await tagInput.type('e2e-test-tag-urgent', { delay: 50 });
+    await tagInput.fill('e2e-test-tag-urgent');
 
     // Wait and click add button
     await page.waitForTimeout(500);
@@ -480,7 +480,7 @@ test.describe('Task Update - Complete UI Flow', () => {
     // Add second tag - wait for input to be ready again
     await page.waitForTimeout(2000);
     await tagInput.clear();
-    await tagInput.type('e2e-test-tag-frontend', { delay: 50 });
+    await tagInput.fill('e2e-test-tag-frontend');
     await page.waitForTimeout(2000);
     await addTagButton.click();
     await expect(page.getByText(/tag added/i)).toBeVisible({
@@ -806,8 +806,14 @@ startxref
     // Click Upload button
     await page.getByRole('button', { name: /⬆️ Upload|upload/i }).click();
 
-    // Verify upload progress or success message (AC9) - increased timeout for slow CI/CD
-    await expect(page.getByText(/file.*uploaded|uploading/i)).toBeVisible({
+    // Verify upload progress via button state, then success toast with filename (AC9)
+    await expect(page.getByTestId('upload-button')).toHaveText(/Uploading/i, {
+      timeout: 65000,
+    });
+
+    await expect(
+      page.getByText(/File "test-file-e2e\.pdf" uploaded/i)
+    ).toBeVisible({
       timeout: 65000,
     });
 
@@ -839,9 +845,10 @@ startxref
     // Scroll to file attachments section
     await page.getByText(/📎 File Attachments/).scrollIntoViewIfNeeded();
 
-    // Verify the file exists in the list (longer timeout for CI/CD as it depends on previous test)
+    // Verify the file exists in the list and exact name is visible
     const fileEntry = page.getByTestId('file-entry-test-file-e2e.pdf');
-    await expect(fileEntry).toBeVisible({
+    await expect(fileEntry).toBeVisible({ timeout: 65000 });
+    await expect(page.getByText('test-file-e2e.pdf')).toBeVisible({
       timeout: 65000,
     });
 
@@ -886,8 +893,10 @@ startxref
 
     await deleteButton.click();
 
-    // Verify success message (AC9) - increased timeout for slow CI/CD
-    await expect(page.getByText(/file.*deleted/i)).toBeVisible({
+    // Verify exact success message with filename (AC9)
+    await expect(
+      page.getByText(/File "test-file-e2e\.pdf" deleted/i)
+    ).toBeVisible({
       timeout: 65000,
     });
 
