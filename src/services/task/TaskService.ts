@@ -214,6 +214,27 @@ export class TaskService {
         user.departmentId,
         taskData.departmentId
       );
+
+      // If not accessible via task's department, check if any assignees are in manager's hierarchy
+      if (!isManagerWithAccess && taskData.assignments.length > 0) {
+        const assigneeIds = taskData.assignments.map(a => a.userId);
+        const assignees =
+          await this.taskRepository.getUserDepartments(assigneeIds);
+
+        // Check if any assignee's department is in manager's hierarchy
+        for (const assignee of assignees) {
+          if (assignee.departmentId) {
+            const canAccess = await this.canManagerAccessDepartment(
+              user.departmentId,
+              assignee.departmentId
+            );
+            if (canAccess) {
+              isManagerWithAccess = true;
+              break;
+            }
+          }
+        }
+      }
     }
 
     if (!isOwner && !isAssigned && !isManagerWithAccess) {
@@ -839,7 +860,7 @@ export class TaskService {
       throw new Error('Assignee is inactive');
     }
 
-    task.addAssignee(newUserId, user.userId);
+    task.addAssignee(newUserId, user.userId, user.role);
 
     // Persist assignment
     await this.taskRepository.addTaskAssignment(taskId, newUserId, user.userId);

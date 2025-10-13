@@ -356,11 +356,19 @@ export class Task {
   /**
    * Add an assignment to the task
    * AC: Assigned Staff member can add assignments, max 5 only (TM023)
+   * AC: Manager can add assignments to accessible tasks (SCRUM-15)
    * Note: Cannot remove assignments per TM015
    */
-  addAssignee(newUserId: string, actorId: string): void {
-    // 1. Check actor is assigned (authorization)
-    if (!this.isUserAssigned(actorId)) {
+  addAssignee(
+    newUserId: string,
+    actorId: string,
+    actorRole?: 'STAFF' | 'MANAGER' | 'HR_ADMIN'
+  ): void {
+    // 1. Check actor authorization
+    // - Staff: must be assigned to the task
+    // - Manager: can add to accessible tasks (authorization checked at service layer)
+    const isManager = actorRole === 'MANAGER';
+    if (!isManager && !this.isUserAssigned(actorId)) {
       throw new UnauthorizedError();
     }
 

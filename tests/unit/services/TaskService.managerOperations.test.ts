@@ -61,6 +61,7 @@ describe('TaskService - Manager Operations (SCRUM-15)', () => {
       logTaskAction: jest.fn(),
       createComment: jest.fn(),
       updateTask: jest.fn(),
+      getUserDepartments: jest.fn(),
     } as any;
 
     // Create mock Prisma
@@ -174,11 +175,16 @@ describe('TaskService - Manager Operations (SCRUM-15)', () => {
 
       mockTaskRepository.getTaskByIdFull.mockResolvedValue(taskData as any);
 
+      // Mock: Return department info for assignees
+      mockTaskRepository.getUserDepartments.mockResolvedValue([
+        { userId: 'staff-sales-region1', departmentId: 'dept-sales-region1' },
+      ]);
+
       // Mock: Check if staff-sales-region1 is in manager's hierarchy
       // Manager (dept-sales) -> Sales-Region1 (subordinate)
       jest
         .spyOn(taskService as any, 'canManagerAccessDepartment')
-        .mockImplementation(async (managerDept: string, targetDept: string) => {
+        .mockImplementation(async (managerDept, targetDept) => {
           // Mock the hierarchy check for the assignee's department
           if (
             managerDept === 'dept-sales' &&
@@ -251,6 +257,11 @@ describe('TaskService - Manager Operations (SCRUM-15)', () => {
 
       mockTaskRepository.getTaskByIdFull.mockResolvedValue(taskData as any);
 
+      // Mock: Return department info for assignees
+      mockTaskRepository.getUserDepartments.mockResolvedValue([
+        { userId: 'staff-in-sales', departmentId: 'dept-sales' },
+      ]);
+
       // Mock hierarchy check: staff-in-sales is in manager's department
       jest
         .spyOn(taskService as any, 'canManagerAccessDepartment')
@@ -298,6 +309,11 @@ describe('TaskService - Manager Operations (SCRUM-15)', () => {
         comments: [],
         files: [],
       } as any);
+
+      // Mock: Return department info for assignees (from a dept manager doesn't manage)
+      mockTaskRepository.getUserDepartments.mockResolvedValue([
+        { userId: 'someone-else', departmentId: 'dept-engineering' },
+      ]);
 
       // Mock: Manager doesn't have access
       jest
