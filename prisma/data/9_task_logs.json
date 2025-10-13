@@ -4,9 +4,9 @@
     "taskId": "8cc646fb-283d-4f65-a491-9dc26006fdd9",
     "userId": "0a366524-f839-43d2-a530-9a73f2119743",
     "action": "CREATED",
+    "field": "Task",
     "changes": {
-      "status": "TO_DO",
-      "priority": "HIGH"
+      "title": "Personal task for Jack Sim"
     },
     "metadata": {
       "source": "web_ui"
@@ -17,7 +17,8 @@
     "id": "fb8bf03b-8580-48d6-80f3-fb2406fe1aa0",
     "taskId": "8cc646fb-283d-4f65-a491-9dc26006fdd9",
     "userId": "0a366524-f839-43d2-a530-9a73f2119743",
-    "action": "STATUS_CHANGED",
+    "action": "UPDATED",
+    "field": "Status",
     "changes": {
       "from": "TO_DO",
       "to": "IN_PROGRESS"
@@ -32,9 +33,9 @@
     "taskId": "902b6e75-0ba8-4ef2-95b2-b3102bf43978",
     "userId": "82aec1ad-5679-4a1d-9af7-bdd9c46b604f",
     "action": "CREATED",
+    "field": "Task",
     "changes": {
-      "status": "TO_DO",
-      "priority": "HIGH"
+      "title": "Personal task for Derek Tan"
     },
     "metadata": {
       "source": "web_ui"
@@ -46,9 +47,9 @@
     "taskId": "9fb9a14f-5bea-4415-a990-1b1c02f3ce53",
     "userId": "1f2636b6-57af-4e5e-9eab-3985620aa910",
     "action": "CREATED",
+    "field": "Task",
     "changes": {
-      "status": "TO_DO",
-      "priority": "MEDIUM"
+      "title": "Personal task for Ernst Sim"
     },
     "metadata": {
       "source": "web_ui"

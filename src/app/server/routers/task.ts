@@ -868,4 +868,17 @@ export const taskRouter = router({
       const events = await service.getCalendarEvents(input.taskId, user);
       return events;
     }),
+
+  /**
+   * Get task logs for a task
+   */
+  getTaskLogs: publicProcedure
+    .input(z.object({ taskId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const user = await getUserContext(ctx);
+      const repository = new PrismaTaskRepository(ctx.prisma);
+      const service = new TaskService(repository);
+      const logs = await service.getTaskLogs(input.taskId, user);
+      return logs;
+    }),
 });

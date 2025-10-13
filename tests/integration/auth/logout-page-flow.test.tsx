@@ -28,7 +28,15 @@ jest.mock('@/app/lib/trpc', () => {
   return {
     trpc: {
       task: {
+        getUserTasks: {
+          useQuery: jest.fn(),
+        },
         getDashboardTasks: {
+          useQuery: jest.fn(),
+        },
+      },
+      userProfile: {
+        getAll: {
           useQuery: jest.fn(),
         },
       },
@@ -62,7 +70,14 @@ describe('Logout Page Flow', () => {
       isLoggingOut: false,
     });
 
-    // Mock tRPC getDashboardTasks query with empty data
+    // Mock tRPC getUserTasks query with empty data
+    (trpc.task.getUserTasks.useQuery as jest.Mock).mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+    });
+
+    // Mock tRPC getDashboardTasks query for ManagerDashboard
     (trpc.task.getDashboardTasks.useQuery as jest.Mock).mockReturnValue({
       data: {
         tasks: [],
@@ -73,6 +88,20 @@ describe('Logout Page Flow', () => {
           blocked: 0,
         },
       },
+      isLoading: false,
+      error: null,
+    });
+
+    // Mock tRPC userProfile.getAll query for user info
+    (trpc.userProfile.getAll.useQuery as jest.Mock).mockReturnValue({
+      data: [
+        {
+          id: '123',
+          email: 'test@example.com',
+          name: 'Test User',
+          role: 'STAFF',
+        },
+      ],
       isLoading: false,
       error: null,
     });

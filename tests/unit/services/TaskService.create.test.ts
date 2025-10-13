@@ -110,10 +110,15 @@ describe('TaskService.createTask() - Service Orchestration', () => {
         'task-123',
         'creator-123',
         'CREATED',
-        expect.objectContaining({
-          title: 'Implement Login',
-          assigneeCount: 1,
-        })
+        'Task',
+        {
+          changes: {
+            title: 'Implement Login',
+          },
+          metadata: {
+            source: 'web_ui',
+          },
+        }
       );
 
       expect(result).toEqual({ id: 'task-123' });
@@ -580,7 +585,15 @@ describe('TaskService.createTask() - Service Orchestration', () => {
         'task-123',
         'creator-123',
         'CREATED',
-        expect.any(Object)
+        'Task',
+        {
+          changes: {
+            title: 'Task',
+          },
+          metadata: {
+            source: 'web_ui',
+          },
+        }
       );
     });
   });

@@ -137,18 +137,35 @@ describe('TaskService - Recurring Tasks', () => {
       expect(mockRepository.logTaskAction).toHaveBeenCalledWith(
         taskId,
         testUser.userId,
-        'STATUS_CHANGED',
-        { newStatus: TaskStatus.COMPLETED }
+        'UPDATED',
+        'Status',
+        {
+          changes: {
+            from: 'IN_PROGRESS',
+            to: TaskStatus.COMPLETED,
+          },
+          metadata: {
+            source: 'web_ui',
+          },
+        }
       );
       expect(mockRepository.logTaskAction).toHaveBeenCalledWith(
         taskId,
         testUser.userId,
         'RECURRING_TASK_GENERATED',
-        expect.objectContaining({
-          nextTaskId: expect.any(String),
-          nextDueDate: expect.any(String),
-          sourceTaskId: expect.any(String),
-        })
+        'recurring',
+        {
+          changes: {
+            from: null,
+            to: expect.any(String),
+          },
+          metadata: {
+            source: 'web_ui',
+            nextTaskId: expect.any(String),
+            nextDueDate: expect.any(String),
+            sourceTaskId: expect.any(String),
+          },
+        }
       );
     });
 

@@ -117,8 +117,19 @@ describe('TaskService - File Operations', () => {
       expect(mockRepository.logTaskAction).toHaveBeenCalledWith(
         'task-123',
         mockUser.userId,
-        'FILE_UPLOADED',
-        expect.objectContaining({ fileName })
+        'CREATED',
+        'File',
+        {
+          changes: {
+            added: fileName,
+          },
+          metadata: {
+            source: 'web_ui',
+            fileName,
+            fileSize: fileBuffer.length,
+            fileId: mockFile.id,
+          },
+        }
       );
       expect(result).toEqual(mockFile);
     });
@@ -314,8 +325,20 @@ describe('TaskService - File Operations', () => {
       expect(mockRepository.logTaskAction).toHaveBeenCalledWith(
         'task-123',
         mockUser.userId,
-        'FILE_UPLOADED',
-        expect.objectContaining({ action: 'deleted' })
+        'DELETED',
+        'File',
+        {
+          changes: {
+            from: mockFile.fileName,
+            to: null,
+          },
+          metadata: {
+            source: 'web_ui',
+            fileName: mockFile.fileName,
+            action: 'deleted',
+            fileId: 'file-123',
+          },
+        }
       );
     });
 

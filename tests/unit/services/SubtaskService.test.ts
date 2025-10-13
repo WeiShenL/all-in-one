@@ -780,10 +780,16 @@ describe('SubtaskService.createSubtask() - TDD Test Suite', () => {
         'subtask-001',
         'staff-123',
         'CREATED',
-        expect.objectContaining({
-          title: 'Subtask',
-          parentTaskId: 'parent-123',
-        })
+        'Subtask',
+        {
+          changes: {
+            title: 'Subtask',
+          },
+          metadata: {
+            source: 'web_ui',
+            parentTaskId: 'parent-123',
+          },
+        }
       );
     });
   });
