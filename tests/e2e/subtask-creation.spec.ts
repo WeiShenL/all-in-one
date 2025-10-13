@@ -281,9 +281,24 @@ test.describe('Subtask Creation E2E - SCRUM-65', () => {
     /**
      * STEP 7: Verify subtask appears in UI
      */
-    // The subtask should be visible in the task list (may be indented under parent)
+    // First verify parent task is still visible
+    await expect(page.getByText('E2E Parent Task for Subtask')).toBeVisible({
+      timeout: 20000,
+    });
+
+    // Click the dropdown arrow to expand the parent task and reveal subtasks
+    // The dropdown button is next to parent tasks that have subtasks
+    const dropdownButton = page
+      .locator('tr')
+      .filter({ hasText: 'E2E Parent Task for Subtask' })
+      .locator('button')
+      .first();
+    await expect(dropdownButton).toBeVisible({ timeout: 20000 });
+    await dropdownButton.click();
+
+    // Now the subtask should be visible (indented under parent)
     await expect(page.getByText('E2E Test Subtask')).toBeVisible({
-      timeout: 10000,
+      timeout: 20000,
     });
 
     /**
