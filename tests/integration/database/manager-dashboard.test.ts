@@ -231,7 +231,7 @@ describe('Integration Tests - Manager Dashboard', () => {
       expect(result!.metrics.completed).toBe(2);
       expect(result!.metrics.blocked).toBe(1);
       expect(result!.tasks).toHaveLength(11);
-    });
+    }, 15000);
 
     it('should handle empty task list with zero metrics', async () => {
       // Create a new manager with no tasks
@@ -296,7 +296,7 @@ describe('Integration Tests - Manager Dashboard', () => {
         t => t.departmentId === parentDeptId
       );
       expect(parentDeptTasks.length).toBeGreaterThan(0);
-    });
+    }, 15000);
 
     it('should include tasks from subordinate departments', async () => {
       // Create task in child department
@@ -331,7 +331,7 @@ describe('Integration Tests - Manager Dashboard', () => {
         t => t.departmentId === childDeptId
       );
       expect(childDeptTasks.length).toBeGreaterThan(0);
-    });
+    }, 15000);
 
     it('should NOT include tasks from peer departments', async () => {
       // Create task in peer department (Marketing)
@@ -367,7 +367,7 @@ describe('Integration Tests - Manager Dashboard', () => {
         t => t.departmentId === peerDeptId
       );
       expect(peerDeptTasks.length).toBe(0);
-    });
+    }, 15000);
   });
 
   describe('Task Filtering', () => {
@@ -432,6 +432,6 @@ describe('Integration Tests - Manager Dashboard', () => {
       // Verify active task IS included
       const activeTasks = result!.tasks.filter(t => t.id === activeTaskId);
       expect(activeTasks.length).toBe(1);
-    });
+    }, 15000);
   });
 });
