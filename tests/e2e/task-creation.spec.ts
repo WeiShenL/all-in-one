@@ -1,563 +1,410 @@
 import { test, expect } from '@playwright/test';
 import { Client } from 'pg';
-import { PrismaClient } from '@prisma/client';
-import { TaskService, UserContext } from '@/services/task/TaskService';
-import { PrismaTaskRepository } from '@/repositories/PrismaTaskRepository';
+import { createClient } from '@supabase/supabase-js';
 
 /**
  * E2E Tests for Task Creation Feature - SCRUM-12
  *
- * Tests all acceptance criteria directly through the service layer:
+ * Real UI E2E Tests (Playwright browser automation)
+ * - Opens browser, fills form, submits, verifies UI
+ * - Tests complete user journey from form to dashboard
+ *
+ * Test Coverage:
  * - TM016: Mandatory fields (title, description, priority 1-10, deadline, 1-5 assignees)
  * - Automatic department association from user profile
  * - Default "To Do" status
- * - Optional tags, project, recurring interval
- * - TGO026: Subtask depth validation (max 2 levels)
+ * - Optional tags creation and verification in modal
+ * - Recurring task creation and verification in modal
+ *
+ * Test Pattern: Follows auth-flow.spec.ts and task-update-ui.spec.ts patterns
+ * Uses pg client for test data setup/cleanup with generous timeouts for CI/CD pipelines
+ *
+ * NOTE: Service layer integration tests are in tests/integration/database/task-creation.test.ts
  */
 
-test.describe('Task Creation - SCRUM-12', () => {
+test.describe('Task Creation - UI E2E Tests (Browser)', () => {
   let pgClient: Client;
-  let prisma: PrismaClient;
-  let taskService: TaskService;
-  let testUserId: string;
+  let supabaseClient: ReturnType<typeof createClient>;
+  let testEmail: string;
+  let testPassword: string;
   let testDepartmentId: string;
-  let userContext: UserContext;
-  const createdTaskIds: string[] = [];
+  let testUserId: string;
 
   test.beforeAll(async () => {
-    // Use pg Client for explicit connection (like auth test)
+    // Setup DB connection
     pgClient = new Client({ connectionString: process.env.DATABASE_URL });
     await pgClient.connect();
 
-    // Prisma still needed for TaskService
-    prisma = new PrismaClient();
-    await prisma.$connect();
+    supabaseClient = createClient(
+      process.env.NEXT_PUBLIC_API_EXTERNAL_URL!,
+      process.env.NEXT_PUBLIC_ANON_KEY!
+    );
 
-    // Initialize repository and service with DDD architecture
-    const taskRepository = new PrismaTaskRepository(prisma);
-    taskService = new TaskService(taskRepository);
+    // Create unique credentials
+    const unique = Date.now();
+    testEmail = `e2e.task.create.ui.${unique}@example.com`;
+    testPassword = 'Test123!@#';
 
-    // Create test department using pg
+    // Create department
     const deptResult = await pgClient.query(
       'INSERT INTO "department" (id, name, "isActive", "createdAt", "updatedAt") VALUES (gen_random_uuid(), $1, true, NOW(), NOW()) RETURNING id',
-      [`E2E Test Dept ${Date.now()}`]
+      [`E2E UI Test Dept ${unique}`]
     );
     testDepartmentId = deptResult.rows[0].id;
 
-    // Create test user using pg
-    const userResult = await pgClient.query(
-      'INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt") VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW()) RETURNING id',
-      [
-        `e2e.test.${Date.now()}@example.com`,
-        'E2E Test User',
-        'STAFF',
-        testDepartmentId,
-      ]
-    );
-    testUserId = userResult.rows[0].id;
+    // Create user with Supabase auth
+    const { data: authData, error } = await supabaseClient.auth.signUp({
+      email: testEmail,
+      password: testPassword,
+    });
 
-    // Setup user context for DDD service layer
-    userContext = {
-      userId: testUserId,
-      role: 'STAFF',
-      departmentId: testDepartmentId,
-    };
+    if (error || !authData.user) {
+      throw new Error(`Failed to create test user: ${error?.message}`);
+    }
+
+    // Wait for user_profile trigger to complete
+    let profileExists = false;
+    for (let i = 0; i < 10; i++) {
+      const checkResult = await pgClient.query(
+        'SELECT id FROM "user_profile" WHERE id = $1',
+        [authData.user.id]
+      );
+      if (checkResult.rows.length > 0) {
+        profileExists = true;
+        break;
+      }
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+
+    if (!profileExists) {
+      throw new Error('User profile was not created by trigger');
+    }
+
+    // Update department and role
+    await pgClient.query(
+      'UPDATE "user_profile" SET "departmentId" = $1, role = $2, name = $3 WHERE id = $4',
+      [testDepartmentId, 'STAFF', 'E2E UI Test User', authData.user.id]
+    );
+    testUserId = authData.user.id;
+  }, 60000);
+
+  test.afterEach(async ({ context }) => {
+    // Clear browser storage after each test
+    await context.clearCookies();
+    await context.clearPermissions();
   });
 
   test.afterAll(async () => {
-    // Cleanup using pg
-    if (createdTaskIds.length > 0) {
-      // Step 1: Delete TaskAssignments
-      await pgClient.query(
-        'DELETE FROM "task_assignment" WHERE "taskId" = ANY($1)',
-        [createdTaskIds]
+    try {
+      // Cleanup - order matters due to foreign keys
+
+      // 1. Get all task IDs created by test user
+      const taskIdsResult = await pgClient.query(
+        'SELECT id FROM "task" WHERE "ownerId" = $1',
+        [testUserId]
       );
+      const taskIds = taskIdsResult.rows.map(row => row.id);
 
-      // Step 2: Get tag IDs and delete TaskTag records
-      const taskTagsResult = await pgClient.query(
-        'SELECT DISTINCT "tagId" FROM "task_tag" WHERE "taskId" = ANY($1)',
-        [createdTaskIds]
-      );
-      const tagIds = taskTagsResult.rows.map(row => row.tagId);
-
-      await pgClient.query('DELETE FROM "task_tag" WHERE "taskId" = ANY($1)', [
-        createdTaskIds,
-      ]);
-
-      // Step 3: Delete e2e tags
-      if (tagIds.length > 0) {
+      if (taskIds.length > 0) {
+        // 2. Delete task assignments (task_assignment has taskId, userId, assignedById)
         await pgClient.query(
-          'DELETE FROM "tag" WHERE id = ANY($1) AND name LIKE $2',
-          [tagIds, 'e2e-%']
+          'DELETE FROM "task_assignment" WHERE "taskId" = ANY($1)',
+          [taskIds]
         );
+
+        // 3. Delete task tags
+        await pgClient.query(
+          'DELETE FROM "task_tag" WHERE "taskId" = ANY($1)',
+          [taskIds]
+        );
+
+        // 4. Delete tasks
+        await pgClient.query('DELETE FROM "task" WHERE id = ANY($1)', [
+          taskIds,
+        ]);
       }
 
-      // Step 4: Delete tasks
-      await pgClient.query('DELETE FROM "task" WHERE id = ANY($1)', [
-        createdTaskIds,
+      // 5. Delete tags created during test
+      await pgClient.query('DELETE FROM "tag" WHERE name LIKE $1', [
+        'e2e-ui-%',
       ]);
+
+      // 6. Delete user profile
+      if (testUserId) {
+        await pgClient.query('DELETE FROM "user_profile" WHERE id = $1', [
+          testUserId,
+        ]);
+      }
+
+      // 7. Delete auth user
+      await supabaseClient.auth.signOut();
+      if (testUserId) {
+        await pgClient.query('DELETE FROM auth.users WHERE id = $1', [
+          testUserId,
+        ]);
+      }
+
+      // 8. Delete department
+      if (testDepartmentId) {
+        await pgClient.query('DELETE FROM "department" WHERE id = $1', [
+          testDepartmentId,
+        ]);
+      }
+    } catch (error) {
+      console.error('Error during cleanup:', error);
+    } finally {
+      // 9. Close connections
+      if (pgClient) {
+        await pgClient.end();
+      }
     }
+  }, 60000);
 
-    // Step 4.5: Delete any remaining tasks owned by test user (e.g., recurring child tasks)
-    if (testUserId) {
-      await pgClient.query('DELETE FROM "task" WHERE "ownerId" = $1', [
-        testUserId,
-      ]);
-    }
+  test('should create task through UI with all mandatory fields', async ({
+    page,
+  }) => {
+    test.setTimeout(120000);
 
-    // Step 5: Delete test user
-    if (testUserId) {
-      await pgClient.query('DELETE FROM "user_profile" WHERE id = $1', [
-        testUserId,
-      ]);
-    }
-
-    // Step 6: Delete test department
-    if (testDepartmentId) {
-      await pgClient.query('DELETE FROM "department" WHERE id = $1', [
-        testDepartmentId,
-      ]);
-    }
-
-    // Step 7: Disconnect
-    await prisma.$disconnect();
-    await pgClient.end();
-  });
-
-  test('should successfully create a task with all mandatory fields', async () => {
-    const result = await taskService.createTask(
-      {
-        title: 'E2E Test Task',
-        description: 'Task created via E2E test',
-        priority: 8,
-        dueDate: new Date('2025-12-31'),
-        assigneeIds: [testUserId],
-      },
-      userContext
-    );
-
-    expect(result).toBeDefined();
-    expect(result.id).toBeDefined();
-    createdTaskIds.push(result.id);
-
-    // Verify task was created correctly using pg
-    const taskResult = await pgClient.query(
-      'SELECT * FROM "task" WHERE id = $1',
-      [result.id]
-    );
-    expect(taskResult.rows.length).toBe(1);
-    const task = taskResult.rows[0];
-    expect(task.title).toBe('E2E Test Task');
-    expect(task.description).toBe('Task created via E2E test');
-    expect(task.priority).toBe(8);
-    expect(task.status).toBe('TO_DO');
-    expect(task.ownerId).toBe(testUserId);
-    expect(task.departmentId).toBe(testDepartmentId);
-
-    // Verify assignment using pg
-    const assignmentResult = await pgClient.query(
-      'SELECT * FROM "task_assignment" WHERE "taskId" = $1',
-      [result.id]
-    );
-    expect(assignmentResult.rows.length).toBe(1);
-    expect(assignmentResult.rows[0].userId).toBe(testUserId);
-  });
-
-  test('should enforce 1-5 assignees requirement - accept 1 assignee', async () => {
-    const result = await taskService.createTask(
-      {
-        title: 'Task with 1 assignee',
-        description: 'Test minimum assignees',
-        priority: 5,
-        dueDate: new Date('2025-12-31'),
-        assigneeIds: [testUserId],
-      },
-      userContext
-    );
-
-    expect(result).toBeDefined();
-    expect(result.id).toBeDefined();
-    createdTaskIds.push(result.id);
-
-    const assignmentResult = await pgClient.query(
-      'SELECT * FROM "task_assignment" WHERE "taskId" = $1',
-      [result.id]
-    );
-    expect(assignmentResult.rows.length).toBe(1);
-  });
-
-  test('should validate priority between 1 and 10 - accept priority 1', async () => {
-    const result = await taskService.createTask(
-      {
-        title: 'Priority 1 Task',
-        description: 'Test minimum priority',
-        priority: 1,
-        dueDate: new Date('2025-12-31'),
-        assigneeIds: [testUserId],
-      },
-      userContext
-    );
-
-    expect(result).toBeDefined();
-    expect(result.id).toBeDefined();
-    createdTaskIds.push(result.id);
-
-    // Verify priority using pg
-    const taskResult = await pgClient.query(
-      'SELECT priority FROM "task" WHERE id = $1',
-      [result.id]
-    );
-    expect(taskResult.rows[0].priority).toBe(1);
-  });
-
-  test('should validate priority between 1 and 10 - accept priority 10', async () => {
-    const result = await taskService.createTask(
-      {
-        title: 'Priority 10 Task',
-        description: 'Test maximum priority',
-        priority: 10,
-        dueDate: new Date('2025-12-31'),
-        assigneeIds: [testUserId],
-      },
-      userContext
-    );
-
-    expect(result).toBeDefined();
-    expect(result.id).toBeDefined();
-    createdTaskIds.push(result.id);
-
-    // Verify priority using pg
-    const taskResult = await pgClient.query(
-      'SELECT priority FROM "task" WHERE id = $1',
-      [result.id]
-    );
-    expect(taskResult.rows[0].priority).toBe(10);
-  });
-
-  test('should create task with optional tags', async () => {
-    const result = await taskService.createTask(
-      {
-        title: 'Tagged Task',
-        description: 'Task with tags',
-        priority: 5,
-        dueDate: new Date('2025-12-31'),
-        assigneeIds: [testUserId],
-        tags: ['e2e-urgent', 'e2e-frontend', 'e2e-bug'],
-      },
-      userContext
-    );
-
-    expect(result).toBeDefined();
-    expect(result.id).toBeDefined();
-    createdTaskIds.push(result.id);
-
-    // Verify tags using pg
-    const taskTagsResult = await pgClient.query(
-      'SELECT t.name FROM "task_tag" tt JOIN "tag" t ON tt."tagId" = t.id WHERE tt."taskId" = $1 ORDER BY t.name',
-      [result.id]
-    );
-
-    expect(taskTagsResult.rows.length).toBe(3);
-    const tagNames = taskTagsResult.rows.map(row => row.name);
-    expect(tagNames).toEqual(['e2e-bug', 'e2e-frontend', 'e2e-urgent']);
-  });
-
-  test('should enforce subtask depth limit (TGO026)', async () => {
-    // Create parent task using pg directly
-    const parentResult = await pgClient.query(
-      'INSERT INTO "task" (id, title, description, priority, "dueDate", "ownerId", "departmentId", status, "createdAt", "updatedAt") VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, NOW(), NOW()) RETURNING id',
-      [
-        'Parent Task',
-        'Level 0 task',
-        5,
-        new Date('2025-12-31'),
-        testUserId,
-        testDepartmentId,
-        'TO_DO',
-      ]
-    );
-    const parentTaskId = parentResult.rows[0].id;
-    createdTaskIds.push(parentTaskId);
-
-    // Create assignment for parent task so user has access
-    await pgClient.query(
-      'INSERT INTO "task_assignment" ("taskId", "userId", "assignedById", "assignedAt") VALUES ($1, $2, $3, NOW())',
-      [parentTaskId, testUserId, testUserId]
-    );
-
-    // Create subtask (level 1) - should succeed
-    const subtaskResult = await taskService.createTask(
-      {
-        title: 'Subtask Level 1',
-        description: 'First level subtask',
-        priority: 5,
-        dueDate: new Date('2025-12-31'),
-        assigneeIds: [testUserId],
-        parentTaskId: parentTaskId,
-      },
-      userContext
-    );
-
-    expect(subtaskResult).toBeDefined();
-    expect(subtaskResult.id).toBeDefined();
-    createdTaskIds.push(subtaskResult.id);
-
-    // Verify parent task ID using pg
-    const subtaskData = await pgClient.query(
-      'SELECT "parentTaskId" FROM "task" WHERE id = $1',
-      [subtaskResult.id]
-    );
-    expect(subtaskData.rows[0].parentTaskId).toBe(parentTaskId);
-
-    // Try to create sub-subtask (level 2) - should FAIL (TGO026)
+    // Step 1: Login
+    await page.goto('/auth/login');
     await expect(
-      taskService.createTask(
-        {
-          title: 'Subtask Level 2',
-          description: 'Second level subtask (should fail)',
-          priority: 5,
-          dueDate: new Date('2025-12-31'),
-          assigneeIds: [testUserId],
-          parentTaskId: subtaskResult.id,
-        },
-        userContext
-      )
-    ).rejects.toThrow(/TGO026|Maximum subtask depth/);
-  });
+      page.getByRole('heading', { name: /welcome back/i })
+    ).toBeVisible({ timeout: 65000 });
 
-  test('should auto-associate department from user profile', async () => {
-    const result = await taskService.createTask(
-      {
-        title: 'Auto-Department Task',
-        description: 'Should use department from user context',
-        priority: 5,
-        dueDate: new Date('2025-12-31'),
-        assigneeIds: [testUserId],
-      },
-      userContext
-    );
+    await page.getByLabel('Email').fill(testEmail);
+    await page.getByLabel('Password').fill(testPassword);
+    await page.getByRole('button', { name: /sign in/i }).click();
 
-    expect(result).toBeDefined();
-    expect(result.id).toBeDefined();
-    createdTaskIds.push(result.id);
+    // Wait for dashboard
+    await expect(
+      page.getByRole('heading', { name: /staff dashboard/i })
+    ).toBeVisible({ timeout: 65000 });
 
-    // Verify department using pg
+    // Step 2: Navigate to create task page
+    await page.goto('/tasks/create');
+    await expect(
+      page.getByRole('heading', { name: /create new task/i })
+    ).toBeVisible({ timeout: 65000 });
+
+    // Step 3: Fill mandatory fields
+    await page.locator('#title').fill('E2E UI Test Task');
+    await page.locator('#description').fill('Task created via UI E2E test');
+    await page.locator('#priority').fill('8');
+    await page.locator('#date').fill('2025-12-31');
+    await page.getByTestId('assignee-emails-input').fill(testEmail); // Assign to self
+
+    // Step 4: Submit form
+    await page.getByTestId('create-task-submit-button').click();
+
+    // Step 5: Verify redirect to dashboard
+    await expect(
+      page.getByRole('heading', { name: /staff dashboard/i })
+    ).toBeVisible({ timeout: 65000 });
+
+    // Step 6: Get the task ID from database (now we can use reliable data-testid!)
     const taskResult = await pgClient.query(
-      'SELECT "departmentId" FROM "task" WHERE id = $1',
-      [result.id]
+      'SELECT id FROM "task" WHERE title = $1 AND "ownerId" = $2 ORDER BY "createdAt" DESC LIMIT 1',
+      ['E2E UI Test Task', testUserId]
     );
-    expect(taskResult.rows[0].departmentId).toBe(testDepartmentId);
+    const createdTaskId = taskResult.rows[0]?.id;
+    expect(createdTaskId).toBeDefined();
+
+    // Step 8: Wait for tasks to load (same pattern as task-update-ui)
+    await page.waitForTimeout(2000);
+
+    // Step 9: Find task button using data-testid (RELIABLE!)
+    const viewButton = page.getByTestId(`view-task-button-${createdTaskId}`);
+    await expect(viewButton).toBeVisible({ timeout: 65000 });
+
+    // Step 10: Find task row to verify details
+    const taskRow = page.locator('tr', { hasText: 'E2E UI Test Task' });
+
+    // Step 11: Verify priority badge shows 8
+    await expect(taskRow.getByText('8')).toBeVisible({ timeout: 65000 });
+
+    // Step 12: Verify status is TO DO
+    await expect(taskRow.getByText(/to do/i)).toBeVisible({ timeout: 65000 });
   });
 
-  test('should create recurring task with interval', async () => {
-    const result = await taskService.createTask(
-      {
-        title: 'Weekly Report',
-        description: 'Submit weekly report',
-        priority: 5,
-        dueDate: new Date('2025-12-31'),
-        assigneeIds: [testUserId],
-        recurringInterval: 7,
-      },
-      userContext
-    );
+  test('should create task with optional tags through UI', async ({ page }) => {
+    test.setTimeout(120000);
 
-    expect(result).toBeDefined();
-    expect(result.id).toBeDefined();
-    createdTaskIds.push(result.id);
+    // Login
+    await page.goto('/auth/login');
+    await page.getByLabel('Email').fill(testEmail);
+    await page.getByLabel('Password').fill(testPassword);
+    await page.getByRole('button', { name: /sign in/i }).click();
+    await page.waitForURL(/dashboard/, { timeout: 65000 });
 
-    // Verify recurring interval using pg
+    // Navigate to create task
+    await page.goto('/tasks/create');
+    await page.waitForTimeout(2000);
+
+    // Fill form with tags
+    await page.locator('#title').fill('Tagged UI Task');
+    await page.locator('#description').fill('Task with tags via UI');
+    await page.locator('#priority').fill('5');
+    await page.locator('#date').fill('2025-12-31');
+    await page.getByTestId('assignee-emails-input').fill(testEmail);
+    await page.getByTestId('tags-input').fill('e2e-ui-urgent, e2e-ui-frontend');
+
+    // Submit
+    await page.getByTestId('create-task-submit-button').click();
+
+    // Verify redirect to dashboard (success message is skipped because redirect happens too fast)
+    await expect(
+      page.getByRole('heading', { name: /staff dashboard/i })
+    ).toBeVisible({ timeout: 65000 });
+
+    // Get the task ID from database (now we can use reliable data-testid!)
     const taskResult = await pgClient.query(
-      'SELECT "recurringInterval" FROM "task" WHERE id = $1',
-      [result.id]
+      'SELECT id FROM "task" WHERE title = $1 AND "ownerId" = $2 ORDER BY "createdAt" DESC LIMIT 1',
+      ['Tagged UI Task', testUserId]
     );
-    expect(taskResult.rows[0].recurringInterval).toBe(7);
+    const createdTaskId = taskResult.rows[0]?.id;
+    expect(createdTaskId).toBeDefined();
+
+    // Wait for tasks to load
+    await page.waitForTimeout(2000);
+
+    // Find task edit button using data-testid (same pattern as task-update-ui)
+    const editButton = page.getByTestId(`edit-task-button-${createdTaskId}`);
+    await expect(editButton).toBeVisible({ timeout: 65000 });
+
+    // Click to open modal
+    await editButton.click();
+
+    // Wait for modal to open (same pattern as task-update-ui)
+    await page.waitForTimeout(2000);
+
+    // Verify tags appear in the task detail modal
+    await expect(page.getByText('🏷️ Tags')).toBeVisible({ timeout: 65000 });
+    await expect(page.getByText('e2e-ui-urgent')).toBeVisible({
+      timeout: 65000,
+    });
+    await expect(page.getByText('e2e-ui-frontend')).toBeVisible({
+      timeout: 65000,
+    });
   });
 
-  test('should set default status to TO_DO', async () => {
-    const result = await taskService.createTask(
-      {
-        title: 'New Task',
-        description: 'Should have TO_DO status',
-        priority: 5,
-        dueDate: new Date('2025-12-31'),
-        assigneeIds: [testUserId],
-      },
-      userContext
-    );
+  test('should create recurring task with interval through UI', async ({
+    page,
+  }) => {
+    test.setTimeout(120000);
 
-    expect(result).toBeDefined();
-    expect(result.id).toBeDefined();
-    createdTaskIds.push(result.id);
+    // Login
+    await page.goto('/auth/login');
+    await page.getByLabel('Email').fill(testEmail);
+    await page.getByLabel('Password').fill(testPassword);
+    await page.getByRole('button', { name: /sign in/i }).click();
+    await page.waitForURL(/dashboard/, { timeout: 65000 });
 
-    // Verify status using pg
+    // Navigate to create task
+    await page.goto('/tasks/create');
+    await page.waitForTimeout(2000);
+
+    // Fill form with recurring interval
+    await page.locator('#title').fill('Weekly UI Report');
+    await page.locator('#description').fill('Recurring task via UI');
+    await page.locator('#priority').fill('5');
+    await page.locator('#date').fill('2025-12-31');
+    await page.getByTestId('assignee-emails-input').fill(testEmail);
+    await page.getByTestId('recurring-interval-input').fill('7'); // Weekly
+
+    // Submit
+    await page.getByTestId('create-task-submit-button').click();
+
+    // Verify redirect to dashboard (success message is skipped because redirect happens too fast)
+    await expect(
+      page.getByRole('heading', { name: /staff dashboard/i })
+    ).toBeVisible({ timeout: 65000 });
+
+    // Get the task ID from database (now we can use reliable data-testid!)
     const taskResult = await pgClient.query(
-      'SELECT status FROM "task" WHERE id = $1',
-      [result.id]
+      'SELECT id FROM "task" WHERE title = $1 AND "ownerId" = $2 ORDER BY "createdAt" DESC LIMIT 1',
+      ['Weekly UI Report', testUserId]
     );
-    expect(taskResult.rows[0].status).toBe('TO_DO');
+    const createdTaskId = taskResult.rows[0]?.id;
+    expect(createdTaskId).toBeDefined();
+
+    // Wait for tasks to load (same pattern as task-update-ui)
+    await page.waitForTimeout(2000);
+
+    // Find task edit button using data-testid (same pattern as task-update-ui)
+    const editButton = page.getByTestId(`edit-task-button-${createdTaskId}`);
+    await expect(editButton).toBeVisible({ timeout: 65000 });
+
+    // Click to open modal
+    await editButton.click();
+
+    // Wait for modal to open (same pattern as task-update-ui)
+    await page.waitForTimeout(2000);
+
+    // Verify recurring settings appear in the task detail modal
+    await expect(page.getByText('🔄 Recurring Settings')).toBeVisible({
+      timeout: 65000,
+    });
+    await expect(page.getByText(/✅ Enabled \(every 7 days\)/i)).toBeVisible({
+      timeout: 65000,
+    });
   });
 
-  test('should automatically generate next instance when recurring task is completed', async () => {
-    // Create a weekly recurring task
-    const originalDueDate = new Date('2025-01-07T00:00:00.000Z');
+  test('should set default status to TO_DO', async ({ page }) => {
+    test.setTimeout(120000);
 
-    const result = await taskService.createTask(
-      {
-        title: 'E2E Weekly Report',
-        description: 'Automated weekly report test',
-        priority: 6,
-        dueDate: originalDueDate,
-        assigneeIds: [testUserId],
-        recurringInterval: 7, // Weekly
-      },
-      userContext
-    );
+    // Login
+    await page.goto('/auth/login');
+    await page.getByLabel('Email').fill(testEmail);
+    await page.getByLabel('Password').fill(testPassword);
+    await page.getByRole('button', { name: /sign in/i }).click();
+    await page.waitForURL(/dashboard/, { timeout: 65000 });
 
-    expect(result).toBeDefined();
-    expect(result.id).toBeDefined();
-    createdTaskIds.push(result.id);
+    // Navigate to create task
+    await page.goto('/tasks/create');
+    await page.waitForTimeout(2000);
 
-    // Verify recurring interval using pg
+    // Fill mandatory fields only (no status field - it should default to TO_DO)
+    await page.locator('#title').fill('Default Status Task');
+    await page.locator('#description').fill('Testing default status');
+    await page.locator('#priority').fill('5');
+    await page.locator('#date').fill('2025-12-31');
+    await page.getByTestId('assignee-emails-input').fill(testEmail);
+
+    // Submit
+    await page.getByTestId('create-task-submit-button').click();
+
+    // Verify redirect to dashboard
+    await expect(
+      page.getByRole('heading', { name: /staff dashboard/i })
+    ).toBeVisible({ timeout: 65000 });
+
+    // Get the task ID from database
     const taskResult = await pgClient.query(
-      'SELECT "recurringInterval" FROM "task" WHERE id = $1',
-      [result.id]
+      'SELECT id FROM "task" WHERE title = $1 AND "ownerId" = $2 ORDER BY "createdAt" DESC LIMIT 1',
+      ['Default Status Task', testUserId]
     );
-    expect(taskResult.rows[0].recurringInterval).toBe(7);
+    const createdTaskId = taskResult.rows[0]?.id;
+    expect(createdTaskId).toBeDefined();
 
-    // Mark task as COMPLETED using the new API
-    await taskService.updateTaskStatus(result.id, 'COMPLETED', userContext);
+    // Wait for tasks to load
+    await page.waitForTimeout(2000);
 
-    // Wait for async recurring generation
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    // Find task edit button using data-testid
+    const editButton = page.getByTestId(`edit-task-button-${createdTaskId}`);
+    await expect(editButton).toBeVisible({ timeout: 65000 });
 
-    // Verify next instance was created using pg
-    const tasksResult = await pgClient.query(
-      'SELECT * FROM "task" WHERE title = $1 AND "ownerId" = $2 ORDER BY "createdAt" ASC',
-      ['E2E Weekly Report', testUserId]
-    );
+    // Click to open modal
+    await editButton.click();
 
-    expect(tasksResult.rows.length).toBe(2);
+    // Wait for modal to open
+    await page.waitForTimeout(2000);
 
-    const nextInstance = tasksResult.rows[1];
-    createdTaskIds.push(nextInstance.id);
-
-    // Verify next instance properties
-    expect(nextInstance.id).not.toBe(result.id);
-    expect(nextInstance.status).toBe('TO_DO');
-    expect(nextInstance.recurringInterval).toBe(7);
-    expect(nextInstance.priority).toBe(6);
-
-    // Verify due date is 7 days later (allow for timezone differences)
-    const originalDate = new Date(originalDueDate);
-    const actualNextDate = new Date(nextInstance.dueDate);
-    const daysDiff = Math.round(
-      (actualNextDate.getTime() - originalDate.getTime()) /
-        (1000 * 60 * 60 * 24)
-    );
-    expect(daysDiff).toBe(7);
-  });
-
-  test('should NOT generate next instance for non-recurring completed tasks', async () => {
-    // Create a one-time task (no recurringInterval)
-    const result = await taskService.createTask(
+    // Verify status is TO_DO in the modal
+    await expect(page.getByTestId('task-status-display')).toContainText(
+      /to do/i,
       {
-        title: 'E2E One-Time Task',
-        description: 'Should not recur',
-        priority: 5,
-        dueDate: new Date('2025-02-01T00:00:00.000Z'),
-        assigneeIds: [testUserId],
-        // NO recurringInterval
-      },
-      userContext
+        timeout: 65000,
+      }
     );
-
-    expect(result).toBeDefined();
-    expect(result.id).toBeDefined();
-    createdTaskIds.push(result.id);
-
-    // Complete the task
-    await taskService.updateTaskStatus(result.id, 'COMPLETED', userContext);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-
-    // Verify NO new instance was created using pg
-    const tasksResult = await pgClient.query(
-      'SELECT * FROM "task" WHERE title = $1 AND "ownerId" = $2',
-      ['E2E One-Time Task', testUserId]
-    );
-
-    expect(tasksResult.rows.length).toBe(1); // Only the original
-    expect(tasksResult.rows[0].status).toBe('COMPLETED');
-  });
-
-  test('should chain recurring tasks - verify multiple generations', async () => {
-    test.setTimeout(45000); // Extended timeout for recurring task generation in slow CI/CD
-
-    // Create daily recurring task
-    const result = await taskService.createTask(
-      {
-        title: 'E2E Daily Standup',
-        description: 'Daily standup meeting',
-        priority: 3,
-        dueDate: new Date('2025-03-01T00:00:00.000Z'),
-        assigneeIds: [testUserId],
-        recurringInterval: 1, // Daily
-      },
-      userContext
-    );
-
-    expect(result).toBeDefined();
-    expect(result.id).toBeDefined();
-    createdTaskIds.push(result.id);
-
-    // Complete first instance
-    await taskService.updateTaskStatus(result.id, 'COMPLETED', userContext);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-
-    // Get second instance using pg
-    let tasksResult = await pgClient.query(
-      'SELECT * FROM "task" WHERE title = $1 AND "ownerId" = $2 ORDER BY "createdAt" DESC',
-      ['E2E Daily Standup', testUserId]
-    );
-
-    expect(tasksResult.rows.length).toBe(2);
-    const secondInstance = tasksResult.rows[0];
-    createdTaskIds.push(secondInstance.id);
-
-    // Assignment is automatically created by recurring task generation, no need to create it manually
-
-    // Verify due date is 1 day later (allow for timezone differences)
-    const firstDate = new Date('2025-03-01T00:00:00.000Z');
-    const secondDate = new Date(secondInstance.dueDate);
-    const daysDiff = Math.round(
-      (secondDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24)
-    );
-    expect(daysDiff).toBe(1);
-
-    // Complete second instance
-    await taskService.updateTaskStatus(
-      secondInstance.id,
-      'COMPLETED',
-      userContext
-    );
-    await new Promise(resolve => setTimeout(resolve, 1500));
-
-    // Get third instance using pg
-    tasksResult = await pgClient.query(
-      'SELECT * FROM "task" WHERE title = $1 AND "ownerId" = $2 ORDER BY "createdAt" DESC',
-      ['E2E Daily Standup', testUserId]
-    );
-
-    expect(tasksResult.rows.length).toBe(3);
-    const thirdInstance = tasksResult.rows[0];
-    createdTaskIds.push(thirdInstance.id);
-
-    // Verify due date is 2 days later than the original (allow for timezone differences)
-    const thirdDate = new Date(thirdInstance.dueDate);
-    const daysDiffFromFirst = Math.round(
-      (thirdDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24)
-    );
-    expect(daysDiffFromFirst).toBe(2);
-    expect(thirdInstance.recurringInterval).toBe(1); // Still daily
   });
 });

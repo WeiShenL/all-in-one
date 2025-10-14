@@ -432,6 +432,7 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
             Assignee Emails (1-5) <span style={{ color: 'red' }}>*</span>
           </label>
           <input
+            data-testid='assignee-emails-input'
             type='text'
             value={assigneeEmails}
             onChange={e => setAssigneeEmails(e.target.value)}
@@ -461,6 +462,7 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
             Tags (Optional)
           </label>
           <input
+            data-testid='tags-input'
             type='text'
             value={tags}
             onChange={e => setTags(e.target.value)}
@@ -554,6 +556,7 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
               Recurring Interval (Optional)
             </label>
             <input
+              data-testid='recurring-interval-input'
               type='number'
               value={recurringInterval}
               onChange={e =>
@@ -681,6 +684,7 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
         {/* Buttons */}
         <div style={{ display: 'flex', gap: '1rem' }}>
           <button
+            data-testid='create-task-submit-button'
             type='submit'
             disabled={loading}
             style={{
@@ -700,6 +704,7 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
 
           {onCancel && (
             <button
+              data-testid='create-task-cancel-button'
               type='button'
               onClick={onCancel}
               disabled={loading}
