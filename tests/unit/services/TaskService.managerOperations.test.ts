@@ -18,6 +18,19 @@ import {
 import { ITaskRepository } from '../../../src/repositories/ITaskRepository';
 import { Task, TaskStatus } from '../../../src/domain/task/Task';
 
+// Mock SupabaseStorageService to prevent real Supabase client creation in CI/CD
+jest.mock('@/services/storage/SupabaseStorageService', () => {
+  return {
+    SupabaseStorageService: jest.fn().mockImplementation(() => ({
+      uploadFile: jest.fn(),
+      getFileDownloadUrl: jest.fn(),
+      deleteFile: jest.fn(),
+      validateFile: jest.fn(),
+      validateTaskFileLimit: jest.fn(),
+    })),
+  };
+});
+
 // Mock Prisma client type
 type MockPrismaClient = {
   userProfile: {
