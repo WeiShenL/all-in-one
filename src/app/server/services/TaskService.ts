@@ -7,6 +7,7 @@ import {
   DashboardMetrics,
 } from '../types';
 import { TaskStatus, Task } from '@prisma/client';
+import { AuthorizationService } from './AuthorizationService';
 
 type TaskWithOwner = Task & {
   owner: {
@@ -1178,16 +1179,145 @@ export class TaskService extends BaseService {
         },
       });
 
+      // Add canEdit field - all tasks are editable by managers (backward compatibility)
+      const tasksWithCanEdit = tasks.map(task => ({
+        ...task,
+        canEdit: true,
+      }));
+
       // Calculate metrics
       const metrics = this.calculateMetrics(tasks);
 
       return {
-        tasks,
+        tasks: tasksWithCanEdit,
         metrics,
       };
     } catch (error) {
       this.handleError(error, 'getManagerDashboardTasks');
       throw error; // This will never be reached, but satisfies TypeScript
+    }
+  }
+
+  /**
+   * Get department tasks for any user (Staff or Manager)
+   * Returns tasks with canEdit field calculated based on user role and assignment
+   *
+   * @param userId - User's ID
+   * @returns Dashboard data with tasks and metrics, including canEdit field
+   */
+  async getDepartmentTasksForUser(userId: string): Promise<DashboardData> {
+    try {
+      this.validateId(userId, 'User ID');
+
+      // Get user's profile
+      const user = await this.prisma.userProfile.findUnique({
+        where: { id: userId, isActive: true },
+        select: {
+          id: true,
+          departmentId: true,
+          role: true,
+        },
+      });
+
+      if (!user) {
+        throw new Error('User not found or inactive');
+      }
+
+      // Get all subordinate departments (including user's own department)
+      const departmentIds = await this.getSubordinateDepartments(
+        user.departmentId
+      );
+
+      // Fetch all tasks in the department hierarchy
+      const tasks = await this.prisma.task.findMany({
+        where: {
+          isArchived: false,
+          OR: [
+            {
+              departmentId: {
+                in: departmentIds,
+              },
+            },
+            {
+              assignments: {
+                some: {
+                  user: {
+                    departmentId: {
+                      in: departmentIds,
+                    },
+                    isActive: true,
+                  },
+                },
+              },
+            },
+          ],
+        },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          priority: true,
+          dueDate: true,
+          status: true,
+          ownerId: true,
+          departmentId: true,
+          assignments: {
+            select: {
+              userId: true,
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
+            },
+          },
+          department: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+        orderBy: {
+          dueDate: 'asc',
+        },
+      });
+
+      // Use AuthorizationService to calculate canEdit for each task
+      const authService = new AuthorizationService();
+
+      const tasksWithCanEdit = tasks.map(task => {
+        const canEdit = authService.canEditTask(
+          {
+            departmentId: task.departmentId,
+            assignments: task.assignments.map(a => ({ userId: a.userId })),
+          },
+          {
+            userId: user.id,
+            role: user.role as 'STAFF' | 'MANAGER' | 'HR_ADMIN',
+            departmentId: user.departmentId,
+          },
+          departmentIds
+        );
+
+        return {
+          ...task,
+          canEdit,
+        };
+      });
+
+      // Calculate metrics
+      const metrics = this.calculateMetrics(tasks);
+
+      return {
+        tasks: tasksWithCanEdit,
+        metrics,
+      };
+    } catch (error) {
+      this.handleError(error, 'getDepartmentTasksForUser');
+      throw error;
     }
   }
 }

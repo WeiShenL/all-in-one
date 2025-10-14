@@ -10,34 +10,65 @@ describe('Task API Permissions', () => {
   let testTasks: any[];
 
   beforeAll(async () => {
+    // Cleanup any existing test data first
+    await prisma.taskAssignment.deleteMany({
+      where: {
+        OR: [
+          { taskId: { startsWith: 'task-' } },
+          { userId: { startsWith: 'user-' } },
+        ],
+      },
+    });
+
+    await prisma.task.deleteMany({
+      where: {
+        id: { startsWith: 'task-' },
+      },
+    });
+
+    await prisma.userProfile.deleteMany({
+      where: {
+        id: { startsWith: 'user-' },
+      },
+    });
+
+    await prisma.department.deleteMany({
+      where: {
+        id: { startsWith: 'dept-' },
+      },
+    });
+
     // Setup test data
     // Create departments hierarchy: Engineering > Developers > Support Team
-    testDepartments = await Promise.all([
-      prisma.department.create({
-        data: {
-          id: 'dept-engineering-test',
-          name: 'Engineering Test',
-          parentId: null,
-          isActive: true,
-        },
-      }),
-      prisma.department.create({
-        data: {
-          id: 'dept-developers-test',
-          name: 'Developers Test',
-          parentId: 'dept-engineering-test',
-          isActive: true,
-        },
-      }),
-      prisma.department.create({
-        data: {
-          id: 'dept-support-test',
-          name: 'Support Test',
-          parentId: 'dept-engineering-test',
-          isActive: true,
-        },
-      }),
-    ]);
+    // Must be sequential due to foreign key constraints
+    const deptEngineering = await prisma.department.create({
+      data: {
+        id: 'dept-engineering-test',
+        name: 'Engineering Test',
+        parentId: null,
+        isActive: true,
+      },
+    });
+
+    const deptDevelopers = await prisma.department.create({
+      data: {
+        id: 'dept-developers-test',
+        name: 'Developers Test',
+        parentId: 'dept-engineering-test',
+        isActive: true,
+      },
+    });
+
+    const deptSupport = await prisma.department.create({
+      data: {
+        id: 'dept-support-test',
+        name: 'Support Test',
+        parentId: 'dept-engineering-test',
+        isActive: true,
+      },
+    });
+
+    testDepartments = [deptEngineering, deptDevelopers, deptSupport];
 
     // Create test users
     testUsers = await Promise.all([

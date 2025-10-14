@@ -607,7 +607,8 @@ export const taskRouter = router({
     }),
 
   /**
-   * Get user's assigned tasks
+   * Get user's assigned tasks (with canEdit field)
+   * For Personal Dashboard - all tasks have canEdit=true
    */
   getUserTasks: publicProcedure
     .input(
@@ -624,7 +625,11 @@ export const taskRouter = router({
         input.userId,
         input.includeArchived
       );
-      return tasks.map(serializeTask);
+      // Add canEdit=true to all personal tasks
+      return tasks.map(task => ({
+        ...serializeTask(task),
+        canEdit: true,
+      }));
     }),
 
   /**
@@ -824,6 +829,18 @@ export const taskRouter = router({
     const managerId = ctx.session.user.id;
     const taskService = new DashboardTaskService(ctx.prisma);
     return await taskService.getManagerDashboardTasks(managerId);
+  }),
+
+  /**
+   * Get department tasks for any user (Staff or Manager)
+   * Returns tasks with canEdit field based on user role and assignment
+   * For Department Dashboard
+   */
+  getDepartmentTasksForUser: protectedProcedure.query(async ({ ctx }) => {
+    // ctx.session.user.id is available from authenticated session
+    const userId = ctx.session.user.id;
+    const taskService = new DashboardTaskService(ctx.prisma);
+    return await taskService.getDepartmentTasksForUser(userId);
   }),
 
   // ============================================

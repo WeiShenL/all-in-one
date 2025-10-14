@@ -1,5 +1,6 @@
 import { initTRPC, TRPCError } from '@trpc/server';
 import type { User } from '@supabase/supabase-js';
+import { prisma } from '@/app/lib/prisma';
 
 // Infer the context type from what you return in createContext
 // immprotant for trpc to connect with db/prisma
@@ -10,6 +11,31 @@ export type Context = {
     user: User;
   } | null;
 };
+
+/**
+ * Create inner tRPC context for testing
+ * Used by integration tests to create mock contexts
+ */
+export function createInnerTRPCContext(opts?: {
+  session?: { user: { id: string }; expires: string } | null;
+}): Context {
+  return {
+    prisma,
+    userId: opts?.session?.user?.id,
+    session: opts?.session
+      ? {
+          user: {
+            id: opts.session.user.id,
+            email: '',
+            app_metadata: {},
+            user_metadata: {},
+            aud: 'authenticated',
+            created_at: new Date().toISOString(),
+          } as User,
+        }
+      : null,
+  };
+}
 
 /**
  * Initialization of tRPC backend
