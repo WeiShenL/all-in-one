@@ -13,9 +13,15 @@ const databaseUrl = process.env.DATABASE_URL;
 
 if (!supabaseUrl || !serviceRoleKey || !databaseUrl) {
   console.error('❌ Missing required environment variables:');
-  if (!supabaseUrl) console.error('  - NEXT_PUBLIC_API_EXTERNAL_URL');
-  if (!serviceRoleKey) console.error('  - SERVICE_ROLE_KEY');
-  if (!databaseUrl) console.error('  - DATABASE_URL');
+  if (!supabaseUrl) {
+    console.error('  - NEXT_PUBLIC_API_EXTERNAL_URL');
+  }
+  if (!serviceRoleKey) {
+    console.error('  - SERVICE_ROLE_KEY');
+  }
+  if (!databaseUrl) {
+    console.error('  - DATABASE_URL');
+  }
   process.exit(1);
 }
 
@@ -30,9 +36,8 @@ async function setupStorage() {
   console.log('🔧 Setting up storage bucket...');
 
   // 1. Create bucket via API
-  const { data: bucket, error: bucketError } = await supabase.storage.createBucket(
-    'task-attachments',
-    {
+  const { data: bucket, error: bucketError } =
+    await supabase.storage.createBucket('task-attachments', {
       public: false,
       fileSizeLimit: 10485760, // 10MB
       allowedMimeTypes: [
@@ -45,8 +50,7 @@ async function setupStorage() {
         'text/plain',
         'application/zip',
       ],
-    }
-  );
+    });
 
   if (bucketError && !bucketError.message.includes('already exists')) {
     throw bucketError;
@@ -101,7 +105,7 @@ async function setupStorage() {
 
 setupStorage()
   .then(() => console.log('✅ Storage setup complete'))
-  .catch((err) => {
+  .catch(err => {
     console.error('❌ Setup failed:', err);
     process.exit(1);
   });

@@ -86,7 +86,7 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
       [testDepartmentId, 'STAFF', 'E2E UI Test User', authData.user.id]
     );
     testUserId = authData.user.id;
-  }, 60000);
+  });
 
   test.afterEach(async ({ context }) => {
     // Clear browser storage after each test
@@ -158,7 +158,7 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
         await pgClient.end();
       }
     }
-  }, 60000);
+  });
 
   test('should create task through UI with all mandatory fields', async ({
     page,

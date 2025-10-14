@@ -9,8 +9,12 @@ const serviceRoleKey = process.env.SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !serviceRoleKey) {
   console.error('❌ Missing required environment variables:');
-  if (!supabaseUrl) console.error('  - NEXT_PUBLIC_API_EXTERNAL_URL');
-  if (!serviceRoleKey) console.error('  - SERVICE_ROLE_KEY');
+  if (!supabaseUrl) {
+    console.error('  - NEXT_PUBLIC_API_EXTERNAL_URL');
+  }
+  if (!serviceRoleKey) {
+    console.error('  - SERVICE_ROLE_KEY');
+  }
   process.exit(1);
 }
 
