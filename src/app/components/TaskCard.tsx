@@ -556,19 +556,16 @@ export function TaskCard({
       return;
     }
 
-    // Check if trying to remove owner
-    if (task && userId === task.ownerId) {
-      setError('Cannot remove the task owner');
-      setTimeout(() => setError(null), 3000);
-      return;
-    }
-
     // Check minimum 1 assignee (TM016)
     if (task && task.assignments.length <= 1) {
       setError('Task must have at least 1 assignee');
       setTimeout(() => setError(null), 3000);
       return;
     }
+
+    // NOTE: Owner can be removed from assignees (SCRUM-15 AC6 edge case)
+    // The ownerId field is immutable - removing owner from assignees doesn't change ownership
+    // The owner remains as the task owner in the database, just not in the assignees list
 
     setError(null);
 
@@ -1509,9 +1506,10 @@ export function TaskCard({
               {task.assignments.map(userId => {
                 const userDetails = userDetailsMap.get(userId);
                 const isOwner = userId === task.ownerId;
+                // Manager can remove any assignee, including owner (AC6 edge case)
+                // Owner field is immutable - removing owner from assignees doesn't change ownership
                 const canRemove =
                   userProfile?.role === 'MANAGER' &&
-                  !isOwner &&
                   task.assignments.length > 1;
                 return (
                   <div

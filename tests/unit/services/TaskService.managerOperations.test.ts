@@ -705,32 +705,46 @@ describe('TaskService - Manager Operations (SCRUM-15)', () => {
 
     /**
      * Owner remains unchanged even if owner is removed from assignees
+     *
+     * SCRUM-15 AC6: Owner field is immutable
+     * Edge case: Manager can remove owner from assignees, but ownerId field stays intact
+     * This test ensures that removeAssignee allows removing the owner from assignees
+     * while the owner field in the database remains unchanged
      */
-    it('should preserve owner even when owner is removed from assignees', async () => {
+    it('should allow manager to remove owner from assignees while preserving owner field', async () => {
       // Arrange
       const originalOwnerId = 'task-owner';
       const mockTask = {
         getId: () => 'task-1',
         getOwnerId: () => originalOwnerId,
         getAssignees: () => new Set(['task-owner', 'another-assignee']),
-        removeAssignee: jest.fn(),
+        removeAssignee: jest.fn(), // Should NOT throw error even when removing owner
       } as unknown as Task;
 
       jest.spyOn(taskService as any, 'getTaskById').mockResolvedValue(mockTask);
 
-      // Act: Remove the owner from assignees
+      // Act: Manager removes the owner from assignees
+      // This should succeed - no error should be thrown
       await taskService.removeAssigneeFromTask(
         'task-1',
         originalOwnerId,
         managerContext
       );
 
-      // Assert: Owner field still intact
+      // Assert: Owner field still intact (immutable)
       expect(mockTask.getOwnerId()).toBe(originalOwnerId);
+
+      // Assert: removeAssignee was called (owner removed from assignees)
       expect(mockTask.removeAssignee).toHaveBeenCalledWith(
         originalOwnerId,
         'manager-id',
         'MANAGER'
+      );
+
+      // Assert: removeTaskAssignment was called to persist removal
+      expect(mockTaskRepository.removeTaskAssignment).toHaveBeenCalledWith(
+        'task-1',
+        originalOwnerId
       );
     });
 
