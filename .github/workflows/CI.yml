@@ -142,7 +142,7 @@ jobs:
   staging-deploy:
     name: Staging Deployment
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 60
     environment: Preview
     needs: [code-quality, base-tests, security, playwright-setup]
     steps:
