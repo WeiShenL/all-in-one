@@ -470,4 +470,13 @@ export interface ITaskRepository {
   getDepartmentWithParent(
     departmentId: string
   ): Promise<{ id: string; parentId: string | null } | null>;
+
+  /**
+   * Get user departments by user IDs
+   * @param userIds - Array of user IDs
+   * @returns Array of user departments
+   */
+  getUserDepartments(
+    userIds: string[]
+  ): Promise<Array<{ userId: string; departmentId: string | null }>>;
 }

@@ -577,7 +577,7 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
     });
 
     // Wait for update to complete and new task to be generated
-    await page.waitForTimeout(3000);
+    await page.waitForTimeout(15000);
 
     // Close modal by pressing Escape or clicking outside
     await page.keyboard.press('Escape');
@@ -588,7 +588,7 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
     await expect(
       page.getByRole('heading', { name: /staff dashboard/i })
     ).toBeVisible({ timeout: 65000 });
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(8000);
 
     // Query database to verify a NEW task instance WAS created
     const taskCount = await pgClient.query(

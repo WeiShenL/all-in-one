@@ -553,13 +553,7 @@ export class PrismaTaskRepository implements ITaskRepository {
       data: {
         taskId,
         userId,
-        action: action as
-          | 'CREATED'
-          | 'UPDATED'
-          | 'ARCHIVED'
-          | 'UNARCHIVED'
-          | 'DELETED'
-          | 'RECURRING_TASK_GENERATED', // All 6 LogAction enum values from schema
+        action: action as any, // Cast to any - Prisma expects LogAction enum, interface accepts string
         field,
         changes: data?.changes || null,
         metadata: data?.metadata || {},
@@ -1396,6 +1390,26 @@ export class PrismaTaskRepository implements ITaskRepository {
         name: log.user.name || 'Unknown User',
         email: log.user.email,
       },
+    }));
+  }
+
+  /**
+   * Get user departments by user IDs
+   */
+  async getUserDepartments(
+    userIds: string[]
+  ): Promise<Array<{ userId: string; departmentId: string | null }>> {
+    const users = await this.prisma.userProfile.findMany({
+      where: { id: { in: userIds } },
+      select: {
+        id: true,
+        departmentId: true,
+      },
+    });
+
+    return users.map(user => ({
+      userId: user.id,
+      departmentId: user.departmentId,
     }));
   }
 }
