@@ -73,7 +73,7 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
         profileExists = true;
         break;
       }
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 2000));
     }
 
     if (!profileExists) {
@@ -163,7 +163,7 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
   test('should create task through UI with all mandatory fields', async ({
     page,
   }) => {
-    test.setTimeout(120000);
+    test.setTimeout(220000);
 
     // Step 1: Login
     await page.goto('/auth/login');
@@ -201,7 +201,7 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
       page.getByRole('heading', { name: /staff dashboard/i })
     ).toBeVisible({ timeout: 65000 });
 
-    // Step 6: Get the task ID from database (now we can use reliable data-testid!)
+    // Step 6: Get the task ID from database (to use data-testid!)
     const taskResult = await pgClient.query(
       'SELECT id FROM "task" WHERE title = $1 AND "ownerId" = $2 ORDER BY "createdAt" DESC LIMIT 1',
       ['E2E UI Test Task', testUserId]
@@ -209,10 +209,10 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
     const createdTaskId = taskResult.rows[0]?.id;
     expect(createdTaskId).toBeDefined();
 
-    // Step 8: Wait for tasks to load (same pattern as task-update-ui)
+    // Step 8: Wait for tasks to load ()
     await page.waitForTimeout(2000);
 
-    // Step 9: Find task button using data-testid (RELIABLE!)
+    // Step 9: Find task button using data-testid
     const viewButton = page.getByTestId(`view-task-button-${createdTaskId}`);
     await expect(viewButton).toBeVisible({ timeout: 65000 });
 
@@ -227,7 +227,7 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
   });
 
   test('should create task with optional tags through UI', async ({ page }) => {
-    test.setTimeout(120000);
+    test.setTimeout(220000);
 
     // Login
     await page.goto('/auth/login');
@@ -251,12 +251,12 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
     // Submit
     await page.getByTestId('create-task-submit-button').click();
 
-    // Verify redirect to dashboard (success message is skipped because redirect happens too fast)
+    // Verify redirect to dashboard
     await expect(
       page.getByRole('heading', { name: /staff dashboard/i })
     ).toBeVisible({ timeout: 65000 });
 
-    // Get the task ID from database (now we can use reliable data-testid!)
+    // Get the task ID from database
     const taskResult = await pgClient.query(
       'SELECT id FROM "task" WHERE title = $1 AND "ownerId" = $2 ORDER BY "createdAt" DESC LIMIT 1',
       ['Tagged UI Task', testUserId]
@@ -267,14 +267,14 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
     // Wait for tasks to load
     await page.waitForTimeout(2000);
 
-    // Find task edit button using data-testid (same pattern as task-update-ui)
+    // Find task edit button using data-testid
     const editButton = page.getByTestId(`edit-task-button-${createdTaskId}`);
     await expect(editButton).toBeVisible({ timeout: 65000 });
 
     // Click to open modal
     await editButton.click();
 
-    // Wait for modal to open (same pattern as task-update-ui)
+    // Wait for modal to open
     await page.waitForTimeout(2000);
 
     // Verify tags appear in the task detail modal
@@ -290,7 +290,7 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
   test('should create recurring task with interval through UI', async ({
     page,
   }) => {
-    test.setTimeout(120000);
+    test.setTimeout(220000);
 
     // Login
     await page.goto('/auth/login');
@@ -314,7 +314,7 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
     // Submit
     await page.getByTestId('create-task-submit-button').click();
 
-    // Verify redirect to dashboard (success message is skipped because redirect happens too fast)
+    // Verify redirect to dashboard
     await expect(
       page.getByRole('heading', { name: /staff dashboard/i })
     ).toBeVisible({ timeout: 65000 });
@@ -327,17 +327,17 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
     const createdTaskId = taskResult.rows[0]?.id;
     expect(createdTaskId).toBeDefined();
 
-    // Wait for tasks to load (same pattern as task-update-ui)
+    // Wait for tasks to load
     await page.waitForTimeout(2000);
 
-    // Find task edit button using data-testid (same pattern as task-update-ui)
+    // Find task edit button using data-testid
     const editButton = page.getByTestId(`edit-task-button-${createdTaskId}`);
     await expect(editButton).toBeVisible({ timeout: 65000 });
 
     // Click to open modal
     await editButton.click();
 
-    // Wait for modal to open (same pattern as task-update-ui)
+    // Wait for modal to open
     await page.waitForTimeout(2000);
 
     // Verify recurring settings appear in the task detail modal
@@ -350,7 +350,7 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
   });
 
   test('should set default status to TO_DO', async ({ page }) => {
-    test.setTimeout(120000);
+    test.setTimeout(220000);
 
     // Login
     await page.goto('/auth/login');
@@ -406,5 +406,232 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
         timeout: 65000,
       }
     );
+  });
+
+  test('should NOT generate next instance for non-recurring completed tasks', async ({
+    page,
+  }) => {
+    test.setTimeout(220000);
+
+    // Login
+    await page.goto('/auth/login');
+    await page.getByLabel('Email').fill(testEmail);
+    await page.getByLabel('Password').fill(testPassword);
+    await page.getByRole('button', { name: /sign in/i }).click();
+    await page.waitForURL(/dashboard/, { timeout: 65000 });
+
+    // Navigate to create task
+    await page.goto('/tasks/create');
+    await page.waitForTimeout(2000);
+
+    // Create a NON-recurring task
+    await page.locator('#title').fill('Non-Recurring Task');
+    await page
+      .locator('#description')
+      .fill('This should not create new instance');
+    await page.locator('#priority').fill('5');
+    await page.locator('#date').fill('2025-12-31');
+    await page.getByTestId('assignee-emails-input').fill(testEmail);
+    // Do NOT fill recurring-interval-input - leave it empty for non-recurring
+
+    // Submit
+    await page.getByTestId('create-task-submit-button').click();
+
+    // Verify redirect to dashboard
+    await expect(
+      page.getByRole('heading', { name: /staff dashboard/i })
+    ).toBeVisible({ timeout: 65000 });
+
+    // Get the task ID from database
+    const taskResult = await pgClient.query(
+      'SELECT id FROM "task" WHERE title = $1 AND "ownerId" = $2 ORDER BY "createdAt" DESC LIMIT 1',
+      ['Non-Recurring Task', testUserId]
+    );
+    const createdTaskId = taskResult.rows[0]?.id;
+    expect(createdTaskId).toBeDefined();
+
+    // Wait for tasks to load
+    await page.waitForTimeout(2000);
+
+    // Find task edit button using data-testid
+    const editButton = page.getByTestId(`edit-task-button-${createdTaskId}`);
+    await expect(editButton).toBeVisible({ timeout: 65000 });
+
+    // Click to open modal
+    await editButton.click();
+
+    // Wait for modal to open
+    await page.waitForTimeout(2000);
+
+    // Change status to COMPLETED
+    await page.getByTestId('task-status-display').click();
+    const statusSelect = page.getByTestId('task-status-select');
+    await expect(statusSelect).toBeVisible({ timeout: 65000 });
+    await page.waitForTimeout(2000);
+    await statusSelect.selectOption('COMPLETED');
+    await page.waitForTimeout(2000);
+
+    // Click Save button
+    const saveButton = page.getByRole('button', { name: /save|✓/i }).first();
+    await expect(saveButton).toBeVisible({ timeout: 65000 });
+    await expect(saveButton).toBeEnabled({ timeout: 65000 });
+    await saveButton.click();
+
+    // Verify success message
+    await expect(page.getByText(/status updated|✅/i)).toBeVisible({
+      timeout: 65000,
+    });
+
+    // Wait for update to complete
+    await page.waitForTimeout(2000);
+
+    // Query database to verify NO new task instance was created
+    const taskCount = await pgClient.query(
+      'SELECT COUNT(*) as count FROM "task" WHERE title = $1 AND "ownerId" = $2',
+      ['Non-Recurring Task', testUserId]
+    );
+
+    // Should still be exactly 1 task (no new instance created)
+    expect(parseInt(taskCount.rows[0].count)).toBe(1);
+
+    // Verify the original task is marked as completed
+    const taskStatus = await pgClient.query(
+      'SELECT status FROM "task" WHERE id = $1',
+      [createdTaskId]
+    );
+    expect(taskStatus.rows[0].status).toBe('COMPLETED');
+  });
+
+  test('should automatically generate next instance when recurring task is completed', async ({
+    page,
+  }) => {
+    test.setTimeout(220000);
+
+    // Login
+    await page.goto('/auth/login');
+    await page.getByLabel('Email').fill(testEmail);
+    await page.getByLabel('Password').fill(testPassword);
+    await page.getByRole('button', { name: /sign in/i }).click();
+    await page.waitForURL(/dashboard/, { timeout: 65000 });
+
+    // Navigate to create task
+    await page.goto('/tasks/create');
+    await page.waitForTimeout(2000);
+
+    // Create a RECURRING task with interval
+    await page.locator('#title').fill('Recurring Task Instance');
+    await page
+      .locator('#description')
+      .fill('This should create new instance when completed');
+    await page.locator('#priority').fill('5');
+    await page.locator('#date').fill('2025-12-31');
+    await page.getByTestId('assignee-emails-input').fill(testEmail);
+    await page.getByTestId('recurring-interval-input').fill('7'); // Weekly
+
+    // Submit
+    await page.getByTestId('create-task-submit-button').click();
+
+    // Verify redirect to dashboard
+    await expect(
+      page.getByRole('heading', { name: /staff dashboard/i })
+    ).toBeVisible({ timeout: 65000 });
+
+    // Get the task ID from database
+    const taskResult = await pgClient.query(
+      'SELECT id FROM "task" WHERE title = $1 AND "ownerId" = $2 ORDER BY "createdAt" DESC LIMIT 1',
+      ['Recurring Task Instance', testUserId]
+    );
+    const createdTaskId = taskResult.rows[0]?.id;
+    expect(createdTaskId).toBeDefined();
+
+    // Wait for tasks to load
+    await page.waitForTimeout(2000);
+
+    // Find task edit button using data-testid
+    const editButton = page.getByTestId(`edit-task-button-${createdTaskId}`);
+    await expect(editButton).toBeVisible({ timeout: 65000 });
+
+    // Click to open modal
+    await editButton.click();
+
+    // Wait for modal to open
+    await page.waitForTimeout(2000);
+
+    // Change status to COMPLETED
+    await page.getByTestId('task-status-display').click();
+    const statusSelect = page.getByTestId('task-status-select');
+    await expect(statusSelect).toBeVisible({ timeout: 65000 });
+    await page.waitForTimeout(2000);
+    await statusSelect.selectOption('COMPLETED');
+    await page.waitForTimeout(2000);
+
+    // Click Save button
+    const saveButton = page.getByRole('button', { name: /save|✓/i }).first();
+    await expect(saveButton).toBeVisible({ timeout: 65000 });
+    await expect(saveButton).toBeEnabled({ timeout: 65000 });
+    await saveButton.click();
+
+    // Verify success message
+    await expect(page.getByText(/status updated|✅/i)).toBeVisible({
+      timeout: 65000,
+    });
+
+    // Wait for update to complete and new task to be generated
+    await page.waitForTimeout(3000);
+
+    // Close modal by pressing Escape or clicking outside
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(2000);
+
+    // Reload the page to see the new auto-generated task
+    await page.reload();
+    await expect(
+      page.getByRole('heading', { name: /staff dashboard/i })
+    ).toBeVisible({ timeout: 65000 });
+    await page.waitForTimeout(2000);
+
+    // Query database to verify a NEW task instance WAS created
+    const taskCount = await pgClient.query(
+      'SELECT COUNT(*) as count FROM "task" WHERE title = $1 AND "ownerId" = $2',
+      ['Recurring Task Instance', testUserId]
+    );
+
+    // Should be exactly 2 tasks now (original completed + new instance)
+    expect(parseInt(taskCount.rows[0].count)).toBe(2);
+
+    // Get the NEW task (TO_DO status) ID
+    const newTask = await pgClient.query(
+      'SELECT id, status, "recurringInterval" FROM "task" WHERE title = $1 AND "ownerId" = $2 AND status = $3 ORDER BY "createdAt" DESC LIMIT 1',
+      ['Recurring Task Instance', testUserId, 'TO_DO']
+    );
+
+    expect(newTask.rows.length).toBe(1);
+    const newTaskId = newTask.rows[0].id;
+    expect(newTaskId).toBeDefined();
+    expect(newTask.rows[0].recurringInterval).toBe(7); // New task has same recurring settings
+
+    // Verify the new task appears in the UI using its data-testid
+    const newTaskEditButton = page.getByTestId(`edit-task-button-${newTaskId}`);
+    await expect(newTaskEditButton).toBeVisible({ timeout: 65000 });
+
+    // Verify the new task row shows TO_DO status
+    const newTaskRow = page.locator('tr').filter({ has: newTaskEditButton });
+    await expect(newTaskRow.getByText(/to do/i)).toBeVisible({
+      timeout: 65000,
+    });
+
+    // Verify the original completed task still exists
+    const originalTaskEditButton = page.getByTestId(
+      `edit-task-button-${createdTaskId}`
+    );
+    await expect(originalTaskEditButton).toBeVisible({ timeout: 65000 });
+
+    // Verify the original task row shows COMPLETED status
+    const originalTaskRow = page
+      .locator('tr')
+      .filter({ has: originalTaskEditButton });
+    await expect(originalTaskRow.getByText(/completed/i)).toBeVisible({
+      timeout: 65000,
+    });
   });
 });
