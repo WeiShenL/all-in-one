@@ -402,7 +402,11 @@ describe('TaskService - Manager Operations (SCRUM-15)', () => {
       );
 
       // Assert
-      expect(mockTask.removeAssignee).toHaveBeenCalledWith('staff-id');
+      expect(mockTask.removeAssignee).toHaveBeenCalledWith(
+        'staff-id',
+        'manager-id',
+        'MANAGER'
+      );
       expect(mockTaskRepository.removeTaskAssignment).toHaveBeenCalledWith(
         'task-1',
         'staff-id'
@@ -723,7 +727,11 @@ describe('TaskService - Manager Operations (SCRUM-15)', () => {
 
       // Assert: Owner field still intact
       expect(mockTask.getOwnerId()).toBe(originalOwnerId);
-      expect(mockTask.removeAssignee).toHaveBeenCalledWith(originalOwnerId);
+      expect(mockTask.removeAssignee).toHaveBeenCalledWith(
+        originalOwnerId,
+        'manager-id',
+        'MANAGER'
+      );
     });
 
     /**

@@ -391,28 +391,35 @@ export class Task {
   }
 
   /**
-   * Remove an assignment from the task
+   * Remove an assignment from the task (SCRUM-15 AC3)
    * Business rule: Task must have at least 1 assignee (TM016)
-   *
-   * TODO: Make this role-based auth for MANAGER/HR_ADMIN only in future.
-   * Currently violates TM015 for STAFF users: "Assigned Staff member can add
-   * assignees, max 5 only. (but NOT remove them - TM015)"
+   * Authorization: Only MANAGER can remove assignees (TM015)
    */
-  removeAssignee(userId: string): void {
-    // 1. Check if user is assigned
+  removeAssignee(
+    userId: string,
+    _actorId: string,
+    actorRole?: 'STAFF' | 'MANAGER' | 'HR_ADMIN'
+  ): void {
+    // 1. Check actor authorization (TM015: Only managers can remove - SCRUM-15 AC3)
+    const isManager = actorRole === 'MANAGER';
+    if (!isManager) {
+      throw new UnauthorizedError();
+    }
+
+    // 2. Check if user is assigned
     if (!this.assignments.has(userId)) {
       throw new Error('User is not assigned to this task');
     }
 
-    // 2. Check minimum assignee requirement (TM016: min 1 assignee)
+    // 3. Check minimum assignee requirement (TM016: min 1 assignee)
     if (this.assignments.size === 1) {
       throw new Error('Task must have at least 1 assignee (TM016)');
     }
 
-    // 3. Remove from assignments set
+    // 4. Remove from assignments set
     this.assignments.delete(userId);
 
-    // 4. Update timestamp
+    // 5. Update timestamp
     this.updatedAt = new Date();
   }
 

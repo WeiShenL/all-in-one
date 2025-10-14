@@ -920,7 +920,12 @@ export class TaskService {
       }
     );
 
-    return task;
+    // Re-fetch to get persisted comment with ID
+    const updatedTask = await this.getTaskById(taskId, user);
+    if (!updatedTask) {
+      throw new Error('Task not found after comment creation');
+    }
+    return updatedTask;
   }
 
   /**
@@ -1342,8 +1347,8 @@ export class TaskService {
       throw new Error('Task not found');
     }
 
-    // Use domain to validate and remove (checks min 1 assignee rule)
-    task.removeAssignee(userId);
+    // Use domain to validate and remove (checks min 1 assignee rule and manager role)
+    task.removeAssignee(userId, user.userId, user.role);
 
     // Persist removal
     await this.taskRepository.removeTaskAssignment(taskId, userId);
