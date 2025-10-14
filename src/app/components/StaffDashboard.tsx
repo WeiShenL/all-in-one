@@ -563,6 +563,7 @@ const TaskRow = ({
 
             {/* Center: Task title */}
             <button
+              data-testid={`view-task-button-${task.id}`}
               onClick={() => onViewTask(task.id)}
               style={{
                 background: 'none',
