@@ -56,4 +56,6 @@ for (const user of users) {
   }
 }
 
-console.warn(`✅ Cleared ${deletedCount}/${users.length} users from auth.users`);
+console.warn(
+  `✅ Cleared ${deletedCount}/${users.length} users from auth.users`
+);
