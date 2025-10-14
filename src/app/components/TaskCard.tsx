@@ -542,6 +542,67 @@ export function TaskCard({
     }
   };
 
+  // SCRUM-15 AC3: Manager can remove assignees from accessible tasks
+  // TM015: Staff CANNOT remove assignees (only managers)
+  const handleRemoveAssignee = async (userId: string) => {
+    if (!userProfile) {
+      return;
+    }
+
+    // Only managers can remove assignees (AC3)
+    if (userProfile.role !== 'MANAGER') {
+      setError('Only managers can remove assignees');
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+
+    // Check if trying to remove owner
+    if (task && userId === task.ownerId) {
+      setError('Cannot remove the task owner');
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+
+    // Check minimum 1 assignee (TM016)
+    if (task && task.assignments.length <= 1) {
+      setError('Task must have at least 1 assignee');
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+
+    setError(null);
+
+    try {
+      const removeResponse = await fetch('/api/trpc/task.removeAssignee', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          taskId,
+          userId,
+        }),
+      });
+
+      if (!removeResponse.ok) {
+        const errorData = await removeResponse.json();
+        throw new Error(
+          errorData.error?.message || 'Failed to remove assignee'
+        );
+      }
+
+      const userDetails = userDetailsMap.get(userId);
+      const displayName = userDetails?.email || `User ${userId.slice(0, 8)}...`;
+      setSuccess(`✅ Removed assignee "${displayName}"`);
+      await fetchTask(); // Refresh task data
+
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Failed to remove assignee'
+      );
+      setTimeout(() => setError(null), 5000);
+    }
+  };
+
   // File upload handlers
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1448,6 +1509,10 @@ export function TaskCard({
               {task.assignments.map(userId => {
                 const userDetails = userDetailsMap.get(userId);
                 const isOwner = userId === task.ownerId;
+                const canRemove =
+                  userProfile?.role === 'MANAGER' &&
+                  !isOwner &&
+                  task.assignments.length > 1;
                 return (
                   <div
                     key={userId}
@@ -1458,6 +1523,9 @@ export function TaskCard({
                       fontSize: '0.875rem',
                       color: isOwner ? '#92400e' : '#166534',
                       border: isOwner ? '1px solid #f59e0b' : 'none',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
                     }}
                   >
                     <span>
@@ -1481,6 +1549,25 @@ export function TaskCard({
                         </span>
                       )}
                     </span>
+                    {canRemove && (
+                      <button
+                        onClick={() => handleRemoveAssignee(userId)}
+                        style={{
+                          padding: '4px 8px',
+                          backgroundColor: '#dc2626',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '3px',
+                          cursor: 'pointer',
+                          fontSize: '11px',
+                          fontWeight: '600',
+                        }}
+                        title='Remove assignee (Manager only)'
+                        data-testid={`remove-assignee-${userId}`}
+                      >
+                        ✕ Remove
+                      </button>
+                    )}
                   </div>
                 );
               })}
@@ -1488,7 +1575,7 @@ export function TaskCard({
           )}
         </div>
 
-        {/* Remember that max 5 assignees (TM023) and cannot remove once added (TM015) */}
+        {/* Max 5 assignees (TM023). TM015: Staff cannot remove, but Managers can (SCRUM-15 AC3) */}
         {/* Add Assignee Interface */}
         {task.assignments.length < 5 ? (
           <div>
