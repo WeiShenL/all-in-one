@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/supabase/auth-context';
 import LogItem from './LogItem';
 import { ConnectedTasks } from './ConnectedTasks';
+import { TaskDatePill } from './TaskDatePill';
 
 interface Task {
   id: string;
@@ -1326,20 +1327,7 @@ export function TaskCard({
                 e.currentTarget.style.border = '1px solid transparent';
               }}
             >
-              <span
-                style={{
-                  fontSize: '0.875rem',
-                  color:
-                    new Date(task.dueDate) < new Date() ? '#dc2626' : '#6b7280',
-                  backgroundColor:
-                    new Date(task.dueDate) < new Date() ? '#fee2e2' : '#f3f4f6',
-                  padding: '4px 8px',
-                  borderRadius: '4px',
-                  fontWeight: '500',
-                }}
-              >
-                {new Date(task.dueDate).toLocaleDateString()}
-              </span>
+              <TaskDatePill dueDate={task.dueDate} status={task.status} />
             </div>
           )}
         </div>

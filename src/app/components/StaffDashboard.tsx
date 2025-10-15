@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { TaskCard } from './TaskCard';
 import departmentData from '@/../prisma/data/1_departments.json';
 import { useAuth } from '@/lib/supabase/auth-context';
+import { TaskDatePill } from './TaskDatePill';
 
 // --- CUSTOM HOOKS ---
 const useUserInfo = (userIds: string[]) => {
@@ -159,18 +160,7 @@ const PriorityPill = ({ priority }: { priority: number }) => {
   );
 };
 
-const DatePill = ({ dueDate }: { dueDate: string }) => {
-  const isOverdue = new Date(dueDate) < new Date();
-  const backgroundColor = isOverdue ? '#fee2e2' : '#f3f4f6';
-  const textColor = isOverdue ? '#dc2626' : '#6b7280';
-  const text = new Date(dueDate).toLocaleDateString();
-
-  return (
-    <Pill backgroundColor={backgroundColor} textColor={textColor}>
-      {text}
-    </Pill>
-  );
-};
+// DatePill removed - now using shared TaskDatePill component which includes status check
 
 // --- STYLES ---
 const styles = {
@@ -607,7 +597,7 @@ const TaskRow = ({
           <PriorityPill priority={task.priorityBucket} />
         </td>
         <td style={styles.td}>
-          <DatePill dueDate={task.dueDate} />
+          <TaskDatePill dueDate={task.dueDate} status={task.status} />
         </td>
         <td style={styles.td}>
           {task.assignments.length > 0 ? (
