@@ -181,8 +181,14 @@ test.describe('E2E - Manager removes assignee (happy path)', () => {
     await page.getByLabel('Password').fill(managerPassword);
     await page.getByRole('button', { name: /sign in/i }).click();
 
-    // 2) Wait for dashboard. Manager view may be /dashboard/manager; relax URL check + verify task text
-    await expect(page).toHaveURL(/dashboard(\/manager)?|home|tasks/i, {
+    // 2) Wait for personal dashboard, then navigate to department dashboard
+    await expect(page).toHaveURL(/dashboard(\/personal)?|home|tasks/i, {
+      timeout: 40000,
+    });
+
+    // Navigate to department dashboard to manage department tasks
+    await page.goto('/dashboard/department');
+    await expect(page).toHaveURL(/dashboard\/department/, {
       timeout: 40000,
     });
     await expect(
