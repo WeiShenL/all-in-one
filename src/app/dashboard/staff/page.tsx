@@ -32,7 +32,7 @@ export default function StaffDashboardPage() {
     );
   }
 
-  if (!user || userProfile?.role !== 'STAFF') {
+  if (!user) {
     return null;
   }
 
