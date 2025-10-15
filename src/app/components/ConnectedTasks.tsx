@@ -101,7 +101,7 @@ interface TaskHierarchy {
   parentChain: Array<{
     id: string;
     title: string;
-    status: string;
+    status: 'TO_DO' | 'IN_PROGRESS' | 'COMPLETED' | 'BLOCKED';
     priority: number | undefined;
     dueDate: string;
     parentTaskId: string | null;
@@ -109,7 +109,7 @@ interface TaskHierarchy {
   currentTask: {
     id: string;
     title: string;
-    status: string;
+    status: 'TO_DO' | 'IN_PROGRESS' | 'COMPLETED' | 'BLOCKED';
     priority: number | undefined;
     dueDate: string;
     parentTaskId: string | null;
@@ -117,7 +117,7 @@ interface TaskHierarchy {
   subtaskTree: Array<{
     id: string;
     title: string;
-    status: string;
+    status: 'TO_DO' | 'IN_PROGRESS' | 'COMPLETED' | 'BLOCKED';
     priority: number | undefined;
     dueDate: string;
     parentTaskId: string;
