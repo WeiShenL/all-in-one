@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/supabase/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import Navbar from '@/app/components/Navbar';
-import { StaffDashboard } from '@/app/components/StaffDashboard';
+import { PersonalDashboard } from '@/app/components/PersonalDashboard';
 
 export default function PersonalDashboardPage() {
   const { user, userProfile, loading } = useAuth();
@@ -104,7 +104,7 @@ export default function PersonalDashboardPage() {
 
           {/* Personal Task Dashboard - Shows only assigned tasks with Edit button */}
           <div>
-            <StaffDashboard />
+            <PersonalDashboard />
           </div>
         </div>
       </div>

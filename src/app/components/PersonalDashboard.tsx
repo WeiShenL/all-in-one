@@ -1,14 +1,14 @@
 'use client';
 
 import { useAuth } from '@/lib/supabase/auth-context';
-import { TaskTable } from './TaskTable';
+import { TaskTable } from './TaskTable/TaskTable';
 import { trpc } from '../lib/trpc';
 
 /**
- * Staff Dashboard Component (Personal Dashboard)
+ * Personal Dashboard Component (Personal Dashboard)
  * Shows only tasks assigned to the current user with full edit permissions
  */
-export function StaffDashboard() {
+export function PersonalDashboard() {
   const { user } = useAuth();
   const { data, isLoading, error } = trpc.task.getUserTasks.useQuery(
     { userId: user?.id || '', includeArchived: false },

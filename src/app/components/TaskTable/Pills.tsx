@@ -72,16 +72,3 @@ export const PriorityPill = ({ priority }: { priority: number }) => {
     </Pill>
   );
 };
-
-export const DatePill = ({ dueDate }: { dueDate: string }) => {
-  const isOverdue = new Date(dueDate) < new Date();
-  const backgroundColor = isOverdue ? '#fee2e2' : '#f3f4f6';
-  const textColor = isOverdue ? '#dc2626' : '#6b7280';
-  const text = new Date(dueDate).toLocaleDateString();
-
-  return (
-    <Pill backgroundColor={backgroundColor} textColor={textColor}>
-      {text}
-    </Pill>
-  );
-};

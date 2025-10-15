@@ -63,7 +63,7 @@ test.describe('Task Update - Complete UI Flow', () => {
 
     // Wait for dashboard
     await expect(
-      page.getByRole('heading', { name: /staff dashboard/i })
+      page.getByRole('heading', { name: /personal dashboard/i })
     ).toBeVisible({ timeout: 65000 });
 
     // Wait a bit for tasks to load

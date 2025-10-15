@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { Task } from './types';
-import { StatusPill, PriorityPill, DatePill } from './Pills';
+import { StatusPill, PriorityPill } from './Pills';
+import { TaskDatePill } from './TaskDatePill';
 import { styles } from './styles';
 import departmentData from '@/../prisma/data/1_departments.json';
 
@@ -250,7 +251,7 @@ export const TaskRow = ({
           <PriorityPill priority={task.priorityBucket} />
         </td>
         <td style={styles.td}>
-          <DatePill dueDate={task.dueDate} />
+          <TaskDatePill dueDate={task.dueDate} status={task.status} />
         </td>
         <td style={styles.td}>
           {task.assignments.length > 0 ? (

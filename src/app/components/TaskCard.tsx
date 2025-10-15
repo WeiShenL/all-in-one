@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/supabase/auth-context';
 import LogItem from './LogItem';
 import { ConnectedTasks } from './ConnectedTasks';
-import { TaskDatePill } from './TaskDatePill';
+import { TaskDatePill } from './TaskTable/TaskDatePill';
 
 interface Task {
   id: string;

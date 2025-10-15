@@ -37,80 +37,34 @@ A Next.js application with Supabase backend, designed for local development with
 
    The default configuration will work for local development.
 
-3. **Start the Supabase Stack**
-   All Docker commands must be run from _inside_ the `supabase` directory.
-
-   First, navigate into the folder:
+3. **Run the Automated Setup Script**
+   From the project root, run the `dev:setup` script. This single command will handle all the necessary setup steps for you.
 
    ```bash
-   cd supabase
+   npm run dev:setup
    ```
 
-   Then, start all the services using the following command:
+   This script automates the following:
+   - Installs all dependencies (`npm install`)
+   - Starts the Supabase services using Docker
+   - Applies database migrations
+   - Seeds the database with sample data
+   - Sets up Supabase storage
+   - Starts the Next.js development server
 
-   ```bash
-   docker compose --env-file ../.env up -d
-   ```
+   **Note:** This is a long-running process that will occupy your terminal. Wait for the script to finish and for the Next.js server to start.
 
-   The first run may take several minutes to download all the necessary container images. Once done, navigate back to the project root:
-
-   ```bash
-   cd ..
-   ```
-
-4. **Install Next.js Dependencies**
-   In a new terminal, from the project root:
-
-   ```bash
-   npm install
-   ```
-
-5. **Run the Database Migration**
-   With the Supabase database running, apply the schema to your database using Prisma Migrate. This command reads your `prisma/schema.prisma` file and creates the corresponding tables.
-
-   ```bash
-   npx prisma migrate dev --name init
-   ```
-
-   **Verify Database Connection (Optional)**
-   Test your Prisma Client setup:
-
-   ```bash
-   npx prisma studio
-   ```
-
-6. **Seed the Database**
-   To populate your database with initial data (e.g., user roles), run the seed script.
-
-   ```bash
-   npx prisma db seed
-   ```
-
-7. **Configure Supabase Storage (Required for file uploads)**
-
-   If you need to use the file upload feature for tasks, you must configure Supabase Storage:
-   - Create `task-attachments` bucket
-   - Configure RLS policies for upload/download/delete
-
-   **📋 Follow the complete guide**: [DEVELOPMENT.md - File Upload & Storage System](./DEVELOPMENT.md#-file-upload--storage-system)
-
-8. **Start the Next.js Development Server**
-
-   ```bash
-   npm run dev
-   ```
-
-9. **Accessing the Services**
+4. **Accessing the Services**
    - **Next.js App**: [http://localhost:3000](http://localhost:3000)
    - **Supabase Studio**: [http://localhost:8000](http://localhost:8000)(Use credentials from `.env` file if prompted)
    - **Prisma Studio**: [http://localhost:5555](http://localhost:5555)(You'll need to run `npx prisma studio`)
 
-10. **Stopping the Services**
+5. **Stopping the Services**
 
-```bash
-cd supabase
-docker compose --env-file ../.env down
-```
+   ```bash
+   cd supabase
+   docker compose --env-file ../.env down
+   ```
 
 ### When You Pull New Changes
 

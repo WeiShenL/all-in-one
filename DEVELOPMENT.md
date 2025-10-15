@@ -13,6 +13,36 @@ This document covers development practices, guidelines, and advanced topics for 
 - [Reusable Components](#-reusable-components)
 - [Project Structure](#-project-structure)
 
+## 🚀 Getting Started
+
+This section covers how to get the project running on your local machine for development and testing.
+
+### Prerequisites
+
+- Node.js (v18 or later)
+- Docker and Docker Compose
+- `npm` or a compatible package manager
+
+### One-Command Setup
+
+The easiest way to start the development environment is to use the all-in-one `dev:setup` script. This command will set up everything you need, from the database to the frontend.
+
+```bash
+npm run dev:setup
+```
+
+This single command performs the following steps:
+
+1.  Installs all project dependencies (`npm install`).
+2.  Stops and removes any old Supabase Docker containers.
+3.  Starts all necessary Supabase services (including database, auth, and storage) in the background.
+4.  Applies any pending database migrations.
+5.  Initializes the Supabase storage buckets and policies.
+6.  Seeds the database with sample data.
+7.  Starts the Next.js frontend development server with Turbopack.
+
+**Note:** This is a long-running process that will occupy your terminal. Once you see the Next.js server has started, you can access the application at `http://localhost:3000`.
+
 ## 💾 Database Management
 
 ### Making Database Schema Changes
