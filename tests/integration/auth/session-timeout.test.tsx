@@ -134,7 +134,7 @@ describe('Session Timeout Integration Tests', () => {
       });
     });
 
-    it('should redirect to role-based dashboard if no redirect param after session expiry', async () => {
+    it('should redirect to personal dashboard if no redirect param after session expiry', async () => {
       const mockSearchParams = new URLSearchParams('expired=true');
       (useSearchParams as jest.Mock).mockReturnValue(mockSearchParams);
 
@@ -170,7 +170,7 @@ describe('Session Timeout Integration Tests', () => {
       rerender(<LoginPage />);
 
       await waitFor(() => {
-        expect(mockPush).toHaveBeenCalledWith('/dashboard/staff');
+        expect(mockPush).toHaveBeenCalledWith('/dashboard/personal');
       });
     });
   });
@@ -268,7 +268,7 @@ describe('Edge Cases', () => {
 
     // Should redirect to dashboard
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/dashboard/staff');
+      expect(mockPush).toHaveBeenCalledWith('/dashboard/personal');
     });
   });
 });

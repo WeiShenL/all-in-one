@@ -4,7 +4,9 @@
       "Bash(npm run test:unit:*)",
       "Bash(npm run test:integration:*)",
       "Bash(Select-String -Pattern \"(PASS|FAIL|Tests:|Test Suites:)\" -Context 0,1)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(npx tsc:*)",
+      "Bash(tee:*)"
     ],
     "deny": [],
     "ask": []

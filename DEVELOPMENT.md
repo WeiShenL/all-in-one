@@ -10,6 +10,7 @@ This document covers development practices, guidelines, and advanced topics for 
 - [Authentication System](#-authentication-system)
 - [Real-time Notification System](#-real-time-notification-system)
 - [File Upload & Storage System](#-file-upload--storage-system)
+- [Reusable Components](#-reusable-components)
 - [Project Structure](#-project-structure)
 
 ## 💾 Database Management
@@ -986,6 +987,830 @@ Click **Review** → **Save policy**
 ```
 
 Click **Review** → **Save policy**
+
+## 🧩 Reusable Components
+
+### Overview
+
+The application includes reusable UI components designed for maximum flexibility and code reuse. These components follow a composable architecture pattern where complex features are built from smaller, focused components.
+
+### TaskTable Component
+
+The `TaskTable` is a highly reusable component for displaying tasks with advanced features like filtering, sorting, hierarchical subtasks, and role-based permissions.
+
+#### Features
+
+- **Hierarchical Task Display**: Parent tasks with expandable subtasks
+- **Advanced Filtering**: Filter by title, status, assignee, department
+- **Multi-column Sorting**: Sort by any column with visual indicators
+- **Role-based Edit Permissions**: Conditional Edit button based on `canEdit` field
+- **Empty States**: Customizable empty state messages
+- **Create Task Integration**: Optional Create Task button
+- **Task Viewing/Editing**: Built-in modal support for task details
+
+#### Basic Usage
+
+```typescript
+'use client';
+
+import { TaskTable } from '@/app/components/TaskTable';
+import { trpc } from '@/app/lib/trpc';
+
+export function MyDashboard() {
+  const { data, isLoading, error } = trpc.task.getUserTasks.useQuery({
+    userId: user?.id || '',
+    includeArchived: false,
+  });
+
+  return (
+    <TaskTable
+      tasks={data || []}
+      title="My Tasks"
+      showCreateButton={true}
+      emptyStateConfig={{
+        icon: '📝',
+        title: 'No tasks yet',
+        description: 'Create your first task to get started.',
+      }}
+      isLoading={isLoading}
+      error={error ? new Error(error.message) : null}
+    />
+  );
+}
+```
+
+#### Props Reference
+
+```typescript
+interface TaskTableProps {
+  // Required: Array of tasks to display
+  tasks: Task[];
+
+  // Optional: Section title (default: "All Tasks")
+  title?: string;
+
+  // Optional: Show "Create Task" button (default: false)
+  showCreateButton?: boolean;
+
+  // Optional: Custom handler for Create Task button
+  onCreateTask?: () => void;
+
+  // Optional: Empty state configuration
+  emptyStateConfig?: {
+    icon: string; // Emoji or icon to display
+    title: string; // Main message
+    description: string; // Supporting text
+  };
+
+  // Optional: Loading state
+  isLoading?: boolean;
+
+  // Optional: Error state
+  error?: Error | null;
+}
+```
+
+#### Task Data Structure
+
+Tasks must follow this structure (matches backend API response):
+
+```typescript
+interface Task {
+  id: string;
+  title: string;
+  description: string;
+  status: 'TO_DO' | 'IN_PROGRESS' | 'COMPLETED' | 'BLOCKED';
+  priorityBucket: number;
+  dueDate: string;
+
+  // Assignments with full user details
+  assignments: Array<{
+    userId: string;
+    user: {
+      id: string;
+      name: string | null;
+      email: string | null;
+    };
+  }>;
+
+  departmentId: string;
+  ownerId: string;
+  projectId: string | null;
+  parentTaskId: string | null;
+
+  // Subtasks (optional, for hierarchical display)
+  subtasks?: Task[];
+  hasSubtasks?: boolean;
+
+  // Role-based edit permission (optional, defaults to true)
+  canEdit?: boolean;
+
+  // Additional metadata
+  isRecurring: boolean;
+  recurringInterval: number | null;
+  isArchived: boolean;
+  createdAt: string;
+  updatedAt: string;
+  tags: string[];
+  comments: Array<{
+    id: string;
+    content: string;
+    authorId: string;
+    createdAt: string;
+    updatedAt: string;
+  }>;
+}
+```
+
+#### Configuration Examples
+
+**Example 1: Personal Dashboard (All tasks editable)**
+
+```typescript
+export function PersonalDashboard() {
+  const { user } = useAuth();
+  const { data, isLoading, error } = trpc.task.getUserTasks.useQuery(
+    { userId: user?.id || '', includeArchived: false },
+    { enabled: !!user?.id }
+  );
+
+  return (
+    <TaskTable
+      tasks={data || []}
+      title="My Tasks"
+      showCreateButton={true}
+      emptyStateConfig={{
+        icon: '📝',
+        title: 'No tasks assigned to you yet',
+        description: 'Create your first task or wait for a manager to assign one to you.',
+      }}
+      isLoading={isLoading}
+      error={error ? new Error(error.message) : null}
+    />
+  );
+}
+```
+
+**Example 2: Department Dashboard (Role-based editing)**
+
+```typescript
+export function DepartmentDashboard() {
+  const { data, isLoading, error } = trpc.task.getDepartmentTasksForUser.useQuery();
+
+  return (
+    <TaskTable
+      tasks={data || []}
+      title="Department Tasks"
+      showCreateButton={true}
+      emptyStateConfig={{
+        icon: '📁',
+        title: 'No tasks in your department yet',
+        description: 'Create your first task or wait for tasks to be added to your department.',
+      }}
+      isLoading={isLoading}
+      error={error ? new Error(error.message) : null}
+    />
+  );
+}
+```
+
+**Example 3: Read-only Task View (No create button, no editing)**
+
+```typescript
+export function ArchivedTasksView() {
+  const { data, isLoading, error } = trpc.task.getUserTasks.useQuery({
+    userId: user?.id || '',
+    includeArchived: true,
+  });
+
+  // Set canEdit=false for all tasks to disable editing
+  const tasksReadOnly = data?.map(task => ({ ...task, canEdit: false })) || [];
+
+  return (
+    <TaskTable
+      tasks={tasksReadOnly}
+      title="Archived Tasks"
+      showCreateButton={false}  // No create button
+      emptyStateConfig={{
+        icon: '📦',
+        title: 'No archived tasks',
+        description: 'Tasks you archive will appear here.',
+      }}
+      isLoading={isLoading}
+      error={error ? new Error(error.message) : null}
+    />
+  );
+}
+```
+
+**Example 4: Project-specific Tasks**
+
+```typescript
+export function ProjectTasksView({ projectId }: { projectId: string }) {
+  const { data, isLoading, error } = trpc.task.getProjectTasks.useQuery({
+    projectId,
+  });
+
+  return (
+    <TaskTable
+      tasks={data || []}
+      title="Project Tasks"
+      showCreateButton={true}
+      onCreateTask={() => {
+        // Custom handler: Pre-fill project ID
+        router.push(`/tasks/create?projectId=${projectId}`);
+      }}
+      emptyStateConfig={{
+        icon: '🎯',
+        title: 'No tasks in this project',
+        description: 'Create the first task for this project.',
+      }}
+      isLoading={isLoading}
+      error={error ? new Error(error.message) : null}
+    />
+  );
+}
+```
+
+#### Toggling Features
+
+##### Toggle Create Task Button
+
+```typescript
+// Show Create Task button
+<TaskTable tasks={tasks} showCreateButton={true} />
+
+// Hide Create Task button
+<TaskTable tasks={tasks} showCreateButton={false} />
+
+// Custom Create Task handler
+<TaskTable
+  tasks={tasks}
+  showCreateButton={true}
+  onCreateTask={() => {
+    // Your custom logic here
+    console.log('Opening custom create task modal...');
+    setShowModal(true);
+  }}
+/>
+```
+
+##### Toggle Edit Permissions
+
+```typescript
+// Edit button visibility is controlled by the canEdit field in each task
+
+// All tasks editable (canEdit: true)
+const editableTasks = tasks.map(task => ({ ...task, canEdit: true }));
+<TaskTable tasks={editableTasks} />
+
+// All tasks read-only (canEdit: false)
+const readOnlyTasks = tasks.map(task => ({ ...task, canEdit: false }));
+<TaskTable tasks={readOnlyTasks} />
+
+// Role-based (from backend API)
+// The backend calculates canEdit based on user role and assignment
+<TaskTable tasks={data || []} />  // Uses canEdit from API
+```
+
+##### Toggle Loading/Error States
+
+```typescript
+// Show loading spinner
+<TaskTable tasks={[]} isLoading={true} />
+
+// Show error message
+<TaskTable tasks={[]} error={new Error('Failed to load tasks')} />
+
+// Show data
+<TaskTable tasks={data} isLoading={false} error={null} />
+```
+
+##### Customize Empty State
+
+```typescript
+// Custom empty state
+<TaskTable
+  tasks={[]}
+  emptyStateConfig={{
+    icon: '🎉',
+    title: 'All caught up!',
+    description: 'You have no pending tasks.',
+  }}
+/>
+
+// Default empty state (if not specified)
+<TaskTable tasks={[]} />
+// Shows: "No tasks available"
+```
+
+#### Component Architecture
+
+The TaskTable is composed of smaller, focused components:
+
+```
+TaskTable/
+├── index.ts              # Exports TaskTable and types
+├── TaskTable.tsx         # Main container component
+├── TaskRow.tsx           # Individual task row with subtasks
+├── Pills.tsx             # StatusPill, PriorityPill, DatePill
+├── types.ts              # TypeScript interfaces
+├── utils.ts              # Sorting, filtering, hierarchy logic
+└── styles.ts             # Shared styling constants
+```
+
+**Component Responsibilities:**
+
+- **TaskTable.tsx**: Container with filtering, sorting, modals, state management
+- **TaskRow.tsx**: Renders individual task with conditional Edit button based on `canEdit`
+- **Pills.tsx**: Visual indicators for status, priority, due dates
+- **utils.ts**: Business logic for organizing tasks hierarchically
+- **types.ts**: Type definitions shared across components
+- **styles.ts**: Centralized styling for consistency
+
+#### Backend Integration
+
+The TaskTable works with two main API endpoints:
+
+**1. Personal Tasks (All editable)**
+
+```typescript
+// Backend: src/app/server/routers/task.ts
+getUserTasks: publicProcedure
+  .input(
+    z.object({
+      userId: z.string().uuid(),
+      includeArchived: z.boolean().optional().default(false),
+    })
+  )
+  .query(async ({ ctx, input }) => {
+    const tasks = await service.getUserTasks(
+      input.userId,
+      input.includeArchived
+    );
+    // All personal tasks are editable
+    return tasks.map(task => ({ ...serializeTask(task), canEdit: true }));
+  });
+```
+
+**2. Department Tasks (Role-based editing)**
+
+```typescript
+// Backend: src/app/server/services/TaskService.ts
+async getDepartmentTasksForUser(userId: string) {
+  // Fetch tasks in department hierarchy with subtasks
+  const tasks = await this.prisma.task.findMany({
+    where: { /* department hierarchy logic */ },
+    include: {
+      assignments: { /* full user details */ },
+      subtasks: { /* nested subtasks */ },
+      // ... other relations
+    },
+  });
+
+  // Calculate canEdit based on role and assignment
+  return tasks.map(task => ({
+    ...task,
+    canEdit: authService.canEditTask(task, user, departmentIds),
+    subtasks: task.subtasks?.map(subtask => ({
+      ...subtask,
+      canEdit: authService.canEditTask(subtask, user, departmentIds),
+    })),
+  }));
+}
+```
+
+**Role-based Permission Logic:**
+
+```typescript
+// Backend: src/app/server/services/AuthorizationService.ts
+canEditTask(task, user, departmentHierarchy): boolean {
+  // STAFF: Can only edit tasks assigned to them
+  if (user.role === 'STAFF') {
+    return task.assignments.some(a => a.userId === user.userId);
+  }
+
+  // MANAGER/HR_ADMIN: Can edit all tasks in hierarchy
+  if (user.role === 'MANAGER' || user.role === 'HR_ADMIN') {
+    return departmentHierarchy.includes(task.departmentId);
+  }
+
+  return false;
+}
+```
+
+#### Best Practices
+
+1. **Always provide loading state**: Improves user experience during data fetching
+2. **Handle errors gracefully**: Show meaningful error messages
+3. **Customize empty states**: Make them contextual to the view
+4. **Use backend canEdit**: Don't override permissions client-side
+5. **Keep tasks prop updated**: Ensure real-time updates when data changes
+6. **Use type-safe data**: Follow the Task interface structure exactly
+
+#### Migration Guide
+
+If you have existing dashboard code, here's how to migrate to TaskTable:
+
+**Before (Custom implementation):**
+
+```typescript
+export function OldDashboard() {
+  const [filters, setFilters] = useState({});
+  const [sortBy, setSortBy] = useState('dueDate');
+  // ... 500+ lines of filtering, sorting, rendering logic
+
+  return (
+    <table>
+      {/* Complex table markup */}
+    </table>
+  );
+}
+```
+
+**After (TaskTable component):**
+
+```typescript
+export function NewDashboard() {
+  const { data, isLoading, error } = trpc.task.getUserTasks.useQuery(/* ... */);
+
+  return (
+    <TaskTable
+      tasks={data || []}
+      title="My Tasks"
+      showCreateButton={true}
+      isLoading={isLoading}
+      error={error}
+    />
+  );
+}
+```
+
+**Benefits:**
+
+- ✅ Reduced from ~1200 lines to ~30 lines
+- ✅ Consistent UI/UX across all dashboards
+- ✅ Built-in filtering, sorting, subtask support
+- ✅ Role-based permissions handled automatically
+- ✅ Easier to maintain and test
+
+### TaskCard Component
+
+The `TaskCard` is a comprehensive modal component for viewing and editing individual task details with role-based permissions, file attachments, comments, and task history.
+
+#### Features
+
+- **Role-based Edit Permissions**: View-only mode for users without edit access
+- **Visual Permission Indicator**: Clear banner showing view-only status
+- **Inline Field Editing**: Click to edit title, description, status, priority, deadline, recurring settings
+- **Assignee Management**: Add/remove assignees (max 5, min 1)
+- **Tag Management**: Add/remove tags with visual pills
+- **File Attachments**: Upload, download, delete files (10MB max per file, 50MB total)
+- **Comments System**: Add, edit, view comments with timestamps
+- **Task History**: Complete audit log of all changes
+- **Connected Tasks**: View and navigate to parent/subtasks
+- **Conditional UI**: All edit controls hidden/disabled based on `canEdit` field
+
+#### Basic Usage
+
+```typescript
+'use client';
+
+import { useState } from 'react';
+import { TaskCard } from '@/app/components/TaskCard';
+
+export function TaskDetailsModal() {
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+
+  return (
+    <>
+      <button onClick={() => setSelectedTaskId('task-123')}>
+        View Task
+      </button>
+
+      {selectedTaskId && (
+        <div style={{ /* modal overlay styles */ }}>
+          <TaskCard
+            taskId={selectedTaskId}
+            onTaskChange={(newTaskId) => setSelectedTaskId(newTaskId)}
+          />
+          <button onClick={() => setSelectedTaskId(null)}>Close</button>
+        </div>
+      )}
+    </>
+  );
+}
+```
+
+#### Props Reference
+
+```typescript
+interface TaskCardProps {
+  // Required: Task ID to load and display
+  taskId: string;
+
+  // Optional: Callback when navigating to connected tasks
+  onTaskChange?: (newTaskId: string) => void;
+}
+```
+
+#### Permission-based Behavior
+
+The TaskCard automatically adapts its UI based on the `canEdit` field from the backend:
+
+**Edit Mode (canEdit: true)**
+
+- ✅ All fields are clickable and editable
+- ✅ Add/Remove Tag buttons visible
+- ✅ Add Assignee input visible
+- ✅ Remove Assignee button visible (managers only)
+- ✅ Add Comment textarea visible
+- ✅ File upload controls visible
+- ✅ File delete buttons visible
+- ✅ Hover effects on editable fields
+
+**View-only Mode (canEdit: false)**
+
+- 👁️ Yellow banner: "View-only mode: You can view this task but cannot edit it"
+- ❌ All fields non-clickable (cursor: default)
+- ❌ No hover effects on fields
+- ❌ Add/Remove buttons hidden
+- ❌ File upload section hidden
+- ❌ File delete buttons hidden
+- ❌ Add Comment section hidden
+- ✅ Can still view all data (assignees, tags, comments, files, history)
+- ✅ Can download files
+
+#### Editable Fields
+
+When `canEdit: true`, users can edit the following fields by clicking on them:
+
+1. **Title**: Click the title to open inline text input
+2. **Description**: Click the description to open textarea
+3. **Status**: Click the status pill to open dropdown (TO_DO, IN_PROGRESS, COMPLETED, BLOCKED)
+4. **Priority**: Click the priority badge to open number input (1-10)
+5. **Deadline**: Click the date to open date picker
+6. **Recurring Settings**: Click to toggle recurring and set interval (days)
+
+Each field shows Save/Cancel buttons when editing, with visual feedback (blue border, hover states).
+
+#### Task Data Structure
+
+The TaskCard fetches task data from the `task.getById` endpoint, which returns:
+
+```typescript
+interface Task {
+  id: string;
+  title: string;
+  description: string;
+  status: 'TO_DO' | 'IN_PROGRESS' | 'COMPLETED' | 'BLOCKED';
+  priorityBucket: number;
+  dueDate: string;
+  isRecurring: boolean;
+  recurringInterval: number | null;
+  ownerId: string;
+
+  // Assignments with full user details
+  assignments: Array<{
+    userId: string;
+    user: {
+      id: string;
+      name: string | null;
+      email: string | null;
+    };
+  }>;
+
+  // Tags as string array
+  tags: string[];
+
+  // Comments with author details
+  comments: Array<{
+    id: string;
+    content: string;
+    authorId: string;
+    createdAt: string;
+    updatedAt: string;
+  }>;
+
+  // Permission field from backend
+  canEdit: boolean;
+}
+```
+
+#### Backend Integration
+
+The TaskCard component uses the following tRPC endpoints:
+
+**1. Fetching Task Details**
+
+```typescript
+// Backend: src/app/server/routers/task.ts
+getById: publicProcedure
+  .input(z.object({ taskId: z.string().uuid() }))
+  .query(async ({ ctx, input }) => {
+    const task = await service.getTaskById(input.taskId, user);
+
+    // Calculate canEdit based on role and assignment
+    const canEdit = authService.canEditTask(task, user, departmentHierarchy);
+
+    // Include full user details for assignees
+    return {
+      ...serializeTask(task),
+      assignments: assignmentsWithUserDetails,
+      canEdit, // Permission field for frontend
+    };
+  });
+```
+
+**2. Permission Calculation**
+
+```typescript
+// Backend: src/app/server/services/AuthorizationService.ts
+canEditTask(task, user, departmentHierarchy): boolean {
+  // STAFF: Can only edit tasks assigned to them
+  if (user.role === 'STAFF') {
+    return task.assignments.some(a => a.userId === user.userId);
+  }
+
+  // MANAGER/HR_ADMIN: Can edit all tasks in department hierarchy
+  if (user.role === 'MANAGER' || user.role === 'HR_ADMIN') {
+    return departmentHierarchy.includes(task.departmentId);
+  }
+
+  return false;
+}
+```
+
+**3. Update Operations**
+
+The TaskCard uses separate tRPC endpoints for each update operation:
+
+- `task.updateTitle` - Update task title
+- `task.updateDescription` - Update description
+- `task.updateStatus` - Change task status
+- `task.updatePriority` - Update priority (1-10)
+- `task.updateDeadline` - Change due date
+- `task.updateRecurring` - Toggle recurring settings
+- `task.addTag` / `task.removeTag` - Manage tags
+- `task.addComment` / `task.updateComment` - Manage comments
+- `task.addAssignee` / `task.removeAssignee` - Manage assignees (min 1, max 5)
+- `taskFile.uploadFile` / `taskFile.deleteFile` - Manage file attachments
+
+#### Usage Examples
+
+**Example 1: Staff Member Viewing Assigned Task (Edit Mode)**
+
+```typescript
+// User: STAFF, Assigned: Yes
+// Backend returns: canEdit: true
+
+<TaskCard taskId="task-123" />
+
+// Result:
+// - Yellow view-only banner: NOT shown
+// - All fields: Clickable and editable
+// - Add buttons: Visible
+// - File uploads: Enabled
+```
+
+**Example 2: Staff Member Viewing Unassigned Task (View-only Mode)**
+
+```typescript
+// User: STAFF, Assigned: No
+// Backend returns: canEdit: false
+
+<TaskCard taskId="task-456" />
+
+// Result:
+// - Yellow view-only banner: "👁️ View-only mode: You can view this task but cannot edit it"
+// - All fields: Non-clickable (cursor: default)
+// - Add buttons: Hidden
+// - File uploads: Hidden
+// - Can still: View data, download files, see history
+```
+
+**Example 3: Manager Viewing Department Task (Edit Mode)**
+
+```typescript
+// User: MANAGER, Task in department hierarchy
+// Backend returns: canEdit: true
+
+<TaskCard taskId="task-789" />
+
+// Result:
+// - Full edit access to all fields
+// - Can add/remove assignees (including removing owner from assignees)
+// - Can manage all aspects of the task
+```
+
+**Example 4: Navigating to Connected Tasks**
+
+```typescript
+<TaskCard
+  taskId="parent-task-123"
+  onTaskChange={(newTaskId) => {
+    // User clicked on a subtask or parent task link
+    console.log('Navigating to task:', newTaskId);
+    setSelectedTaskId(newTaskId);
+  }}
+/>
+
+// The ConnectedTasks component inside TaskCard shows:
+// - Parent task (if exists)
+// - All subtasks
+// Clicking them triggers onTaskChange callback
+```
+
+#### Integration with TaskTable
+
+The TaskCard is typically used with TaskTable for a complete task management experience:
+
+```typescript
+export function Dashboard() {
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const { data, isLoading, error } = trpc.task.getUserTasks.useQuery();
+
+  return (
+    <>
+      <TaskTable
+        tasks={data || []}
+        title="My Tasks"
+        showCreateButton={true}
+        onViewTask={(taskId) => setSelectedTaskId(taskId)}
+        onEditTask={(taskId) => setSelectedTaskId(taskId)}
+        isLoading={isLoading}
+        error={error}
+      />
+
+      {/* Task details modal */}
+      {selectedTaskId && (
+        <div style={{ /* modal overlay */ }}>
+          <TaskCard
+            taskId={selectedTaskId}
+            onTaskChange={(newTaskId) => setSelectedTaskId(newTaskId)}
+          />
+          <button onClick={() => setSelectedTaskId(null)}>✕ Close</button>
+        </div>
+      )}
+    </>
+  );
+}
+```
+
+#### Component Features in Detail
+
+**Assignee Management (AC7 - TM015)**
+
+- **Add**: Enter email address, max 5 assignees (TM023)
+- **Remove**: Manager-only (SCRUM-15 AC3), min 1 assignee (TM016)
+- **Owner**: Can be removed from assignees but remains as owner (AC6 edge case)
+- **Display**: Shows name, email, and owner badge
+
+**Tag Management**
+
+- **Add**: Type tag name and click "Add Tag"
+- **Remove**: Click × button on tag pill
+- **Display**: Visual pills with remove buttons (when editable)
+
+**File Attachments**
+
+- **Upload**: 10MB max per file, 50MB total storage per task
+- **Allowed Types**: PDF, images (JPG, PNG, GIF), documents (DOC, DOCX), spreadsheets (XLS, XLSX), ZIP
+- **Download**: Click download button (available in view-only mode)
+- **Delete**: Click delete button (hidden in view-only mode)
+- **Storage Progress**: Visual bar showing usage (50MB limit)
+
+**Comments**
+
+- **Add**: Textarea with "Add Comment" button (hidden in view-only mode)
+- **Edit**: Click "✏️ Edit" button (only on own comments)
+- **Display**: Author name, timestamp, "(edited)" indicator
+- **Format**: Preserves line breaks with `whiteSpace: 'pre-wrap'`
+
+**Task History**
+
+- **Tabs**: Switch between "Comments" and "History"
+- **Log Entries**: Shows all task actions (created, updated, status changed, etc.)
+- **Details**: User name, action type, field changes, timestamp
+- **Read-only**: History is always viewable, never editable
+
+#### Best Practices
+
+1. **Always use backend canEdit**: Never override the permission field client-side
+2. **Handle task navigation**: Implement `onTaskChange` for connected tasks navigation
+3. **Modal management**: Control modal open/close state from parent component
+4. **Loading states**: TaskCard handles its own loading while fetching task data
+5. **Error handling**: TaskCard displays inline error messages
+6. **Real-time updates**: TaskCard refetches data after each update operation
+
+#### Accessibility & UX
+
+- **Visual feedback**: Hover states, focus states, active states on all interactive elements
+- **Disabled states**: Non-clickable fields have `cursor: default` and no hover effects
+- **Color coding**: Status (blue/green/red/gray), Priority (red/yellow/green), Overdue dates (red)
+- **Success messages**: Green banner with auto-dismiss after 3 seconds
+- **Error messages**: Red banner with auto-dismiss after 5 seconds
+- **View-only banner**: Persistent yellow banner when `canEdit: false`
 
 ## 📁 Project Structure
 

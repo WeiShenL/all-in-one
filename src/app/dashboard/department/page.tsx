@@ -4,9 +4,9 @@ import { useAuth } from '@/lib/supabase/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import Navbar from '@/app/components/Navbar';
-import { ManagerDashboard } from '@/app/components/ManagerDashboard';
+import { DepartmentDashboard } from '@/app/components/DepartmentDashboard';
 
-export default function ManagerDashboardPage() {
+export default function DepartmentDashboardPage() {
   const { user, userProfile, loading } = useAuth();
   const router = useRouter();
 
@@ -14,11 +14,8 @@ export default function ManagerDashboardPage() {
     if (!loading && !user) {
       router.push('/auth/login');
     }
-    // Redirect non-managers to staff dashboard
-    if (!loading && user && userProfile?.role !== 'MANAGER') {
-      router.push('/dashboard/staff');
-    }
-  }, [user, userProfile, loading, router]);
+    // No role restriction - all authenticated users can access
+  }, [user, loading, router]);
 
   if (loading) {
     return (
@@ -36,7 +33,7 @@ export default function ManagerDashboardPage() {
     );
   }
 
-  if (!user || userProfile?.role !== 'MANAGER') {
+  if (!user) {
     return null;
   }
 
@@ -65,7 +62,7 @@ export default function ManagerDashboardPage() {
                 fontWeight: '700',
               }}
             >
-              Manager Dashboard
+              Department Dashboard
             </h1>
             <p style={{ color: '#718096', margin: 0, fontSize: '0.875rem' }}>
               Welcome, {userProfile?.name || user.email}
@@ -106,9 +103,9 @@ export default function ManagerDashboardPage() {
             </div>
           </div>
 
-          {/* Manager Task Dashboard */}
+          {/* Department Task Dashboard - Shows hierarchy tasks with conditional Edit */}
           <div>
-            <ManagerDashboard />
+            <DepartmentDashboard />
           </div>
         </div>
       </div>
