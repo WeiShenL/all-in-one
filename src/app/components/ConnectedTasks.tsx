@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/lib/supabase/auth-context';
+import { TaskDatePill } from './TaskDatePill';
 
 // --- PILL COMPONENTS (reused from StaffDashboard) ---
 interface PillProps {
@@ -82,34 +83,13 @@ const PriorityPill = ({ priority }: { priority: number | undefined }) => {
   );
 };
 
-const DatePill = ({ dueDate }: { dueDate: string }) => {
-  // Handle invalid dates
-  const date = new Date(dueDate);
-  if (isNaN(date.getTime())) {
-    return (
-      <Pill backgroundColor='#f3f4f6' textColor='#6b7280'>
-        INVALID DATE
-      </Pill>
-    );
-  }
-
-  const isOverdue = date < new Date();
-  const backgroundColor = isOverdue ? '#fee2e2' : '#f3f4f6';
-  const textColor = isOverdue ? '#dc2626' : '#6b7280';
-  const text = date.toLocaleDateString();
-
-  return (
-    <Pill backgroundColor={backgroundColor} textColor={textColor}>
-      {text}
-    </Pill>
-  );
-};
+// DatePill removed - now using shared TaskDatePill component which includes status check
 
 // --- TYPES ---
 interface ConnectedTask {
   id: string;
   title: string;
-  status: string;
+  status: 'TO_DO' | 'IN_PROGRESS' | 'COMPLETED' | 'BLOCKED';
   priorityBucket: number | undefined;
   dueDate: string;
   isParent: boolean;
@@ -121,7 +101,7 @@ interface TaskHierarchy {
   parentChain: Array<{
     id: string;
     title: string;
-    status: string;
+    status: 'TO_DO' | 'IN_PROGRESS' | 'COMPLETED' | 'BLOCKED';
     priority: number | undefined;
     dueDate: string;
     parentTaskId: string | null;
@@ -129,7 +109,7 @@ interface TaskHierarchy {
   currentTask: {
     id: string;
     title: string;
-    status: string;
+    status: 'TO_DO' | 'IN_PROGRESS' | 'COMPLETED' | 'BLOCKED';
     priority: number | undefined;
     dueDate: string;
     parentTaskId: string | null;
@@ -137,7 +117,7 @@ interface TaskHierarchy {
   subtaskTree: Array<{
     id: string;
     title: string;
-    status: string;
+    status: 'TO_DO' | 'IN_PROGRESS' | 'COMPLETED' | 'BLOCKED';
     priority: number | undefined;
     dueDate: string;
     parentTaskId: string;
@@ -512,7 +492,7 @@ export function ConnectedTasks({
                   <PriorityPill priority={task.priorityBucket} />
                 </td>
                 <td style={{ padding: '12px', textAlign: 'center' }}>
-                  <DatePill dueDate={task.dueDate} />
+                  <TaskDatePill dueDate={task.dueDate} status={task.status} />
                 </td>
               </tr>
             ))}

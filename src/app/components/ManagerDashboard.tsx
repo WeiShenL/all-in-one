@@ -4,6 +4,7 @@ import { trpc } from '../lib/trpc';
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { TaskCard } from './TaskCard';
 import departmentData from '@/../prisma/data/1_departments.json';
+import { TaskDatePill } from './TaskDatePill';
 
 // --- TYPE DEFINITIONS ---
 interface Task {
@@ -260,7 +261,8 @@ const sortTasks = (tasks: Task[], criteria: SortCriterion[]) => {
  * Manager Dashboard Component
  */
 export function ManagerDashboard() {
-  const { data, isLoading, error } = trpc.task.getDashboardTasks.useQuery();
+  const { data, isLoading, error, refetch } =
+    trpc.task.getDashboardTasks.useQuery();
   const [filters, setFilters] = useState<Filters>({
     title: '',
     status: '',
@@ -574,7 +576,7 @@ export function ManagerDashboard() {
                   <td style={styles.td}>{task.status.replace('_', ' ')}</td>
                   <td style={styles.td}>{task.priority}</td>
                   <td style={styles.td}>
-                    {new Date(task.dueDate).toLocaleDateString()}
+                    <TaskDatePill dueDate={task.dueDate} status={task.status} />
                   </td>
                   <td style={styles.td}>
                     {task.assignments.map(a => a.user.name).join(', ') || 'N/A'}
@@ -615,6 +617,7 @@ export function ManagerDashboard() {
             <TaskCard
               taskId={editingTaskId}
               onTaskChange={newTaskId => setEditingTaskId(newTaskId)}
+              onTaskUpdated={() => refetch()}
             />
           </div>
         </div>

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/supabase/auth-context';
 import LogItem from './LogItem';
 import { ConnectedTasks } from './ConnectedTasks';
+import { TaskDatePill } from './TaskDatePill';
 
 interface Task {
   id: string;
@@ -46,9 +47,11 @@ interface UploadedFile {
 export function TaskCard({
   taskId,
   onTaskChange,
+  onTaskUpdated,
 }: {
   taskId: string;
   onTaskChange?: (newTaskId: string) => void;
+  onTaskUpdated?: () => void;
 }) {
   const { userProfile } = useAuth();
   const [task, setTask] = useState<Task | null>(null);
@@ -370,6 +373,7 @@ export function TaskCard({
 
       await fetchTask();
       await fetchTaskLogs();
+      onTaskUpdated?.(); // Notify parent to refresh dashboard
       setSuccess(successMsg);
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
@@ -540,6 +544,7 @@ export function TaskCard({
       setSuccess(`✅ Assignee "${newAssigneeEmail.trim()}" added`);
       setNewAssigneeEmail('');
       await fetchTask(); // Refresh task data
+      onTaskUpdated?.(); // Notify parent to refresh dashboard
 
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
@@ -598,6 +603,7 @@ export function TaskCard({
       const displayName = userDetails?.email || `User ${userId.slice(0, 8)}...`;
       setSuccess(`✅ Removed assignee "${displayName}"`);
       await fetchTask(); // Refresh task data
+      onTaskUpdated?.(); // Notify parent to refresh dashboard
 
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
@@ -1381,20 +1387,7 @@ export function TaskCard({
                 }
               }}
             >
-              <span
-                style={{
-                  fontSize: '0.875rem',
-                  color:
-                    new Date(task.dueDate) < new Date() ? '#dc2626' : '#6b7280',
-                  backgroundColor:
-                    new Date(task.dueDate) < new Date() ? '#fee2e2' : '#f3f4f6',
-                  padding: '4px 8px',
-                  borderRadius: '4px',
-                  fontWeight: '500',
-                }}
-              >
-                {new Date(task.dueDate).toLocaleDateString()}
-              </span>
+              <TaskDatePill dueDate={task.dueDate} status={task.status} />
             </div>
           )}
         </div>
