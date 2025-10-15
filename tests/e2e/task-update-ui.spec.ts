@@ -409,7 +409,9 @@ test.describe('Task Update - Complete UI Flow', () => {
     await loginAndNavigateToTaskEdit(page);
 
     // Click on the deadline display to trigger edit mode
-    await page.getByTestId('task-deadline-display').click();
+    const deadlineDisplay = page.getByTestId('task-deadline-display');
+    await deadlineDisplay.scrollIntoViewIfNeeded();
+    await deadlineDisplay.click();
 
     // Wait for the input field to appear and be visible
     const deadlineInput = page.getByTestId('deadline-input');
@@ -436,8 +438,10 @@ test.describe('Task Update - Complete UI Flow', () => {
       timeout: 65000,
     });
 
-    // Verify deadline changed (format may vary based on locale, longer timeout for CI/CD)
-    await expect(page.getByText(/6\/15\/2026|15\/6\/2026/i)).toBeVisible({
+    // Verify deadline changed within the deadline display component
+    await expect(
+      deadlineDisplay.getByText(/6\/15\/2026|15\/6\/2026/i)
+    ).toBeVisible({
       timeout: 65000,
     });
   });
