@@ -33,7 +33,7 @@ const supabase = createClient(supabaseUrl, serviceRoleKey, {
 });
 
 async function setupStorage() {
-  console.log('🔧 Setting up storage bucket...');
+  console.warn('🔧 Setting up storage bucket...');
 
   // 1. Create bucket via API
   const { data: bucket, error: bucketError } =
@@ -56,10 +56,10 @@ async function setupStorage() {
     throw bucketError;
   }
 
-  console.log('✅ Bucket ready:', bucket || 'already exists');
+  console.warn('✅ Bucket ready:', bucket || 'already exists');
 
   // 2. Create policies via direct SQL connection
-  console.log('🔧 Creating RLS policies...');
+  console.warn('🔧 Creating RLS policies...');
 
   const pgClient = new Client({ connectionString: databaseUrl });
   await pgClient.connect();
@@ -97,14 +97,14 @@ async function setupStorage() {
       USING (bucket_id = 'task-attachments' AND owner = auth.uid());
     `);
 
-    console.log('✅ Policies created successfully');
+    console.warn('✅ Policies created successfully');
   } finally {
     await pgClient.end();
   }
 }
 
 setupStorage()
-  .then(() => console.log('✅ Storage setup complete'))
+  .then(() => console.warn('✅ Storage setup complete'))
   .catch(err => {
     console.error('❌ Setup failed:', err);
     process.exit(1);
