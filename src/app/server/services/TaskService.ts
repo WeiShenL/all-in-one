@@ -1036,7 +1036,7 @@ export class TaskService extends BaseService {
    * @param departmentId - Root department ID
    * @returns Array of department IDs (including the root and direct children only)
    */
-  private async getSubordinateDepartments(
+  public async getSubordinateDepartments(
     departmentId: string
   ): Promise<string[]> {
     const departmentIds: string[] = [departmentId];
@@ -1377,14 +1377,32 @@ export class TaskService extends BaseService {
 
           return {
             ...subtask,
+            tags: subtask.tags.map(t => t.tag.name),
+            comments: subtask.comments.map(c => ({
+              id: c.id,
+              content: c.content,
+              authorId: c.userId,
+              createdAt: c.createdAt,
+              updatedAt: c.updatedAt,
+            })),
             priorityBucket: subtask.priority, // Map priority to priorityBucket for frontend
+            isRecurring: subtask.recurringInterval !== null,
             canEdit: subtaskCanEdit,
           };
         });
 
         return {
           ...task,
+          tags: task.tags.map(t => t.tag.name),
+          comments: task.comments.map(c => ({
+            id: c.id,
+            content: c.content,
+            authorId: c.userId,
+            createdAt: c.createdAt,
+            updatedAt: c.updatedAt,
+          })),
           priorityBucket: task.priority, // Map priority to priorityBucket for frontend
+          isRecurring: task.recurringInterval !== null,
           canEdit: taskCanEdit,
           subtasks: subtasksWithCanEdit,
         };

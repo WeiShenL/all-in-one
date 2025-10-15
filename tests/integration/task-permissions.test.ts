@@ -388,7 +388,9 @@ describe('Task API Permissions', () => {
         (t: any) => t.id === TEST_IDS.TASK_DEV1_ASSIGNED
       );
       expect(assignedTask).toBeDefined();
-      expect(assignedTask.canEdit).toBe(true);
+      if (assignedTask) {
+        expect(assignedTask.canEdit).toBe(true);
+      }
     });
 
     it('should return canEdit=false for staff non-assigned tasks', async () => {
