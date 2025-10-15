@@ -261,7 +261,8 @@ const sortTasks = (tasks: Task[], criteria: SortCriterion[]) => {
  * Manager Dashboard Component
  */
 export function ManagerDashboard() {
-  const { data, isLoading, error } = trpc.task.getDashboardTasks.useQuery();
+  const { data, isLoading, error, refetch } =
+    trpc.task.getDashboardTasks.useQuery();
   const [filters, setFilters] = useState<Filters>({
     title: '',
     status: '',
@@ -616,6 +617,7 @@ export function ManagerDashboard() {
             <TaskCard
               taskId={editingTaskId}
               onTaskChange={newTaskId => setEditingTaskId(newTaskId)}
+              onTaskUpdated={() => refetch()}
             />
           </div>
         </div>

@@ -733,7 +733,7 @@ const AssigneeCount = ({ userIds, userMap }: AssigneeCountProps) => {
 export function StaffDashboard() {
   const { user } = useAuth();
   const router = useRouter();
-  const { data, isLoading, error } = trpc.task.getUserTasks.useQuery(
+  const { data, isLoading, error, refetch } = trpc.task.getUserTasks.useQuery(
     { userId: user?.id || '', includeArchived: false },
     { enabled: !!user?.id }
   );
@@ -1196,6 +1196,7 @@ export function StaffDashboard() {
             <TaskCard
               taskId={editingTaskId}
               onTaskChange={newTaskId => setEditingTaskId(newTaskId)}
+              onTaskUpdated={() => refetch()}
             />
           </div>
         </div>
@@ -1221,6 +1222,7 @@ export function StaffDashboard() {
             <TaskCard
               taskId={viewingTaskId}
               onTaskChange={newTaskId => setViewingTaskId(newTaskId)}
+              onTaskUpdated={() => refetch()}
             />
           </div>
         </div>

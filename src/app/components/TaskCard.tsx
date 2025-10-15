@@ -39,9 +39,11 @@ interface UploadedFile {
 export function TaskCard({
   taskId,
   onTaskChange,
+  onTaskUpdated,
 }: {
   taskId: string;
   onTaskChange?: (newTaskId: string) => void;
+  onTaskUpdated?: () => void;
 }) {
   const { userProfile } = useAuth();
   const [task, setTask] = useState<Task | null>(null);
@@ -363,6 +365,7 @@ export function TaskCard({
 
       await fetchTask();
       await fetchTaskLogs();
+      onTaskUpdated?.(); // Notify parent to refresh dashboard
       setSuccess(successMsg);
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
@@ -533,6 +536,7 @@ export function TaskCard({
       setSuccess(`✅ Assignee "${newAssigneeEmail.trim()}" added`);
       setNewAssigneeEmail('');
       await fetchTask(); // Refresh task data
+      onTaskUpdated?.(); // Notify parent to refresh dashboard
 
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
@@ -591,6 +595,7 @@ export function TaskCard({
       const displayName = userDetails?.email || `User ${userId.slice(0, 8)}...`;
       setSuccess(`✅ Removed assignee "${displayName}"`);
       await fetchTask(); // Refresh task data
+      onTaskUpdated?.(); // Notify parent to refresh dashboard
 
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
