@@ -25,7 +25,7 @@ const supabase = createClient(supabaseUrl, serviceRoleKey, {
   },
 });
 
-console.log('🧹 Clearing auth.users table...');
+console.warn('🧹 Clearing auth.users table...');
 
 // List all users
 const {
@@ -39,11 +39,11 @@ if (listError) {
 }
 
 if (!users || users.length === 0) {
-  console.log('✅ No users to clear');
+  console.warn('✅ No users to clear');
   process.exit(0);
 }
 
-console.log(`Found ${users.length} users to delete...`);
+console.warn(`Found ${users.length} users to delete...`);
 
 // Delete each user
 let deletedCount = 0;
@@ -56,4 +56,6 @@ for (const user of users) {
   }
 }
 
-console.log(`✅ Cleared ${deletedCount}/${users.length} users from auth.users`);
+console.warn(
+  `✅ Cleared ${deletedCount}/${users.length} users from auth.users`
+);
