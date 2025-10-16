@@ -9,6 +9,7 @@ import { TaskStatus } from '@prisma/client';
 /**
  * Calendar Event - Presentation model for tasks in calendar view
  * Transformed from Task domain entity via taskToEvent utility
+ * Contains all data needed for calendar display AND iCal export
  */
 export interface CalendarEvent {
   id: string;
@@ -20,8 +21,14 @@ export interface CalendarEvent {
     status: TaskStatus;
     priority: number;
     isCompleted: boolean;
-    departmentId: string;
-    assignees: string[];
+    description: string;
+    createdAt: Date;
+    departmentName: string;
+    ownerName: string;
+    ownerEmail: string;
+    assigneeDetails: Array<{ name: string; email: string }>;
+    tags: string[];
+    recurringInterval: number | null;
   };
 }
 
