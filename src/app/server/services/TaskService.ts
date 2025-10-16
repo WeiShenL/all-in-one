@@ -1036,7 +1036,7 @@ export class TaskService extends BaseService {
    * @param departmentId - Root department ID
    * @returns Array of department IDs (including the root and direct children only)
    */
-  private async getSubordinateDepartments(
+  public async getSubordinateDepartments(
     departmentId: string
   ): Promise<string[]> {
     const departmentIds: string[] = [departmentId];
@@ -1293,6 +1293,13 @@ export class TaskService extends BaseService {
               updatedAt: true,
             },
           },
+          owner: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
           // Fetch subtasks with full details
           subtasks: {
             where: {
@@ -1333,6 +1340,13 @@ export class TaskService extends BaseService {
                   userId: true,
                   createdAt: true,
                   updatedAt: true,
+                },
+              },
+              owner: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
                 },
               },
             },
@@ -1377,14 +1391,42 @@ export class TaskService extends BaseService {
 
           return {
             ...subtask,
+            tags: subtask.tags.map(t => t.tag.name),
+            comments: subtask.comments.map(c => ({
+              id: c.id,
+              content: c.content,
+              authorId: c.userId,
+              createdAt: c.createdAt,
+              updatedAt: c.updatedAt,
+            })),
+            owner: subtask.owner || {
+              id: subtask.ownerId,
+              name: null,
+              email: null,
+            },
             priorityBucket: subtask.priority, // Map priority to priorityBucket for frontend
+            isRecurring: subtask.recurringInterval !== null,
             canEdit: subtaskCanEdit,
           };
         });
 
         return {
           ...task,
+          tags: task.tags.map(t => t.tag.name),
+          comments: task.comments.map(c => ({
+            id: c.id,
+            content: c.content,
+            authorId: c.userId,
+            createdAt: c.createdAt,
+            updatedAt: c.updatedAt,
+          })),
+          owner: task.owner || {
+            id: task.ownerId,
+            name: null,
+            email: null,
+          },
           priorityBucket: task.priority, // Map priority to priorityBucket for frontend
+          isRecurring: task.recurringInterval !== null,
           canEdit: taskCanEdit,
           subtasks: subtasksWithCanEdit,
         };
