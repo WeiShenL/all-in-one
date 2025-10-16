@@ -9,16 +9,7 @@ export default function Navbar() {
 
   // Get dashboard route - all users go to personal dashboard by default
   const getDashboardRoute = () => {
-    if (!userProfile) {
-      return '/dashboard';
-    }
-
-    // HR/Admin users use HR dashboard
-    if (userProfile.isHrAdmin) {
-      return '/dashboard/hr';
-    }
-
-    // All other users use personal dashboard
+    // All users (including HR/Admin) use personal dashboard
     return '/dashboard/personal';
   };
 
@@ -78,6 +69,34 @@ export default function Navbar() {
           >
             Department
           </a>
+          {/* System Overview link - visible only to HR/Admin users */}
+          {userProfile &&
+            (userProfile.isHrAdmin || userProfile.role === 'HR_ADMIN') && (
+              <a
+                href='/dashboard/system-wide'
+                style={{
+                  color: '#495057',
+                  textDecoration: 'none',
+                  fontWeight: '500',
+                }}
+              >
+                System Overview
+              </a>
+            )}
+          {/* Admin Dashboard link - visible only to HR/Admin users */}
+          {userProfile &&
+            (userProfile.isHrAdmin || userProfile.role === 'HR_ADMIN') && (
+              <a
+                href='/dashboard/hr'
+                style={{
+                  color: '#495057',
+                  textDecoration: 'none',
+                  fontWeight: '500',
+                }}
+              >
+                Admin
+              </a>
+            )}
           <a
             href='/profile'
             style={{

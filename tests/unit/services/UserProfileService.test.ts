@@ -136,6 +136,7 @@ describe('UserProfileService', () => {
           name: input.name,
           role: input.role,
           departmentId: input.departmentId,
+          isHrAdmin: false, // Default value added
         },
         select: expect.any(Object),
       });

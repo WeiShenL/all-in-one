@@ -925,6 +925,32 @@ export const taskRouter = router({
     return await taskService.getDepartmentTasksForUser(userId);
   }),
 
+  /**
+   * Get system-wide tasks (HR/Admin only)
+   * Used by System Overview Dashboard
+   *
+   * Returns all tasks across the organization with canEdit field
+   * Access control: Only users with isHrAdmin flag can access
+   */
+  getSystemWideTasks: protectedProcedure
+    .input(
+      z.object({
+        departmentId: z.string().uuid().optional(),
+        projectId: z.string().uuid().optional(),
+        assigneeId: z.string().uuid().optional(),
+        status: z
+          .enum(['TO_DO', 'IN_PROGRESS', 'COMPLETED', 'BLOCKED'])
+          .optional(),
+        includeArchived: z.boolean().optional().default(false),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      // ctx.session.user.id is available from authenticated session
+      const userId = ctx.session.user.id;
+      const taskService = new DashboardTaskService(ctx.prisma);
+      return await taskService.getSystemWideTasks(userId, input);
+    }),
+
   // ============================================
   // CALENDAR EVENT OPERATIONS
   // ============================================

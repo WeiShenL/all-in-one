@@ -479,7 +479,7 @@ describe('HR/Admin System-Wide Dashboard - Integration Tests', () => {
       const caller = appRouter.createCaller(ctx);
 
       const result = await caller.task.getSystemWideTasks({
-        departmentId: 'non-existent-dept-id',
+        departmentId: '99999999-9999-4000-8000-999999999999',
       });
 
       expect(result).toEqual([]);

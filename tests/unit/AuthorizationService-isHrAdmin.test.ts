@@ -14,11 +14,11 @@ describe('AuthorizationService - isHrAdmin Field', () => {
   });
 
   describe('STAFF with isHrAdmin flag', () => {
-    it('should allow STAFF with isHrAdmin=true to edit tasks in their department hierarchy', () => {
+    it('should only allow STAFF with isHrAdmin=true to edit tasks they are assigned to', () => {
       const task = {
         id: 'task-123',
         departmentId: 'dept-hr',
-        assignments: [{ userId: 'user-alice' }],
+        assignments: [{ userId: 'hr-admin-staff' }], // Assigned to them
       };
 
       const user = {
@@ -31,14 +31,14 @@ describe('AuthorizationService - isHrAdmin Field', () => {
 
       const result = authService.canEditTask(task, user, hierarchy);
 
-      expect(result).toBe(true);
+      expect(result).toBe(true); // Can edit because assigned
     });
 
-    it('should deny STAFF with isHrAdmin=true editing tasks outside their department hierarchy', () => {
+    it('should deny STAFF with isHrAdmin=true editing tasks in their department if not assigned', () => {
       const task = {
         id: 'task-456',
-        departmentId: 'dept-engineering',
-        assignments: [{ userId: 'user-bob' }],
+        departmentId: 'dept-hr', // Same department
+        assignments: [{ userId: 'user-bob' }], // Not assigned to them
       };
 
       const user = {
@@ -51,7 +51,7 @@ describe('AuthorizationService - isHrAdmin Field', () => {
 
       const result = authService.canEditTask(task, user, hierarchy);
 
-      expect(result).toBe(false);
+      expect(result).toBe(false); // Cannot edit - not assigned even though in hierarchy
     });
 
     it('should allow STAFF with isHrAdmin=false to only edit their assigned tasks', () => {
@@ -238,7 +238,7 @@ describe('AuthorizationService - isHrAdmin Field', () => {
       expect(result).toBe(false);
     });
 
-    it('should allow STAFF with isHrAdmin=true to edit unassigned tasks in their hierarchy', () => {
+    it('should deny STAFF with isHrAdmin=true editing unassigned tasks', () => {
       const taskWithNoAssignments = {
         id: 'task-unassigned',
         departmentId: 'dept-hr',
@@ -259,14 +259,14 @@ describe('AuthorizationService - isHrAdmin Field', () => {
         hierarchy
       );
 
-      expect(result).toBe(true); // HR/Admin can edit unassigned tasks in their dept
+      expect(result).toBe(false); // STAFF cannot edit unassigned tasks even with isHrAdmin
     });
 
-    it('should handle multi-level hierarchy with isHrAdmin', () => {
+    it('should deny STAFF with isHrAdmin editing tasks in multi-level hierarchy if not assigned', () => {
       const task = {
         id: 'task-deep',
         departmentId: 'dept-hr-team-recruiting',
-        assignments: [{ userId: 'recruiter' }],
+        assignments: [{ userId: 'recruiter' }], // Not assigned to them
       };
 
       const user = {
@@ -279,7 +279,7 @@ describe('AuthorizationService - isHrAdmin Field', () => {
 
       const result = authService.canEditTask(task, user, hierarchy);
 
-      expect(result).toBe(true);
+      expect(result).toBe(false); // STAFF cannot edit - not assigned
     });
 
     it('should handle empty hierarchy even with isHrAdmin=true', () => {

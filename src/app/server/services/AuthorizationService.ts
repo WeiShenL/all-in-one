@@ -2,8 +2,11 @@
  * AuthorizationService
  *
  * Determines if a user can edit a task based on:
- * - Role (MANAGER/isHrAdmin can edit all in their hierarchy)
- * - Assignment (STAFF can edit if assigned)
+ * - Role (MANAGER can edit all in their hierarchy)
+ * - Role (HR_ADMIN legacy role can edit all in their hierarchy)
+ * - Assignment (STAFF can edit if assigned, even if they have isHrAdmin flag)
+ * - Note: isHrAdmin flag grants VIEW access to system-wide tasks but NOT edit access
+ *   unless the STAFF member is also assigned to the task
  */
 export class AuthorizationService {
   /**
@@ -38,16 +41,22 @@ export class AuthorizationService {
       return false;
     }
 
-    // STAFF: Can only edit tasks assigned to them (unless they are HR/Admin)
-    if (user.role === 'STAFF' && !user.isHrAdmin) {
+    // Legacy HR_ADMIN role: Can edit all tasks in their hierarchy
+    if (user.role === 'HR_ADMIN') {
+      return taskInHierarchy;
+    }
+
+    // MANAGER: Can edit all tasks in their department hierarchy
+    if (user.role === 'MANAGER') {
+      return taskInHierarchy;
+    }
+
+    // STAFF with isHrAdmin: Can view all but can only edit if assigned
+    // (HR Admin privilege is for viewing, not editing)
+    if (user.role === 'STAFF') {
       return task.assignments.some(
         assignment => assignment.userId === user.userId
       );
-    }
-
-    // MANAGER or HR_ADMIN or isHrAdmin: Can edit all tasks in their hierarchy
-    if (user.role === 'MANAGER' || user.role === 'HR_ADMIN' || user.isHrAdmin) {
-      return taskInHierarchy;
     }
 
     return false;
