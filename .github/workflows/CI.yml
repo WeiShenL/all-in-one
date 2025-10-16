@@ -211,184 +211,184 @@ jobs:
           name: coverage-integration
           path: coverage/integration
 
-vercel-preview:
-  name: Deploy Vercel Preview
-  runs-on: ubuntu-latest
-  timeout-minutes: 30
-  environment: Preview
-  needs: [integration-tests]
-  outputs:
-    vercel_url: ${{ steps.vercel-deploy.outputs.VERCEL_URL }}
-  steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+  vercel-preview:
+    name: Deploy Vercel Preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: Preview
+    needs: [integration-tests]
+    outputs:
+      vercel_url: ${{ steps.vercel-deploy.outputs.VERCEL_URL }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20.x'
-        cache: 'npm'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
 
-    - name: Install dependencies
-      # Dont install husky to avoid build error
-      env:
-        HUSKY: 0
-      run: |
-        npm ci
-        npm install --save-dev @types/react
+      - name: Install dependencies
+        # Dont install husky to avoid build error
+        env:
+          HUSKY: 0
+        run: |
+          npm ci
+          npm install --save-dev @types/react
 
-    - name: Deploy to Vercel Preview
-      id: vercel-deploy
-      env:
-        VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-        VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-        VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      run: |
-        npx vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
-        npx vercel deploy --token=$VERCEL_TOKEN --yes > deployment-url.txt
-        echo "VERCEL_URL=$(cat deployment-url.txt | grep -o 'https://[^[:space:]]*')" >> $GITHUB_OUTPUT
+      - name: Deploy to Vercel Preview
+        id: vercel-deploy
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          npx vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
+          npx vercel deploy --token=$VERCEL_TOKEN --yes > deployment-url.txt
+          echo "VERCEL_URL=$(cat deployment-url.txt | grep -o 'https://[^[:space:]]*')" >> $GITHUB_OUTPUT
 
-    - name: Comment PR with preview URL
-      if: github.event_name == 'pull_request' && steps.vercel-deploy.outcome == 'success'
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const deploymentUrl = '${{ steps.vercel-deploy.outputs.VERCEL_URL }}';
-          const comment = `🚀 **Staging Preview Deployed!**
+      - name: Comment PR with preview URL
+        if: github.event_name == 'pull_request' && steps.vercel-deploy.outcome == 'success'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const deploymentUrl = '${{ steps.vercel-deploy.outputs.VERCEL_URL }}';
+            const comment = `🚀 **Staging Preview Deployed!**
 
-          Preview URL: ${deploymentUrl}
+            Preview URL: ${deploymentUrl}
 
-          ✅ Database migration completed
-          ✅ Integration tests passed
-          ✅ Vercel preview deployed
+            ✅ Database migration completed
+            ✅ Integration tests passed
+            ✅ Vercel preview deployed
 
-          The preview will be available at the URL above.`;
+            The preview will be available at the URL above.`;
 
-          github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: comment
-          });
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
 
-e2e-tests:
-  name: E2E Tests on Preview
-  runs-on: ubuntu-latest
-  timeout-minutes: 30
-  environment: Preview
-  needs: [playwright-setup, vercel-preview]
-  steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+  e2e-tests:
+    name: E2E Tests on Preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: Preview
+    needs: [playwright-setup, vercel-preview]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20.x'
-        cache: 'npm'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
 
-    - name: Install dependencies
-      # Dont install husky to avoid build error
-      env:
-        HUSKY: 0
-      run: |
-        npm ci
-        npm install --save-dev @types/react
+      - name: Install dependencies
+        # Dont install husky to avoid build error
+        env:
+          HUSKY: 0
+        run: |
+          npm ci
+          npm install --save-dev @types/react
 
-    - name: Restore Playwright cache
-      uses: actions/cache/restore@v4
-      with:
-        path: ~/.cache/ms-playwright
-        key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-v1
-        restore-keys: |
-          playwright-${{ runner.os }}-
+      - name: Restore Playwright cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-v1
+          restore-keys: |
+            playwright-${{ runner.os }}-
 
-    - name: Ensure Playwright browsers (fallback)
-      run: npx playwright install --with-deps
-      if: hashFiles('~/.cache/ms-playwright') == ''
+      - name: Ensure Playwright browsers (fallback)
+        run: npx playwright install --with-deps
+        if: hashFiles('~/.cache/ms-playwright') == ''
 
-    - name: Run E2E Tests Against Preview
-      env:
-        # Use the deployed preview URL as Playwright baseURL
-        PLAYWRIGHT_BASE_URL: ${{ needs.vercel-preview.outputs.vercel_url }}
-        # Staging database for cleanup and verification (use pooled connection)
-        DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL_POOLED }}
-        # Supabase env for client auth in tests
-        NEXT_PUBLIC_API_EXTERNAL_URL: ${{ secrets.NEXT_PUBLIC_API_EXTERNAL_URL }}
-        NEXT_PUBLIC_ANON_KEY: ${{ secrets.NEXT_PUBLIC_ANON_KEY }}
-        SERVICE_ROLE_KEY: ${{ secrets.SERVICE_ROLE_KEY }}
-        CI: true
-      run: npm run test:e2e
+      - name: Run E2E Tests Against Preview
+        env:
+          # Use the deployed preview URL as Playwright baseURL
+          PLAYWRIGHT_BASE_URL: ${{ needs.vercel-preview.outputs.vercel_url }}
+          # Staging database for cleanup and verification (use pooled connection)
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL_POOLED }}
+          # Supabase env for client auth in tests
+          NEXT_PUBLIC_API_EXTERNAL_URL: ${{ secrets.NEXT_PUBLIC_API_EXTERNAL_URL }}
+          NEXT_PUBLIC_ANON_KEY: ${{ secrets.NEXT_PUBLIC_ANON_KEY }}
+          SERVICE_ROLE_KEY: ${{ secrets.SERVICE_ROLE_KEY }}
+          CI: true
+        run: npm run test:e2e
 
-    - name: Upload Playwright Artifacts (on failure)
-      if: failure()
-      uses: actions/upload-artifact@v4
-      with:
-        name: playwright-artifacts
-        path: |
-          playwright-report
-          test-results
+      - name: Upload Playwright Artifacts (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-artifacts
+          path: |
+            playwright-report
+            test-results
 
-    # Download unit coverage artifact
-    - name: Download Unit Coverage Artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: coverage-unit
-        path: coverage/unit
+      # Download unit coverage artifact
+      - name: Download Unit Coverage Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-unit
+          path: coverage/unit
 
-    # Download integration coverage artifact
-    - name: Download Integration Coverage Artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: coverage-integration
-        path: coverage/integration
+      # Download integration coverage artifact
+      - name: Download Integration Coverage Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-integration
+          path: coverage/integration
 
-    # Merge unit + integration coverage
-    - name: Merge Coverage (unit + integration)
-      run: |
-        mkdir -p coverage
+      # Merge unit + integration coverage
+      - name: Merge Coverage (unit + integration)
+        run: |
+          mkdir -p coverage
 
-        # Verify source files exist
-        if [ ! -f coverage/unit/lcov.info ]; then
-          echo "❌ Unit coverage file missing"
-          exit 1
-        fi
+          # Verify source files exist
+          if [ ! -f coverage/unit/lcov.info ]; then
+            echo "❌ Unit coverage file missing"
+            exit 1
+          fi
 
-        if [ ! -f coverage/integration/lcov.info ]; then
-          echo "❌ Integration coverage file missing"
-          exit 1
-        fi
+          if [ ! -f coverage/integration/lcov.info ]; then
+            echo "❌ Integration coverage file missing"
+            exit 1
+          fi
 
-        # Simple concatenation works for lcov files
-        cat coverage/unit/lcov.info coverage/integration/lcov.info > coverage/lcov.info
+          # Simple concatenation works for lcov files
+          cat coverage/unit/lcov.info coverage/integration/lcov.info > coverage/lcov.info
 
-        if [ ! -f ./coverage/lcov.info ]; then
-          echo "❌ Merged coverage missing";
-          exit 1;
-        fi
+          if [ ! -f ./coverage/lcov.info ]; then
+            echo "❌ Merged coverage missing";
+            exit 1;
+          fi
 
-        echo "✅ Coverage merged: $(wc -l < ./coverage/lcov.info) lines"
+          echo "✅ Coverage merged: $(wc -l < ./coverage/lcov.info) lines"
 
-    # Upload merged coverage to Coveralls
-    - name: Upload coverage to Coveralls
-      uses: coverallsapp/github-action@v2
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        path-to-lcov: ./coverage/lcov.info
+      # Upload merged coverage to Coveralls
+      - name: Upload coverage to Coveralls
+        uses: coverallsapp/github-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: ./coverage/lcov.info
 
-    - name: Comment PR with Coveralls URL
-      if: github.event_name == 'pull_request'
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const owner = context.repo.owner;
-          const repo = context.repo.repo;
-          const branch = context.payload.pull_request?.head?.ref || context.ref.replace('refs/heads/', '');
-          const coverallsUrl = `https://coveralls.io/github/${owner}/${repo}?branch=${encodeURIComponent(branch)}`;
-          const comment = `🧪 **Coverage uploaded to Coveralls (merged unit + integration)**\n\nCoverage URL: ${coverallsUrl}`;
-          await github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner,
-            repo,
-            body: comment,
-          });
+      - name: Comment PR with Coveralls URL
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const branch = context.payload.pull_request?.head?.ref || context.ref.replace('refs/heads/', '');
+            const coverallsUrl = `https://coveralls.io/github/${owner}/${repo}?branch=${encodeURIComponent(branch)}`;
+            const comment = `🧪 **Coverage uploaded to Coveralls (merged unit + integration)**\n\nCoverage URL: ${coverallsUrl}`;
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner,
+              repo,
+              body: comment,
+            });
