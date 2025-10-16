@@ -334,6 +334,33 @@ export function TaskCalendar({
           box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
           z-index: 10;
         }
+
+        /* Week/Day view optimization: Hide empty time grid, expand all-day section */
+        .rbc-time-view .rbc-time-content {
+          display: none !important;
+        }
+
+        .rbc-time-view .rbc-time-header {
+          flex: 1 !important;
+          min-height: 700px !important;
+          overflow: visible !important;
+        }
+
+        .rbc-time-view .rbc-allday-cell {
+          min-height: 700px !important;
+          max-height: none !important;
+          position: relative !important;
+        }
+
+        /* Make all-day events more prominent in week/day views */
+        .rbc-time-view .rbc-row-segment {
+          padding: 4px 4px !important;
+        }
+
+        .rbc-time-view .rbc-event {
+          min-height: 28px !important;
+          padding: 4px 8px !important;
+        }
       `,
         }}
       />
@@ -517,7 +544,7 @@ const styles = {
     transition: 'background-color 0.2s',
   },
   calendarWrapper: {
-    height: '700px',
+    height: '800px',
     marginBottom: '1.5rem',
   },
   calendar: {
