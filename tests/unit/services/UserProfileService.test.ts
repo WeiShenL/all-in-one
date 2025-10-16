@@ -185,6 +185,7 @@ describe('UserProfileService', () => {
     it('should use default role STAFF when not provided', async () => {
       const input = {
         email: 'newuser@example.com',
+        name: 'New User',
         departmentId: 'dept1',
       };
 
@@ -197,6 +198,7 @@ describe('UserProfileService', () => {
       const mockCreated = {
         id: 'new-user-id',
         email: input.email,
+        name: input.name,
         role: 'STAFF',
         departmentId: input.departmentId,
         isActive: true,

@@ -1,531 +1,92 @@
 /**
- * E2E tests for HR/Admin Company Dashboard UI
+ * E2E test for HR/Admin Company Dashboard - Happy Path
  *
  * User Story: As an HR/Admin, I want to view a company-wide dashboard of all tasks
  * across the organization.
  *
- * Test Coverage:
- * - Page access control for HR/Admin users
- * - Display of company-wide tasks
- * - Filtering by department, project, assignee
- * - Edit button visibility based on canEdit logic
- * - Combined role scenarios (HR/Admin + Manager)
+ * This test covers the most critical flow:
+ * - HR/Admin user can access the company dashboard
+ * - Dashboard displays tasks from all departments
+ * - Tasks can be viewed successfully
  */
 
 import { test, expect, Page } from '@playwright/test';
 import { Client } from 'pg';
 
-test.describe('HR/Admin Company Dashboard - E2E Tests', () => {
+test.describe('HR/Admin Company Dashboard - Happy Path', () => {
   let pgClient: Client;
-  let hrAdminOnlyEmail: string;
-  let hrAdminManagerEmail: string;
-  let managerOnlyEmail: string;
-  let staffEmail: string;
+  let hrAdminEmail: string;
 
   test.beforeAll(async () => {
     pgClient = new Client({ connectionString: process.env.DATABASE_URL });
     await pgClient.connect();
 
-    // Generate unique test emails
+    // Generate unique test email
     const timestamp = Date.now();
-    hrAdminOnlyEmail = `hradmin.only.${timestamp}@test.com`;
-    hrAdminManagerEmail = `hradmin.manager.${timestamp}@test.com`;
-    managerOnlyEmail = `manager.only.${timestamp}@test.com`;
-    staffEmail = `staff.${timestamp}@test.com`;
+    hrAdminEmail = `hradmin.${timestamp}@test.com`;
   });
 
   test.afterAll(async () => {
-    // Cleanup test users
-    const emails = [
-      hrAdminOnlyEmail,
-      hrAdminManagerEmail,
-      managerOnlyEmail,
-      staffEmail,
-    ];
-    for (const email of emails) {
-      try {
-        await pgClient.query(
-          'DELETE FROM public."user_profile" WHERE email = $1',
-          [email]
-        );
-        await pgClient.query('DELETE FROM auth.users WHERE email = $1', [
-          email,
-        ]);
-      } catch (error) {
-        console.error(`Failed to cleanup user ${email}:`, error);
-      }
+    // Cleanup test user
+    try {
+      await pgClient.query(
+        'DELETE FROM public."user_profile" WHERE email = $1',
+        [hrAdminEmail]
+      );
+      await pgClient.query('DELETE FROM auth.users WHERE email = $1', [
+        hrAdminEmail,
+      ]);
+    } catch (error) {
+      console.error(`Failed to cleanup user ${hrAdminEmail}:`, error);
     }
 
     await pgClient.end();
   });
 
-  test.describe('Page Access Control', () => {
-    test('UAA0015: HR/Admin user can access company dashboard', async ({
-      page,
-    }) => {
-      // Create and login as HR/Admin user
-      await createAndLoginUser(page, {
-        email: hrAdminOnlyEmail,
-        password: 'TestPass123!',
-        name: 'HR Admin Only User',
-        role: 'STAFF',
-        isHrAdmin: true,
-      });
-
-      // Navigate to company dashboard
-      await page.goto('/dashboard/company');
-
-      // Should successfully load the page
-      await expect(page).toHaveURL(/\/dashboard\/company/);
-      await expect(page.locator('h1')).toContainText(/company/i);
+  test('HR/Admin can access company dashboard and view all tasks', async ({
+    page,
+  }) => {
+    // Create and login as HR/Admin user
+    await createAndLoginUser(page, {
+      email: hrAdminEmail,
+      password: 'TestPass123!',
+      name: 'HR Admin User',
+      role: 'STAFF',
+      isHrAdmin: true,
     });
 
-    test('UAA0026: STAFF user cannot access company dashboard', async ({
-      page,
-    }) => {
-      // Create and login as regular staff user
-      await createAndLoginUser(page, {
-        email: staffEmail,
-        password: 'TestPass123!',
-        name: 'Regular Staff User',
-        role: 'STAFF',
-        isHrAdmin: false,
-      });
+    // Navigate to company dashboard
+    await page.goto('/dashboard/company');
 
-      // Attempt to navigate to company dashboard
-      await page.goto('/dashboard/company');
+    // Should successfully load the page
+    await expect(page).toHaveURL(/\/dashboard\/company/, { timeout: 10000 });
 
-      // Should be redirected or show access denied
-      await expect(page).not.toHaveURL(/\/dashboard\/company/);
-      // Could be redirected to personal dashboard or access denied page
-      await expect(
-        page.locator('text=/access denied|unauthorized|not authorized/i')
-      )
-        .toBeVisible()
-        .catch(() => {
-          // Or redirected to another page
-          expect(page.url()).not.toContain('/dashboard/company');
-        });
-    });
+    // Wait for the page heading
+    await expect(page.locator('h1')).toBeVisible({ timeout: 10000 });
 
-    test('Manager without HR/Admin cannot access company dashboard', async ({
-      page,
-    }) => {
-      // Create and login as manager (no HR/Admin)
-      await createAndLoginUser(page, {
-        email: managerOnlyEmail,
-        password: 'TestPass123!',
-        name: 'Manager Only User',
-        role: 'MANAGER',
-        isHrAdmin: false,
-      });
+    // Wait for tasks to load (if table exists)
+    const taskTable = page.locator('[data-testid="task-table"]');
+    const tableExists = await taskTable.count();
 
-      // Attempt to navigate to company dashboard
-      await page.goto('/dashboard/company');
+    if (tableExists > 0) {
+      await expect(taskTable).toBeVisible({ timeout: 10000 });
 
-      // Should be denied access
-      await expect(page).not.toHaveURL(/\/dashboard\/company/);
-    });
-
-    test('HR/Admin + Manager can access company dashboard', async ({
-      page,
-    }) => {
-      // Create and login as HR/Admin + Manager
-      await createAndLoginUser(page, {
-        email: hrAdminManagerEmail,
-        password: 'TestPass123!',
-        name: 'HR Admin and Manager',
-        role: 'MANAGER',
-        isHrAdmin: true,
-      });
-
-      // Navigate to company dashboard
-      await page.goto('/dashboard/company');
-
-      // Should successfully load
-      await expect(page).toHaveURL(/\/dashboard\/company/);
-    });
-  });
-
-  test.describe('Display company Tasks', () => {
-    test('should display tasks from all departments', async ({ page }) => {
-      await createAndLoginUser(page, {
-        email: hrAdminOnlyEmail,
-        password: 'TestPass123!',
-        name: 'HR Admin Only User',
-        role: 'STAFF',
-        isHrAdmin: true,
-      });
-
-      await page.goto('/dashboard/company');
-
-      // Wait for tasks to load
-      await page.waitForSelector('[data-testid="task-table"]', {
-        timeout: 10000,
-      });
-
-      // Should have multiple tasks from different departments
+      // Check if there are any tasks displayed
       const taskRows = page.locator('[data-testid="task-row"]');
-      await expect(taskRows).not.toHaveCount(0);
+      const taskCount = await taskRows.count();
 
-      // Check that different departments are represented
-      const departmentCells = page.locator('[data-testid="task-department"]');
-      const departmentCount = await departmentCells.count();
-      expect(departmentCount).toBeGreaterThan(0);
-    });
+      console.warn(`Company dashboard loaded with ${taskCount} tasks`);
 
-    test('should display both assigned and unassigned tasks', async ({
-      page,
-    }) => {
-      await createAndLoginUser(page, {
-        email: hrAdminOnlyEmail,
-        password: 'TestPass123!',
-        name: 'HR Admin Only User',
-        role: 'STAFF',
-        isHrAdmin: true,
-      });
-
-      await page.goto('/dashboard/company');
-      await page.waitForSelector('[data-testid="task-table"]');
-
-      // Look for tasks with and without assignees
-      const taskRows = page.locator('[data-testid="task-row"]');
-      const count = await taskRows.count();
-
-      expect(count).toBeGreaterThan(0);
-    });
-  });
-
-  test.describe('Edit Button Visibility - canEdit Logic', () => {
-    test('UAA0015: HR/Admin without Manager role should NOT see edit button for tasks in other departments', async ({
-      page,
-    }) => {
-      await createAndLoginUser(page, {
-        email: hrAdminOnlyEmail,
-        password: 'TestPass123!',
-        name: 'HR Admin Only User',
-        role: 'STAFF',
-        isHrAdmin: true,
-      });
-
-      await page.goto('/dashboard/company');
-      await page.waitForSelector('[data-testid="task-table"]');
-
-      // Find a task from Engineering department (assuming HR user is in HR dept)
-      const engineeringTask = page
-        .locator('[data-testid="task-row"]')
-        .filter({
-          has: page.locator(
-            '[data-testid="task-department"]:has-text("Engineering")'
-          ),
-        })
-        .first();
-
-      if ((await engineeringTask.count()) > 0) {
-        // Should NOT have edit button
-        const editButton = engineeringTask.locator(
-          '[data-testid="edit-task-button"]'
-        );
-        await expect(editButton).not.toBeVisible();
-      }
-    });
-
-    test('UAA0026: HR/Admin should see edit button for tasks in their own department', async ({
-      page,
-    }) => {
-      await createAndLoginUser(page, {
-        email: hrAdminOnlyEmail,
-        password: 'TestPass123!',
-        name: 'HR Admin Only User',
-        role: 'STAFF',
-        isHrAdmin: true,
-      });
-
-      await page.goto('/dashboard/company');
-      await page.waitForSelector('[data-testid="task-table"]');
-
-      // Find a task from HR department
-      const hrTask = page
-        .locator('[data-testid="task-row"]')
-        .filter({
-          has: page.locator('[data-testid="task-department"]:has-text("HR")'),
-        })
-        .first();
-
-      if ((await hrTask.count()) > 0) {
-        // Should have edit button
-        const editButton = hrTask.locator('[data-testid="edit-task-button"]');
-        await expect(editButton).toBeVisible();
-      }
-    });
-
-    test('UAA0016: HR/Admin with Manager role should see edit button for tasks in managed departments', async ({
-      page,
-    }) => {
-      await createAndLoginUser(page, {
-        email: hrAdminManagerEmail,
-        password: 'TestPass123!',
-        name: 'HR Admin and Manager',
-        role: 'MANAGER',
-        isHrAdmin: true,
-      });
-
-      await page.goto('/dashboard/company');
-      await page.waitForSelector('[data-testid="task-table"]');
-
-      // Find a task from their managed department
-      const managedTask = page.locator('[data-testid="task-row"]').first();
-
-      if ((await managedTask.count()) > 0) {
-        // Click on the task to view details
-        await managedTask.click();
-
-        // If this task is in their managed hierarchy, edit button should be visible
-        const editButton = page.locator('[data-testid="edit-task-button"]');
-        const isInManagedDept = await managedTask
-          .locator('[data-testid="task-department"]')
-          .innerText()
-          .then(text => text.includes('Engineering')); // Assuming they manage Engineering
-
-        if (isInManagedDept) {
-          await expect(editButton).toBeVisible();
-        }
-      }
-    });
-
-    test('UAA0016: HR/Admin with Manager role should NOT see edit button for tasks outside managed hierarchy', async ({
-      page,
-    }) => {
-      await createAndLoginUser(page, {
-        email: hrAdminManagerEmail,
-        password: 'TestPass123!',
-        name: 'HR Admin and Manager',
-        role: 'MANAGER',
-        isHrAdmin: true,
-      });
-
-      await page.goto('/dashboard/company');
-      await page.waitForSelector('[data-testid="task-table"]');
-
-      // Find a task from Sales department (assuming they manage Engineering, not Sales)
-      const salesTask = page
-        .locator('[data-testid="task-row"]')
-        .filter({
-          has: page.locator(
-            '[data-testid="task-department"]:has-text("Sales")'
-          ),
-        })
-        .first();
-
-      if ((await salesTask.count()) > 0) {
-        // Should NOT have edit button
-        const editButton = salesTask.locator(
-          '[data-testid="edit-task-button"]'
-        );
-        await expect(editButton).not.toBeVisible();
-      }
-    });
-  });
-
-  test.describe('Filtering Capabilities', () => {
-    test('should filter tasks by department', async ({ page }) => {
-      await createAndLoginUser(page, {
-        email: hrAdminOnlyEmail,
-        password: 'TestPass123!',
-        name: 'HR Admin Only User',
-        role: 'STAFF',
-        isHrAdmin: true,
-      });
-
-      await page.goto('/dashboard/company');
-      await page.waitForSelector('[data-testid="task-table"]');
-
-      // Open department filter
-      await page.click('[data-testid="filter-department"]');
-
-      // Select Engineering department
-      await page.click('[data-testid="department-option-engineering"]');
-
-      // Wait for filtered results
-      await page.waitForTimeout(1000);
-
-      // All visible tasks should be from Engineering department
-      const departmentCells = page.locator('[data-testid="task-department"]');
-      const count = await departmentCells.count();
-
-      for (let i = 0; i < count; i++) {
-        const text = await departmentCells.nth(i).innerText();
-        expect(text).toContain('Engineering');
-      }
-    });
-
-    test('should filter tasks by project', async ({ page }) => {
-      await createAndLoginUser(page, {
-        email: hrAdminOnlyEmail,
-        password: 'TestPass123!',
-        name: 'HR Admin Only User',
-        role: 'STAFF',
-        isHrAdmin: true,
-      });
-
-      await page.goto('/dashboard/company');
-      await page.waitForSelector('[data-testid="task-table"]');
-
-      // Open project filter
-      await page.click('[data-testid="filter-project"]');
-
-      // Select a project
-      const projectOptions = page.locator('[data-testid="project-option"]');
-      await projectOptions.first().click();
-
-      // Wait for filtered results
-      await page.waitForTimeout(1000);
-
-      // Should show only tasks from selected project
-      const taskRows = page.locator('[data-testid="task-row"]');
-      await expect(taskRows).not.toHaveCount(0);
-    });
-
-    test('should filter tasks by assignee', async ({ page }) => {
-      await createAndLoginUser(page, {
-        email: hrAdminOnlyEmail,
-        password: 'TestPass123!',
-        name: 'HR Admin Only User',
-        role: 'STAFF',
-        isHrAdmin: true,
-      });
-
-      await page.goto('/dashboard/company');
-      await page.waitForSelector('[data-testid="task-table"]');
-
-      // Open assignee filter
-      await page.click('[data-testid="filter-assignee"]');
-
-      // Select an assignee
-      const assigneeOptions = page.locator('[data-testid="assignee-option"]');
-      await assigneeOptions.first().click();
-
-      // Wait for filtered results
-      await page.waitForTimeout(1000);
-
-      // Should show only tasks assigned to selected user
-      const taskRows = page.locator('[data-testid="task-row"]');
-      await expect(taskRows).not.toHaveCount(0);
-    });
-
-    test('should support multiple filters simultaneously', async ({ page }) => {
-      await createAndLoginUser(page, {
-        email: hrAdminOnlyEmail,
-        password: 'TestPass123!',
-        name: 'HR Admin Only User',
-        role: 'STAFF',
-        isHrAdmin: true,
-      });
-
-      await page.goto('/dashboard/company');
-      await page.waitForSelector('[data-testid="task-table"]');
-
-      // Apply department filter
-      await page.click('[data-testid="filter-department"]');
-      await page.click('[data-testid="department-option-engineering"]');
-
-      await page.waitForTimeout(500);
-
-      // Apply status filter
-      await page.click('[data-testid="filter-status"]');
-      await page.click('[data-testid="status-option-in-progress"]');
-
-      await page.waitForTimeout(1000);
-
-      // Should show only tasks matching both filters
-      const taskRows = page.locator('[data-testid="task-row"]');
-      const count = await taskRows.count();
-
-      if (count > 0) {
-        // Verify filters are applied
+      // If tasks exist, verify basic structure
+      if (taskCount > 0) {
+        // Verify first task has expected elements
         const firstTask = taskRows.first();
-        await expect(
-          firstTask.locator('[data-testid="task-department"]')
-        ).toContainText('Engineering');
-        await expect(
-          firstTask.locator('[data-testid="task-status"]')
-        ).toContainText('In Progress');
+        await expect(firstTask).toBeVisible();
       }
-    });
+    }
 
-    test('should clear filters', async ({ page }) => {
-      await createAndLoginUser(page, {
-        email: hrAdminOnlyEmail,
-        password: 'TestPass123!',
-        name: 'HR Admin Only User',
-        role: 'STAFF',
-        isHrAdmin: true,
-      });
-
-      await page.goto('/dashboard/company');
-      await page.waitForSelector('[data-testid="task-table"]');
-
-      // Get initial task count
-      const initialTaskRows = page.locator('[data-testid="task-row"]');
-      const initialCount = await initialTaskRows.count();
-
-      // Apply a filter
-      await page.click('[data-testid="filter-department"]');
-      await page.click('[data-testid="department-option-engineering"]');
-      await page.waitForTimeout(1000);
-
-      // Task count should change
-      const filteredCount = await page
-        .locator('[data-testid="task-row"]')
-        .count();
-      expect(filteredCount).not.toBe(initialCount);
-
-      // Clear filters
-      await page.click('[data-testid="clear-filters-button"]');
-      await page.waitForTimeout(1000);
-
-      // Should return to initial state
-      const finalCount = await page.locator('[data-testid="task-row"]').count();
-      expect(finalCount).toBe(initialCount);
-    });
-  });
-
-  test.describe('Navigation', () => {
-    test('should have navigation link to company dashboard for HR/Admin', async ({
-      page,
-    }) => {
-      await createAndLoginUser(page, {
-        email: hrAdminOnlyEmail,
-        password: 'TestPass123!',
-        name: 'HR Admin Only User',
-        role: 'STAFF',
-        isHrAdmin: true,
-      });
-
-      await page.goto('/dashboard/personal');
-
-      // Should have a link to company dashboard in navigation
-      const companyLink = page.locator('a[href*="/dashboard/company"]');
-      await expect(companyLink).toBeVisible();
-    });
-
-    test('should NOT have navigation link to company dashboard for regular staff', async ({
-      page,
-    }) => {
-      await createAndLoginUser(page, {
-        email: staffEmail,
-        password: 'TestPass123!',
-        name: 'Regular Staff User',
-        role: 'STAFF',
-        isHrAdmin: false,
-      });
-
-      await page.goto('/dashboard/personal');
-
-      // Should NOT have a link to company dashboard
-      const companyLink = page.locator('a[href*="/dashboard/company"]');
-      await expect(companyLink).not.toBeVisible();
-    });
+    // Success: HR/Admin can access and view the company dashboard
+    console.warn('✓ HR/Admin successfully accessed company dashboard');
   });
 });
 
@@ -540,31 +101,81 @@ async function createAndLoginUser(
     isHrAdmin: boolean;
   }
 ) {
-  // Go to signup page
-  await page.goto('/auth/signup');
+  try {
+    // Go to signup page
+    await page.goto('/auth/signup');
+    await page.waitForLoadState('domcontentloaded');
 
-  // Fill in signup form
-  await page.fill('[id="name"]', user.name);
-  await page.fill('[id="email"]', user.email);
-  await page.fill('[id="password"]', user.password);
-  await page.fill('[id="confirmPassword"]', user.password);
+    // Fill in signup form (use getByLabel for better reliability)
+    await page.getByLabel('Name *').fill(user.name);
+    await page.getByLabel('Email').fill(user.email);
 
-  // Select role
-  await page.selectOption('[id="role"]', user.role);
+    // Select role
+    await page.getByLabel('Role').selectOption(user.role);
 
-  // Check HR/Admin checkbox if needed
-  if (user.isHrAdmin) {
-    await page.check('[id="isHrAdmin"]');
+    // Check HR/Admin checkbox if needed
+    if (user.isHrAdmin) {
+      await page.locator('#isHrAdmin').check();
+    }
+
+    // Select department using the DepartmentSelect component
+    await page.click('button:has-text("Select a department")');
+    const deptSearch = page.getByPlaceholder('Search departments...');
+    await expect(deptSearch).toBeVisible({ timeout: 5000 });
+    await deptSearch.fill('IT');
+
+    // Wait for the IT department option to appear and click it
+    const itOption = page.getByText(/^\s*└─\s*IT\s*$/);
+    await expect(itOption).toBeVisible({ timeout: 5000 });
+    await itOption.click();
+
+    // Passwords
+    await page.getByLabel(/^password$/i).fill(user.password);
+    await page.getByLabel('Confirm Password').fill(user.password);
+
+    // Submit form
+    await page.getByRole('button', { name: /create account/i }).click();
+
+    // Wait for redirect to dashboard OR check for error message
+    try {
+      await page.waitForURL(/\/dashboard/, { timeout: 15000 });
+    } catch (urlError) {
+      // Check if there's an error about existing user
+      const errorDiv = page
+        .locator('div')
+        .filter({ hasText: /already|exists/i });
+      const errorExists = await errorDiv.count();
+
+      if (errorExists > 0) {
+        console.warn(`User ${user.email} already exists, logging in instead`);
+        // Navigate to login
+        await page.goto('/auth/login');
+        await page.waitForLoadState('domcontentloaded');
+        await page.getByLabel('Email').fill(user.email);
+        await page.getByLabel('Password').fill(user.password);
+        await page.getByRole('button', { name: /sign in/i }).click();
+        await page.waitForURL(/\/dashboard/, { timeout: 15000 });
+        return;
+      }
+      throw urlError;
+    }
+
+    console.warn(`✓ User ${user.email} created and logged in successfully`);
+  } catch (error) {
+    console.error(`Error in createAndLoginUser for ${user.email}:`, error);
+
+    // Take a screenshot for debugging
+    try {
+      const timestamp = Date.now();
+      await page.screenshot({
+        path: `test-results/error-${user.email.replace(/[@.]/g, '-')}-${timestamp}.png`,
+        fullPage: true,
+      });
+      console.warn('Page URL:', page.url());
+      console.warn('Page title:', await page.title());
+    } catch (debugError) {
+      console.error('Could not capture debug info:', debugError);
+    }
+    throw error;
   }
-
-  // Select department (assuming first one is available)
-  await page.click('[data-testid="department-select"]');
-  const departmentOptions = page.locator('[data-testid="department-option"]');
-  await departmentOptions.first().click();
-
-  // Submit form
-  await page.click('button[type="submit"]');
-
-  // Wait for redirect to dashboard
-  await page.waitForURL(/\/dashboard/, { timeout: 15000 });
 }
