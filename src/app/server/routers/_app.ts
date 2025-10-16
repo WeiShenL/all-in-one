@@ -4,6 +4,7 @@
 import { departmentRouter } from './department';
 import { userProfileRouter } from './userProfile';
 import { taskFileRouter } from './taskFile';
+import { projectRouter } from './project';
 
 import { notificationRouter } from './notification';
 import { taskRouter } from './task';
@@ -16,6 +17,7 @@ export const appRouter = router({
   department: departmentRouter,
   userProfile: userProfileRouter,
   taskFile: taskFileRouter,
+  project: projectRouter,
   notification: notificationRouter,
   task: taskRouter,
 });

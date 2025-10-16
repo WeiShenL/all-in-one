@@ -45,6 +45,7 @@ export interface Filters {
   assignee: string[];
   department: string[];
   project: string[];
+  tags: string[];
 }
 
 export type SortableColumn =

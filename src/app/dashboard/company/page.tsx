@@ -85,7 +85,7 @@ export default function CompanyPage() {
     >
       <Navbar />
       <div style={{ padding: '2rem' }}>
-        <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <header
             style={{
               marginBottom: '2rem',

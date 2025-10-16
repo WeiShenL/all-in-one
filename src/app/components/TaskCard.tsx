@@ -16,6 +16,7 @@ interface Task {
   isRecurring: boolean;
   recurringInterval: number | null;
   ownerId: string;
+  projectId: string | null;
   assignments: Array<{
     userId: string;
     user: {
@@ -75,10 +76,21 @@ export function TaskCard({
   const [recurringInterval, setRecurringInterval] = useState<number | null>(
     null
   );
+  const [editingProject, setEditingProject] = useState(false);
+  const [projectValue, setProjectValue] = useState<string>('');
   const [newTag, setNewTag] = useState('');
   const [newComment, setNewComment] = useState('');
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editCommentValue, setEditCommentValue] = useState('');
+
+  // Available projects for dropdown
+  const [availableProjects, setAvailableProjects] = useState<
+    Array<{
+      id: string;
+      name: string;
+    }>
+  >([]);
+  const [loadingProjects, setLoadingProjects] = useState(false);
 
   // Tab state
   const [activeTab, setActiveTab] = useState<'comments' | 'history'>(
@@ -125,6 +137,7 @@ export function TaskCard({
     fetchFiles();
     fetchDepartmentUsers();
     fetchTaskLogs();
+    fetchProjects();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [taskId]);
 
@@ -150,6 +163,7 @@ export function TaskCard({
         setStatusValue(data.result.data.status);
         setRecurringEnabled(data.result.data.isRecurring);
         setRecurringInterval(data.result.data.recurringInterval);
+        setProjectValue(data.result.data.projectId || '');
 
         // Fetch user details for any assignees and comment authors we don't have details for
         const allUserIds = new Set<string>();
@@ -350,6 +364,33 @@ export function TaskCard({
     }
   };
 
+  const fetchProjects = async () => {
+    if (!userProfile) {
+      return;
+    }
+
+    setLoadingProjects(true);
+    try {
+      const response = await fetch(
+        `/api/trpc/project.getAll?input=${encodeURIComponent(JSON.stringify({ isArchived: false }))}`
+      );
+      const data = await response.json();
+
+      if (data.result?.data) {
+        setAvailableProjects(
+          data.result.data.map((p: any) => ({
+            id: p.id,
+            name: p.name,
+          }))
+        );
+      }
+    } catch (err) {
+      console.error('Failed to fetch projects:', err);
+    } finally {
+      setLoadingProjects(false);
+    }
+  };
+
   const updateTask = async (
     endpoint: string,
     payload: any,
@@ -434,6 +475,15 @@ export function TaskCard({
       '✅ Recurring settings updated'
     );
     setEditingRecurring(false);
+  };
+
+  const handleUpdateProject = async () => {
+    await updateTask(
+      'assignProject',
+      { taskId, projectId: projectValue || null },
+      '✅ Project updated'
+    );
+    setEditingProject(false);
   };
 
   const handleAddTag = async () => {
@@ -1719,6 +1769,147 @@ export function TaskCard({
             ⚠️ Maximum 5 assignees reached
           </div>
         ) : null}
+      </div>
+
+      {/* Project - Immutable once set (SCRUM-31) */}
+      <div style={{ marginBottom: '1.5rem' }}>
+        <h3
+          style={{
+            fontSize: '0.875rem',
+            fontWeight: '600',
+            marginBottom: '8px',
+          }}
+        >
+          📁 Project
+        </h3>
+        {task.projectId ? (
+          // Project already assigned - immutable (AC3)
+          <div
+            style={{
+              padding: '8px',
+              backgroundColor: '#f0f9ff',
+              borderRadius: '4px',
+            }}
+          >
+            <div
+              style={{
+                fontSize: '0.875rem',
+                color: '#0369a1',
+                marginBottom: '4px',
+              }}
+            >
+              {availableProjects.find(p => p.id === task.projectId)?.name ||
+                task.projectId}
+            </div>
+            <div
+              style={{
+                padding: '6px 8px',
+                backgroundColor: '#fef3c7',
+                border: '1px solid #fbbf24',
+                borderRadius: '4px',
+                fontSize: '0.75rem',
+                color: '#92400e',
+              }}
+            >
+              ⚠️ Project cannot be changed once assigned (immutable)
+            </div>
+          </div>
+        ) : (
+          // No project assigned - can be set once (AC2)
+          <>
+            {editingProject ? (
+              <div>
+                <select
+                  data-testid='task-project-select'
+                  value={projectValue}
+                  onChange={e => setProjectValue(e.target.value)}
+                  disabled={loadingProjects}
+                  style={{
+                    width: '100%',
+                    padding: '6px',
+                    border: '2px solid #4a90e2',
+                    borderRadius: '4px',
+                    boxSizing: 'border-box',
+                    backgroundColor: loadingProjects ? '#f5f5f5' : 'white',
+                    cursor: loadingProjects ? 'not-allowed' : 'pointer',
+                  }}
+                  autoFocus
+                >
+                  <option value=''>-- No Project (Standalone Task) --</option>
+                  {availableProjects.map(project => (
+                    <option key={project.id} value={project.id}>
+                      {project.name}
+                    </option>
+                  ))}
+                </select>
+                <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={handleUpdateProject}
+                    disabled={loadingProjects}
+                    style={{
+                      padding: '6px 12px',
+                      backgroundColor: loadingProjects ? '#9ca3af' : '#28a745',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: loadingProjects ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    ✓ Save
+                  </button>
+                  <button
+                    onClick={() => setEditingProject(false)}
+                    style={{
+                      padding: '6px 12px',
+                      backgroundColor: '#6c757d',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    ✗ Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div
+                data-testid='task-project-display'
+                onClick={() => hasEditPermission && setEditingProject(true)}
+                style={{
+                  padding: '8px',
+                  borderRadius: '4px',
+                  cursor: hasEditPermission ? 'pointer' : 'default',
+                  transition: 'all 0.2s ease',
+                  border: '1px solid transparent',
+                  backgroundColor: '#f8fafc',
+                }}
+                onMouseEnter={e => {
+                  if (hasEditPermission) {
+                    e.currentTarget.style.backgroundColor = '#e0f2fe';
+                    e.currentTarget.style.border = '1px solid #bae6fd';
+                  }
+                }}
+                onMouseLeave={e => {
+                  if (hasEditPermission) {
+                    e.currentTarget.style.backgroundColor = '#f8fafc';
+                    e.currentTarget.style.border = '1px solid transparent';
+                  }
+                }}
+              >
+                <div style={{ fontSize: '0.875rem', color: '#64748b' }}>
+                  No project assigned (click to assign)
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* Tags */}

@@ -21,6 +21,10 @@ interface AssigneeCountProps {
   userMap: Map<string, { name: string; email: string }>;
 }
 
+interface TagsCountProps {
+  tags: string[];
+}
+
 const AssigneeCount = ({ userIds, userMap }: AssigneeCountProps) => {
   const [showPopup, setShowPopup] = useState(false);
   const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
@@ -78,6 +82,83 @@ const AssigneeCount = ({ userIds, userMap }: AssigneeCountProps) => {
               </div>
             );
           })}
+        </div>
+      )}
+    </>
+  );
+};
+
+const TagsCount = ({ tags }: TagsCountProps) => {
+  const [showPopup, setShowPopup] = useState(false);
+  const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
+  const countRef = useRef<HTMLDivElement>(null);
+
+  const handleMouseEnter = () => {
+    if (countRef.current) {
+      const rect = countRef.current.getBoundingClientRect();
+      setPopupPosition({
+        top: rect.top - 10,
+        left: rect.left + rect.width / 2,
+      });
+      setShowPopup(true);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setShowPopup(false);
+  };
+
+  return (
+    <>
+      <div
+        ref={countRef}
+        style={{
+          ...styles.assigneeCount,
+          backgroundColor: '#fef3c7',
+          color: '#92400e',
+          border: '1px solid #fbbf24',
+        }}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
+        {tags.length}
+      </div>
+      {showPopup && (
+        <div
+          style={{
+            ...styles.popup,
+            top: popupPosition.top,
+            left: popupPosition.left,
+            transform: 'translateX(-50%)',
+          }}
+        >
+          {tags.map((tag, index) => (
+            <div
+              key={index}
+              style={{
+                ...(index === tags.length - 1
+                  ? styles.popupItemLast
+                  : styles.popupItem),
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              <span
+                style={{
+                  backgroundColor: '#fef3c7',
+                  color: '#92400e',
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  border: '1px solid #fbbf24',
+                }}
+              >
+                {tag}
+              </span>
+            </div>
+          ))}
         </div>
       )}
     </>
@@ -264,6 +345,15 @@ export const TaskRow = ({
           )}
         </td>
         <td style={styles.td}>
+          {task.tags && task.tags.length > 0 ? (
+            <TagsCount tags={task.tags} />
+          ) : (
+            <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>
+              No tags
+            </span>
+          )}
+        </td>
+        <td style={styles.td}>
           {task.project?.name || (
             <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>
               No project assigned
@@ -290,7 +380,7 @@ export const TaskRow = ({
         <>
           <tr style={{ backgroundColor: '#f8fafc' }}>
             <td
-              colSpan={8}
+              colSpan={9}
               style={{
                 padding: '8px 16px',
                 fontSize: '12px',
