@@ -58,12 +58,7 @@ export function generateRecurringEvents(
       start: newStart,
       end: newEnd,
       resource: {
-        taskId: baseEvent.resource.taskId,
-        status: baseEvent.resource.status,
-        priority: baseEvent.resource.priority,
-        isCompleted: baseEvent.resource.isCompleted,
-        departmentId: baseEvent.resource.departmentId,
-        assignees: [...baseEvent.resource.assignees], // Create new array to avoid mutation
+        ...baseEvent.resource, // Preserve all resource fields including recurringInterval
       },
     });
   }

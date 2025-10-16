@@ -17,6 +17,7 @@ import { Task } from '../TaskTable/types';
 import { CalendarEvent } from './types';
 import { taskToEvent } from './utils/taskToEvent';
 import { exportToICal } from './utils/exportToICal';
+import { generateRecurringEvents } from './utils/generateRecurringEvents';
 import { TaskCard } from '../TaskCard';
 
 const locales = {
@@ -75,21 +76,39 @@ function getPriorityColor(priority: number): string {
 }
 
 /**
- * Custom event style getter - applies visual styling with priority border
+ * Extract original task ID from event ID
+ * Recurring occurrences have IDs like "abc123-recur-1", "abc123-recur-2"
+ * This function strips the "-recur-X" suffix to get the original task ID
+ */
+function getOriginalTaskId(eventId: string): string {
+  return eventId.split('-recur-')[0];
+}
+
+/**
+ * Custom event style getter - applies visual styling with priority border and recurring indicator
  */
 function eventStyleGetter(event: CalendarEvent) {
   const isStarted = event.resource.isStarted;
-  const backgroundColor = isStarted
+  const isRecurring =
+    event.resource.recurringInterval && event.resource.recurringInterval > 0;
+
+  let backgroundColor = isStarted
     ? getStatusColor(event.resource.status)
     : '#cbd5e0'; // Light gray for not started
+
+  // Add purple tint for recurring tasks
+  if (isRecurring) {
+    backgroundColor = isStarted ? '#805ad5' : '#b794f4'; // Purple shades for recurring
+  }
 
   return {
     style: {
       backgroundColor,
       opacity: isStarted ? 1.0 : 0.6, // TO_DO tasks lighter
       borderRadius: '4px',
-      border: 'none',
-      borderLeft: `3px solid ${getPriorityColor(event.resource.priority)}`, // Priority indicator
+      borderWidth: '0 0 0 3px',
+      borderStyle: isRecurring ? 'dashed' : 'solid', // Dashed border for recurring
+      borderColor: getPriorityColor(event.resource.priority), // Priority indicator
       color: '#ffffff',
       fontSize: '0.875rem',
       padding: '2px 5px',
@@ -98,15 +117,23 @@ function eventStyleGetter(event: CalendarEvent) {
 }
 
 /**
- * Custom Event Component - adds status icon prefix inline
+ * Custom Event Component - adds recurring symbol for recurring tasks
  */
 interface EventComponentProps {
   event: CalendarEvent;
   title: string;
 }
 
-function EventComponent({ title }: EventComponentProps) {
-  return <span>{title}</span>;
+function EventComponent({ event, title }: EventComponentProps) {
+  const isRecurring =
+    event.resource.recurringInterval && event.resource.recurringInterval > 0;
+
+  return (
+    <span>
+      {isRecurring && '🔁 '}
+      {title}
+    </span>
+  );
 }
 
 /**
@@ -327,15 +354,27 @@ export function TaskCalendar({
                       <div
                         key={task.id}
                         className='kanban-card'
-                        onClick={() => setSelectedTaskId(task.id)}
+                        onClick={() =>
+                          setSelectedTaskId(getOriginalTaskId(task.id))
+                        }
                         style={{
                           ...kanbanStyles.card,
                           borderLeftColor: getPriorityColor(
                             task.resource.priority
                           ),
+                          backgroundColor:
+                            task.resource.recurringInterval &&
+                            task.resource.recurringInterval > 0
+                              ? '#f3e8ff'
+                              : kanbanStyles.card.backgroundColor,
                         }}
                       >
-                        <div style={kanbanStyles.cardTitle}>{task.title}</div>
+                        <div style={kanbanStyles.cardTitle}>
+                          {task.resource.recurringInterval &&
+                            task.resource.recurringInterval > 0 &&
+                            '🔁 '}
+                          {task.title}
+                        </div>
                         <div style={kanbanStyles.cardMeta}>
                           <span
                             style={{
@@ -408,16 +447,15 @@ export function TaskCalendar({
     return KanbanDayView;
   }, []);
 
-  // Transform tasks to calendar events
+  // Transform tasks to calendar events with recurring occurrences
   const events: CalendarEvent[] = useMemo(() => {
     if (!tasks || tasks.length === 0) {
       return [];
     }
 
-    return tasks.map(task => {
+    return tasks.flatMap(task => {
       // Transform using taskToEvent utility
-      // This applies the startDate ?? createdAt logic automatically
-      return taskToEvent({
+      const baseEvent = taskToEvent({
         id: task.id,
         title: task.title,
         description: task.description,
@@ -432,6 +470,9 @@ export function TaskCalendar({
         tags: task.tags,
         recurringInterval: task.recurringInterval,
       });
+
+      // Generate recurring occurrences if task is recurring
+      return generateRecurringEvents(baseEvent, task.recurringInterval, 12);
     });
   }, [tasks]);
 
@@ -582,7 +623,9 @@ export function TaskCalendar({
           onView={setView}
           date={date}
           onNavigate={setDate}
-          onSelectEvent={(event: any) => setSelectedTaskId(event.id)}
+          onSelectEvent={(event: any) =>
+            setSelectedTaskId(getOriginalTaskId(event.id))
+          }
           components={{
             toolbar: CustomToolbar,
             event: EventComponent as any,
@@ -670,6 +713,15 @@ export function TaskCalendar({
               }}
             ></span>
             <span>BLOCKED</span>
+          </div>
+          <div style={styles.legendItem}>
+            <span
+              style={{
+                ...styles.legendColor,
+                backgroundColor: '#805ad5',
+              }}
+            ></span>
+            <span>🔁 RECURRING</span>
           </div>
         </div>
       </div>
