@@ -29,6 +29,7 @@ test.describe('Overdue Task Highlighting', () => {
   let overdueTaskId: string;
   let testEmail: string;
   let testPassword: string;
+  let testNamespace: string;
 
   // Helper function to login and navigate to task edit view
   async function loginAndNavigateToOverdueTask(page: any) {
@@ -82,15 +83,18 @@ test.describe('Overdue Task Highlighting', () => {
       process.env.NEXT_PUBLIC_ANON_KEY!
     );
 
-    // Create unique credentials
-    const unique = Date.now();
-    testEmail = `e2e.overdue.test.${unique}@example.com`;
+    // Create worker-specific namespace for test data isolation
+    const workerId = process.env.PLAYWRIGHT_WORKER_INDEX || '0';
+    testNamespace = `w${workerId}_${crypto.randomUUID().slice(0, 8)}`;
+
+    // Create unique credentials with worker-specific namespace
+    testEmail = `e2e.overdue.test.${testNamespace}@example.com`;
     testPassword = 'Test123!@#';
 
     // 1. Create department
     const deptResult = await pgClient.query(
       'INSERT INTO "department" (id, name, "isActive", "createdAt", "updatedAt") VALUES (gen_random_uuid(), $1, true, NOW(), NOW()) RETURNING id',
-      [`E2E Overdue Test Dept ${unique}`]
+      [`E2E Overdue Test Dept ${testNamespace}`]
     );
     testDepartmentId = deptResult.rows[0].id;
 
@@ -127,7 +131,12 @@ test.describe('Overdue Task Highlighting', () => {
     // Update the department, role, and name
     await pgClient.query(
       'UPDATE "user_profile" SET "departmentId" = $1, role = $2, name = $3 WHERE id = $4',
-      [testDepartmentId, 'STAFF', 'E2E Overdue Test User', authData.user.id]
+      [
+        testDepartmentId,
+        'STAFF',
+        `E2E Overdue Test User ${testNamespace}`,
+        authData.user.id,
+      ]
     );
     testUserId = authData.user.id;
 
@@ -136,7 +145,7 @@ test.describe('Overdue Task Highlighting', () => {
     const taskResult = await pgClient.query(
       'INSERT INTO "task" (id, title, description, priority, "dueDate", "ownerId", "departmentId", status, "createdAt", "updatedAt") VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, NOW(), NOW()) RETURNING id',
       [
-        'E2E Overdue Task',
+        `E2E Overdue Task ${testNamespace}`,
         'This task is overdue for testing highlighting',
         5,
         pastDate,

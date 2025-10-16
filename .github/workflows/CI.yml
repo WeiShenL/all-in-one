@@ -288,11 +288,15 @@ jobs:
             });
 
   e2e-tests:
-    name: E2E Tests on Preview
+    name: E2E Tests on Preview (Shard ${{ matrix.shard }}/${{ matrix.shards }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: Preview
     needs: [playwright-setup, vercel-preview]
+    strategy:
+      matrix:
+        shard: [1, 2, 3]
+        shards: [3]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -323,7 +327,7 @@ jobs:
         run: npx playwright install --with-deps
         if: hashFiles('~/.cache/ms-playwright') == ''
 
-      - name: Run E2E Tests Against Preview
+      - name: Run E2E Tests Against Preview (Sharded)
         env:
           # Use the deployed preview URL as Playwright baseURL
           PLAYWRIGHT_BASE_URL: ${{ needs.vercel-preview.outputs.vercel_url }}
@@ -334,7 +338,7 @@ jobs:
           NEXT_PUBLIC_ANON_KEY: ${{ secrets.NEXT_PUBLIC_ANON_KEY }}
           SERVICE_ROLE_KEY: ${{ secrets.SERVICE_ROLE_KEY }}
           CI: true
-        run: npm run test:e2e
+        run: npx playwright test --shard=${{ matrix.shard }}/${{ matrix.shards }}
 
       - name: Upload Playwright Artifacts (on failure)
         if: failure()

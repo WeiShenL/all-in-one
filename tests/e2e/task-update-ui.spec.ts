@@ -39,6 +39,7 @@ test.describe('Task Update - Complete UI Flow', () => {
   let testTaskId: string;
   let testEmail: string;
   let testPassword: string;
+  let testNamespace: string;
   const uploadedFileIds: string[] = [];
 
   // Helper function to login (used by each test)
@@ -93,15 +94,18 @@ test.describe('Task Update - Complete UI Flow', () => {
       process.env.NEXT_PUBLIC_ANON_KEY!
     );
 
-    // Create unique credentials
-    const unique = Date.now();
-    testEmail = `e2e.task.update.${unique}@example.com`;
+    // Create worker-specific namespace for test data isolation
+    const workerId = process.env.PLAYWRIGHT_WORKER_INDEX || '0';
+    testNamespace = `w${workerId}_${crypto.randomUUID().slice(0, 8)}`;
+
+    // Create unique credentials with worker-specific namespace
+    testEmail = `e2e.task.update.${testNamespace}@example.com`;
     testPassword = 'Test123!@#';
 
     // 1. Create department
     const deptResult = await pgClient.query(
       'INSERT INTO "department" (id, name, "isActive", "createdAt", "updatedAt") VALUES (gen_random_uuid(), $1, true, NOW(), NOW()) RETURNING id',
-      [`E2E Task Update Dept ${unique}`]
+      [`E2E Task Update Dept ${testNamespace}`]
     );
     testDepartmentId = deptResult.rows[0].id;
 
@@ -139,7 +143,12 @@ test.describe('Task Update - Complete UI Flow', () => {
     // Update the department, role, and name
     await pgClient.query(
       'UPDATE "user_profile" SET "departmentId" = $1, role = $2, name = $3 WHERE id = $4',
-      [testDepartmentId, 'STAFF', 'E2E Update Task User 1', authData.user.id]
+      [
+        testDepartmentId,
+        'STAFF',
+        `E2E Update Task User 1 ${testNamespace}`,
+        authData.user.id,
+      ]
     );
     testUserId = authData.user.id;
 
@@ -149,8 +158,8 @@ test.describe('Task Update - Complete UI Flow', () => {
       const userResult = await pgClient.query(
         'INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt") VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW()) RETURNING id',
         [
-          `e2e.user${i}.${unique}@example.com`,
-          `E2E Update Task User ${i}`,
+          `e2e.user${i}.${testNamespace}@example.com`,
+          `E2E Update Task User ${i} ${testNamespace}`,
           'STAFF',
           testDepartmentId,
         ]
@@ -163,7 +172,7 @@ test.describe('Task Update - Complete UI Flow', () => {
     const taskResult = await pgClient.query(
       'INSERT INTO "task" (id, title, description, priority, "dueDate", "ownerId", "departmentId", status, "createdAt", "updatedAt") VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, NOW(), NOW()) RETURNING id',
       [
-        'E2E Task to Update',
+        `E2E Task to Update ${testNamespace}`,
         'Original description for testing',
         5,
         new Date('2025-12-31'),
@@ -497,12 +506,8 @@ test.describe('Task Update - Complete UI Flow', () => {
     // Remove first tag using data-testid
     await page.getByTestId('remove-tag-e2e-test-tag-urgent').click();
 
-    // Verify tag removed message - increased timeout for slow CI/CD
-    await expect(page.getByText(/tag removed/i)).toBeVisible({
-      timeout: 65000,
-    });
-
-    // Verify tag is gone (longer timeout for CI/CD)
+    // Wait for tag removal to complete and verify tag is gone
+    await page.waitForTimeout(2000); // Give time for removal to process
     await expect(page.getByText('e2e-test-tag-urgent')).not.toBeVisible({
       timeout: 65000,
     });

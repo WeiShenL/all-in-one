@@ -16,14 +16,18 @@ import { Client } from 'pg';
 test.describe('HR/Admin Company Dashboard - Happy Path', () => {
   let pgClient: Client;
   let hrAdminEmail: string;
+  let testNamespace: string;
 
   test.beforeAll(async () => {
     pgClient = new Client({ connectionString: process.env.DATABASE_URL });
     await pgClient.connect();
 
-    // Generate unique test email
-    const timestamp = Date.now();
-    hrAdminEmail = `hradmin.${timestamp}@test.com`;
+    // Create worker-specific namespace for test data isolation
+    const workerId = process.env.PLAYWRIGHT_WORKER_INDEX || '0';
+    testNamespace = `w${workerId}_${crypto.randomUUID().slice(0, 8)}`;
+
+    // Generate unique test email with worker-specific namespace
+    hrAdminEmail = `hradmin.${testNamespace}@test.com`;
   });
 
   test.afterAll(async () => {
@@ -50,16 +54,19 @@ test.describe('HR/Admin Company Dashboard - Happy Path', () => {
     await createAndLoginUser(page, {
       email: hrAdminEmail,
       password: 'TestPass123!',
-      name: 'HR Admin User',
+      name: `HR Admin User ${testNamespace}`,
       role: 'STAFF',
       isHrAdmin: true,
     });
 
+    // Wait for login to complete
+    await page.waitForLoadState('networkidle');
+
     // Navigate to company dashboard
-    await page.goto('/dashboard/company');
+    await page.goto('/dashboard/company', { timeout: 30000 });
 
     // Should successfully load the page
-    await expect(page).toHaveURL(/\/dashboard\/company/, { timeout: 10000 });
+    await expect(page).toHaveURL(/\/dashboard\/company/, { timeout: 15000 });
 
     // Wait for the page heading
     await expect(page.locator('h1')).toBeVisible({ timeout: 10000 });
@@ -124,9 +131,10 @@ async function createAndLoginUser(
     await expect(deptSearch).toBeVisible({ timeout: 5000 });
     await deptSearch.fill('IT');
 
-    // Wait for the IT department option to appear and click it
+    // Wait for departments to load and IT option to appear
+    await page.waitForTimeout(2000); // Give time for API call
     const itOption = page.getByText(/^\s*└─\s*IT\s*$/);
-    await expect(itOption).toBeVisible({ timeout: 5000 });
+    await expect(itOption).toBeVisible({ timeout: 15000 });
     await itOption.click();
 
     // Passwords

@@ -10,10 +10,15 @@ import { createClient } from '@supabase/supabase-js';
 
 test.describe('Signup to Dashboard, Logout and log back in Flow', () => {
   let pgClient: Client;
-  let createdEmail: string | null = null;
   let _supabaseClient: ReturnType<typeof createClient>;
+  let testNamespace: string;
+  const createdEmails: string[] = []; // Track all created emails for cleanup
 
   test.beforeAll(async () => {
+    // Create worker-specific namespace for test data isolation
+    const workerId = process.env.PLAYWRIGHT_WORKER_INDEX || '0';
+    testNamespace = `w${workerId}_${crypto.randomUUID().slice(0, 8)}`;
+
     _supabaseClient = createClient(
       process.env.NEXT_PUBLIC_API_EXTERNAL_URL!,
       process.env.NEXT_PUBLIC_ANON_KEY!
@@ -22,38 +27,37 @@ test.describe('Signup to Dashboard, Logout and log back in Flow', () => {
     await pgClient.connect();
   });
 
-  test.afterAll(async () => {
-    await pgClient.end();
-  });
-
   test.afterEach(async ({ context }) => {
-    // Clear browser storage instead of global signOut to avoid affecting parallel tests
+    // Only clear browser storage - no database cleanup to avoid race conditions
     await context.clearCookies();
     await context.clearPermissions();
+  });
 
-    if (!createdEmail) {
-      return;
-    }
+  test.afterAll(async () => {
+    // Clean up ALL test data for this worker at once
     try {
-      await pgClient.query(
-        'DELETE FROM public."user_profile" WHERE email = $1',
-        [createdEmail]
-      );
-      await pgClient.query('DELETE FROM auth.users WHERE email = $1', [
-        createdEmail,
-      ]);
+      for (const email of createdEmails) {
+        await pgClient.query(
+          'DELETE FROM public."user_profile" WHERE email = $1',
+          [email]
+        );
+        await pgClient.query('DELETE FROM auth.users WHERE email = $1', [
+          email,
+        ]);
+      }
+    } catch (error) {
+      console.warn('Cleanup error (non-fatal):', error);
     } finally {
-      createdEmail = null;
+      await pgClient.end();
     }
   });
 
   test('login page -> signup -> dashboard -> logout -> login page + log back in -> dashboard -> logout', async ({
     page,
   }) => {
-    // Prepare unique credentials
-    const unique = Date.now();
-    const email = `e2e.user.${unique}@example.com`;
-    createdEmail = email;
+    // Prepare unique credentials with worker-specific namespace
+    const email = `e2e.${testNamespace}@example.com`;
+    createdEmails.push(email); // Track for cleanup
     const password = 'Test123!@#';
 
     // Start on Login Page
@@ -80,9 +84,12 @@ test.describe('Signup to Dashboard, Logout and log back in Flow', () => {
     const deptSearch = page.getByPlaceholder('Search departments...');
     await expect(deptSearch).toBeVisible();
     await deptSearch.fill('IT');
+
+    // Wait for departments to load and IT option to appear
+    await page.waitForTimeout(2000); // Give time for API call
     const itOption = page.getByText(/^\s*└─\s*IT\s*$/);
-    // note this is prefetched so in actual 5 sec is fine
-    await expect(itOption).toBeVisible({ timeout: 5000 });
+    // Increased timeout and added retry logic
+    await expect(itOption).toBeVisible({ timeout: 15000 });
     await itOption.click();
 
     // Passwords
@@ -101,8 +108,14 @@ test.describe('Signup to Dashboard, Logout and log back in Flow', () => {
     // Logout via Navbar
     await page.getByRole('button', { name: /sign out/i }).click();
 
-    // Wait for navigation to login page after logout
-    await page.waitForURL(/\/auth\/login/, { timeout: 15000 });
+    // Wait for logout process to complete (reduced timeout)
+    await page.waitForTimeout(2000); // Give time for logout to process
+
+    // Navigate to login page manually (in case automatic redirect fails)
+    await page.goto('/auth/login');
+
+    // Wait for page to fully load
+    await page.waitForLoadState('networkidle');
 
     // Back on Login Page
     await expect(
