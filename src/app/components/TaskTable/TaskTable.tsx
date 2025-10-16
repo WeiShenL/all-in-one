@@ -1,8 +1,8 @@
 'use client';
 
 import { useMemo, useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
 import { TaskCard } from '../TaskCard';
+import { TaskCreateModal } from '../TaskCreateModal';
 import { trpc } from '@/app/lib/trpc';
 import departmentData from '@/../prisma/data/1_departments.json';
 import {
@@ -64,7 +64,6 @@ export function TaskTable({
   isLoading = false,
   error = null,
 }: TaskTableProps) {
-  const router = useRouter();
   const [filters, setFilters] = useState<Filters>({
     title: '',
     status: '',
@@ -76,6 +75,7 @@ export function TaskTable({
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [viewingTaskId, setViewingTaskId] = useState<string | null>(null);
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
+  const [isCreateModalOpen, setCreateModalOpen] = useState(false);
   const modalContentRef = useRef<HTMLDivElement>(null);
 
   // Get all unique user IDs from task assignments
@@ -103,11 +103,14 @@ export function TaskTable({
         if (viewingTaskId) {
           setViewingTaskId(null);
         }
+        if (isCreateModalOpen) {
+          setCreateModalOpen(false);
+        }
       }
     };
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
-  }, [editingTaskId, viewingTaskId]);
+  }, [editingTaskId, viewingTaskId, isCreateModalOpen]);
 
   const { departments, assignees } = useMemo(() => {
     if (!tasks) {
@@ -239,7 +242,7 @@ export function TaskTable({
     if (onCreateTask) {
       onCreateTask();
     } else {
-      router.push('/tasks/create');
+      setCreateModalOpen(true);
     }
   };
 
@@ -532,6 +535,18 @@ export function TaskTable({
             />
           </div>
         </div>
+      )}
+
+      {/* Create Task Modal */}
+      {isCreateModalOpen && (
+        <TaskCreateModal
+          isOpen={isCreateModalOpen}
+          onClose={() => setCreateModalOpen(false)}
+          onSuccess={() => {
+            setCreateModalOpen(false);
+            // Task created successfully, modal will close and list will refresh
+          }}
+        />
       )}
     </div>
   );
