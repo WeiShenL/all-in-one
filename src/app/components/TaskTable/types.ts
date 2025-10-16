@@ -41,10 +41,10 @@ export interface Task {
 
 export interface Filters {
   title: string;
-  status: string;
-  assignee: string;
-  department: string;
-  project: string;
+  status: string[];
+  assignee: string[];
+  department: string[];
+  project: string[];
 }
 
 export type SortableColumn =
