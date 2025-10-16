@@ -1216,6 +1216,7 @@ export function TaskCard({
               />
               <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
                 <button
+                  data-testid='task-priority-save-button'
                   onClick={handleUpdatePriority}
                   style={{
                     padding: '6px 12px',
@@ -1233,6 +1234,7 @@ export function TaskCard({
                   ✓ Save
                 </button>
                 <button
+                  data-testid='task-priority-cancel-button'
                   onClick={() => setEditingPriority(false)}
                   style={{
                     padding: '6px 12px',

@@ -9,14 +9,24 @@ import { trpc } from '../lib/trpc';
  * Matches structure of Personal Dashboard (StaffDashboard)
  */
 export function DepartmentDashboard() {
-  const utils = trpc.useUtils();
+  // Try to get utils for query invalidation (may not be available in test environment)
+  let utils;
+  try {
+    utils = trpc.useUtils();
+  } catch {
+    // useUtils not available (e.g., in test environment without provider)
+    utils = null;
+  }
+
   const { data, isLoading, error } =
     trpc.task.getDepartmentTasksForUser.useQuery();
 
-  const handleTaskCreated = () => {
-    // Invalidate the query to trigger a refetch
-    utils.task.getDepartmentTasksForUser.invalidate();
-  };
+  const handleTaskCreated = utils
+    ? () => {
+        // Invalidate the query to trigger a refetch
+        utils.task.getDepartmentTasksForUser.invalidate();
+      }
+    : undefined;
 
   return (
     <TaskTable
