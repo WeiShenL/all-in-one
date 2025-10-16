@@ -177,7 +177,7 @@ describe('Integration Tests - Subtask Creation (SCRUM-65)', () => {
        VALUES ($1, $2, $2, NOW())`,
       [testParentTaskId, testStaffUserId]
     );
-  });
+  }, 15000);
 
   afterEach(async () => {
     // Clean up created subtasks
@@ -192,7 +192,7 @@ describe('Integration Tests - Subtask Creation (SCRUM-65)', () => {
         testParentTaskId,
       ]);
     }
-  });
+  }, 15000);
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // TEST 1: Basic Subtask Creation

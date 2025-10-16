@@ -7,6 +7,7 @@ import {
   DashboardMetrics,
 } from '../types';
 import { TaskStatus, Task } from '@prisma/client';
+import { AuthorizationService } from './AuthorizationService';
 
 type TaskWithOwner = Task & {
   owner: {
@@ -1035,7 +1036,7 @@ export class TaskService extends BaseService {
    * @param departmentId - Root department ID
    * @returns Array of department IDs (including the root and direct children only)
    */
-  private async getSubordinateDepartments(
+  public async getSubordinateDepartments(
     departmentId: string
   ): Promise<string[]> {
     const departmentIds: string[] = [departmentId];
@@ -1178,16 +1179,239 @@ export class TaskService extends BaseService {
         },
       });
 
+      // Add canEdit field - all tasks are editable by managers (backward compatibility)
+      const tasksWithCanEdit = tasks.map(task => ({
+        ...task,
+        canEdit: true,
+      }));
+
       // Calculate metrics
       const metrics = this.calculateMetrics(tasks);
 
       return {
-        tasks,
+        tasks: tasksWithCanEdit,
         metrics,
       };
     } catch (error) {
       this.handleError(error, 'getManagerDashboardTasks');
       throw error; // This will never be reached, but satisfies TypeScript
+    }
+  }
+
+  /**
+   * Get department tasks for any user (Staff or Manager)
+   * Returns tasks with canEdit field calculated based on user role and assignment
+   * Matches structure of getUserTasks with full task details including subtasks
+   *
+   * @param userId - User's ID
+   * @returns Array of tasks with canEdit field
+   */
+  async getDepartmentTasksForUser(userId: string) {
+    try {
+      this.validateId(userId, 'User ID');
+
+      // Get user's profile
+      const user = await this.prisma.userProfile.findUnique({
+        where: { id: userId, isActive: true },
+        select: {
+          id: true,
+          departmentId: true,
+          role: true,
+        },
+      });
+
+      if (!user) {
+        throw new Error('User not found or inactive');
+      }
+
+      // Get all subordinate departments (including user's own department)
+      const departmentIds = await this.getSubordinateDepartments(
+        user.departmentId
+      );
+
+      // Fetch all parent tasks (no parentTaskId) in the department hierarchy
+      // Department Dashboard shows ALL tasks in hierarchy for ALL users (STAFF + MANAGER)
+      // Edit permissions are controlled by canEdit field based on assignment/role
+      const parentTasks = await this.prisma.task.findMany({
+        where: {
+          isArchived: false,
+          parentTaskId: null, // Only parent tasks
+          OR: [
+            {
+              departmentId: {
+                in: departmentIds,
+              },
+            },
+            {
+              assignments: {
+                some: {
+                  user: {
+                    departmentId: {
+                      in: departmentIds,
+                    },
+                    isActive: true,
+                  },
+                },
+              },
+            },
+          ],
+        },
+        include: {
+          assignments: {
+            select: {
+              userId: true,
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
+            },
+          },
+          department: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          tags: {
+            include: {
+              tag: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          },
+          comments: {
+            select: {
+              id: true,
+              content: true,
+              userId: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          },
+          // Fetch subtasks with full details
+          subtasks: {
+            where: {
+              isArchived: false,
+            },
+            include: {
+              assignments: {
+                select: {
+                  userId: true,
+                  user: {
+                    select: {
+                      id: true,
+                      name: true,
+                      email: true,
+                    },
+                  },
+                },
+              },
+              department: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+              tags: {
+                include: {
+                  tag: {
+                    select: {
+                      name: true,
+                    },
+                  },
+                },
+              },
+              comments: {
+                select: {
+                  id: true,
+                  content: true,
+                  userId: true,
+                  createdAt: true,
+                  updatedAt: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          dueDate: 'asc',
+        },
+      });
+
+      // Use AuthorizationService to calculate canEdit for each task and subtask
+      const authService = new AuthorizationService();
+
+      const tasksWithCanEdit = parentTasks.map(task => {
+        const taskCanEdit = authService.canEditTask(
+          {
+            departmentId: task.departmentId,
+            assignments: task.assignments.map(a => ({ userId: a.userId })),
+          },
+          {
+            userId: user.id,
+            role: user.role as 'STAFF' | 'MANAGER' | 'HR_ADMIN',
+            departmentId: user.departmentId,
+          },
+          departmentIds
+        );
+
+        // Calculate canEdit for subtasks
+        const subtasksWithCanEdit = task.subtasks?.map(subtask => {
+          const subtaskCanEdit = authService.canEditTask(
+            {
+              departmentId: subtask.departmentId,
+              assignments: subtask.assignments.map(a => ({ userId: a.userId })),
+            },
+            {
+              userId: user.id,
+              role: user.role as 'STAFF' | 'MANAGER' | 'HR_ADMIN',
+              departmentId: user.departmentId,
+            },
+            departmentIds
+          );
+
+          return {
+            ...subtask,
+            tags: subtask.tags.map(t => t.tag.name),
+            comments: subtask.comments.map(c => ({
+              id: c.id,
+              content: c.content,
+              authorId: c.userId,
+              createdAt: c.createdAt,
+              updatedAt: c.updatedAt,
+            })),
+            priorityBucket: subtask.priority, // Map priority to priorityBucket for frontend
+            isRecurring: subtask.recurringInterval !== null,
+            canEdit: subtaskCanEdit,
+          };
+        });
+
+        return {
+          ...task,
+          tags: task.tags.map(t => t.tag.name),
+          comments: task.comments.map(c => ({
+            id: c.id,
+            content: c.content,
+            authorId: c.userId,
+            createdAt: c.createdAt,
+            updatedAt: c.updatedAt,
+          })),
+          priorityBucket: task.priority, // Map priority to priorityBucket for frontend
+          isRecurring: task.recurringInterval !== null,
+          canEdit: taskCanEdit,
+          subtasks: subtasksWithCanEdit,
+        };
+      });
+
+      return tasksWithCanEdit;
+    } catch (error) {
+      this.handleError(error, 'getDepartmentTasksForUser');
+      throw error;
     }
   }
 }

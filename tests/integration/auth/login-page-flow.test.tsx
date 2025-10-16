@@ -312,7 +312,7 @@ describe('LoginPage Component', () => {
   });
 
   describe('Successful Login Redirect', () => {
-    it('should redirect to STAFF dashboard after successful STAFF login', async () => {
+    it('should redirect to personal dashboard after successful STAFF login', async () => {
       mockSignIn.mockResolvedValue({ error: null });
       (useAuth as jest.Mock).mockReturnValue({
         signIn: mockSignIn,
@@ -332,11 +332,11 @@ describe('LoginPage Component', () => {
       fireEvent.click(submitButton);
 
       await waitFor(() => {
-        expect(mockPush).toHaveBeenCalledWith('/dashboard/staff');
+        expect(mockPush).toHaveBeenCalledWith('/dashboard/personal');
       });
     });
 
-    it('should redirect to MANAGER dashboard after successful MANAGER login', async () => {
+    it('should redirect to personal dashboard after successful MANAGER login', async () => {
       mockSignIn.mockResolvedValue({ error: null });
       (useAuth as jest.Mock).mockReturnValue({
         signIn: mockSignIn,
@@ -358,7 +358,7 @@ describe('LoginPage Component', () => {
       fireEvent.click(submitButton);
 
       await waitFor(() => {
-        expect(mockPush).toHaveBeenCalledWith('/dashboard/manager');
+        expect(mockPush).toHaveBeenCalledWith('/dashboard/personal');
       });
     });
 

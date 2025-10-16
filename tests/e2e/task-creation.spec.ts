@@ -177,8 +177,8 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
 
     // Wait for dashboard
     await expect(
-      page.getByRole('heading', { name: /staff dashboard/i })
-    ).toBeVisible({ timeout: 65000 });
+      page.getByRole('heading', { name: /personal dashboard/i })
+    ).toBeVisible({ timeout: 15000 });
 
     // Step 2: Navigate to create task page
     await page.goto('/tasks/create');
@@ -198,7 +198,7 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
 
     // Step 5: Verify redirect to dashboard
     await expect(
-      page.getByRole('heading', { name: /staff dashboard/i })
+      page.getByRole('heading', { name: /personal dashboard/i })
     ).toBeVisible({ timeout: 65000 });
 
     // Step 6: Get the task ID from database (to use data-testid!)
@@ -253,7 +253,7 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
 
     // Verify redirect to dashboard
     await expect(
-      page.getByRole('heading', { name: /staff dashboard/i })
+      page.getByRole('heading', { name: /personal dashboard/i })
     ).toBeVisible({ timeout: 65000 });
 
     // Get the task ID from database
@@ -316,7 +316,7 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
 
     // Verify redirect to dashboard
     await expect(
-      page.getByRole('heading', { name: /staff dashboard/i })
+      page.getByRole('heading', { name: /personal dashboard/i })
     ).toBeVisible({ timeout: 65000 });
 
     // Get the task ID from database (now we can use reliable data-testid!)
@@ -375,7 +375,7 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
 
     // Verify redirect to dashboard
     await expect(
-      page.getByRole('heading', { name: /staff dashboard/i })
+      page.getByRole('heading', { name: /personal dashboard/i })
     ).toBeVisible({ timeout: 65000 });
 
     // Get the task ID from database
@@ -439,7 +439,7 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
 
     // Verify redirect to dashboard
     await expect(
-      page.getByRole('heading', { name: /staff dashboard/i })
+      page.getByRole('heading', { name: /personal dashboard/i })
     ).toBeVisible({ timeout: 65000 });
 
     // Get the task ID from database
@@ -533,7 +533,7 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
 
     // Verify redirect to dashboard
     await expect(
-      page.getByRole('heading', { name: /staff dashboard/i })
+      page.getByRole('heading', { name: /personal dashboard/i })
     ).toBeVisible({ timeout: 65000 });
 
     // Get the task ID from database
@@ -586,7 +586,7 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
     // Reload the page to see the new auto-generated task
     await page.reload();
     await expect(
-      page.getByRole('heading', { name: /staff dashboard/i })
+      page.getByRole('heading', { name: /personal dashboard/i })
     ).toBeVisible({ timeout: 65000 });
     await page.waitForTimeout(8000);
 

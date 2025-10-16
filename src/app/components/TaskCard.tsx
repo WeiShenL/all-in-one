@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/supabase/auth-context';
 import LogItem from './LogItem';
 import { ConnectedTasks } from './ConnectedTasks';
-import { TaskDatePill } from './TaskDatePill';
+import { TaskDatePill } from './TaskTable/TaskDatePill';
 
 interface Task {
   id: string;
@@ -16,7 +16,14 @@ interface Task {
   isRecurring: boolean;
   recurringInterval: number | null;
   ownerId: string;
-  assignments: string[];
+  assignments: Array<{
+    userId: string;
+    user: {
+      id: string;
+      name: string | null;
+      email: string | null;
+    };
+  }>;
   tags: string[];
   comments: Array<{
     id: string;
@@ -25,6 +32,7 @@ interface Task {
     createdAt: string;
     updatedAt: string;
   }>;
+  canEdit?: boolean; // Permission field from backend
 }
 
 interface UploadedFile {
@@ -150,8 +158,8 @@ export function TaskCard({
           data.result.data.assignments &&
           data.result.data.assignments.length > 0
         ) {
-          data.result.data.assignments.forEach((userId: string) =>
-            allUserIds.add(userId)
+          data.result.data.assignments.forEach((assignment: any) =>
+            allUserIds.add(assignment.userId)
           );
         }
 
@@ -783,6 +791,9 @@ export function TaskCard({
     return <div className='p-4'>Please login</div>;
   }
 
+  // Determine if user has edit permission
+  const hasEditPermission = task.canEdit !== false; // Default to true if not specified
+
   return (
     <div
       style={{
@@ -795,6 +806,26 @@ export function TaskCard({
         border: '1px solid #e5e7eb',
       }}
     >
+      {/* Read-only indicator */}
+      {!hasEditPermission && (
+        <div
+          style={{
+            padding: '12px',
+            backgroundColor: '#fef3c7',
+            color: '#92400e',
+            borderRadius: '8px',
+            marginBottom: '1rem',
+            fontSize: '0.875rem',
+            fontWeight: '600',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+          }}
+        >
+          👁️ View-only mode: You can view this task but cannot edit it
+        </div>
+      )}
+
       {/* Error/Success Messages */}
       {error && (
         <div
@@ -882,23 +913,29 @@ export function TaskCard({
           <div
             data-testid='task-title-display'
             onClick={() => {
-              setTitleValue(task.title);
-              setEditingTitle(true);
+              if (hasEditPermission) {
+                setTitleValue(task.title);
+                setEditingTitle(true);
+              }
             }}
             style={{
               padding: '8px',
               borderRadius: '4px',
-              cursor: 'pointer',
+              cursor: hasEditPermission ? 'pointer' : 'default',
               transition: 'all 0.2s ease',
               border: '1px solid transparent',
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.backgroundColor = '#f8fafc';
-              e.currentTarget.style.border = '1px solid #e2e8f0';
+              if (hasEditPermission) {
+                e.currentTarget.style.backgroundColor = '#f8fafc';
+                e.currentTarget.style.border = '1px solid #e2e8f0';
+              }
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.border = '1px solid transparent';
+              if (hasEditPermission) {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.border = '1px solid transparent';
+              }
             }}
           >
             <h2
@@ -982,23 +1019,29 @@ export function TaskCard({
           <div
             data-testid='task-description-display'
             onClick={() => {
-              setDescriptionValue(task.description);
-              setEditingDescription(true);
+              if (hasEditPermission) {
+                setDescriptionValue(task.description);
+                setEditingDescription(true);
+              }
             }}
             style={{
               padding: '8px',
               borderRadius: '4px',
-              cursor: 'pointer',
+              cursor: hasEditPermission ? 'pointer' : 'default',
               transition: 'all 0.2s ease',
               border: '1px solid transparent',
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.backgroundColor = '#f8fafc';
-              e.currentTarget.style.border = '1px solid #e2e8f0';
+              if (hasEditPermission) {
+                e.currentTarget.style.backgroundColor = '#f8fafc';
+                e.currentTarget.style.border = '1px solid #e2e8f0';
+              }
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.border = '1px solid transparent';
+              if (hasEditPermission) {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.border = '1px solid transparent';
+              }
             }}
           >
             <p style={{ color: '#4a5568', whiteSpace: 'pre-wrap', margin: 0 }}>
@@ -1087,22 +1130,26 @@ export function TaskCard({
           ) : (
             <div
               data-testid='task-status-display'
-              onClick={() => setEditingStatus(true)}
+              onClick={() => hasEditPermission && setEditingStatus(true)}
               style={{
                 padding: '8px',
                 borderRadius: '4px',
-                cursor: 'pointer',
+                cursor: hasEditPermission ? 'pointer' : 'default',
                 transition: 'all 0.2s ease',
                 display: 'inline-block',
                 border: '1px solid transparent',
               }}
               onMouseEnter={e => {
-                e.currentTarget.style.backgroundColor = '#f8fafc';
-                e.currentTarget.style.border = '1px solid #e2e8f0';
+                if (hasEditPermission) {
+                  e.currentTarget.style.backgroundColor = '#f8fafc';
+                  e.currentTarget.style.border = '1px solid #e2e8f0';
+                }
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.border = '1px solid transparent';
+                if (hasEditPermission) {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.border = '1px solid transparent';
+                }
               }}
             >
               <span
@@ -1203,22 +1250,26 @@ export function TaskCard({
           ) : (
             <div
               data-testid='task-priority-display'
-              onClick={() => setEditingPriority(true)}
+              onClick={() => hasEditPermission && setEditingPriority(true)}
               style={{
                 padding: '8px',
                 borderRadius: '4px',
-                cursor: 'pointer',
+                cursor: hasEditPermission ? 'pointer' : 'default',
                 transition: 'all 0.2s ease',
                 display: 'inline-block',
                 border: '1px solid transparent',
               }}
               onMouseEnter={e => {
-                e.currentTarget.style.backgroundColor = '#f8fafc';
-                e.currentTarget.style.border = '1px solid #e2e8f0';
+                if (hasEditPermission) {
+                  e.currentTarget.style.backgroundColor = '#f8fafc';
+                  e.currentTarget.style.border = '1px solid #e2e8f0';
+                }
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.border = '1px solid transparent';
+                if (hasEditPermission) {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.border = '1px solid transparent';
+                }
               }}
             >
               <span
@@ -1314,22 +1365,26 @@ export function TaskCard({
           ) : (
             <div
               data-testid='task-deadline-display'
-              onClick={() => setEditingDeadline(true)}
+              onClick={() => hasEditPermission && setEditingDeadline(true)}
               style={{
                 padding: '8px',
                 borderRadius: '4px',
-                cursor: 'pointer',
+                cursor: hasEditPermission ? 'pointer' : 'default',
                 transition: 'all 0.2s ease',
                 display: 'inline-block',
                 border: '1px solid transparent',
               }}
               onMouseEnter={e => {
-                e.currentTarget.style.backgroundColor = '#f8fafc';
-                e.currentTarget.style.border = '1px solid #e2e8f0';
+                if (hasEditPermission) {
+                  e.currentTarget.style.backgroundColor = '#f8fafc';
+                  e.currentTarget.style.border = '1px solid #e2e8f0';
+                }
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.border = '1px solid transparent';
+                if (hasEditPermission) {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.border = '1px solid transparent';
+                }
               }}
             >
               <TaskDatePill dueDate={task.dueDate} status={task.status} />
@@ -1433,21 +1488,25 @@ export function TaskCard({
         ) : (
           <div
             data-testid='task-recurring-display'
-            onClick={() => setEditingRecurring(true)}
+            onClick={() => hasEditPermission && setEditingRecurring(true)}
             style={{
               padding: '8px',
               borderRadius: '4px',
-              cursor: 'pointer',
+              cursor: hasEditPermission ? 'pointer' : 'default',
               transition: 'all 0.2s ease',
               border: '1px solid transparent',
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.backgroundColor = '#e0f2fe';
-              e.currentTarget.style.border = '1px solid #bae6fd';
+              if (hasEditPermission) {
+                e.currentTarget.style.backgroundColor = '#e0f2fe';
+                e.currentTarget.style.border = '1px solid #bae6fd';
+              }
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.border = '1px solid transparent';
+              if (hasEditPermission) {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.border = '1px solid transparent';
+              }
             }}
           >
             <div style={{ fontSize: '0.875rem', color: '#0369a1' }}>
@@ -1496,12 +1555,17 @@ export function TaskCard({
                 marginBottom: '12px',
               }}
             >
-              {task.assignments.map(userId => {
+              {task.assignments.map(assignment => {
+                const userId =
+                  typeof assignment === 'string'
+                    ? assignment
+                    : assignment.userId;
                 const userDetails = userDetailsMap.get(userId);
                 const isOwner = userId === task.ownerId;
                 // Manager can remove any assignee, including owner (AC6 edge case)
                 // Owner field is immutable - removing owner from assignees doesn't change ownership
                 const canRemove =
+                  hasEditPermission &&
                   userProfile?.role === 'MANAGER' &&
                   task.assignments.length > 1;
                 return (
@@ -1568,7 +1632,7 @@ export function TaskCard({
 
         {/* Max 5 assignees (TM023). TM015: Staff cannot remove, but Managers can (SCRUM-15 AC3) */}
         {/* Add Assignee Interface */}
-        {task.assignments.length < 5 ? (
+        {hasEditPermission && task.assignments.length < 5 ? (
           <div>
             <div
               style={{
@@ -1619,7 +1683,7 @@ export function TaskCard({
               </button>
             </div>
           </div>
-        ) : (
+        ) : hasEditPermission && task.assignments.length >= 5 ? (
           <div
             style={{
               padding: '8px',
@@ -1632,7 +1696,7 @@ export function TaskCard({
           >
             ⚠️ Maximum 5 assignees reached
           </div>
-        )}
+        ) : null}
       </div>
 
       {/* Tags */}
@@ -1669,52 +1733,56 @@ export function TaskCard({
               }}
             >
               {tag}
-              <button
-                data-testid={`remove-tag-${tag}`}
-                onClick={() => handleRemoveTag(tag)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#c00',
-                  cursor: 'pointer',
-                  padding: '0 2px',
-                  fontSize: '14px',
-                }}
-              >
-                ×
-              </button>
+              {hasEditPermission && (
+                <button
+                  data-testid={`remove-tag-${tag}`}
+                  onClick={() => handleRemoveTag(tag)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#c00',
+                    cursor: 'pointer',
+                    padding: '0 2px',
+                    fontSize: '14px',
+                  }}
+                >
+                  ×
+                </button>
+              )}
             </span>
           ))}
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <input
-            data-testid='tag-input'
-            type='text'
-            value={newTag}
-            onChange={e => setNewTag(e.target.value)}
-            placeholder='Add tag...'
-            style={{
-              flex: 1,
-              padding: '6px',
-              border: '1px solid #cbd5e0',
-              borderRadius: '4px',
-            }}
-          />
-          <button
-            data-testid='add-tag-button'
-            onClick={handleAddTag}
-            style={{
-              padding: '6px 12px',
-              backgroundColor: '#1976d2',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-            }}
-          >
-            Add Tag
-          </button>
-        </div>
+        {hasEditPermission && (
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <input
+              data-testid='tag-input'
+              type='text'
+              value={newTag}
+              onChange={e => setNewTag(e.target.value)}
+              placeholder='Add tag...'
+              style={{
+                flex: 1,
+                padding: '6px',
+                border: '1px solid #cbd5e0',
+                borderRadius: '4px',
+              }}
+            />
+            <button
+              data-testid='add-tag-button'
+              onClick={handleAddTag}
+              style={{
+                padding: '6px 12px',
+                backgroundColor: '#1976d2',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+              }}
+            >
+              Add Tag
+            </button>
+          </div>
+        )}
       </div>
 
       {/* File Attachments */}
@@ -1737,50 +1805,52 @@ export function TaskCard({
         </h3>
 
         {/* Upload Section */}
-        <div style={{ marginBottom: '1rem' }}>
-          <label
-            htmlFor={`file-input-${taskId}`}
-            style={{
-              display: 'inline-block',
-              padding: '8px 16px',
-              backgroundColor: selectedFile ? '#28a745' : '#f59e0b',
-              color: 'white',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '0.875rem',
-            }}
-          >
-            {selectedFile ? `✓ ${selectedFile.name}` : '📁 Choose File'}
-          </label>
-          <input
-            id={`file-input-${taskId}`}
-            data-testid='file-input'
-            type='file'
-            onChange={handleFileSelect}
-            disabled={uploading}
-            accept='.pdf,.jpg,.jpeg,.png,.gif,.doc,.docx,.xls,.xlsx,.zip'
-            style={{ display: 'none' }}
-          />
-          {selectedFile && (
-            <button
-              data-testid='upload-button'
-              onClick={handleUpload}
-              disabled={uploading}
+        {hasEditPermission && (
+          <div style={{ marginBottom: '1rem' }}>
+            <label
+              htmlFor={`file-input-${taskId}`}
               style={{
-                marginLeft: '8px',
+                display: 'inline-block',
                 padding: '8px 16px',
-                backgroundColor: uploading ? '#6c757d' : '#28a745',
+                backgroundColor: selectedFile ? '#28a745' : '#f59e0b',
                 color: 'white',
-                border: 'none',
                 borderRadius: '4px',
-                cursor: uploading ? 'not-allowed' : 'pointer',
+                cursor: 'pointer',
                 fontSize: '0.875rem',
               }}
             >
-              {uploading ? '⏳ Uploading...' : '⬆️ Upload'}
-            </button>
-          )}
-        </div>
+              {selectedFile ? `✓ ${selectedFile.name}` : '📁 Choose File'}
+            </label>
+            <input
+              id={`file-input-${taskId}`}
+              data-testid='file-input'
+              type='file'
+              onChange={handleFileSelect}
+              disabled={uploading}
+              accept='.pdf,.jpg,.jpeg,.png,.gif,.doc,.docx,.xls,.xlsx,.zip'
+              style={{ display: 'none' }}
+            />
+            {selectedFile && (
+              <button
+                data-testid='upload-button'
+                onClick={handleUpload}
+                disabled={uploading}
+                style={{
+                  marginLeft: '8px',
+                  padding: '8px 16px',
+                  backgroundColor: uploading ? '#6c757d' : '#28a745',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: uploading ? 'not-allowed' : 'pointer',
+                  fontSize: '0.875rem',
+                }}
+              >
+                {uploading ? '⏳ Uploading...' : '⬆️ Upload'}
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Progress Bar */}
         {uploading && (
@@ -1916,21 +1986,23 @@ export function TaskCard({
                   >
                     ⬇️
                   </button>
-                  <button
-                    data-testid={`file-delete-button-${file.fileName}`}
-                    onClick={() => handleDeleteFile(file.id, file.fileName)}
-                    style={{
-                      padding: '4px 8px',
-                      backgroundColor: '#dc3545',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      fontSize: '11px',
-                    }}
-                  >
-                    🗑️
-                  </button>
+                  {hasEditPermission && (
+                    <button
+                      data-testid={`file-delete-button-${file.fileName}`}
+                      onClick={() => handleDeleteFile(file.id, file.fileName)}
+                      style={{
+                        padding: '4px 8px',
+                        backgroundColor: '#dc3545',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '11px',
+                      }}
+                    >
+                      🗑️
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -2172,37 +2244,39 @@ export function TaskCard({
             </div>
 
             {/* Add Comment */}
-            <div>
-              <textarea
-                data-testid='comment-input'
-                value={newComment}
-                onChange={e => setNewComment(e.target.value)}
-                placeholder='Add a comment...'
-                rows={3}
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  border: '1px solid #cbd5e0',
-                  borderRadius: '4px',
-                  fontFamily: 'inherit',
-                  marginBottom: '8px',
-                }}
-              />
-              <button
-                data-testid='add-comment-button'
-                onClick={handleAddComment}
-                style={{
-                  padding: '8px 16px',
-                  backgroundColor: '#1976d2',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                }}
-              >
-                Add Comment
-              </button>
-            </div>
+            {hasEditPermission && (
+              <div>
+                <textarea
+                  data-testid='comment-input'
+                  value={newComment}
+                  onChange={e => setNewComment(e.target.value)}
+                  placeholder='Add a comment...'
+                  rows={3}
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    border: '1px solid #cbd5e0',
+                    borderRadius: '4px',
+                    fontFamily: 'inherit',
+                    marginBottom: '8px',
+                  }}
+                />
+                <button
+                  data-testid='add-comment-button'
+                  onClick={handleAddComment}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#1976d2',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Add Comment
+                </button>
+              </div>
+            )}
           </div>
         )}
 

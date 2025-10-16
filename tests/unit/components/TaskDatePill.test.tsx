@@ -12,7 +12,7 @@
  */
 
 import { render } from '@testing-library/react';
-import { TaskDatePill } from '@/app/components/TaskDatePill';
+import { TaskDatePill } from '@/app/components/TaskTable/TaskDatePill';
 
 describe('TaskDatePill', () => {
   // Helper function to format dates consistently

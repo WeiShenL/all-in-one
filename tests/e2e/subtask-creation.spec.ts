@@ -216,7 +216,7 @@ test.describe('Subtask Creation E2E - SCRUM-65', () => {
      * STEP 2: Wait for dashboard to load
      */
     await expect(
-      page.getByRole('heading', { name: /staff dashboard/i })
+      page.getByRole('heading', { name: /personal dashboard/i })
     ).toBeVisible({ timeout: 40000 });
 
     // Verify parent task appears in dashboard

@@ -73,6 +73,8 @@ describe('TaskService - READ and UPDATE Operations', () => {
       addTaskAssignment: jest.fn(),
       createComment: jest.fn(),
       updateComment: jest.fn(),
+      getDepartmentWithParent: jest.fn(),
+      getUserDepartments: jest.fn(),
     } as any;
 
     service = new TaskService(mockRepository);
@@ -106,19 +108,31 @@ describe('TaskService - READ and UPDATE Operations', () => {
         expect(result?.getTitle()).toBe('Implement Login Feature');
       });
 
-      it('should throw error for unauthorized user (not assignee or owner)', async () => {
+      it('should throw error for unauthorized user (not assignee or in department hierarchy)', async () => {
         const taskData = {
           ...mockTaskData,
           ownerId: 'other-user',
+          departmentId: 'dept-other',
           assignments: [{ userId: 'other-user' }],
         };
         mockRepository.getTaskByIdFull.mockResolvedValue(taskData);
 
-        const unauthorizedUser = { ...testUser, userId: 'user-999' };
+        // Mock that user is not in department hierarchy
+        mockRepository.getDepartmentWithParent.mockResolvedValue({
+          id: 'dept-other',
+          parentId: null, // Different root, not in user's hierarchy
+        });
+        mockRepository.getUserDepartments.mockResolvedValue([]);
+
+        const unauthorizedUser = {
+          ...testUser,
+          userId: 'user-999',
+          departmentId: 'dept-456',
+        };
         await expect(
           service.getTaskById('task-001', unauthorizedUser)
         ).rejects.toThrow(
-          'Unauthorized: You must be the task owner, assigned to this task, or a manager of the department'
+          'Unauthorized: You must be assigned to this task or it must be in your department hierarchy'
         );
       });
 
@@ -251,15 +265,27 @@ describe('TaskService - READ and UPDATE Operations', () => {
         const taskData = {
           ...mockTaskData,
           ownerId: 'other-user',
+          departmentId: 'dept-other',
           assignments: [{ userId: 'other-user' }],
         };
         mockRepository.getTaskByIdFull.mockResolvedValue(taskData);
 
-        const unauthorizedUser = { ...testUser, userId: 'user-999' };
+        // Mock that user is not in department hierarchy
+        mockRepository.getDepartmentWithParent.mockResolvedValue({
+          id: 'dept-other',
+          parentId: null,
+        });
+        mockRepository.getUserDepartments.mockResolvedValue([]);
+
+        const unauthorizedUser = {
+          ...testUser,
+          userId: 'user-999',
+          departmentId: 'dept-456',
+        };
         await expect(
           service.updateTaskTitle('task-001', 'New Title', unauthorizedUser)
         ).rejects.toThrow(
-          'Unauthorized: You must be the task owner, assigned to this task, or a manager of the department'
+          'Unauthorized: You must be assigned to this task or it must be in your department hierarchy'
         );
       });
     });
@@ -502,15 +528,27 @@ describe('TaskService - READ and UPDATE Operations', () => {
         const taskData = {
           ...mockTaskData,
           ownerId: 'other-user',
+          departmentId: 'dept-other',
           assignments: [{ userId: 'other-user' }],
         };
         mockRepository.getTaskByIdFull.mockResolvedValue(taskData);
 
-        const unauthorizedUser = { ...testUser, userId: 'user-999' };
+        // Mock that user is not in department hierarchy
+        mockRepository.getDepartmentWithParent.mockResolvedValue({
+          id: 'dept-other',
+          parentId: null,
+        });
+        mockRepository.getUserDepartments.mockResolvedValue([]);
+
+        const unauthorizedUser = {
+          ...testUser,
+          userId: 'user-999',
+          departmentId: 'dept-456',
+        };
         await expect(
           service.addTagToTask('task-001', 'urgent', unauthorizedUser)
         ).rejects.toThrow(
-          'Unauthorized: You must be the task owner, assigned to this task, or a manager of the department'
+          'Unauthorized: You must be assigned to this task or it must be in your department hierarchy'
         );
       });
     });
@@ -654,11 +692,23 @@ describe('TaskService - READ and UPDATE Operations', () => {
         const taskData = {
           ...mockTaskData,
           ownerId: 'other-user',
+          departmentId: 'dept-other',
           assignments: [{ userId: 'other-user' }],
         };
         mockRepository.getTaskByIdFull.mockResolvedValue(taskData);
 
-        const unauthorizedUser = { ...testUser, userId: 'user-999' };
+        // Mock that user is not in department hierarchy
+        mockRepository.getDepartmentWithParent.mockResolvedValue({
+          id: 'dept-other',
+          parentId: null,
+        });
+        mockRepository.getUserDepartments.mockResolvedValue([]);
+
+        const unauthorizedUser = {
+          ...testUser,
+          userId: 'user-999',
+          departmentId: 'dept-456',
+        };
         await expect(
           service.addCommentToTask(
             'task-001',
@@ -666,7 +716,7 @@ describe('TaskService - READ and UPDATE Operations', () => {
             unauthorizedUser
           )
         ).rejects.toThrow(
-          'Unauthorized: You must be the task owner, assigned to this task, or a manager of the department'
+          'Unauthorized: You must be assigned to this task or it must be in your department hierarchy'
         );
       });
     });

@@ -50,13 +50,13 @@ function LoginForm() {
       if (redirectUrl) {
         router.push(redirectUrl);
       } else {
-        // Otherwise, use role-based routing
-        const roleRoutes = {
-          STAFF: '/dashboard/staff',
-          MANAGER: '/dashboard/manager',
-          HR_ADMIN: '/dashboard/hr',
-        };
-        router.push(roleRoutes[userProfile.role]);
+        // All users (STAFF, MANAGER) go to personal dashboard
+        // HR_ADMIN still uses their own dashboard
+        if (userProfile.role === 'HR_ADMIN') {
+          router.push('/dashboard/hr');
+        } else {
+          router.push('/dashboard/personal');
+        }
       }
     }
   }, [user, userProfile, authLoading, router, redirectUrl]);

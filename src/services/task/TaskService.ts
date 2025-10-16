@@ -202,44 +202,44 @@ export class TaskService {
       return null;
     }
 
-    // Check authorization: user must be owner, assigned, or manager of the department hierarchy
-    const isOwner = taskData.ownerId === user.userId;
+    // Check authorization: user can view if assigned OR in department hierarchy
+    // View permission: assigned OR in department hierarchy (for both STAFF and MANAGER)
+    // Edit permission: handled separately by canEdit field
     const isAssigned = taskData.assignments.some(a => a.userId === user.userId);
 
-    // Check if user is a manager who can access this task
-    let isManagerWithAccess = false;
-    if (user.role === 'MANAGER' && !isOwner && !isAssigned) {
-      // Check if task is in manager's own department or a subordinate department
-      isManagerWithAccess = await this.canManagerAccessDepartment(
-        user.departmentId,
-        taskData.departmentId
-      );
+    // Check if task is in user's department hierarchy
+    let isInDepartmentHierarchy = false;
+    const canAccess = await this.canManagerAccessDepartment(
+      user.departmentId,
+      taskData.departmentId
+    );
 
-      // If not accessible via task's department, check if any assignees are in manager's hierarchy
-      if (!isManagerWithAccess && taskData.assignments.length > 0) {
-        const assigneeIds = taskData.assignments.map(a => a.userId);
-        const assignees =
-          await this.taskRepository.getUserDepartments(assigneeIds);
+    if (canAccess) {
+      isInDepartmentHierarchy = true;
+    } else if (taskData.assignments.length > 0) {
+      // If not accessible via task's department, check if any assignees are in user's hierarchy
+      const assigneeIds = taskData.assignments.map(a => a.userId);
+      const assignees =
+        await this.taskRepository.getUserDepartments(assigneeIds);
 
-        // Check if any assignee's department is in manager's hierarchy
-        for (const assignee of assignees) {
-          if (assignee.departmentId) {
-            const canAccess = await this.canManagerAccessDepartment(
-              user.departmentId,
-              assignee.departmentId
-            );
-            if (canAccess) {
-              isManagerWithAccess = true;
-              break;
-            }
+      // Check if any assignee's department is in user's hierarchy
+      for (const assignee of assignees) {
+        if (assignee.departmentId) {
+          const canAccessAssignee = await this.canManagerAccessDepartment(
+            user.departmentId,
+            assignee.departmentId
+          );
+          if (canAccessAssignee) {
+            isInDepartmentHierarchy = true;
+            break;
           }
         }
       }
     }
 
-    if (!isOwner && !isAssigned && !isManagerWithAccess) {
+    if (!isAssigned && !isInDepartmentHierarchy) {
       throw new Error(
-        'Unauthorized: You must be the task owner, assigned to this task, or a manager of the department'
+        'Unauthorized: You must be assigned to this task or it must be in your department hierarchy'
       );
     }
 

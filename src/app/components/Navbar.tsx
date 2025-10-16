@@ -7,24 +7,20 @@ export default function Navbar() {
   const { user, userProfile } = useAuth();
   const { handleSecureLogout, isLoggingOut } = useSecureLogout();
 
-  // Get dashboard route based on user role
-  // Managers are staff, so they go to staff dashboard by default
+  // Get dashboard route - all users go to personal dashboard by default
   const getDashboardRoute = () => {
     if (!userProfile?.role) {
       return '/dashboard';
     }
 
     const roleRoutes = {
-      STAFF: '/dashboard/staff',
-      MANAGER: '/dashboard/staff', // Managers use staff dashboard as their main dashboard
+      STAFF: '/dashboard/personal',
+      MANAGER: '/dashboard/personal', // All users use personal dashboard as their main dashboard
       HR_ADMIN: '/dashboard/hr',
     };
 
     return roleRoutes[userProfile.role] || '/dashboard';
   };
-
-  // Check if user is a manager (for showing manager dashboard link)
-  const isManager = userProfile?.role === 'MANAGER';
 
   return (
     <nav
@@ -69,21 +65,19 @@ export default function Navbar() {
               fontWeight: '500',
             }}
           >
-            Tasks
+            Personal
           </a>
-          {/* Manager Dashboard link - only visible to managers */}
-          {isManager && (
-            <a
-              href='/dashboard/manager'
-              style={{
-                color: '#495057',
-                textDecoration: 'none',
-                fontWeight: '500',
-              }}
-            >
-              Manage
-            </a>
-          )}
+          {/* Department Dashboard link - visible to all authenticated users */}
+          <a
+            href='/dashboard/department'
+            style={{
+              color: '#495057',
+              textDecoration: 'none',
+              fontWeight: '500',
+            }}
+          >
+            Department
+          </a>
           <a
             href='/profile'
             style={{

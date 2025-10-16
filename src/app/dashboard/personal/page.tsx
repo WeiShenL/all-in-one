@@ -4,9 +4,9 @@ import { useAuth } from '@/lib/supabase/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import Navbar from '@/app/components/Navbar';
-import { StaffDashboard } from '@/app/components/StaffDashboard';
+import { PersonalDashboard } from '@/app/components/PersonalDashboard';
 
-export default function StaffDashboardPage() {
+export default function PersonalDashboardPage() {
   const { user, userProfile, loading } = useAuth();
   const router = useRouter();
 
@@ -61,7 +61,7 @@ export default function StaffDashboardPage() {
                 fontWeight: '700',
               }}
             >
-              Staff Dashboard
+              Personal Dashboard
             </h1>
             <p style={{ color: '#718096', margin: 0, fontSize: '0.875rem' }}>
               Welcome, {userProfile?.name || user.email}
@@ -102,9 +102,9 @@ export default function StaffDashboardPage() {
             </div>
           </div>
 
-          {/* Staff Task Dashboard */}
+          {/* Personal Task Dashboard - Shows only assigned tasks with Edit button */}
           <div>
-            <StaffDashboard />
+            <PersonalDashboard />
           </div>
         </div>
       </div>

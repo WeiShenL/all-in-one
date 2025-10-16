@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/lib/supabase/auth-context';
-import { TaskDatePill } from './TaskDatePill';
+import { TaskDatePill } from './TaskTable/TaskDatePill';
 
 // --- PILL COMPONENTS (reused from StaffDashboard) ---
 interface PillProps {

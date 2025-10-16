@@ -14,13 +14,12 @@ export default function CreateTaskPage() {
       return '/dashboard';
     }
 
-    const roleRoutes = {
-      STAFF: '/dashboard/staff',
-      MANAGER: '/dashboard/manager',
-      HR_ADMIN: '/dashboard/hr',
-    };
-
-    return roleRoutes[userProfile.role] || '/dashboard';
+    // All users (STAFF, MANAGER) go to personal dashboard
+    // HR_ADMIN still uses their own dashboard
+    if (userProfile.role === 'HR_ADMIN') {
+      return '/dashboard/hr';
+    }
+    return '/dashboard/personal';
   };
 
   return (

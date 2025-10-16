@@ -515,7 +515,7 @@ export const taskRouter = router({
   // ============================================
 
   /**
-   * Get task by ID
+   * Get task by ID (with canEdit field)
    */
   getById: publicProcedure
     .input(z.object({ taskId: z.string().uuid() }))
@@ -523,8 +523,58 @@ export const taskRouter = router({
       const user = await getUserContext(ctx);
       const repository = new PrismaTaskRepository(ctx.prisma);
       const service = new TaskService(repository);
+      const dashboardService = new DashboardTaskService(ctx.prisma);
+
       const task = await service.getTaskById(input.taskId, user);
-      return task ? serializeTask(task) : null;
+      if (!task) {
+        return null;
+      }
+
+      // Get department hierarchy for authorization check
+      const departmentIds = await dashboardService.getSubordinateDepartments(
+        user.departmentId
+      );
+
+      // Import AuthorizationService
+      const { AuthorizationService } = await import(
+        '../services/AuthorizationService'
+      );
+      const authService = new AuthorizationService();
+
+      // Calculate canEdit permission
+      const canEdit = authService.canEditTask(
+        {
+          departmentId: task.getDepartmentId(),
+          assignments: Array.from(task.getAssignees()).map(userId => ({
+            userId,
+          })),
+        },
+        {
+          userId: user.userId,
+          role: user.role,
+          departmentId: user.departmentId,
+        },
+        departmentIds
+      );
+
+      // Fetch user details for assignments
+      const assigneeIds = Array.from(task.getAssignees());
+      const users = await ctx.prisma.userProfile.findMany({
+        where: { id: { in: assigneeIds } },
+        select: { id: true, name: true, email: true },
+      });
+
+      const userMap = new Map(users.map(u => [u.id, u]));
+      const assignmentsWithDetails = assigneeIds.map(userId => ({
+        userId,
+        user: userMap.get(userId) || { id: userId, name: null, email: null },
+      }));
+
+      return {
+        ...serializeTask(task),
+        assignments: assignmentsWithDetails,
+        canEdit,
+      };
     }),
 
   /**
@@ -607,7 +657,8 @@ export const taskRouter = router({
     }),
 
   /**
-   * Get user's assigned tasks
+   * Get user's assigned tasks (with canEdit field)
+   * For Personal Dashboard - all tasks have canEdit=true
    */
   getUserTasks: publicProcedure
     .input(
@@ -624,7 +675,42 @@ export const taskRouter = router({
         input.userId,
         input.includeArchived
       );
-      return tasks.map(serializeTask);
+
+      // Get all unique user IDs from assignments
+      const userIds = new Set<string>();
+      tasks.forEach(task => {
+        task.getAssignees().forEach(userId => userIds.add(userId));
+      });
+
+      // Fetch user details for all assignees
+      const users = await ctx.prisma.userProfile.findMany({
+        where: { id: { in: Array.from(userIds) } },
+        select: { id: true, name: true, email: true },
+      });
+
+      const userMap = new Map(users.map(u => [u.id, u]));
+
+      // Add canEdit=true and full user details to all personal tasks
+      return tasks.map(task => {
+        const serialized = serializeTask(task);
+        // Convert assignments from string[] to full objects with user details
+        const assignmentsWithDetails = Array.from(task.getAssignees()).map(
+          userId => ({
+            userId,
+            user: userMap.get(userId) || {
+              id: userId,
+              name: null,
+              email: null,
+            },
+          })
+        );
+
+        return {
+          ...serialized,
+          assignments: assignmentsWithDetails,
+          canEdit: true,
+        };
+      });
     }),
 
   /**
@@ -824,6 +910,18 @@ export const taskRouter = router({
     const managerId = ctx.session.user.id;
     const taskService = new DashboardTaskService(ctx.prisma);
     return await taskService.getManagerDashboardTasks(managerId);
+  }),
+
+  /**
+   * Get department tasks for any user (Staff or Manager)
+   * Returns tasks with canEdit field based on user role and assignment
+   * For Department Dashboard
+   */
+  getDepartmentTasksForUser: protectedProcedure.query(async ({ ctx }) => {
+    // ctx.session.user.id is available from authenticated session
+    const userId = ctx.session.user.id;
+    const taskService = new DashboardTaskService(ctx.prisma);
+    return await taskService.getDepartmentTasksForUser(userId);
   }),
 
   // ============================================
