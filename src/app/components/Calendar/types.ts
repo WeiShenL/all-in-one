@@ -21,6 +21,7 @@ export interface CalendarEvent {
     status: TaskStatus;
     priority: number;
     isCompleted: boolean;
+    isStarted: boolean; // True when work has begun (startDate exists)
     description: string;
     createdAt: Date;
     departmentName: string;
