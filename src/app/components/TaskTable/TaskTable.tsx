@@ -63,6 +63,7 @@ export function TaskTable({
   },
   isLoading = false,
   error = null,
+  onTaskUpdated,
 }: TaskTableProps) {
   const router = useRouter();
   const [filters, setFilters] = useState<Filters>({
@@ -505,6 +506,7 @@ export function TaskTable({
             <TaskCard
               taskId={editingTaskId}
               onTaskChange={newTaskId => setEditingTaskId(newTaskId)}
+              onTaskUpdated={onTaskUpdated}
             />
           </div>
         </div>
@@ -529,6 +531,7 @@ export function TaskTable({
             <TaskCard
               taskId={viewingTaskId}
               onTaskChange={newTaskId => setViewingTaskId(newTaskId)}
+              onTaskUpdated={onTaskUpdated}
             />
           </div>
         </div>

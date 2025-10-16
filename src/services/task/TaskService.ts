@@ -141,6 +141,7 @@ export class TaskService {
       parentTaskId: data.parentTaskId || null,
       recurringInterval: data.recurringInterval || null,
       isArchived: false, // New tasks are never archived
+      startDate: null, // Will be set when status changes to IN_PROGRESS
       assignments: new Set(data.assigneeIds),
       tags: new Set(data.tags || []),
     });
@@ -258,6 +259,7 @@ export class TaskService {
       recurringInterval: taskData.recurringInterval,
       isArchived: taskData.isArchived,
       createdAt: taskData.createdAt,
+      startDate: taskData.startDate || null, // When work first began
       updatedAt: taskData.updatedAt,
       assignments: new Set(taskData.assignments.map(a => a.userId)),
       tags: new Set(taskData.tags.map(t => t.tag.name)),
@@ -350,6 +352,7 @@ export class TaskService {
       recurringInterval: taskData.recurringInterval,
       isArchived: taskData.isArchived,
       createdAt: taskData.createdAt,
+      startDate: taskData.startDate || null, // When work first began
       updatedAt: taskData.updatedAt,
       assignments: new Set(
         taskData.assignments?.map((a: any) => a.userId) || []
@@ -688,6 +691,7 @@ export class TaskService {
       parentTaskId: completedTask.getParentTaskId(),
       recurringInterval: recurringInterval,
       isArchived: false,
+      startDate: null, // Will be set when status changes to IN_PROGRESS
       assignments: completedTask.getAssignees(),
       tags: completedTask.getTags(),
     });

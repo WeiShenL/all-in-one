@@ -14,13 +14,23 @@ export interface Task {
     };
   }>;
   departmentId: string;
+  department: {
+    id: string;
+    name: string;
+  };
   ownerId: string;
+  owner: {
+    id: string;
+    name: string | null;
+    email: string | null;
+  };
   projectId: string | null;
   parentTaskId: string | null;
   isRecurring: boolean;
   recurringInterval: number | null;
   isArchived: boolean;
   createdAt: string;
+  startDate: string | null; // When work first began (set when status → IN_PROGRESS first time)
   updatedAt: string;
   tags: string[];
   comments: Array<{
@@ -67,4 +77,5 @@ export interface TaskTableProps {
   };
   isLoading?: boolean;
   error?: Error | null;
+  onTaskUpdated?: () => void;
 }
