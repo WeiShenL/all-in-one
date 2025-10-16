@@ -9,14 +9,21 @@ import { trpc } from '../lib/trpc';
  * Matches structure of Personal Dashboard (StaffDashboard)
  */
 export function DepartmentDashboard() {
+  const utils = trpc.useUtils();
   const { data, isLoading, error } =
     trpc.task.getDepartmentTasksForUser.useQuery();
+
+  const handleTaskCreated = () => {
+    // Invalidate the query to trigger a refetch
+    utils.task.getDepartmentTasksForUser.invalidate();
+  };
 
   return (
     <TaskTable
       tasks={data || []}
       title='All Tasks'
       showCreateButton={true}
+      onTaskCreated={handleTaskCreated}
       emptyStateConfig={{
         icon: '📁',
         title: 'No tasks in your department yet',

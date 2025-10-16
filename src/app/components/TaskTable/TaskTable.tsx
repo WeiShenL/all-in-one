@@ -55,6 +55,7 @@ export function TaskTable({
   title = 'All Tasks',
   showCreateButton = true,
   onCreateTask,
+  onTaskCreated,
   emptyStateConfig = {
     icon: '📝',
     title: 'No tasks assigned to you yet',
@@ -152,13 +153,14 @@ export function TaskTable({
     setUserSort(prev => {
       const existingSort = prev.find(s => s.key === key);
       if (existingSort) {
-        if (existingSort.direction === 'asc') {
-          return prev.map(s =>
-            s.key === key ? { ...s, direction: 'desc' } : s
-          );
-        }
-        return prev.filter(s => s.key !== key);
+        // Toggle between asc and desc only (don't remove)
+        return prev.map(s =>
+          s.key === key
+            ? { ...s, direction: s.direction === 'asc' ? 'desc' : 'asc' }
+            : s
+        );
       } else {
+        // Add new sort criterion starting with asc
         return [...prev, { key, direction: 'asc' }];
       }
     });
@@ -193,7 +195,22 @@ export function TaskTable({
       userHasSorted && userSort.length > 0 ? userSort : defaultSortOrder;
     sortTasks(processedTasks, criteria);
 
-    return organizeTasksHierarchically(processedTasks);
+    // Check if tasks already have subtasks nested (e.g., from getDepartmentTasksForUser)
+    // If so, just mark hasSubtasks flag; otherwise organize hierarchically
+    const hasNestedSubtasks = processedTasks.some(
+      task => task.subtasks && task.subtasks.length > 0
+    );
+
+    if (hasNestedSubtasks) {
+      // Tasks already have nested subtasks, just add hasSubtasks flag
+      return processedTasks.map(task => ({
+        ...task,
+        hasSubtasks: task.subtasks && task.subtasks.length > 0,
+      }));
+    } else {
+      // Tasks are flat, organize hierarchically
+      return organizeTasksHierarchically(processedTasks);
+    }
   }, [tasks, filters, userSort, userHasSorted]);
 
   const handleFilterChange = (filterName: keyof Filters, value: string) => {
@@ -544,7 +561,10 @@ export function TaskTable({
           onClose={() => setCreateModalOpen(false)}
           onSuccess={() => {
             setCreateModalOpen(false);
-            // Task created successfully, modal will close and list will refresh
+            // Trigger refetch of tasks
+            if (onTaskCreated) {
+              onTaskCreated();
+            }
           }}
         />
       )}
