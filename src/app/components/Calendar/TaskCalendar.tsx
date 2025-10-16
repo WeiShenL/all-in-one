@@ -1,7 +1,7 @@
 'use client';
 
-import { useMemo } from 'react';
-import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
+import { useMemo, useState } from 'react';
+import { Calendar, dateFnsLocalizer, View } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import enUS from 'date-fns/locale/en-US';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
@@ -74,6 +74,99 @@ function eventStyleGetter(event: CalendarEvent) {
 }
 
 /**
+ * Custom Toolbar Component for Calendar Navigation
+ *
+ * Provides:
+ * - View switcher (Month, Week, Day, Agenda)
+ * - Navigation controls (Today, Back, Next)
+ * - Current date range display
+ */
+interface CustomToolbarProps {
+  label: string;
+  onNavigate: (action: 'PREV' | 'NEXT' | 'TODAY') => void;
+  onView: (view: View) => void;
+  view: View;
+}
+
+function CustomToolbar({
+  label,
+  onNavigate,
+  onView,
+  view,
+}: CustomToolbarProps) {
+  return (
+    <div style={toolbarStyles.container}>
+      {/* Left: Navigation Controls */}
+      <div style={toolbarStyles.buttonGroup}>
+        <button
+          onClick={() => onNavigate('TODAY')}
+          style={toolbarStyles.navButton}
+        >
+          Today
+        </button>
+        <button
+          onClick={() => onNavigate('PREV')}
+          style={toolbarStyles.navButton}
+        >
+          ← Back
+        </button>
+        <button
+          onClick={() => onNavigate('NEXT')}
+          style={toolbarStyles.navButton}
+        >
+          Next →
+        </button>
+      </div>
+
+      {/* Center: Date Range Label */}
+      <div style={toolbarStyles.labelContainer}>
+        <h3 style={toolbarStyles.label}>{label}</h3>
+      </div>
+
+      {/* Right: View Switcher */}
+      <div style={toolbarStyles.buttonGroup}>
+        <button
+          onClick={() => onView('month')}
+          style={{
+            ...toolbarStyles.viewButton,
+            ...(view === 'month' ? toolbarStyles.viewButtonActive : {}),
+          }}
+        >
+          Month
+        </button>
+        <button
+          onClick={() => onView('week')}
+          style={{
+            ...toolbarStyles.viewButton,
+            ...(view === 'week' ? toolbarStyles.viewButtonActive : {}),
+          }}
+        >
+          Week
+        </button>
+        <button
+          onClick={() => onView('day')}
+          style={{
+            ...toolbarStyles.viewButton,
+            ...(view === 'day' ? toolbarStyles.viewButtonActive : {}),
+          }}
+        >
+          Day
+        </button>
+        <button
+          onClick={() => onView('agenda')}
+          style={{
+            ...toolbarStyles.viewButton,
+            ...(view === 'agenda' ? toolbarStyles.viewButtonActive : {}),
+          }}
+        >
+          Agenda
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/**
  * TaskCalendar Component
  *
  * Reusable calendar component for displaying tasks (mirrors TaskTable pattern)
@@ -99,6 +192,10 @@ export function TaskCalendar({
   isLoading = false,
   error = null,
 }: TaskCalendarProps) {
+  // State for calendar view and date navigation
+  const [view, setView] = useState<View>('month');
+  const [date, setDate] = useState(new Date());
+
   // Transform tasks to calendar events
   const events: CalendarEvent[] = useMemo(() => {
     if (!tasks || tasks.length === 0) {
@@ -172,6 +269,39 @@ export function TaskCalendar({
   // Render calendar
   return (
     <div style={styles.container}>
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+        .rbc-time-header-gutter,
+        .rbc-time-gutter,
+        .rbc-current-time-indicator {
+          display: none !important;
+          width: 0 !important;
+          min-width: 0 !important;
+          max-width: 0 !important;
+        }
+        .rbc-time-content {
+          margin-left: 0 !important;
+        }
+        .rbc-time-header-content {
+          margin-left: 0 !important;
+        }
+        .rbc-time-header {
+          margin-left: 0 !important;
+        }
+        .rbc-time-header > .rbc-row {
+          margin-left: 0 !important;
+        }
+        .rbc-allday-cell {
+          padding-left: 0 !important;
+        }
+        .rbc-time-content > * > * > .rbc-day-slot {
+          padding-left: 0 !important;
+        }
+      `,
+        }}
+      />
+
       <div style={styles.header}>
         <h2 style={styles.title}>{title}</h2>
         <button onClick={handleExport} style={styles.exportButton}>
@@ -188,7 +318,21 @@ export function TaskCalendar({
           style={styles.calendar}
           eventPropGetter={eventStyleGetter as any}
           views={['month', 'week', 'day', 'agenda']}
-          defaultView='month'
+          view={view}
+          onView={setView}
+          date={date}
+          onNavigate={setDate}
+          components={{
+            toolbar: CustomToolbar,
+          }}
+          allDayAccessor={() => true}
+          step={60}
+          timeslots={1}
+          formats={{
+            timeGutterFormat: () => '',
+            eventTimeRangeFormat: () => '',
+            agendaTimeRangeFormat: () => '',
+          }}
           popup
           tooltipAccessor={(event: any) => {
             return `${event.title}\nStatus: ${event.resource.status}\nPriority: ${event.resource.priority}/10`;
@@ -241,6 +385,68 @@ export function TaskCalendar({
     </div>
   );
 }
+
+const toolbarStyles = {
+  container: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '1rem',
+    backgroundColor: '#f7fafc',
+    borderRadius: '6px',
+    marginBottom: '1rem',
+    gap: '1rem',
+    flexWrap: 'wrap' as const,
+  },
+  buttonGroup: {
+    display: 'flex',
+    gap: '0.5rem',
+    alignItems: 'center',
+  },
+  labelContainer: {
+    flex: '1',
+    textAlign: 'center' as const,
+    minWidth: '200px',
+  },
+  label: {
+    fontSize: '1.25rem',
+    fontWeight: 600,
+    color: '#2d3748',
+    margin: 0,
+  },
+  navButton: {
+    padding: '0.5rem 1rem',
+    borderWidth: '1px',
+    borderStyle: 'solid',
+    borderColor: '#e2e8f0',
+    backgroundColor: '#ffffff',
+    borderRadius: '6px',
+    fontSize: '0.875rem',
+    fontWeight: 500,
+    color: '#4a5568',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+  },
+  viewButton: {
+    padding: '0.5rem 1rem',
+    borderWidth: '1px',
+    borderStyle: 'solid',
+    borderColor: '#e2e8f0',
+    backgroundColor: '#ffffff',
+    borderRadius: '6px',
+    fontSize: '0.875rem',
+    fontWeight: 500,
+    color: '#4a5568',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+  },
+  viewButtonActive: {
+    backgroundColor: '#4299e1',
+    color: '#ffffff',
+    borderColor: '#4299e1',
+    fontWeight: 600,
+  },
+};
 
 const styles = {
   container: {
