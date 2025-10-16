@@ -34,7 +34,7 @@ const customJestConfig = {
   ],
 
   // run integration tests sequentially to prevent DB reset issues
-  maxWorkers: 1,
+  // maxWorkers: 1,
 
   // Exclude e2e tests from Jest (run with Playwright instead)
   testPathIgnorePatterns: ['/node_modules/', '/.next/', '/tests/e2e/'],
