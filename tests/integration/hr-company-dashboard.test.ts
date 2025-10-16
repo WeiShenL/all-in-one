@@ -1,12 +1,12 @@
 /**
- * Integration tests for HR/Admin System-Wide Dashboard
+ * Integration tests for HR/Admin Company Dashboard
  *
- * User Story: As an HR/Admin, I want to view a system-wide dashboard of all tasks
+ * User Story: As an HR/Admin, I want to view a company-wide dashboard of all tasks
  * across the organization, so that I can have a complete overview for reporting
  * and administrative functions.
  *
  * Test Coverage:
- * - API access control (only HR/Admin can access getSystemWideTasks)
+ * - API access control (only HR/Admin can access getCompanyTasks)
  * - canEdit logic for HR/Admin with and without Manager role
  * - Filtering capabilities by department, project, and assignee
  * - Combined role scenarios (HR/Admin + Manager)
@@ -46,7 +46,7 @@ const TEST_IDS = {
   TASK_ENG_DEV_ASSIGNED: '40000000-0000-4000-8000-000000000005',
 };
 
-describe('HR/Admin System-Wide Dashboard - Integration Tests', () => {
+describe('HR/Admin Company Dashboard - Integration Tests', () => {
   beforeAll(async () => {
     // Cleanup existing test data
     await cleanupTestData();
@@ -60,8 +60,8 @@ describe('HR/Admin System-Wide Dashboard - Integration Tests', () => {
     await prisma.$disconnect();
   }, 60000);
 
-  describe('Access Control - getSystemWideTasks', () => {
-    it('UAA0015: should allow HR/Admin user to access getSystemWideTasks', async () => {
+  describe('Access Control - getCompanyTasks', () => {
+    it('UAA0015: should allow HR/Admin user to access getCompanyTasks', async () => {
       const ctx = createInnerTRPCContext({
         session: {
           user: { id: TEST_IDS.USER_HR_ADMIN_ONLY },
@@ -70,14 +70,14 @@ describe('HR/Admin System-Wide Dashboard - Integration Tests', () => {
       });
       const caller = appRouter.createCaller(ctx);
 
-      const result = await caller.task.getSystemWideTasks({});
+      const result = await caller.task.getCompanyTasks({});
 
       expect(result).toBeDefined();
       expect(Array.isArray(result)).toBe(true);
       expect(result.length).toBeGreaterThan(0);
     }, 30000);
 
-    it('UAA0026: should deny STAFF user access to getSystemWideTasks', async () => {
+    it('UAA0026: should deny STAFF user access to getCompanyTasks', async () => {
       const ctx = createInnerTRPCContext({
         session: {
           user: { id: TEST_IDS.USER_STAFF },
@@ -86,12 +86,12 @@ describe('HR/Admin System-Wide Dashboard - Integration Tests', () => {
       });
       const caller = appRouter.createCaller(ctx);
 
-      await expect(caller.task.getSystemWideTasks({})).rejects.toThrow(
+      await expect(caller.task.getCompanyTasks({})).rejects.toThrow(
         /only.*hr.*admin/i
       );
     }, 30000);
 
-    it('should deny MANAGER (without HR/Admin) access to getSystemWideTasks', async () => {
+    it('should deny MANAGER (without HR/Admin) access to getCompanyTasks', async () => {
       const ctx = createInnerTRPCContext({
         session: {
           user: { id: TEST_IDS.USER_MANAGER_ONLY },
@@ -100,12 +100,12 @@ describe('HR/Admin System-Wide Dashboard - Integration Tests', () => {
       });
       const caller = appRouter.createCaller(ctx);
 
-      await expect(caller.task.getSystemWideTasks({})).rejects.toThrow(
+      await expect(caller.task.getCompanyTasks({})).rejects.toThrow(
         /only.*hr.*admin/i
       );
     }, 30000);
 
-    it('should allow HR/Admin + Manager combined role to access getSystemWideTasks', async () => {
+    it('should allow HR/Admin + Manager combined role to access getCompanyTasks', async () => {
       const ctx = createInnerTRPCContext({
         session: {
           user: { id: TEST_IDS.USER_HR_ADMIN_AND_MANAGER },
@@ -114,7 +114,7 @@ describe('HR/Admin System-Wide Dashboard - Integration Tests', () => {
       });
       const caller = appRouter.createCaller(ctx);
 
-      const result = await caller.task.getSystemWideTasks({});
+      const result = await caller.task.getCompanyTasks({});
 
       expect(result).toBeDefined();
       expect(Array.isArray(result)).toBe(true);
@@ -131,7 +131,7 @@ describe('HR/Admin System-Wide Dashboard - Integration Tests', () => {
       });
       const caller = appRouter.createCaller(ctx);
 
-      const result = await caller.task.getSystemWideTasks({});
+      const result = await caller.task.getCompanyTasks({});
 
       // Find engineering task
       const engTask = result.find(
@@ -161,7 +161,7 @@ describe('HR/Admin System-Wide Dashboard - Integration Tests', () => {
       });
       const caller = appRouter.createCaller(ctx);
 
-      const result = await caller.task.getSystemWideTasks({});
+      const result = await caller.task.getCompanyTasks({});
 
       // Find HR department task
       const hrTask = result.find(
@@ -184,7 +184,7 @@ describe('HR/Admin System-Wide Dashboard - Integration Tests', () => {
       });
       const caller = appRouter.createCaller(ctx);
 
-      const result = await caller.task.getSystemWideTasks({});
+      const result = await caller.task.getCompanyTasks({});
 
       // Find engineering task (user is manager of Engineering dept)
       const engTask = result.find(
@@ -214,7 +214,7 @@ describe('HR/Admin System-Wide Dashboard - Integration Tests', () => {
       });
       const caller = appRouter.createCaller(ctx);
 
-      const result = await caller.task.getSystemWideTasks({});
+      const result = await caller.task.getCompanyTasks({});
 
       // Find sales task (user is not manager of Sales dept)
       const salesTask = result.find(
@@ -237,7 +237,7 @@ describe('HR/Admin System-Wide Dashboard - Integration Tests', () => {
       });
       const caller = appRouter.createCaller(ctx);
 
-      const result = await caller.task.getSystemWideTasks({});
+      const result = await caller.task.getCompanyTasks({});
 
       // Should see tasks from multiple departments
       const departmentIds = new Set(result.map((t: any) => t.departmentId));
@@ -257,7 +257,7 @@ describe('HR/Admin System-Wide Dashboard - Integration Tests', () => {
       });
       const caller = appRouter.createCaller(ctx);
 
-      const result = await caller.task.getSystemWideTasks({});
+      const result = await caller.task.getCompanyTasks({});
 
       const assignedTask = result.find(
         (t: any) => t.id === TEST_IDS.TASK_ENG_ASSIGNED
@@ -281,7 +281,7 @@ describe('HR/Admin System-Wide Dashboard - Integration Tests', () => {
       });
       const caller = appRouter.createCaller(ctx);
 
-      const result = await caller.task.getSystemWideTasks({
+      const result = await caller.task.getCompanyTasks({
         departmentId: TEST_IDS.DEPT_ENGINEERING,
       });
 
@@ -303,7 +303,7 @@ describe('HR/Admin System-Wide Dashboard - Integration Tests', () => {
       });
       const caller = appRouter.createCaller(ctx);
 
-      const result = await caller.task.getSystemWideTasks({
+      const result = await caller.task.getCompanyTasks({
         projectId: TEST_IDS.PROJECT_ENG,
       });
 
@@ -322,7 +322,7 @@ describe('HR/Admin System-Wide Dashboard - Integration Tests', () => {
       });
       const caller = appRouter.createCaller(ctx);
 
-      const result = await caller.task.getSystemWideTasks({
+      const result = await caller.task.getCompanyTasks({
         assigneeId: TEST_IDS.USER_STAFF,
       });
 
@@ -344,7 +344,7 @@ describe('HR/Admin System-Wide Dashboard - Integration Tests', () => {
       });
       const caller = appRouter.createCaller(ctx);
 
-      const result = await caller.task.getSystemWideTasks({
+      const result = await caller.task.getCompanyTasks({
         departmentId: TEST_IDS.DEPT_ENGINEERING,
         projectId: TEST_IDS.PROJECT_ENG,
       });
@@ -368,7 +368,7 @@ describe('HR/Admin System-Wide Dashboard - Integration Tests', () => {
       });
       const caller = appRouter.createCaller(ctx);
 
-      const result = await caller.task.getSystemWideTasks({
+      const result = await caller.task.getCompanyTasks({
         status: 'IN_PROGRESS',
       });
 
@@ -388,7 +388,7 @@ describe('HR/Admin System-Wide Dashboard - Integration Tests', () => {
       });
       const caller = appRouter.createCaller(ctx);
 
-      const result = await caller.task.getSystemWideTasks({});
+      const result = await caller.task.getCompanyTasks({});
 
       expect(result.length).toBeGreaterThan(0);
       const task = result[0];
@@ -415,7 +415,7 @@ describe('HR/Admin System-Wide Dashboard - Integration Tests', () => {
       });
       const caller = appRouter.createCaller(ctx);
 
-      const result = await caller.task.getSystemWideTasks({});
+      const result = await caller.task.getCompanyTasks({});
 
       const task = result[0];
       expect(task.department).toBeDefined();
@@ -432,7 +432,7 @@ describe('HR/Admin System-Wide Dashboard - Integration Tests', () => {
       });
       const caller = appRouter.createCaller(ctx);
 
-      const result = await caller.task.getSystemWideTasks({});
+      const result = await caller.task.getCompanyTasks({});
 
       const assignedTask = result.find(
         (t: any) => t.id === TEST_IDS.TASK_ENG_ASSIGNED
@@ -457,10 +457,10 @@ describe('HR/Admin System-Wide Dashboard - Integration Tests', () => {
       });
       const caller = appRouter.createCaller(ctx);
 
-      const resultWithArchived = await caller.task.getSystemWideTasks({
+      const resultWithArchived = await caller.task.getCompanyTasks({
         includeArchived: true,
       });
-      const resultWithoutArchived = await caller.task.getSystemWideTasks({
+      const resultWithoutArchived = await caller.task.getCompanyTasks({
         includeArchived: false,
       });
 
@@ -478,7 +478,7 @@ describe('HR/Admin System-Wide Dashboard - Integration Tests', () => {
       });
       const caller = appRouter.createCaller(ctx);
 
-      const result = await caller.task.getSystemWideTasks({
+      const result = await caller.task.getCompanyTasks({
         departmentId: '99999999-9999-4000-8000-999999999999',
       });
 
@@ -494,7 +494,7 @@ describe('HR/Admin System-Wide Dashboard - Integration Tests', () => {
       });
       const caller = appRouter.createCaller(ctx);
 
-      const result = await caller.task.getSystemWideTasks({});
+      const result = await caller.task.getCompanyTasks({});
 
       const taskWithoutProject = result.find((t: any) => !t.projectId);
       expect(taskWithoutProject).toBeDefined();

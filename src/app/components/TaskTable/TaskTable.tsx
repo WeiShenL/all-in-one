@@ -70,6 +70,7 @@ export function TaskTable({
     status: '',
     assignee: '',
     department: '',
+    project: '',
   });
   const [userSort, setUserSort] = useState<SortCriterion[]>([]);
   const [userHasSorted, setUserHasSorted] = useState(false);
@@ -113,12 +114,13 @@ export function TaskTable({
     return () => window.removeEventListener('keydown', handleEsc);
   }, [editingTaskId, viewingTaskId, isCreateModalOpen]);
 
-  const { departments, assignees } = useMemo(() => {
+  const { departments, assignees, projects } = useMemo(() => {
     if (!tasks) {
-      return { departments: [], assignees: [] };
+      return { departments: [], assignees: [], projects: [] };
     }
     const departmentsSet = new Set<string>();
     const assigneesMap = new Map<string, { id: string; name: string }>();
+    const projectsMap = new Map<string, { id: string; name: string }>();
 
     tasks.forEach((task: Task) => {
       const dept = departmentData.find(d => d.id === task.departmentId);
@@ -134,11 +136,24 @@ export function TaskTable({
           name: userName,
         });
       });
+
+      // Collect projects
+      if (task.project) {
+        projectsMap.set(task.project.id, {
+          id: task.project.id,
+          name: task.project.name,
+        });
+      }
     });
 
     return {
       departments: Array.from(departmentsSet).sort(),
       assignees: Array.from(assigneesMap.values()).sort((a, b) => {
+        const nameA = String(a.name || '');
+        const nameB = String(b.name || '');
+        return nameA.localeCompare(nameB);
+      }),
+      projects: Array.from(projectsMap.values()).sort((a, b) => {
         const nameA = String(a.name || '');
         const nameB = String(b.name || '');
         return nameA.localeCompare(nameB);
@@ -188,7 +203,16 @@ export function TaskTable({
       const assigneeMatch = filters.assignee
         ? task.assignments.some(a => a.userId === filters.assignee)
         : true;
-      return titleMatch && statusMatch && departmentMatch && assigneeMatch;
+      const projectMatch = filters.project
+        ? task.project?.id === filters.project
+        : true;
+      return (
+        titleMatch &&
+        statusMatch &&
+        departmentMatch &&
+        assigneeMatch &&
+        projectMatch
+      );
     });
 
     const criteria =
@@ -328,7 +352,9 @@ export function TaskTable({
                 {key}:{' '}
                 {key === 'assignee'
                   ? assignees.find(a => a.id === value)?.name || value
-                  : value}
+                  : key === 'project'
+                    ? projects.find(p => p.id === value)?.name || value
+                    : value}
                 <button
                   onClick={() => resetFilter(key as keyof Filters)}
                   style={styles.filterRemoveBtn}
@@ -450,6 +476,31 @@ export function TaskTable({
                         {assignees.map(a => (
                           <option key={a.id} value={a.id}>
                             {a.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </th>
+                  <th style={styles.th}>
+                    <div style={styles.thContent}>
+                      <div
+                        style={styles.thTitle}
+                        onClick={() => handleSortChange('project')}
+                      >
+                        <>Project</>
+                        <SortIndicator sortKey='project' />
+                      </div>
+                      <select
+                        value={filters.project}
+                        onChange={e =>
+                          handleFilterChange('project', e.target.value)
+                        }
+                        style={styles.select}
+                      >
+                        <option value=''>All</option>
+                        {projects.map(p => (
+                          <option key={p.id} value={p.id}>
+                            {p.name}
                           </option>
                         ))}
                       </select>

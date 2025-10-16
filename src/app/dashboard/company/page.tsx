@@ -4,9 +4,9 @@ import { useAuth } from '@/lib/supabase/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import Navbar from '@/app/components/Navbar';
-import { SystemOverviewDashboard } from '@/app/components/SystemOverviewDashboard';
+import { CompanyDashboard } from '@/app/components/CompanyDashboard';
 
-export default function SystemOverviewPage() {
+export default function CompanyPage() {
   const { user, userProfile, loading } = useAuth();
   const router = useRouter();
 
@@ -69,7 +69,7 @@ export default function SystemOverviewPage() {
             Access Denied
           </p>
           <p style={{ color: '#856404', margin: '0.5rem 0 0 0' }}>
-            Only HR/Admin users can access the System Overview dashboard.
+            Only HR/Admin users can access the Company Overview dashboard.
           </p>
         </div>
       </div>
@@ -101,17 +101,16 @@ export default function SystemOverviewPage() {
                 fontWeight: '700',
               }}
             >
-              System Overview
+              Company Dashboard
             </h1>
             <p style={{ color: '#718096', margin: 0, fontSize: '0.875rem' }}>
-              System-wide task view for HR/Admin -{' '}
-              {userProfile.name || user.email}
+              Welcome, {userProfile.name || user.email}
             </p>
           </header>
 
-          {/* System-Wide Task Dashboard - Shows all tasks with canEdit based on role */}
+          {/* Company-Wide Task Dashboard - Shows all tasks with canEdit based on role */}
           <div>
-            <SystemOverviewDashboard />
+            <CompanyDashboard />
           </div>
         </div>
       </div>

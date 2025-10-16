@@ -5,7 +5,7 @@
  * - Role (MANAGER can edit all in their hierarchy)
  * - Role (HR_ADMIN legacy role can edit all in their hierarchy)
  * - Assignment (STAFF can edit if assigned, even if they have isHrAdmin flag)
- * - Note: isHrAdmin flag grants VIEW access to system-wide tasks but NOT edit access
+ * - Note: isHrAdmin flag grants VIEW access to company-wide tasks but NOT edit access
  *   unless the STAFF member is also assigned to the task
  */
 export class AuthorizationService {

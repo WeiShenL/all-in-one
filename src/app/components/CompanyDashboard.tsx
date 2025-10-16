@@ -4,11 +4,11 @@ import { TaskTable } from './TaskTable';
 import { trpc } from '../lib/trpc';
 
 /**
- * System Overview Dashboard Component
+ * Company Dashboard Component
  * Shows all tasks across the organization for HR/Admin users
  * with role-based edit permissions
  */
-export function SystemOverviewDashboard() {
+export function CompanyDashboard() {
   // Try to get utils for query invalidation (may not be available in test environment)
   let utils;
   try {
@@ -18,12 +18,12 @@ export function SystemOverviewDashboard() {
     utils = null;
   }
 
-  const { data, isLoading, error } = trpc.task.getSystemWideTasks.useQuery({});
+  const { data, isLoading, error } = trpc.task.getCompanyTasks.useQuery({});
 
   const handleTaskCreated = utils
     ? () => {
         // Invalidate the query to trigger a refetch
-        utils.task.getSystemWideTasks.invalidate();
+        utils.task.getCompanyTasks.invalidate();
       }
     : undefined;
 
@@ -31,13 +31,13 @@ export function SystemOverviewDashboard() {
     <div>
       <TaskTable
         tasks={data || []}
-        title='All Organization Tasks'
+        title='All Company Tasks'
         showCreateButton={true}
         onTaskCreated={handleTaskCreated}
         emptyStateConfig={{
           icon: '🌐',
           title: 'No tasks found',
-          description: 'There are no tasks in the system yet.',
+          description: 'There are no tasks in the company yet.',
         }}
         isLoading={isLoading}
         error={error ? new Error(error.message) : null}

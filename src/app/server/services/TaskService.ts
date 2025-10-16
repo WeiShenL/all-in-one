@@ -1173,6 +1173,12 @@ export class TaskService extends BaseService {
               name: true,
             },
           },
+          project: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
         },
         orderBy: {
           dueDate: 'asc',
@@ -1275,6 +1281,12 @@ export class TaskService extends BaseService {
               name: true,
             },
           },
+          project: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
           tags: {
             include: {
               tag: {
@@ -1312,6 +1324,12 @@ export class TaskService extends BaseService {
                 },
               },
               department: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+              project: {
                 select: {
                   id: true,
                   name: true,
@@ -1416,14 +1434,14 @@ export class TaskService extends BaseService {
   }
 
   /**
-   * Get system-wide tasks for HR/Admin users
+   * Get company-wide tasks for HR/Admin users
    * Returns all tasks across the organization with canEdit field
    *
    * @param userId - User's ID
    * @param filters - Optional filters for department, project, assignee, status
    * @returns Array of tasks with canEdit field
    */
-  async getSystemWideTasks(
+  async getCompanyTasks(
     userId: string,
     filters?: {
       departmentId?: string;
@@ -1451,10 +1469,10 @@ export class TaskService extends BaseService {
         throw new Error('User not found or inactive');
       }
 
-      // Access control: Only HR/Admin users can access system-wide tasks
+      // Access control: Only HR/Admin users can access company-wide tasks
       if (!user.isHrAdmin && user.role !== 'HR_ADMIN') {
         throw new Error(
-          'Access denied. Only HR/Admin users can view system-wide tasks.'
+          'Access denied. Only HR/Admin users can view company-wide tasks.'
         );
       }
 
@@ -1516,6 +1534,12 @@ export class TaskService extends BaseService {
               name: true,
             },
           },
+          project: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
           tags: {
             include: {
               tag: {
@@ -1553,6 +1577,12 @@ export class TaskService extends BaseService {
                 },
               },
               department: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+              project: {
                 select: {
                   id: true,
                   name: true,
@@ -1655,7 +1685,7 @@ export class TaskService extends BaseService {
 
       return tasksWithCanEdit;
     } catch (error) {
-      this.handleError(error, 'getSystemWideTasks');
+      this.handleError(error, 'getCompanyTasks');
       throw error;
     }
   }

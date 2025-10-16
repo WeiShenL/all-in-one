@@ -926,13 +926,13 @@ export const taskRouter = router({
   }),
 
   /**
-   * Get system-wide tasks (HR/Admin only)
-   * Used by System Overview Dashboard
+   * Get company-wide tasks (HR/Admin only)
+   * Used by Company Overview Dashboard
    *
    * Returns all tasks across the organization with canEdit field
    * Access control: Only users with isHrAdmin flag can access
    */
-  getSystemWideTasks: protectedProcedure
+  getCompanyTasks: protectedProcedure
     .input(
       z.object({
         departmentId: z.string().uuid().optional(),
@@ -948,7 +948,7 @@ export const taskRouter = router({
       // ctx.session.user.id is available from authenticated session
       const userId = ctx.session.user.id;
       const taskService = new DashboardTaskService(ctx.prisma);
-      return await taskService.getSystemWideTasks(userId, input);
+      return await taskService.getCompanyTasks(userId, input);
     }),
 
   // ============================================

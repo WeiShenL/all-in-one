@@ -69,18 +69,18 @@ export default function Navbar() {
           >
             Department
           </a>
-          {/* System Overview link - visible only to HR/Admin users */}
+          {/* Company link - visible only to HR/Admin users */}
           {userProfile &&
             (userProfile.isHrAdmin || userProfile.role === 'HR_ADMIN') && (
               <a
-                href='/dashboard/system-wide'
+                href='/dashboard/company'
                 style={{
                   color: '#495057',
                   textDecoration: 'none',
                   fontWeight: '500',
                 }}
               >
-                System Overview
+                Company
               </a>
             )}
           {/* Admin Dashboard link - visible only to HR/Admin users */}

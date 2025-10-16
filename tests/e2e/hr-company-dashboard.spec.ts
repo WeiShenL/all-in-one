@@ -1,12 +1,12 @@
 /**
- * E2E tests for HR/Admin System-Wide Dashboard UI
+ * E2E tests for HR/Admin Company Dashboard UI
  *
- * User Story: As an HR/Admin, I want to view a system-wide dashboard of all tasks
+ * User Story: As an HR/Admin, I want to view a company-wide dashboard of all tasks
  * across the organization.
  *
  * Test Coverage:
  * - Page access control for HR/Admin users
- * - Display of system-wide tasks
+ * - Display of company-wide tasks
  * - Filtering by department, project, assignee
  * - Edit button visibility based on canEdit logic
  * - Combined role scenarios (HR/Admin + Manager)
@@ -15,7 +15,7 @@
 import { test, expect, Page } from '@playwright/test';
 import { Client } from 'pg';
 
-test.describe('HR/Admin System-Wide Dashboard - E2E Tests', () => {
+test.describe('HR/Admin Company Dashboard - E2E Tests', () => {
   let pgClient: Client;
   let hrAdminOnlyEmail: string;
   let hrAdminManagerEmail: string;
@@ -60,7 +60,7 @@ test.describe('HR/Admin System-Wide Dashboard - E2E Tests', () => {
   });
 
   test.describe('Page Access Control', () => {
-    test('UAA0015: HR/Admin user can access system-wide dashboard', async ({
+    test('UAA0015: HR/Admin user can access company dashboard', async ({
       page,
     }) => {
       // Create and login as HR/Admin user
@@ -72,15 +72,15 @@ test.describe('HR/Admin System-Wide Dashboard - E2E Tests', () => {
         isHrAdmin: true,
       });
 
-      // Navigate to system-wide dashboard
-      await page.goto('/dashboard/system-wide');
+      // Navigate to company dashboard
+      await page.goto('/dashboard/company');
 
       // Should successfully load the page
-      await expect(page).toHaveURL(/\/dashboard\/system-wide/);
-      await expect(page.locator('h1')).toContainText(/system.*wide/i);
+      await expect(page).toHaveURL(/\/dashboard\/company/);
+      await expect(page.locator('h1')).toContainText(/company/i);
     });
 
-    test('UAA0026: STAFF user cannot access system-wide dashboard', async ({
+    test('UAA0026: STAFF user cannot access company dashboard', async ({
       page,
     }) => {
       // Create and login as regular staff user
@@ -92,11 +92,11 @@ test.describe('HR/Admin System-Wide Dashboard - E2E Tests', () => {
         isHrAdmin: false,
       });
 
-      // Attempt to navigate to system-wide dashboard
-      await page.goto('/dashboard/system-wide');
+      // Attempt to navigate to company dashboard
+      await page.goto('/dashboard/company');
 
       // Should be redirected or show access denied
-      await expect(page).not.toHaveURL(/\/dashboard\/system-wide/);
+      await expect(page).not.toHaveURL(/\/dashboard\/company/);
       // Could be redirected to personal dashboard or access denied page
       await expect(
         page.locator('text=/access denied|unauthorized|not authorized/i')
@@ -104,11 +104,11 @@ test.describe('HR/Admin System-Wide Dashboard - E2E Tests', () => {
         .toBeVisible()
         .catch(() => {
           // Or redirected to another page
-          expect(page.url()).not.toContain('/dashboard/system-wide');
+          expect(page.url()).not.toContain('/dashboard/company');
         });
     });
 
-    test('Manager without HR/Admin cannot access system-wide dashboard', async ({
+    test('Manager without HR/Admin cannot access company dashboard', async ({
       page,
     }) => {
       // Create and login as manager (no HR/Admin)
@@ -120,14 +120,14 @@ test.describe('HR/Admin System-Wide Dashboard - E2E Tests', () => {
         isHrAdmin: false,
       });
 
-      // Attempt to navigate to system-wide dashboard
-      await page.goto('/dashboard/system-wide');
+      // Attempt to navigate to company dashboard
+      await page.goto('/dashboard/company');
 
       // Should be denied access
-      await expect(page).not.toHaveURL(/\/dashboard\/system-wide/);
+      await expect(page).not.toHaveURL(/\/dashboard\/company/);
     });
 
-    test('HR/Admin + Manager can access system-wide dashboard', async ({
+    test('HR/Admin + Manager can access company dashboard', async ({
       page,
     }) => {
       // Create and login as HR/Admin + Manager
@@ -139,15 +139,15 @@ test.describe('HR/Admin System-Wide Dashboard - E2E Tests', () => {
         isHrAdmin: true,
       });
 
-      // Navigate to system-wide dashboard
-      await page.goto('/dashboard/system-wide');
+      // Navigate to company dashboard
+      await page.goto('/dashboard/company');
 
       // Should successfully load
-      await expect(page).toHaveURL(/\/dashboard\/system-wide/);
+      await expect(page).toHaveURL(/\/dashboard\/company/);
     });
   });
 
-  test.describe('Display System-Wide Tasks', () => {
+  test.describe('Display company Tasks', () => {
     test('should display tasks from all departments', async ({ page }) => {
       await createAndLoginUser(page, {
         email: hrAdminOnlyEmail,
@@ -157,7 +157,7 @@ test.describe('HR/Admin System-Wide Dashboard - E2E Tests', () => {
         isHrAdmin: true,
       });
 
-      await page.goto('/dashboard/system-wide');
+      await page.goto('/dashboard/company');
 
       // Wait for tasks to load
       await page.waitForSelector('[data-testid="task-table"]', {
@@ -185,7 +185,7 @@ test.describe('HR/Admin System-Wide Dashboard - E2E Tests', () => {
         isHrAdmin: true,
       });
 
-      await page.goto('/dashboard/system-wide');
+      await page.goto('/dashboard/company');
       await page.waitForSelector('[data-testid="task-table"]');
 
       // Look for tasks with and without assignees
@@ -208,7 +208,7 @@ test.describe('HR/Admin System-Wide Dashboard - E2E Tests', () => {
         isHrAdmin: true,
       });
 
-      await page.goto('/dashboard/system-wide');
+      await page.goto('/dashboard/company');
       await page.waitForSelector('[data-testid="task-table"]');
 
       // Find a task from Engineering department (assuming HR user is in HR dept)
@@ -241,7 +241,7 @@ test.describe('HR/Admin System-Wide Dashboard - E2E Tests', () => {
         isHrAdmin: true,
       });
 
-      await page.goto('/dashboard/system-wide');
+      await page.goto('/dashboard/company');
       await page.waitForSelector('[data-testid="task-table"]');
 
       // Find a task from HR department
@@ -270,7 +270,7 @@ test.describe('HR/Admin System-Wide Dashboard - E2E Tests', () => {
         isHrAdmin: true,
       });
 
-      await page.goto('/dashboard/system-wide');
+      await page.goto('/dashboard/company');
       await page.waitForSelector('[data-testid="task-table"]');
 
       // Find a task from their managed department
@@ -304,7 +304,7 @@ test.describe('HR/Admin System-Wide Dashboard - E2E Tests', () => {
         isHrAdmin: true,
       });
 
-      await page.goto('/dashboard/system-wide');
+      await page.goto('/dashboard/company');
       await page.waitForSelector('[data-testid="task-table"]');
 
       // Find a task from Sales department (assuming they manage Engineering, not Sales)
@@ -337,7 +337,7 @@ test.describe('HR/Admin System-Wide Dashboard - E2E Tests', () => {
         isHrAdmin: true,
       });
 
-      await page.goto('/dashboard/system-wide');
+      await page.goto('/dashboard/company');
       await page.waitForSelector('[data-testid="task-table"]');
 
       // Open department filter
@@ -368,7 +368,7 @@ test.describe('HR/Admin System-Wide Dashboard - E2E Tests', () => {
         isHrAdmin: true,
       });
 
-      await page.goto('/dashboard/system-wide');
+      await page.goto('/dashboard/company');
       await page.waitForSelector('[data-testid="task-table"]');
 
       // Open project filter
@@ -395,7 +395,7 @@ test.describe('HR/Admin System-Wide Dashboard - E2E Tests', () => {
         isHrAdmin: true,
       });
 
-      await page.goto('/dashboard/system-wide');
+      await page.goto('/dashboard/company');
       await page.waitForSelector('[data-testid="task-table"]');
 
       // Open assignee filter
@@ -422,7 +422,7 @@ test.describe('HR/Admin System-Wide Dashboard - E2E Tests', () => {
         isHrAdmin: true,
       });
 
-      await page.goto('/dashboard/system-wide');
+      await page.goto('/dashboard/company');
       await page.waitForSelector('[data-testid="task-table"]');
 
       // Apply department filter
@@ -462,7 +462,7 @@ test.describe('HR/Admin System-Wide Dashboard - E2E Tests', () => {
         isHrAdmin: true,
       });
 
-      await page.goto('/dashboard/system-wide');
+      await page.goto('/dashboard/company');
       await page.waitForSelector('[data-testid="task-table"]');
 
       // Get initial task count
@@ -491,7 +491,7 @@ test.describe('HR/Admin System-Wide Dashboard - E2E Tests', () => {
   });
 
   test.describe('Navigation', () => {
-    test('should have navigation link to system-wide dashboard for HR/Admin', async ({
+    test('should have navigation link to company dashboard for HR/Admin', async ({
       page,
     }) => {
       await createAndLoginUser(page, {
@@ -504,12 +504,12 @@ test.describe('HR/Admin System-Wide Dashboard - E2E Tests', () => {
 
       await page.goto('/dashboard/personal');
 
-      // Should have a link to system-wide dashboard in navigation
-      const systemWideLink = page.locator('a[href*="/dashboard/system-wide"]');
-      await expect(systemWideLink).toBeVisible();
+      // Should have a link to company dashboard in navigation
+      const companyLink = page.locator('a[href*="/dashboard/company"]');
+      await expect(companyLink).toBeVisible();
     });
 
-    test('should NOT have navigation link to system-wide dashboard for regular staff', async ({
+    test('should NOT have navigation link to company dashboard for regular staff', async ({
       page,
     }) => {
       await createAndLoginUser(page, {
@@ -522,9 +522,9 @@ test.describe('HR/Admin System-Wide Dashboard - E2E Tests', () => {
 
       await page.goto('/dashboard/personal');
 
-      // Should NOT have a link to system-wide dashboard
-      const systemWideLink = page.locator('a[href*="/dashboard/system-wide"]');
-      await expect(systemWideLink).not.toBeVisible();
+      // Should NOT have a link to company dashboard
+      const companyLink = page.locator('a[href*="/dashboard/company"]');
+      await expect(companyLink).not.toBeVisible();
     });
   });
 });

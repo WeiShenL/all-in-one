@@ -44,13 +44,8 @@ export default function SignupPage() {
   // Redirect if already logged in
   useEffect(() => {
     if (!authLoading && user && userProfile) {
-      // All users (STAFF, MANAGER) go to personal dashboard
-      // isHrAdmin users still use their own dashboard
-      if (userProfile.isHrAdmin) {
-        router.push('/dashboard/hr');
-      } else {
-        router.push('/dashboard/personal');
-      }
+      // All users (STAFF, MANAGER, HR/Admin) go to personal dashboard
+      router.push('/dashboard/personal');
     }
   }, [user, userProfile, authLoading, router]);
 
