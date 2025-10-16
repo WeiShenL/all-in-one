@@ -382,7 +382,7 @@ describe('LoginPage Component', () => {
       fireEvent.click(submitButton);
 
       await waitFor(() => {
-        expect(mockPush).toHaveBeenCalledWith('/dashboard/hr');
+        expect(mockPush).toHaveBeenCalledWith('/dashboard/personal');
       });
     });
   });

@@ -41,6 +41,7 @@ export interface UserContext {
   userId: string;
   role: 'STAFF' | 'MANAGER' | 'HR_ADMIN';
   departmentId: string;
+  isHrAdmin?: boolean;
 }
 
 /**
@@ -312,7 +313,7 @@ export class TaskService {
     includeArchived: boolean = false
   ): Promise<Task[]> {
     // Only managers and HR admins can view all department tasks
-    if (user.role !== 'MANAGER' && user.role !== 'HR_ADMIN') {
+    if (user.role !== 'MANAGER' && !user.isHrAdmin) {
       throw new Error(
         'Unauthorized: Only managers and HR admins can view all department tasks'
       );

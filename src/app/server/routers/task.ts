@@ -32,6 +32,7 @@ async function getUserContext(ctx: Context): Promise<UserContext> {
     userId: ctx.userId,
     role: userProfile.role as 'STAFF' | 'MANAGER' | 'HR_ADMIN',
     departmentId: userProfile.departmentId,
+    isHrAdmin: userProfile.isHrAdmin,
   };
 }
 
@@ -923,6 +924,32 @@ export const taskRouter = router({
     const taskService = new DashboardTaskService(ctx.prisma);
     return await taskService.getDepartmentTasksForUser(userId);
   }),
+
+  /**
+   * Get company-wide tasks (HR/Admin only)
+   * Used by Company Overview Dashboard
+   *
+   * Returns all tasks across the organization with canEdit field
+   * Access control: Only users with isHrAdmin flag can access
+   */
+  getCompanyTasks: protectedProcedure
+    .input(
+      z.object({
+        departmentId: z.string().uuid().optional(),
+        projectId: z.string().uuid().optional(),
+        assigneeId: z.string().uuid().optional(),
+        status: z
+          .enum(['TO_DO', 'IN_PROGRESS', 'COMPLETED', 'BLOCKED'])
+          .optional(),
+        includeArchived: z.boolean().optional().default(false),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      // ctx.session.user.id is available from authenticated session
+      const userId = ctx.session.user.id;
+      const taskService = new DashboardTaskService(ctx.prisma);
+      return await taskService.getCompanyTasks(userId, input);
+    }),
 
   // ============================================
   // CALENDAR EVENT OPERATIONS

@@ -50,13 +50,8 @@ function LoginForm() {
       if (redirectUrl) {
         router.push(redirectUrl);
       } else {
-        // All users (STAFF, MANAGER) go to personal dashboard
-        // HR_ADMIN still uses their own dashboard
-        if (userProfile.role === 'HR_ADMIN') {
-          router.push('/dashboard/hr');
-        } else {
-          router.push('/dashboard/personal');
-        }
+        // All users (STAFF, MANAGER, HR/Admin) go to personal dashboard
+        router.push('/dashboard/personal');
       }
     }
   }, [user, userProfile, authLoading, router, redirectUrl]);

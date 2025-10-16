@@ -69,7 +69,7 @@ test.describe('Signup to Dashboard, Logout and log back in Flow', () => {
     ).toBeVisible();
 
     // Fill Signup Form
-    await page.getByLabel('Name (Optional)').fill('E2E User');
+    await page.getByLabel('Name *').fill('E2E User');
     await page.getByLabel('Email').fill(email);
 
     // Role (defaults to STAFF)
