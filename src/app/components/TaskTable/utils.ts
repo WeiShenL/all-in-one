@@ -50,6 +50,8 @@ export const getSortableValue = (task: Task, key: SortableColumn) => {
     case 'assignees':
       const firstAssignment = task.assignments[0];
       return firstAssignment?.user?.name?.toLowerCase() || '';
+    case 'project':
+      return task.project?.name?.toLowerCase() || 'zzz_no_project'; // Sort empty projects to the end
     default:
       return '';
   }

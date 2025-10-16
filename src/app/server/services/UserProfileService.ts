@@ -29,6 +29,7 @@ export class UserProfileService extends BaseService {
           name: true,
           role: true,
           departmentId: true,
+          isHrAdmin: true,
           isActive: true,
           createdAt: true,
           updatedAt: true,
@@ -64,6 +65,7 @@ export class UserProfileService extends BaseService {
           name: true,
           role: true,
           departmentId: true,
+          isHrAdmin: true,
           isActive: true,
           createdAt: true,
           updatedAt: true,
@@ -100,6 +102,7 @@ export class UserProfileService extends BaseService {
           name: true,
           role: true,
           departmentId: true,
+          isHrAdmin: true,
           isActive: true,
           createdAt: true,
         },
@@ -130,6 +133,7 @@ export class UserProfileService extends BaseService {
           name: true,
           role: true,
           departmentId: true,
+          isHrAdmin: true,
           department: {
             select: {
               id: true,
@@ -162,6 +166,7 @@ export class UserProfileService extends BaseService {
           name: true,
           role: true,
           departmentId: true,
+          isHrAdmin: true,
           department: {
             select: {
               id: true,
@@ -210,6 +215,7 @@ export class UserProfileService extends BaseService {
           name: data.name,
           role: data.role || 'STAFF',
           departmentId: data.departmentId,
+          isHrAdmin: data.isHrAdmin || false,
         },
         select: {
           id: true,
@@ -217,6 +223,7 @@ export class UserProfileService extends BaseService {
           name: true,
           role: true,
           departmentId: true,
+          isHrAdmin: true,
           isActive: true,
           createdAt: true,
           updatedAt: true,
@@ -277,6 +284,7 @@ export class UserProfileService extends BaseService {
           name: true,
           role: true,
           departmentId: true,
+          isHrAdmin: true,
           isActive: true,
           createdAt: true,
           updatedAt: true,
@@ -340,6 +348,7 @@ export class UserProfileService extends BaseService {
           name: true,
           role: true,
           departmentId: true,
+          isHrAdmin: true,
           department: {
             select: {
               id: true,

@@ -16,6 +16,10 @@ export interface Task {
   departmentId: string;
   ownerId: string;
   projectId: string | null;
+  project?: {
+    id: string;
+    name: string;
+  } | null;
   parentTaskId: string | null;
   isRecurring: boolean;
   recurringInterval: number | null;
@@ -37,9 +41,10 @@ export interface Task {
 
 export interface Filters {
   title: string;
-  status: string;
-  assignee: string;
-  department: string;
+  status: string[];
+  assignee: string[];
+  department: string[];
+  project: string[];
 }
 
 export type SortableColumn =
@@ -48,7 +53,8 @@ export type SortableColumn =
   | 'priority'
   | 'dueDate'
   | 'assignees'
-  | 'department';
+  | 'department'
+  | 'project';
 
 export interface SortCriterion {
   key: SortableColumn;
