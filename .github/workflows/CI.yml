@@ -197,13 +197,29 @@ jobs:
           SERVICE_ROLE_KEY: ${{ secrets.SERVICE_ROLE_KEY }}
         run: npm run build
 
-      - name: Run integration tests
+      - name: Run integration tests (parallel + sequential)
         env:
           NEXT_PUBLIC_API_EXTERNAL_URL: ${{ secrets.NEXT_PUBLIC_API_EXTERNAL_URL }}
           NEXT_PUBLIC_ANON_KEY: ${{ secrets.NEXT_PUBLIC_ANON_KEY }}
           SERVICE_ROLE_KEY: ${{ secrets.SERVICE_ROLE_KEY }}
           DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL_POOLED }}
-        run: npm run test:integration -- --coverage --coverageDirectory=coverage/integration
+        run: |
+          # Run parallel tests with coverage
+          npm run test:integration:parallel -- --coverage --coverageDirectory=coverage/integration-parallel
+          # Run sequential tests with coverage (merge into same directory)
+          npm run test:integration:sequential -- --coverage --coverageDirectory=coverage/integration-sequential
+          # Merge coverage files
+          mkdir -p coverage/integration
+          if [ -f coverage/integration-parallel/lcov.info ] && [ -f coverage/integration-sequential/lcov.info ]; then
+            cat coverage/integration-parallel/lcov.info coverage/integration-sequential/lcov.info > coverage/integration/lcov.info
+          elif [ -f coverage/integration-parallel/lcov.info ]; then
+            cp coverage/integration-parallel/lcov.info coverage/integration/lcov.info
+          elif [ -f coverage/integration-sequential/lcov.info ]; then
+            cp coverage/integration-sequential/lcov.info coverage/integration/lcov.info
+          else
+            echo "No coverage files found"
+            exit 1
+          fi
 
       - name: Upload Integration Coverage Artifact
         uses: actions/upload-artifact@v4
