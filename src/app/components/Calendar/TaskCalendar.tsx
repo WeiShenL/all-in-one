@@ -58,7 +58,7 @@ function getStatusColor(status: string): string {
       return '#e53e3e'; // Red
     case 'TO_DO':
     default:
-      return '#cbd5e0'; // Light gray
+      return '#E8C0FA'; // Light purple
   }
 }
 
@@ -91,14 +91,18 @@ function eventStyleGetter(event: CalendarEvent) {
   const isStarted = event.resource.isStarted;
   const isRecurring =
     event.resource.recurringInterval && event.resource.recurringInterval > 0;
+  const isForecastedRecurrence = event.id.includes('-recur-'); // Forecasted occurrences have "-recur-" in ID
 
-  let backgroundColor = isStarted
-    ? getStatusColor(event.resource.status)
-    : '#cbd5e0'; // Light gray for not started
+  let backgroundColor: string;
 
-  // Add purple tint for recurring tasks
-  if (isRecurring) {
-    backgroundColor = isStarted ? '#805ad5' : '#b794f4'; // Purple shades for recurring
+  // Forecasted recurring occurrences (not yet created) use gray
+  if (isForecastedRecurrence) {
+    backgroundColor = '#cbd5e0'; // Light gray for forecasted recurring
+  } else {
+    // Original tasks follow normal status colors
+    backgroundColor = isStarted
+      ? getStatusColor(event.resource.status)
+      : getStatusColor('TO_DO'); // TO_DO uses #E8C0FA
   }
 
   return {
@@ -117,7 +121,7 @@ function eventStyleGetter(event: CalendarEvent) {
 }
 
 /**
- * Custom Event Component - adds recurring symbol for recurring tasks
+ * Custom Event Component - adds recurring symbol and subtask indicator
  */
 interface EventComponentProps {
   event: CalendarEvent;
@@ -127,9 +131,11 @@ interface EventComponentProps {
 function EventComponent({ event, title }: EventComponentProps) {
   const isRecurring =
     event.resource.recurringInterval && event.resource.recurringInterval > 0;
+  const isSubtask = event.resource.parentTaskId !== null;
 
   return (
     <span>
+      {isSubtask && '↳ '}
       {isRecurring && '🔁 '}
       {title}
     </span>
@@ -292,8 +298,8 @@ export function TaskCalendar({
         {
           status: 'TO_DO',
           label: 'To Do',
-          color: '#718096',
-          bgColor: '#f7fafc',
+          color: '#E8C0FA',
+          bgColor: '#faf5ff',
           tasks: dayEvents.filter(e => e.resource.status === 'TO_DO'),
         },
         {
@@ -362,14 +368,19 @@ export function TaskCalendar({
                           borderLeftColor: getPriorityColor(
                             task.resource.priority
                           ),
-                          backgroundColor:
-                            task.resource.recurringInterval &&
-                            task.resource.recurringInterval > 0
-                              ? '#f3e8ff'
-                              : kanbanStyles.card.backgroundColor,
+                          backgroundColor: task.id.includes('-recur-')
+                            ? '#e5e7eb' // Forecasted recurring - gray
+                            : task.resource.parentTaskId !== null
+                              ? '#edf2f7' // Subtask - light gray
+                              : kanbanStyles.card.backgroundColor, // Default white
+                          paddingLeft:
+                            task.resource.parentTaskId !== null
+                              ? '1.5rem'
+                              : kanbanStyles.card.padding,
                         }}
                       >
                         <div style={kanbanStyles.cardTitle}>
+                          {task.resource.parentTaskId !== null && '↳ '}
                           {task.resource.recurringInterval &&
                             task.resource.recurringInterval > 0 &&
                             '🔁 '}
@@ -420,6 +431,33 @@ export function TaskCalendar({
               </div>
             ))}
           </div>
+
+          {/* Kanban Legend */}
+          <div style={kanbanStyles.legend}>
+            <h4 style={kanbanStyles.legendTitle}>Legend:</h4>
+            <div style={kanbanStyles.legendItems}>
+              <div style={kanbanStyles.legendItem}>
+                <span
+                  style={{
+                    ...kanbanStyles.legendColor,
+                    backgroundColor: '#e5e7eb',
+                  }}
+                ></span>
+                <span>🔁 Forecasted Recurring</span>
+              </div>
+              <div style={kanbanStyles.legendItem}>
+                <span
+                  style={{
+                    ...kanbanStyles.legendColor,
+                    backgroundColor: '#edf2f7',
+                  }}
+                >
+                  ↳
+                </span>
+                <span>Subtask</span>
+              </div>
+            </div>
+          </div>
         </div>
       );
     }
@@ -469,9 +507,17 @@ export function TaskCalendar({
         assignments: task.assignments,
         tags: task.tags,
         recurringInterval: task.recurringInterval,
+        parentTaskId: task.parentTaskId,
       });
 
-      // Generate recurring occurrences if task is recurring
+      // Generate recurring occurrences only for non-COMPLETED tasks
+      // When a recurring task is COMPLETED, the API creates the next occurrence as a new task
+      // So we shouldn't forecast futures from the completed task to avoid duplicates
+      if (task.status === 'COMPLETED') {
+        return [baseEvent]; // Just show the completed task itself
+      }
+
+      // For active tasks (TO_DO, IN_PROGRESS, BLOCKED), generate future occurrences
       return generateRecurringEvents(baseEvent, task.recurringInterval, 12);
     });
   }, [tasks]);
@@ -681,7 +727,7 @@ export function TaskCalendar({
             <span
               style={{
                 ...styles.legendColor,
-                backgroundColor: '#cbd5e0',
+                backgroundColor: '#E8C0FA',
                 opacity: 0.6,
               }}
             ></span>
@@ -718,10 +764,10 @@ export function TaskCalendar({
             <span
               style={{
                 ...styles.legendColor,
-                backgroundColor: '#805ad5',
+                backgroundColor: '#cbd5e0',
               }}
             ></span>
-            <span>🔁 RECURRING</span>
+            <span>🔁 FORECASTED RECURRING</span>
           </div>
         </div>
       </div>
@@ -857,6 +903,39 @@ const kanbanStyles = {
     backgroundColor: '#edf2f7',
     padding: '0.125rem 0.5rem',
     borderRadius: '4px',
+  },
+  legend: {
+    marginTop: '1rem',
+    padding: '1rem',
+    backgroundColor: '#f7fafc',
+    borderRadius: '6px',
+  },
+  legendTitle: {
+    fontSize: '0.875rem',
+    fontWeight: 600,
+    color: '#4a5568',
+    margin: '0 0 0.5rem 0',
+  },
+  legendItems: {
+    display: 'flex',
+    gap: '1.5rem',
+    flexWrap: 'wrap' as const,
+  },
+  legendItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    fontSize: '0.875rem',
+    color: '#4a5568',
+  },
+  legendColor: {
+    width: '16px',
+    height: '16px',
+    borderRadius: '3px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '0.75rem',
   },
 };
 

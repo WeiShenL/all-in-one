@@ -39,6 +39,7 @@ interface TaskFromAPI {
   }>;
   tags: string[];
   recurringInterval: number | null;
+  parentTaskId: string | null; // If not null, this is a subtask
 }
 
 /**
@@ -85,6 +86,7 @@ export function taskToEvent(task: TaskFromAPI): CalendarEvent {
       })),
       tags: task.tags,
       recurringInterval: task.recurringInterval,
+      parentTaskId: task.parentTaskId, // For identifying subtasks
     },
   };
 }

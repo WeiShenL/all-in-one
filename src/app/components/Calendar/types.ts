@@ -30,6 +30,7 @@ export interface CalendarEvent {
     assigneeDetails: Array<{ name: string; email: string }>;
     tags: string[];
     recurringInterval: number | null;
+    parentTaskId: string | null; // If not null, this is a subtask
   };
 }
 
