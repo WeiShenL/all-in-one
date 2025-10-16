@@ -10,16 +10,34 @@ import { trpc } from '../lib/trpc';
  */
 export function PersonalDashboard() {
   const { user } = useAuth();
+
+  // Try to get utils for query invalidation (may not be available in test environment)
+  let utils;
+  try {
+    utils = trpc.useUtils();
+  } catch {
+    // useUtils not available (e.g., in test environment without provider)
+    utils = null;
+  }
+
   const { data, isLoading, error } = trpc.task.getUserTasks.useQuery(
     { userId: user?.id || '', includeArchived: false },
     { enabled: !!user?.id }
   );
+
+  const handleTaskCreated = utils
+    ? () => {
+        // Invalidate the query to trigger a refetch
+        utils.task.getUserTasks.invalidate();
+      }
+    : undefined;
 
   return (
     <TaskTable
       tasks={data || []}
       title='All Tasks'
       showCreateButton={true}
+      onTaskCreated={handleTaskCreated}
       emptyStateConfig={{
         icon: '📝',
         title: 'No tasks assigned to you yet',

@@ -870,6 +870,7 @@ export function TaskCard({
                 fontWeight: '600',
                 border: '2px solid #4a90e2',
                 borderRadius: '4px',
+                boxSizing: 'border-box',
               }}
               autoFocus
               onFocus={e => e.target.select()}
@@ -976,6 +977,7 @@ export function TaskCard({
                 border: '2px solid #4a90e2',
                 borderRadius: '4px',
                 fontFamily: 'inherit',
+                boxSizing: 'border-box',
               }}
               autoFocus
               onFocus={e => e.target.select()}
@@ -1082,6 +1084,7 @@ export function TaskCard({
                   padding: '6px',
                   border: '2px solid #4a90e2',
                   borderRadius: '4px',
+                  boxSizing: 'border-box',
                 }}
                 autoFocus
               >
@@ -1207,11 +1210,13 @@ export function TaskCard({
                   padding: '6px',
                   border: '2px solid #4a90e2',
                   borderRadius: '4px',
+                  boxSizing: 'border-box',
                 }}
                 autoFocus
               />
               <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
                 <button
+                  data-testid='task-priority-save-button'
                   onClick={handleUpdatePriority}
                   style={{
                     padding: '6px 12px',
@@ -1229,6 +1234,7 @@ export function TaskCard({
                   ✓ Save
                 </button>
                 <button
+                  data-testid='task-priority-cancel-button'
                   onClick={() => setEditingPriority(false)}
                   style={{
                     padding: '6px 12px',
@@ -1322,6 +1328,7 @@ export function TaskCard({
                   padding: '6px',
                   border: '2px solid #4a90e2',
                   borderRadius: '4px',
+                  boxSizing: 'border-box',
                 }}
                 autoFocus
               />
@@ -1555,77 +1562,92 @@ export function TaskCard({
                 marginBottom: '12px',
               }}
             >
-              {task.assignments.map(assignment => {
-                const userId =
-                  typeof assignment === 'string'
-                    ? assignment
-                    : assignment.userId;
-                const userDetails = userDetailsMap.get(userId);
-                const isOwner = userId === task.ownerId;
-                // Manager can remove any assignee, including owner (AC6 edge case)
-                // Owner field is immutable - removing owner from assignees doesn't change ownership
-                const canRemove =
-                  hasEditPermission &&
-                  userProfile?.role === 'MANAGER' &&
-                  task.assignments.length > 1;
-                return (
-                  <div
-                    key={userId}
-                    style={{
-                      padding: '6px 10px',
-                      backgroundColor: isOwner ? '#fef3c7' : '#dcfce7',
-                      borderRadius: '4px',
-                      fontSize: '0.875rem',
-                      color: isOwner ? '#92400e' : '#166534',
-                      border: isOwner ? '1px solid #f59e0b' : 'none',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <span>
-                      {isOwner ? '👑' : '👤'}{' '}
-                      {userDetails
-                        ? `${userDetails.name} (${userDetails.email})`
-                        : `User ${userId.slice(0, 8)}...`}
-                      {isOwner && (
-                        <span
+              {[...task.assignments]
+                .sort((a, b) => {
+                  // Sort so owner appears first
+                  const userIdA = typeof a === 'string' ? a : a.userId;
+                  const userIdB = typeof b === 'string' ? b : b.userId;
+                  const aIsOwner = userIdA === task.ownerId;
+                  const bIsOwner = userIdB === task.ownerId;
+                  if (aIsOwner && !bIsOwner) {
+                    return -1;
+                  }
+                  if (!aIsOwner && bIsOwner) {
+                    return 1;
+                  }
+                  return 0;
+                })
+                .map(assignment => {
+                  const userId =
+                    typeof assignment === 'string'
+                      ? assignment
+                      : assignment.userId;
+                  const userDetails = userDetailsMap.get(userId);
+                  const isOwner = userId === task.ownerId;
+                  // Manager can remove any assignee, including owner (AC6 edge case)
+                  // Owner field is immutable - removing owner from assignees doesn't change ownership
+                  const canRemove =
+                    hasEditPermission &&
+                    userProfile?.role === 'MANAGER' &&
+                    task.assignments.length > 1;
+                  return (
+                    <div
+                      key={userId}
+                      style={{
+                        padding: '6px 10px',
+                        backgroundColor: isOwner ? '#fef3c7' : '#dcfce7',
+                        borderRadius: '4px',
+                        fontSize: '0.875rem',
+                        color: isOwner ? '#92400e' : '#166534',
+                        border: isOwner ? '1px solid #f59e0b' : 'none',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <span>
+                        {isOwner ? '👑' : '👤'}{' '}
+                        {userDetails
+                          ? `${userDetails.name} (${userDetails.email})`
+                          : `User ${userId.slice(0, 8)}...`}
+                        {isOwner && (
+                          <span
+                            style={{
+                              marginLeft: '8px',
+                              padding: '2px 6px',
+                              backgroundColor: '#f59e0b',
+                              color: 'white',
+                              borderRadius: '3px',
+                              fontSize: '11px',
+                              fontWeight: '600',
+                            }}
+                          >
+                            OWNER
+                          </span>
+                        )}
+                      </span>
+                      {canRemove && (
+                        <button
+                          onClick={() => handleRemoveAssignee(userId)}
                           style={{
-                            marginLeft: '8px',
-                            padding: '2px 6px',
-                            backgroundColor: '#f59e0b',
+                            padding: '4px 8px',
+                            backgroundColor: '#dc2626',
                             color: 'white',
+                            border: 'none',
                             borderRadius: '3px',
+                            cursor: 'pointer',
                             fontSize: '11px',
                             fontWeight: '600',
                           }}
+                          title='Remove assignee (Manager only)'
+                          data-testid={`remove-assignee-${userId}`}
                         >
-                          OWNER
-                        </span>
+                          ✕ Remove
+                        </button>
                       )}
-                    </span>
-                    {canRemove && (
-                      <button
-                        onClick={() => handleRemoveAssignee(userId)}
-                        style={{
-                          padding: '4px 8px',
-                          backgroundColor: '#dc2626',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '3px',
-                          cursor: 'pointer',
-                          fontSize: '11px',
-                          fontWeight: '600',
-                        }}
-                        title='Remove assignee (Manager only)'
-                        data-testid={`remove-assignee-${userId}`}
-                      >
-                        ✕ Remove
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
+                    </div>
+                  );
+                })}
             </div>
           )}
         </div>
@@ -2108,6 +2130,7 @@ export function TaskCard({
                               borderRadius: '4px',
                               fontFamily: 'inherit',
                               marginBottom: '8px',
+                              boxSizing: 'border-box',
                             }}
                             autoFocus
                           />
@@ -2259,6 +2282,7 @@ export function TaskCard({
                     borderRadius: '4px',
                     fontFamily: 'inherit',
                     marginBottom: '8px',
+                    boxSizing: 'border-box',
                   }}
                 />
                 <button

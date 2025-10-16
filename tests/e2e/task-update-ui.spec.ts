@@ -344,8 +344,8 @@ test.describe('Task Update - Complete UI Flow', () => {
     // Wait a bit to ensure the text is registered
     await page.waitForTimeout(2000);
 
-    // Click Save button - look for save or checkmark
-    const saveButton = page.getByRole('button', { name: /save|✓/i }).first();
+    // Click Save button using data-testid for reliability
+    const saveButton = page.getByTestId('task-priority-save-button');
     await expect(saveButton).toBeVisible({ timeout: 65000 });
     await expect(saveButton).toBeEnabled({ timeout: 65000 });
     await saveButton.click();

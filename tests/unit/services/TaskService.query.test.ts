@@ -1,6 +1,6 @@
 /**
  * Unit Tests for TaskService Query Operations
- * Tests getOwnerTasks method - used in TaskCreateForm for parent task selection
+ * Tests getOwnerTasks method - used in TaskCreateModal for parent task selection
  *
  * DDD Layer: SERVICE
  * Tests: Service orchestration for query operations
@@ -78,7 +78,7 @@ describe('TaskService - Query Operations', () => {
   describe('getOwnerTasks', () => {
     /**
      * Frontend usage context:
-     * - TaskCreateForm uses this to populate "Parent Task" dropdown
+     * - TaskCreateModal uses this to populate "Parent Task" dropdown
      * - Returns tasks where ownerId matches the requesting user
      * - Frontend filters out subtasks (tasks with parentTaskId) to show only top-level tasks
      */
