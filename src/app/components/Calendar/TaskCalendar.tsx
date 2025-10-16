@@ -52,7 +52,20 @@ function getStatusColor(status: string): string {
 }
 
 /**
- * Custom event style getter - applies visual styling based on isStarted flag
+ * Get priority color for left border indicator
+ */
+function getPriorityColor(priority: number): string {
+  if (priority >= 8) {
+    return '#dc2626';
+  } // High priority - Red
+  if (priority >= 5) {
+    return '#f59e0b';
+  } // Medium priority - Orange
+  return '#10b981'; // Low priority - Green
+}
+
+/**
+ * Custom event style getter - applies visual styling with priority border
  */
 function eventStyleGetter(event: CalendarEvent) {
   const isStarted = event.resource.isStarted;
@@ -66,11 +79,24 @@ function eventStyleGetter(event: CalendarEvent) {
       opacity: isStarted ? 1.0 : 0.6, // TO_DO tasks lighter
       borderRadius: '4px',
       border: 'none',
+      borderLeft: `3px solid ${getPriorityColor(event.resource.priority)}`, // Priority indicator
       color: '#ffffff',
       fontSize: '0.875rem',
       padding: '2px 5px',
     },
   };
+}
+
+/**
+ * Custom Event Component - adds status icon prefix inline
+ */
+interface EventComponentProps {
+  event: CalendarEvent;
+  title: string;
+}
+
+function EventComponent({ title }: EventComponentProps) {
+  return <span>{title}</span>;
 }
 
 /**
@@ -298,6 +324,16 @@ export function TaskCalendar({
         .rbc-time-content > * > * > .rbc-day-slot {
           padding-left: 0 !important;
         }
+
+        /* Hover effects */
+        .rbc-event {
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .rbc-event:hover {
+          transform: scale(1.02);
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+          z-index: 10;
+        }
       `,
         }}
       />
@@ -324,6 +360,7 @@ export function TaskCalendar({
           onNavigate={setDate}
           components={{
             toolbar: CustomToolbar,
+            event: EventComponent as any,
           }}
           allDayAccessor={() => true}
           step={60}
@@ -480,7 +517,7 @@ const styles = {
     transition: 'background-color 0.2s',
   },
   calendarWrapper: {
-    height: '600px',
+    height: '700px',
     marginBottom: '1.5rem',
   },
   calendar: {
