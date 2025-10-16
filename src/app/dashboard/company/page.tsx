@@ -84,11 +84,22 @@ export default function CompanyPage() {
       }}
     >
       <Navbar />
-      <div style={{ padding: '2rem' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+      <div
+        style={{
+          padding: 'clamp(1rem, 3vw, 2rem)',
+          maxWidth: '100%',
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 'min(100%, 1600px)',
+            margin: '0 auto',
+            width: '100%',
+          }}
+        >
           <header
             style={{
-              marginBottom: '2rem',
+              marginBottom: 'clamp(1rem, 2vw, 2rem)',
               paddingBottom: '1rem',
               borderBottom: '2px solid #e2e8f0',
             }}
@@ -97,13 +108,19 @@ export default function CompanyPage() {
               style={{
                 marginBottom: '0.5rem',
                 color: '#1a202c',
-                fontSize: '2rem',
+                fontSize: 'clamp(1.5rem, 4vw, 2rem)',
                 fontWeight: '700',
               }}
             >
               Company Dashboard
             </h1>
-            <p style={{ color: '#718096', margin: 0, fontSize: '0.875rem' }}>
+            <p
+              style={{
+                color: '#718096',
+                margin: 0,
+                fontSize: 'clamp(0.75rem, 2vw, 0.875rem)',
+              }}
+            >
               Welcome, {userProfile.name || user.email}
             </p>
           </header>
