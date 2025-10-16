@@ -178,6 +178,7 @@ model Task {
   recurringInterval Int? // Interval in days for recurring tasks, optional
   isArchived   Boolean      @default(false)
   createdAt    DateTime     @default(now())
+  startDate    DateTime?    // When work first began (set when status changes to IN_PROGRESS first time)
   updatedAt    DateTime     @updatedAt
 
   owner          UserProfile      @relation("TaskOwner", fields: [ownerId], references: [id])
@@ -201,6 +202,7 @@ model Task {
   @@index([dueDate])
   @@index([isArchived])
   @@index([createdAt])
+  @@index([startDate])
   @@map("task")
 }
 

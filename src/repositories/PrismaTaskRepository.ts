@@ -38,6 +38,7 @@ export class PrismaTaskRepository implements ITaskRepository {
         departmentId: task.getDepartmentId(),
         ownerId: task.getOwnerId(),
         parentTaskId: task.getParentTaskId(),
+        startDate: task.getStartDate(),
         updatedAt: task.getUpdatedAt(),
         assignments: {
           deleteMany: {},
@@ -80,6 +81,7 @@ export class PrismaTaskRepository implements ITaskRepository {
         departmentId: task.getDepartmentId(),
         ownerId: task.getOwnerId(),
         parentTaskId: task.getParentTaskId(),
+        startDate: task.getStartDate(),
         updatedAt: task.getUpdatedAt(),
         assignments: {
           create: assignments.map(userId => ({
@@ -582,6 +584,7 @@ export class PrismaTaskRepository implements ITaskRepository {
     recurringInterval: number | null;
     isArchived: boolean;
     createdAt: Date;
+    startDate?: Date | null;
     updatedAt: Date;
     assignments?: Array<{ userId: string }>;
     tags?: Array<{ tag: { name: string } }>;
@@ -626,6 +629,7 @@ export class PrismaTaskRepository implements ITaskRepository {
       recurringInterval: prismaTask.recurringInterval || null,
       isArchived: prismaTask.isArchived || false,
       createdAt: prismaTask.createdAt,
+      startDate: prismaTask.startDate || null,
       updatedAt: prismaTask.updatedAt,
       assignments,
       tags,
@@ -871,6 +875,7 @@ export class PrismaTaskRepository implements ITaskRepository {
       dueDate: Date;
       status: TaskStatus;
       recurringInterval: number | null;
+      startDate: Date | null;
       updatedAt: Date;
     }>
   ): Promise<void> {

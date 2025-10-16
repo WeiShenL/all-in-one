@@ -1406,6 +1406,7 @@ export class TaskService extends BaseService {
             },
             priorityBucket: subtask.priority, // Map priority to priorityBucket for frontend
             isRecurring: subtask.recurringInterval !== null,
+            startDate: subtask.startDate,
             canEdit: subtaskCanEdit,
           };
         });
@@ -1427,6 +1428,7 @@ export class TaskService extends BaseService {
           },
           priorityBucket: task.priority, // Map priority to priorityBucket for frontend
           isRecurring: task.recurringInterval !== null,
+          startDate: task.startDate,
           canEdit: taskCanEdit,
           subtasks: subtasksWithCanEdit,
         };

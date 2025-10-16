@@ -52,6 +52,7 @@ function serializeTask(task: Task) {
     recurringInterval: task.getRecurringInterval(),
     isArchived: task.getIsArchived(),
     createdAt: task.getCreatedAt().toISOString(),
+    startDate: task.getStartDate()?.toISOString() || null,
     updatedAt: task.getUpdatedAt().toISOString(),
     assignments: Array.from(task.getAssignees()),
     tags: Array.from(task.getTags()),

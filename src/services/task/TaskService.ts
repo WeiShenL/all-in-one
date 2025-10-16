@@ -590,13 +590,15 @@ export class TaskService {
       throw new Error('Task not found');
     }
 
-    // Capture old value before updating
+    // Capture old values before updating
     const oldStatus = task.getStatus();
+    const oldStartDate = task.getStartDate();
 
     task.updateStatus(newStatus as any);
 
     await this.taskRepository.updateTask(taskId, {
       status: task.getStatus(),
+      startDate: task.getStartDate(),
       updatedAt: new Date(),
     });
 
@@ -615,6 +617,26 @@ export class TaskService {
         },
       }
     );
+
+    // Log startDate change if it was set for first time
+    if (!oldStartDate && task.getStartDate()) {
+      await this.taskRepository.logTaskAction(
+        taskId,
+        user.userId,
+        'UPDATED',
+        'startDate',
+        {
+          changes: {
+            from: null,
+            to: task.getStartDate()?.toISOString(),
+          },
+          metadata: {
+            source: 'automatic',
+            reason: 'First transition to IN_PROGRESS',
+          },
+        }
+      );
+    }
 
     // Generate next recurring instance if status is COMPLETED and task is recurring
     if (newStatus === TaskStatus.COMPLETED && task.isTaskRecurring()) {

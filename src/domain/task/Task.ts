@@ -43,6 +43,7 @@ export interface TaskData {
   recurringInterval: number | null; // null = not recurring, number = days interval
   isArchived: boolean;
   createdAt: Date;
+  startDate: Date | null; // When work first began (set when status → IN_PROGRESS first time)
   updatedAt: Date;
   assignments: Set<string>; // User IDs assigned to this task
   tags: Set<string>; // Tag names
@@ -119,6 +120,7 @@ export class Task {
   // Metadata
   private isArchived: boolean;
   private readonly createdAt: Date;
+  private startDate: Date | null; // When work first began
   private updatedAt: Date;
   private completedAt?: Date; // When task was completed
 
@@ -145,6 +147,7 @@ export class Task {
     this.recurringInterval = data.recurringInterval;
     this.isArchived = data.isArchived;
     this.createdAt = data.createdAt;
+    this.startDate = data.startDate;
     this.updatedAt = data.updatedAt;
     this.assignments = data.assignments;
     this.tags = data.tags;
@@ -323,7 +326,12 @@ export class Task {
     // 1. Update status (TO_DO, IN_PROGRESS, COMPLETED, BLOCKED)
     this.status = newStatus;
 
-    // 2. Update timestamp
+    // 2. Set startDate when transitioning to IN_PROGRESS for first time
+    if (newStatus === TaskStatus.IN_PROGRESS && !this.startDate) {
+      this.startDate = new Date();
+    }
+
+    // 3. Update timestamp
     this.updatedAt = new Date();
   }
 
@@ -662,6 +670,10 @@ export class Task {
 
   getCreatedAt(): Date {
     return this.createdAt;
+  }
+
+  getStartDate(): Date | null {
+    return this.startDate;
   }
 
   getUpdatedAt(): Date {

@@ -420,6 +420,7 @@ describe('TaskService - READ and UPDATE Operations', () => {
 
         expect(mockRepository.updateTask).toHaveBeenCalledWith('task-001', {
           status: 'IN_PROGRESS',
+          startDate: expect.any(Date),
           updatedAt: expect.any(Date),
         });
         expect(mockRepository.logTaskAction).toHaveBeenCalledWith(
