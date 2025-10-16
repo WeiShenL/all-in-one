@@ -9,17 +9,17 @@ export default function Navbar() {
 
   // Get dashboard route - all users go to personal dashboard by default
   const getDashboardRoute = () => {
-    if (!userProfile?.role) {
+    if (!userProfile) {
       return '/dashboard';
     }
 
-    const roleRoutes = {
-      STAFF: '/dashboard/personal',
-      MANAGER: '/dashboard/personal', // All users use personal dashboard as their main dashboard
-      HR_ADMIN: '/dashboard/hr',
-    };
+    // HR/Admin users use HR dashboard
+    if (userProfile.isHrAdmin) {
+      return '/dashboard/hr';
+    }
 
-    return roleRoutes[userProfile.role] || '/dashboard';
+    // All other users use personal dashboard
+    return '/dashboard/personal';
   };
 
   return (

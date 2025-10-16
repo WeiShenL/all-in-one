@@ -32,6 +32,7 @@ async function getUserContext(ctx: Context): Promise<UserContext> {
     userId: ctx.userId,
     role: userProfile.role as 'STAFF' | 'MANAGER' | 'HR_ADMIN',
     departmentId: userProfile.departmentId,
+    isHrAdmin: userProfile.isHrAdmin,
   };
 }
 

@@ -7,27 +7,30 @@ export type Database = {
         Row: {
           id: string;
           email: string;
-          name: string | null;
+          name: string;
           role: 'STAFF' | 'MANAGER' | 'HR_ADMIN';
           departmentId: string;
+          isHrAdmin: boolean;
           createdAt: string;
           updatedAt: string;
         };
         Insert: {
           id: string;
           email: string;
-          name?: string | null;
+          name: string;
           role?: 'STAFF' | 'MANAGER' | 'HR_ADMIN';
           departmentId: string;
+          isHrAdmin?: boolean;
           createdAt?: string;
           updatedAt?: string;
         };
         Update: {
           id?: string;
           email?: string;
-          name?: string | null;
+          name?: string;
           role?: 'STAFF' | 'MANAGER' | 'HR_ADMIN';
           departmentId?: string;
+          isHrAdmin?: boolean;
           createdAt?: string;
           updatedAt?: string;
         };
