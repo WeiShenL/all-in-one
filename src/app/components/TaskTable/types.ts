@@ -55,7 +55,8 @@ export type SortableColumn =
   | 'dueDate'
   | 'assignees'
   | 'department'
-  | 'project';
+  | 'project'
+  | 'tags';
 
 export interface SortCriterion {
   key: SortableColumn;

@@ -589,8 +589,12 @@ export function TaskTable({
                   </th>
                   <th style={styles.th}>
                     <div style={styles.thContent}>
-                      <div style={styles.thTitle}>
+                      <div
+                        style={styles.thTitle}
+                        onClick={() => handleSortChange('tags')}
+                      >
                         <>Tags</>
+                        <SortIndicator sortKey='tags' />
                       </div>
                       <select
                         value=''

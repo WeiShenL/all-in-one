@@ -52,6 +52,11 @@ export const getSortableValue = (task: Task, key: SortableColumn) => {
       return firstAssignment?.user?.name?.toLowerCase() || '';
     case 'project':
       return task.project?.name?.toLowerCase() || 'zzz_no_project'; // Sort empty projects to the end
+    case 'tags':
+      // Sort by first tag alphabetically, or empty string if no tags
+      return task.tags && task.tags.length > 0
+        ? task.tags[0].toLowerCase()
+        : 'zzz_no_tags'; // Sort empty tags to the end
     default:
       return '';
   }
