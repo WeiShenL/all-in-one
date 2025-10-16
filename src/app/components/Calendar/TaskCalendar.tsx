@@ -1,14 +1,23 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import { Calendar, dateFnsLocalizer, View } from 'react-big-calendar';
-import { format, parse, startOfWeek, getDay } from 'date-fns';
+import {
+  format,
+  parse,
+  startOfWeek,
+  getDay,
+  isSameDay,
+  isWithinInterval,
+  startOfDay,
+} from 'date-fns';
 import enUS from 'date-fns/locale/en-US';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { Task } from '../TaskTable/types';
 import { CalendarEvent } from './types';
 import { taskToEvent } from './utils/taskToEvent';
 import { exportToICal } from './utils/exportToICal';
+import { TaskCard } from '../TaskCard';
 
 const locales = {
   'en-US': enUS,
@@ -32,6 +41,7 @@ interface TaskCalendarProps {
   };
   isLoading?: boolean;
   error?: Error | null;
+  onTaskUpdated?: () => void;
 }
 
 /**
@@ -217,10 +227,186 @@ export function TaskCalendar({
   },
   isLoading = false,
   error = null,
+  onTaskUpdated,
 }: TaskCalendarProps) {
   // State for calendar view and date navigation
   const [view, setView] = useState<View>('month');
   const [date, setDate] = useState(new Date());
+
+  // State for selected task modal
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const modalContentRef = useRef<HTMLDivElement>(null);
+
+  // Custom Day View - Kanban Board Layout (defined inside component to access setSelectedTaskId)
+  const CustomDayView = useMemo(() => {
+    function KanbanDayView({
+      date,
+      events,
+    }: {
+      date: Date;
+      events: CalendarEvent[];
+    }) {
+      const selectedDayStart = startOfDay(date);
+
+      const dayEvents = events.filter(event => {
+        const eventStart = startOfDay(event.start);
+        const eventEnd = startOfDay(event.end);
+        return (
+          isWithinInterval(selectedDayStart, {
+            start: eventStart,
+            end: eventEnd,
+          }) ||
+          isSameDay(eventStart, date) ||
+          isSameDay(eventEnd, date)
+        );
+      });
+
+      const columns = [
+        {
+          status: 'TO_DO',
+          label: 'To Do',
+          color: '#718096',
+          bgColor: '#f7fafc',
+          tasks: dayEvents.filter(e => e.resource.status === 'TO_DO'),
+        },
+        {
+          status: 'IN_PROGRESS',
+          label: 'In Progress',
+          color: '#3182ce',
+          bgColor: '#ebf8ff',
+          tasks: dayEvents.filter(e => e.resource.status === 'IN_PROGRESS'),
+        },
+        {
+          status: 'BLOCKED',
+          label: 'Blocked',
+          color: '#e53e3e',
+          bgColor: '#fff5f5',
+          tasks: dayEvents.filter(e => e.resource.status === 'BLOCKED'),
+        },
+        {
+          status: 'COMPLETED',
+          label: 'Completed',
+          color: '#38a169',
+          bgColor: '#f0fff4',
+          tasks: dayEvents.filter(e => e.resource.status === 'COMPLETED'),
+        },
+      ];
+
+      return (
+        <div style={kanbanStyles.container}>
+          <div style={kanbanStyles.dateHeader}>
+            <h3 style={kanbanStyles.dateTitle}>
+              {format(date, 'EEEE, MMMM d, yyyy')}
+            </h3>
+            <div style={kanbanStyles.taskCount}>
+              {dayEvents.length} {dayEvents.length === 1 ? 'task' : 'tasks'}
+            </div>
+          </div>
+          <div style={kanbanStyles.board}>
+            {columns.map(({ status, label, color, bgColor, tasks }) => (
+              <div
+                key={status}
+                style={{ ...kanbanStyles.column, backgroundColor: bgColor }}
+              >
+                <div
+                  style={{
+                    ...kanbanStyles.columnHeader,
+                    borderLeftColor: color,
+                  }}
+                >
+                  <h4 style={{ ...kanbanStyles.columnTitle, color }}>
+                    {label}
+                  </h4>
+                  <span style={kanbanStyles.columnCount}>{tasks.length}</span>
+                </div>
+                <div style={kanbanStyles.cardContainer}>
+                  {tasks.length === 0 ? (
+                    <div style={kanbanStyles.emptyColumn}>No tasks</div>
+                  ) : (
+                    tasks.map(task => (
+                      <div
+                        key={task.id}
+                        className='kanban-card'
+                        onClick={() => setSelectedTaskId(task.id)}
+                        style={{
+                          ...kanbanStyles.card,
+                          borderLeftColor: getPriorityColor(
+                            task.resource.priority
+                          ),
+                        }}
+                      >
+                        <div style={kanbanStyles.cardTitle}>{task.title}</div>
+                        <div style={kanbanStyles.cardMeta}>
+                          <span
+                            style={{
+                              ...kanbanStyles.priorityBadge,
+                              backgroundColor: getPriorityColor(
+                                task.resource.priority
+                              ),
+                            }}
+                          >
+                            Priority: {task.resource.priority}/10
+                          </span>
+                        </div>
+                        {task.resource.owner && (
+                          <div style={kanbanStyles.cardInfo}>
+                            <span style={kanbanStyles.cardLabel}>Owner:</span>{' '}
+                            {task.resource.owner.name}
+                          </div>
+                        )}
+                        {task.resource.department && (
+                          <div style={kanbanStyles.cardInfo}>
+                            <span style={kanbanStyles.cardLabel}>
+                              Department:
+                            </span>{' '}
+                            {task.resource.department.name}
+                          </div>
+                        )}
+                        {task.resource.tags &&
+                          task.resource.tags.length > 0 && (
+                            <div style={kanbanStyles.tags}>
+                              {task.resource.tags
+                                .slice(0, 3)
+                                .map((tag, idx) => (
+                                  <span key={idx} style={kanbanStyles.tag}>
+                                    #{tag}
+                                  </span>
+                                ))}
+                            </div>
+                          )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    (KanbanDayView as any).navigate = (date: Date, action: string) => {
+      switch (action) {
+        case 'PREV':
+          return new Date(
+            date.getFullYear(),
+            date.getMonth(),
+            date.getDate() - 1
+          );
+        case 'NEXT':
+          return new Date(
+            date.getFullYear(),
+            date.getMonth(),
+            date.getDate() + 1
+          );
+        default:
+          return date;
+      }
+    };
+    (KanbanDayView as any).title = (date: Date) => format(date, 'MMMM d, yyyy');
+
+    return KanbanDayView;
+  }, []);
 
   // Transform tasks to calendar events
   const events: CalendarEvent[] = useMemo(() => {
@@ -361,6 +547,12 @@ export function TaskCalendar({
           min-height: 28px !important;
           padding: 4px 8px !important;
         }
+
+        /* Kanban card hover effects */
+        .kanban-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+        }
       `,
         }}
       />
@@ -380,11 +572,17 @@ export function TaskCalendar({
           endAccessor='end'
           style={styles.calendar}
           eventPropGetter={eventStyleGetter as any}
-          views={['month', 'week', 'day', 'agenda']}
+          views={{
+            month: true,
+            week: true,
+            day: CustomDayView as any,
+            agenda: true,
+          }}
           view={view}
           onView={setView}
           date={date}
           onNavigate={setDate}
+          onSelectEvent={(event: any) => setSelectedTaskId(event.id)}
           components={{
             toolbar: CustomToolbar,
             event: EventComponent as any,
@@ -403,6 +601,35 @@ export function TaskCalendar({
           }}
         />
       </div>
+
+      {/* Task Card Modal */}
+      {selectedTaskId && (
+        <div
+          style={styles.modalOverlay}
+          onClick={e => {
+            if (e.target === e.currentTarget) {
+              setSelectedTaskId(null);
+            }
+          }}
+        >
+          <div style={styles.modalContent} ref={modalContentRef}>
+            <button
+              onClick={() => setSelectedTaskId(null)}
+              style={styles.closeButton}
+            >
+              ×
+            </button>
+            <TaskCard
+              taskId={selectedTaskId}
+              onTaskChange={newTaskId => setSelectedTaskId(newTaskId)}
+              onTaskUpdated={() => {
+                setSelectedTaskId(null);
+                onTaskUpdated?.();
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       <div style={styles.legend}>
         <h4 style={styles.legendTitle}>Legend:</h4>
@@ -449,6 +676,137 @@ export function TaskCalendar({
     </div>
   );
 }
+
+const kanbanStyles = {
+  container: {
+    height: '100%',
+    display: 'flex',
+    flexDirection: 'column' as const,
+    padding: '1rem',
+  },
+  dateHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '1.5rem',
+    paddingBottom: '1rem',
+    borderBottom: '2px solid #e2e8f0',
+  },
+  dateTitle: {
+    fontSize: '1.5rem',
+    fontWeight: 600,
+    color: '#2d3748',
+    margin: 0,
+  },
+  taskCount: {
+    fontSize: '0.875rem',
+    fontWeight: 500,
+    color: '#718096',
+    backgroundColor: '#f7fafc',
+    padding: '0.5rem 1rem',
+    borderRadius: '6px',
+  },
+  board: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, 1fr)',
+    gap: '1rem',
+    flex: 1,
+    overflow: 'hidden',
+  },
+  column: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    borderRadius: '8px',
+    padding: '1rem',
+    minHeight: 0,
+  },
+  columnHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '1rem',
+    paddingBottom: '0.75rem',
+    borderBottom: '2px solid currentColor',
+    borderLeft: '4px solid',
+    paddingLeft: '0.5rem',
+  },
+  columnTitle: {
+    fontSize: '1rem',
+    fontWeight: 600,
+    margin: 0,
+  },
+  columnCount: {
+    fontSize: '0.875rem',
+    fontWeight: 600,
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    padding: '0.25rem 0.5rem',
+    borderRadius: '12px',
+  },
+  cardContainer: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '0.75rem',
+    overflowY: 'auto' as const,
+    flex: 1,
+    paddingRight: '0.25rem',
+  },
+  emptyColumn: {
+    textAlign: 'center' as const,
+    color: '#a0aec0',
+    fontSize: '0.875rem',
+    padding: '2rem 1rem',
+    fontStyle: 'italic' as const,
+  },
+  card: {
+    backgroundColor: '#ffffff',
+    borderRadius: '6px',
+    padding: '0.875rem',
+    borderLeft: '4px solid',
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+    transition: 'all 0.2s',
+    cursor: 'pointer',
+  },
+  cardTitle: {
+    fontSize: '0.9375rem',
+    fontWeight: 600,
+    color: '#2d3748',
+    marginBottom: '0.75rem',
+    lineHeight: 1.4,
+  },
+  cardMeta: {
+    marginBottom: '0.5rem',
+  },
+  priorityBadge: {
+    display: 'inline-block',
+    fontSize: '0.75rem',
+    fontWeight: 500,
+    color: '#ffffff',
+    padding: '0.25rem 0.5rem',
+    borderRadius: '4px',
+  },
+  cardInfo: {
+    fontSize: '0.8125rem',
+    color: '#4a5568',
+    marginBottom: '0.25rem',
+  },
+  cardLabel: {
+    fontWeight: 600,
+    color: '#718096',
+  },
+  tags: {
+    display: 'flex',
+    flexWrap: 'wrap' as const,
+    gap: '0.375rem',
+    marginTop: '0.5rem',
+  },
+  tag: {
+    fontSize: '0.75rem',
+    color: '#4a5568',
+    backgroundColor: '#edf2f7',
+    padding: '0.125rem 0.5rem',
+    borderRadius: '4px',
+  },
+};
 
 const toolbarStyles = {
   container: {
@@ -639,5 +997,48 @@ const styles = {
     color: '#718096',
     fontSize: '0.875rem',
     textAlign: 'center' as const,
+  },
+  modalOverlay: {
+    position: 'fixed' as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  modalContent: {
+    position: 'relative' as const,
+    background: 'white',
+    padding: '2rem',
+    borderRadius: '12px',
+    width: '90%',
+    maxWidth: '900px',
+    maxHeight: '90vh',
+    overflowY: 'auto' as const,
+    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+    backgroundClip: 'padding-box',
+  },
+  closeButton: {
+    position: 'absolute' as const,
+    top: '1rem',
+    right: '1rem',
+    padding: '0.5rem',
+    backgroundColor: '#e2e8f0',
+    color: '#4a5568',
+    border: 'none',
+    borderRadius: '50%',
+    cursor: 'pointer' as const,
+    fontWeight: 600,
+    fontSize: '1rem',
+    lineHeight: 1,
+    width: '32px',
+    height: '32px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 };
