@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
-import { appRouter } from '../../src/app/server/routers/_app';
-import { createInnerTRPCContext } from '../../src/app/server/trpc';
+import { appRouter } from '@/app/server/routers/_app';
+import { createInnerTRPCContext } from '@/app/server/trpc';
 
 const prisma = new PrismaClient();
 
