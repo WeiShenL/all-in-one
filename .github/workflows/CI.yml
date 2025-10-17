@@ -312,10 +312,6 @@ jobs:
           restore-keys: |
             playwright-${{ runner.os }}-
 
-      - name: Ensure Playwright browsers (fallback)
-        run: npx playwright install --with-deps
-        if: steps.restore-cache.outputs.cache-hit != 'true'
-
       - name: Run E2E Tests Against Preview (Sharded)
         env:
           # Use the deployed preview URL as Playwright baseURL
