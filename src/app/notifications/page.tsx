@@ -7,7 +7,11 @@ import { useAuth } from '@/lib/supabase/auth-context'; // Import useAuth for use
 
 export default function NotificationsPage() {
   const { user } = useAuth();
-  const { data: notifications, isLoading, error } = trpc.notification.getNotifications.useQuery(
+  const {
+    data: notifications,
+    isLoading,
+    error,
+  } = trpc.notification.getNotifications.useQuery(
     { userId: user?.id || '' },
     { enabled: !!user?.id } // Only fetch if user ID is available
   );
@@ -83,10 +87,21 @@ export default function NotificationsPage() {
           >
             {notifications && notifications.length > 0 ? (
               <ul>
-                {notifications.map((notification) => (
-                  <li key={notification.id} style={{ marginBottom: '1rem', borderBottom: '1px solid #eee', paddingBottom: '1rem' }}>
-                    <h3 style={{ margin: '0 0 0.5rem 0', color: '#333' }}>{notification.title}</h3>
-                    <p style={{ margin: '0', color: '#555' }}>{notification.message}</p>
+                {notifications.map(notification => (
+                  <li
+                    key={notification.id}
+                    style={{
+                      marginBottom: '1rem',
+                      borderBottom: '1px solid #eee',
+                      paddingBottom: '1rem',
+                    }}
+                  >
+                    <h3 style={{ margin: '0 0 0.5rem 0', color: '#333' }}>
+                      {notification.title}
+                    </h3>
+                    <p style={{ margin: '0', color: '#555' }}>
+                      {notification.message}
+                    </p>
                     <small style={{ color: '#888' }}>
                       {new Date(notification.createdAt).toLocaleString()}
                     </small>

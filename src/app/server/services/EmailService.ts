@@ -22,9 +22,8 @@ export class EmailService {
     context: string,
     shouldThrow: boolean = true
   ): void {
-    console.error(`[${this.constructor.name}] Error in ${context}:`, error);
-
     if (shouldThrow) {
+      console.error(`[${this.constructor.name}] Error in ${context}:`, error);
       if (error instanceof Error) {
         throw new Error(`${context}: ${error.message}`);
       }

@@ -148,19 +148,19 @@ describe('Logout Page Flow', () => {
         userProfile: { name: 'HR User', role: 'HR_ADMIN' },
       });
 
-      render(<HRDashboard />);
+      render(<HRDashboard />, { wrapper: TestWrapper });
 
       expect(screen.getByText('Sign Out')).toBeInTheDocument();
     });
 
     it('should render logout button in navbar on profile page', () => {
-      render(<ProfilePage />);
+      render(<ProfilePage />, { wrapper: TestWrapper });
 
       expect(screen.getByText('Sign Out')).toBeInTheDocument();
     });
 
     it('should display user info in navbar before logout', () => {
-      render(<PersonalDashboard />);
+      render(<PersonalDashboard />, { wrapper: TestWrapper });
 
       expect(screen.getByText('Test User')).toBeInTheDocument();
     });
@@ -171,7 +171,7 @@ describe('Logout Page Flow', () => {
         userProfile: { role: 'STAFF', name: null },
       });
 
-      render(<PersonalDashboard />);
+      render(<PersonalDashboard />, { wrapper: TestWrapper });
 
       // Use getAllByText since email appears in both navbar and dashboard content
       const emailElements = screen.getAllByText('test@example.com');
@@ -183,7 +183,7 @@ describe('Logout Page Flow', () => {
     it('should call handleSecureLogout when logout button is clicked', async () => {
       mockHandleSecureLogout.mockResolvedValue(undefined);
 
-      render(<PersonalDashboard />);
+      render(<PersonalDashboard />, { wrapper: TestWrapper });
 
       const logoutButton = screen.getByText('Sign Out');
       fireEvent.click(logoutButton);
@@ -199,7 +199,7 @@ describe('Logout Page Flow', () => {
         isLoggingOut: true,
       });
 
-      render(<PersonalDashboard />);
+      render(<PersonalDashboard />, { wrapper: TestWrapper });
 
       expect(screen.getByText('Signing Out...')).toBeInTheDocument();
       const logoutButton = screen.getByText('Signing Out...');
@@ -209,7 +209,7 @@ describe('Logout Page Flow', () => {
     it('should logout from personal dashboard', async () => {
       mockHandleSecureLogout.mockResolvedValue(undefined);
 
-      render(<PersonalDashboard />);
+      render(<PersonalDashboard />, { wrapper: TestWrapper });
 
       const logoutButton = screen.getByText('Sign Out');
       fireEvent.click(logoutButton);
@@ -226,7 +226,7 @@ describe('Logout Page Flow', () => {
         userProfile: { name: 'Manager User', role: 'MANAGER' },
       });
 
-      render(<DepartmentDashboard />);
+      render(<DepartmentDashboard />, { wrapper: TestWrapper });
 
       const logoutButton = screen.getByText('Sign Out');
       fireEvent.click(logoutButton);
@@ -243,7 +243,7 @@ describe('Logout Page Flow', () => {
         userProfile: { name: 'HR User', role: 'HR_ADMIN' },
       });
 
-      render(<HRDashboard />);
+      render(<HRDashboard />, { wrapper: TestWrapper });
 
       const logoutButton = screen.getByText('Sign Out');
       fireEvent.click(logoutButton);
@@ -256,7 +256,7 @@ describe('Logout Page Flow', () => {
     it('should logout from profile page', async () => {
       mockHandleSecureLogout.mockResolvedValue(undefined);
 
-      render(<ProfilePage />);
+      render(<ProfilePage />, { wrapper: TestWrapper });
 
       const logoutButton = screen.getByText('Sign Out');
       fireEvent.click(logoutButton);
@@ -273,7 +273,9 @@ describe('Logout Page Flow', () => {
         isLoggingOut: false,
       });
 
-      const { rerender } = render(<PersonalDashboard />);
+      const { rerender } = render(<PersonalDashboard />, {
+        wrapper: TestWrapper,
+      });
 
       const logoutButton = screen.getByText('Sign Out');
       fireEvent.click(logoutButton);
@@ -301,7 +303,7 @@ describe('Logout Page Flow', () => {
     it('should call logout even when button is clicked rapidly', async () => {
       mockHandleSecureLogout.mockResolvedValue(undefined);
 
-      render(<PersonalDashboard />);
+      render(<PersonalDashboard />, { wrapper: TestWrapper });
 
       const logoutButton = screen.getByText('Sign Out');
 
@@ -319,7 +321,7 @@ describe('Logout Page Flow', () => {
     it('should allow retry if logout hook is called again', async () => {
       mockHandleSecureLogout.mockResolvedValue(undefined);
 
-      render(<PersonalDashboard />);
+      render(<PersonalDashboard />, { wrapper: TestWrapper });
 
       const logoutButton = screen.getByText('Sign Out');
 
@@ -344,7 +346,7 @@ describe('Logout Page Flow', () => {
     it('should maintain UI consistency during logout attempts', async () => {
       mockHandleSecureLogout.mockResolvedValue(undefined);
 
-      render(<PersonalDashboard />);
+      render(<PersonalDashboard />, { wrapper: TestWrapper });
 
       // Dashboard content should be visible
       expect(screen.getByText('Personal Dashboard')).toBeInTheDocument();
@@ -364,7 +366,9 @@ describe('Logout Page Flow', () => {
 
   describe('User Experience', () => {
     it('should show consistent logout button across all pages', () => {
-      const { unmount: unmount1 } = render(<PersonalDashboard />);
+      const { unmount: unmount1 } = render(<PersonalDashboard />, {
+        wrapper: TestWrapper,
+      });
       expect(screen.getByText('Sign Out')).toBeInTheDocument();
       unmount1();
 
@@ -372,7 +376,9 @@ describe('Logout Page Flow', () => {
         ...mockAuthenticatedUser,
         userProfile: { name: 'Manager User', role: 'MANAGER' },
       });
-      const { unmount: unmount2 } = render(<DepartmentDashboard />);
+      const { unmount: unmount2 } = render(<DepartmentDashboard />, {
+        wrapper: TestWrapper,
+      });
       expect(screen.getByText('Sign Out')).toBeInTheDocument();
       unmount2();
 
@@ -380,12 +386,14 @@ describe('Logout Page Flow', () => {
         ...mockAuthenticatedUser,
         userProfile: { name: 'HR User', role: 'HR_ADMIN' },
       });
-      const { unmount: unmount3 } = render(<HRDashboard />);
+      const { unmount: unmount3 } = render(<HRDashboard />, {
+        wrapper: TestWrapper,
+      });
       expect(screen.getByText('Sign Out')).toBeInTheDocument();
       unmount3();
 
       (useAuth as jest.Mock).mockReturnValue(mockAuthenticatedUser);
-      render(<ProfilePage />);
+      render(<ProfilePage />, { wrapper: TestWrapper });
       expect(screen.getByText('Sign Out')).toBeInTheDocument();
     });
 
@@ -395,7 +403,7 @@ describe('Logout Page Flow', () => {
         isLoggingOut: true,
       });
 
-      render(<PersonalDashboard />);
+      render(<PersonalDashboard />, { wrapper: TestWrapper });
 
       // Logout button shows loading
       expect(screen.getByText('Signing Out...')).toBeInTheDocument();
@@ -407,7 +415,7 @@ describe('Logout Page Flow', () => {
 
   describe('Navigation', () => {
     it('should have correct Personal link in navbar for STAFF', () => {
-      render(<PersonalDashboard />);
+      render(<PersonalDashboard />, { wrapper: TestWrapper });
 
       const personalLink = screen.getByText('Personal').closest('a');
       expect(personalLink).toHaveAttribute('href', '/dashboard/personal');
@@ -419,7 +427,7 @@ describe('Logout Page Flow', () => {
         userProfile: { name: 'Manager User', role: 'MANAGER' },
       });
 
-      render(<DepartmentDashboard />);
+      render(<DepartmentDashboard />, { wrapper: TestWrapper });
 
       const deptLink = screen.getByText('Department').closest('a');
       expect(deptLink).toHaveAttribute('href', '/dashboard/department');
@@ -431,14 +439,14 @@ describe('Logout Page Flow', () => {
         userProfile: { name: 'HR User', role: 'HR_ADMIN' },
       });
 
-      render(<HRDashboard />);
+      render(<HRDashboard />, { wrapper: TestWrapper });
 
       const personalLink = screen.getByText('Personal').closest('a');
       expect(personalLink).toHaveAttribute('href', '/dashboard/personal');
     });
 
     it('should have Profile link in navbar', () => {
-      render(<PersonalDashboard />);
+      render(<PersonalDashboard />, { wrapper: TestWrapper });
 
       const profileLink = screen.getByText('Profile').closest('a');
       expect(profileLink).toHaveAttribute('href', '/profile');

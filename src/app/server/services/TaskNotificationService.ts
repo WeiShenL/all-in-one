@@ -63,7 +63,7 @@ export class TaskNotificationService {
         message = `Your task "${task.title}" is due today.`;
       }
       // Overdue by 1 day
-      else if (hoursUntilDue <= -24 && hoursUntilDue >= -48) {
+      else if (hoursUntilDue <= -24 && hoursUntilDue > -48) {
         notificationType = 'TASK_OVERDUE';
         title = 'Task Overdue';
         message = `Your task "${task.title}" was due yesterday.`;
@@ -115,6 +115,9 @@ export class TaskNotificationService {
           text: message,
           html: emailMessage,
         });
+
+        // Add a delay to avoid hitting the rate limit
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
     }
   }

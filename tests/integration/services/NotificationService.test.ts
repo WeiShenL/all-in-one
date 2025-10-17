@@ -11,20 +11,26 @@
 
 import { Client } from 'pg';
 import { NotificationService } from '@/app/server/services/NotificationService';
+import { TaskNotificationService } from '@/app/server/services/TaskNotificationService';
 import { EmailService } from '@/app/server/services/EmailService';
+import { RealtimeService } from '@/app/server/services/RealtimeService';
 import { PrismaClient } from '@prisma/client';
 import { Resend } from 'resend';
 
 const prisma = new PrismaClient();
 let pgClient: Client;
 let notificationService: NotificationService;
+let taskNotificationService: TaskNotificationService;
 let emailService: EmailService;
+let realtimeService: RealtimeService;
 
 // Mock the Resend SDK
 jest.mock('resend', () => ({
   Resend: jest.fn().mockImplementation(() => ({
     emails: {
-      send: jest.fn().mockResolvedValue({ data: { id: 'mock-email-id' }, error: null }),
+      send: jest
+        .fn()
+        .mockResolvedValue({ data: { id: 'mock-email-id' }, error: null }),
     },
   })),
 }));
@@ -39,7 +45,18 @@ describe('NotificationService Integration Tests', () => {
     });
     await pgClient.connect();
     emailService = new EmailService();
-    notificationService = new NotificationService(emailService);
+    notificationService = new NotificationService(prisma, emailService);
+    realtimeService = new RealtimeService();
+    taskNotificationService = new TaskNotificationService(
+      prisma,
+      notificationService,
+      realtimeService,
+      emailService
+    );
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
     mockResendSend = (Resend as jest.Mock).mock.results[0].value.emails.send;
   });
 
@@ -58,9 +75,10 @@ describe('NotificationService Integration Tests', () => {
     const testDepartmentId = deptResult.rows[0].id;
 
     // Create test user
+    const uniqueEmail = `notification-user-${Date.now()}@test.com`;
     const userResult = await pgClient.query(
       `INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt")
-       VALUES (gen_random_uuid(), 'notification-user@test.com', 'Notification User', 'STAFF', $1, true, NOW(), NOW())
+       VALUES (gen_random_uuid(), '${uniqueEmail}', 'Notification User', 'STAFF', $1, true, NOW(), NOW())
        RETURNING id`,
       [testDepartmentId]
     );
@@ -83,13 +101,13 @@ describe('NotificationService Integration Tests', () => {
       [testTaskId, testUserId]
     );
 
-    await notificationService.sendDeadlineReminders(now);
+    await taskNotificationService.sendDeadlineReminders(now);
 
     // Check for email
     expect(mockResendSend).toHaveBeenCalledTimes(1);
     expect(mockResendSend).toHaveBeenCalledWith(
       expect.objectContaining({
-        to: ['notification-user@test.com'],
+        to: [uniqueEmail],
         subject: 'Task Deadline Reminder: Due Soon Task',
       })
     );
@@ -103,12 +121,20 @@ describe('NotificationService Integration Tests', () => {
     const notification = notificationResult.rows[0];
     expect(notification.type).toBe('DEADLINE_REMINDER');
     expect(notification.title).toBe('Task Deadline Reminder');
-    expect(notification.message).toBe('Your task "Due Soon Task" is due in less than 24 hours.');
+    expect(notification.message).toBe(
+      'Your task "Due Soon Task" is due in less than 24 hours.'
+    );
 
     // Cleanup
     await pgClient.query('DELETE FROM "task" WHERE id = $1', [testTaskId]);
-    await pgClient.query('DELETE FROM "notification" WHERE "userId" = $1', [testUserId]);
-    await pgClient.query('DELETE FROM "user_profile" WHERE id = $1', [testUserId]);
-    await pgClient.query('DELETE FROM "department" WHERE id = $1', [testDepartmentId]);
+    await pgClient.query('DELETE FROM "notification" WHERE "userId" = $1', [
+      testUserId,
+    ]);
+    await pgClient.query('DELETE FROM "user_profile" WHERE id = $1', [
+      testUserId,
+    ]);
+    await pgClient.query('DELETE FROM "department" WHERE id = $1', [
+      testDepartmentId,
+    ]);
   }, 30000);
 });

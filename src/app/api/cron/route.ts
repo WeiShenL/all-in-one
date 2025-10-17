@@ -22,9 +22,6 @@ export async function GET() {
     return NextResponse.json({ message: 'Cron job completed successfully.' });
   } catch (error) {
     console.error('Cron job failed:', error);
-    return NextResponse.json(
-      { message: 'Cron job failed.' },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: 'Cron job failed.' }, { status: 500 });
   }
 }
