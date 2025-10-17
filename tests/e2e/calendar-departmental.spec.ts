@@ -519,67 +519,6 @@ test.describe('Departmental Calendar - Manager Flow', () => {
     await page.waitForTimeout(1000);
   });
 
-  test.skip('CIT008: should filter tasks by specific team member', async ({
-    page,
-  }) => {
-    test.setTimeout(120000);
-
-    await loginManagerAndNavigateToCalendar(page);
-
-    // Wait for calendar to render
-    await page.waitForTimeout(2000);
-
-    // Look for filter dropdown (may be labeled "Filter by member", "Team member", etc.)
-    const filterDropdown = page
-      .locator('select')
-      .filter({ hasText: /all|member|assignee|staff/i })
-      .first();
-
-    // If filter exists, test it
-    if (await filterDropdown.isVisible()) {
-      // Select Alice from dropdown
-      await filterDropdown.selectOption({ label: /Alice/i });
-      await page.waitForTimeout(1500);
-
-      // Verify only Alice's tasks appear
-      await expect(page.getByText('Alice Task - Frontend Update')).toBeVisible({
-        timeout: 65000,
-      });
-      await expect(page.getByText('Alice Task 2 - UI Testing')).toBeVisible({
-        timeout: 65000,
-      });
-
-      // Verify Bob's and Charlie's tasks don't appear
-      await expect(page.getByText('Bob Task - Backend API')).not.toBeVisible();
-      await expect(
-        page.getByText('Charlie Task - Database Migration')
-      ).not.toBeVisible();
-
-      // Clear filter by selecting "All" option
-      await filterDropdown.selectOption({ index: 0 }); // First option usually "All"
-      await page.waitForTimeout(1500);
-
-      // Verify all tasks reappear
-      await expect(page.getByText('Bob Task - Backend API')).toBeVisible({
-        timeout: 65000,
-      });
-      await expect(
-        page.getByText('Charlie Task - Database Migration')
-      ).toBeVisible({ timeout: 65000 });
-    } else {
-      // If filter doesn't exist yet, just verify we can see all tasks
-      console.warn(
-        'Filter dropdown not implemented yet - skipping filter test'
-      );
-      await expect(page.getByText('Alice Task - Frontend Update')).toBeVisible({
-        timeout: 65000,
-      });
-      await expect(page.getByText('Bob Task - Backend API')).toBeVisible({
-        timeout: 65000,
-      });
-    }
-  });
-
   test('should support view switching between Month, Week, Day, and Agenda', async ({
     page,
   }) => {
@@ -679,5 +618,137 @@ test.describe('Departmental Calendar - Manager Flow', () => {
       `Back to Month view - Alice Task count: ${finalMonthTaskCount}`
     );
     expect(finalMonthTaskCount).toBeGreaterThan(0);
+  });
+
+  test('should filter tasks by department using dropdown', async ({ page }) => {
+    test.setTimeout(120000);
+
+    await loginManagerAndNavigateToCalendar(page);
+
+    // Wait for calendar to render
+    await page.waitForTimeout(3000);
+
+    // ============================================
+    // TEST 1: Verify department filter dropdown exists
+    // ============================================
+    const departmentFilter = page.getByTestId('department-filter');
+    await expect(departmentFilter).toBeVisible({ timeout: 65000 });
+
+    // ============================================
+    // TEST 2: Verify dropdown options
+    // ============================================
+    // Should contain: "All Departments" + parent dept + child dept
+    // Should NOT contain peer dept
+    const options = await departmentFilter.locator('option').allTextContents();
+    console.warn('Department filter options:', options);
+
+    expect(options).toContain('All Departments');
+    expect(options.length).toBeGreaterThan(1); // At least "All Departments" + 1 or more depts
+
+    // Verify peer dept is NOT in dropdown
+    const hasPeerDept = options.some(opt => opt.includes('E2E Peer Dept'));
+    expect(hasPeerDept).toBe(false);
+
+    // ============================================
+    // TEST 3: Filter by parent department
+    // ============================================
+    // Get parent department name from options (not "All Departments" and contains "Parent")
+    const parentDeptOption = options.find(
+      opt => opt !== 'All Departments' && opt.includes('Parent')
+    );
+
+    if (parentDeptOption) {
+      await departmentFilter.selectOption({ label: parentDeptOption });
+      await page.waitForTimeout(2000);
+
+      // Verify only parent dept tasks are visible
+      const aliceTask1Count = await page
+        .locator('[data-task-title="Alice Task - Frontend Update"]')
+        .count();
+      const bobTaskCount = await page
+        .locator('[data-task-title="Bob Task - Backend API"]')
+        .count();
+      const aliceTask2Count = await page
+        .locator('[data-task-title="Alice Task 2 - UI Testing"]')
+        .count();
+      const charlieTaskCount = await page
+        .locator('[data-task-title="Charlie Task - Database Migration"]')
+        .count();
+
+      console.warn(
+        `Parent dept filter - Alice1: ${aliceTask1Count}, Bob: ${bobTaskCount}, Alice2: ${aliceTask2Count}, Charlie: ${charlieTaskCount}`
+      );
+
+      // Parent dept tasks should be visible
+      expect(aliceTask1Count + bobTaskCount + aliceTask2Count).toBeGreaterThan(
+        0
+      );
+      // Child dept tasks should NOT be visible
+      expect(charlieTaskCount).toBe(0);
+    }
+
+    // ============================================
+    // TEST 4: Filter by child department
+    // ============================================
+    const childDeptOption = options.find(
+      opt => opt !== 'All Departments' && opt.includes('Child')
+    );
+
+    if (childDeptOption) {
+      await departmentFilter.selectOption({ label: childDeptOption });
+      await page.waitForTimeout(2000);
+
+      // Verify only child dept tasks are visible
+      const charlieTaskCount = await page
+        .locator('[data-task-title="Charlie Task - Database Migration"]')
+        .count();
+      const aliceTask1Count = await page
+        .locator('[data-task-title="Alice Task - Frontend Update"]')
+        .count();
+      const bobTaskCount = await page
+        .locator('[data-task-title="Bob Task - Backend API"]')
+        .count();
+
+      console.warn(
+        `Child dept filter - Charlie: ${charlieTaskCount}, Alice1: ${aliceTask1Count}, Bob: ${bobTaskCount}`
+      );
+
+      // Child dept tasks should be visible
+      expect(charlieTaskCount).toBeGreaterThan(0);
+      // Parent dept tasks should NOT be visible
+      expect(aliceTask1Count + bobTaskCount).toBe(0);
+    }
+
+    // ============================================
+    // TEST 5: Select "All Departments" to show all tasks
+    // ============================================
+    await departmentFilter.selectOption({ label: 'All Departments' });
+    await page.waitForTimeout(2000);
+
+    // Verify all accessible tasks are visible again
+    const allAliceTask1Count = await page
+      .locator('[data-task-title="Alice Task - Frontend Update"]')
+      .count();
+    const allBobTaskCount = await page
+      .locator('[data-task-title="Bob Task - Backend API"]')
+      .count();
+    const allCharlieTaskCount = await page
+      .locator('[data-task-title="Charlie Task - Database Migration"]')
+      .count();
+
+    console.warn(
+      `All departments - Alice1: ${allAliceTask1Count}, Bob: ${allBobTaskCount}, Charlie: ${allCharlieTaskCount}`
+    );
+
+    // All tasks from hierarchy should be visible
+    expect(allAliceTask1Count).toBeGreaterThan(0);
+    expect(allBobTaskCount).toBeGreaterThan(0);
+    expect(allCharlieTaskCount).toBeGreaterThan(0);
+
+    // Peer dept task should NEVER be visible
+    const peerTaskCount = await page
+      .locator('[data-task-title="Peer Dept Task - Should Not Appear"]')
+      .count();
+    expect(peerTaskCount).toBe(0);
   });
 });

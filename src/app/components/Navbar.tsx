@@ -109,6 +109,7 @@ export default function Navbar() {
           <button
             onClick={handleSecureLogout}
             disabled={isLoggingOut}
+            data-testid='sign-out-button'
             style={{
               backgroundColor: isLoggingOut ? '#6c757d' : '#dc3545',
               color: 'white',

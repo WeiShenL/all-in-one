@@ -99,7 +99,7 @@ test.describe('Signup to Dashboard, Logout and log back in Flow', () => {
     ).toBeVisible({ timeout: 15000 });
 
     // Logout via Navbar
-    await page.getByRole('button', { name: /sign out/i }).click();
+    await page.locator('[data-testid="sign-out-button"]').click();
 
     // Wait for navigation to login page after logout
     await page.waitForURL(/\/auth\/login/, { timeout: 15000 });
@@ -119,7 +119,7 @@ test.describe('Signup to Dashboard, Logout and log back in Flow', () => {
     ).toBeVisible({ timeout: 15000 });
 
     // Final logout
-    await page.getByRole('button', { name: /sign out/i }).click();
+    await page.locator('[data-testid="sign-out-button"]').click();
 
     // Ensure we're back on Login Page
     await expect(
