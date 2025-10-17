@@ -252,7 +252,7 @@ describe('Integration Tests - Manager Dashboard', () => {
         `INSERT INTO "department" (id, name, "isActive", "createdAt", "updatedAt")
          VALUES (gen_random_uuid(), $1, true, NOW(), NOW())
          RETURNING id`,
-        ['Empty Department']
+        [`Empty Department-${testNamespace}`]
       );
       const emptyDeptId = emptyDeptResult.rows[0].id;
 
@@ -260,7 +260,12 @@ describe('Integration Tests - Manager Dashboard', () => {
         `INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt")
          VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
          RETURNING id`,
-        ['empty-manager@test.com', 'Empty Manager', 'MANAGER', emptyDeptId]
+        [
+          `empty-manager@${testNamespace}.com`,
+          'Empty Manager',
+          'MANAGER',
+          emptyDeptId,
+        ]
       );
       const emptyManagerId = emptyManagerResult.rows[0].id;
 
@@ -272,6 +277,14 @@ describe('Integration Tests - Manager Dashboard', () => {
       expect(result!.metrics.completed).toBe(0);
       expect(result!.metrics.blocked).toBe(0);
       expect(result!.tasks).toHaveLength(0);
+
+      // Clean up the empty manager and department
+      await pgClient.query(`DELETE FROM "user_profile" WHERE email = $1`, [
+        `empty-manager@${testNamespace}.com`,
+      ]);
+      await pgClient.query(`DELETE FROM "department" WHERE name = $1`, [
+        `Empty Department-${testNamespace}`,
+      ]);
     });
   });
 
