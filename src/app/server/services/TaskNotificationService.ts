@@ -1,9 +1,8 @@
 import { PrismaClient } from '@prisma/client';
-import { differenceInHours, format } from 'date-fns';
+import { differenceInHours } from 'date-fns';
 import { NotificationService } from './NotificationService';
 import { RealtimeService } from './RealtimeService';
 import { EmailService } from './EmailService'; // Assuming EmailService is still needed for direct email sending
-import { prisma } from '@/app/lib/prisma';
 
 export class TaskNotificationService {
   private prisma: PrismaClient;
@@ -64,7 +63,7 @@ export class TaskNotificationService {
         message = `Your task "${task.title}" is due today.`;
       }
       // Overdue by 1 day
-      else if (hoursUntilDue <= -24 && hoursUntilDue > -48) {
+      else if (hoursUntilDue <= -24 && hoursUntilDue >= -48) {
         notificationType = 'TASK_OVERDUE';
         title = 'Task Overdue';
         message = `Your task "${task.title}" was due yesterday.`;
@@ -104,11 +103,17 @@ export class TaskNotificationService {
 
       // 3. Send email notification using the new EmailService.sendEmail
       if (user.email) {
+        let emailMessage = `<p>Dear ${user.name || 'User'},</p><p>${message}</p>`;
+        if (user.isHrAdmin) {
+          emailMessage += `<p><b>This is a notification for the HR department.</b></p>`;
+        }
+        emailMessage += `<p>You can view the task here: <a href="${process.env.NEXT_PUBLIC_BASE_URL}/tasks/${task.id}">${task.title}</a></p><p>Regards,<br>Your Application Team</p>`;
+
         await this.emailService.sendEmail({
           to: 'james626629@gmail.com', // Hardcode for testing with Resend unverified domain
           subject: title,
           text: message,
-          html: `<p>Dear ${user.name || 'User'},</p><p>${message}</p><p>You can view the task here: <a href="${process.env.NEXT_PUBLIC_BASE_URL}/tasks/${task.id}">${task.title}</a></p><p>Regards,<br>Your Application Team</p>`,
+          html: emailMessage,
         });
       }
     }
