@@ -47,6 +47,7 @@ interface TaskCalendarProps {
   isLoading?: boolean;
   error?: Error | null;
   onTaskUpdated?: () => void;
+  showDepartmentFilter?: boolean; // Show department filter for managers
 }
 
 /**
@@ -104,10 +105,8 @@ function eventStyleGetter(event: CalendarEvent) {
   if (isForecastedRecurrence) {
     backgroundColor = '#cbd5e0'; // Light gray for forecasted recurring
   } else {
-    // Original tasks follow normal status colors
-    backgroundColor = isStarted
-      ? getStatusColor(event.resource.status)
-      : getStatusColor('TO_DO'); // TO_DO uses #E8C0FA
+    // Always use actual task status for color
+    backgroundColor = getStatusColor(event.resource.status);
   }
 
   // Get original task ID (without -recur- suffix)
@@ -293,6 +292,7 @@ export function TaskCalendar({
   isLoading = false,
   error = null,
   onTaskUpdated,
+  showDepartmentFilter = false,
 }: TaskCalendarProps) {
   // State for calendar view and date navigation
   const [view, setView] = useState<View>('month');
@@ -301,6 +301,31 @@ export function TaskCalendar({
   // State for selected task modal
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const modalContentRef = useRef<HTMLDivElement>(null);
+
+  // State for department filter (for managers)
+  const [departmentFilter, setDepartmentFilter] = useState<string>('');
+
+  // Extract unique departments from tasks for the filter dropdown
+  const departments = useMemo(() => {
+    if (!tasks || tasks.length === 0) {
+      return [];
+    }
+    const departmentSet = new Set<string>();
+    tasks.forEach(task => {
+      if (task.department?.name) {
+        departmentSet.add(task.department.name);
+      }
+    });
+    return Array.from(departmentSet).sort();
+  }, [tasks]);
+
+  // Filter tasks by department if filter is active
+  const filteredTasks = useMemo(() => {
+    if (!departmentFilter || !showDepartmentFilter) {
+      return tasks;
+    }
+    return tasks.filter(task => task.department?.name === departmentFilter);
+  }, [tasks, departmentFilter, showDepartmentFilter]);
 
   // Custom Day View - Kanban Board Layout (defined inside component to access setSelectedTaskId)
   const CustomDayView = useMemo(() => {
@@ -897,11 +922,11 @@ export function TaskCalendar({
 
   // Transform tasks to calendar events with recurring occurrences
   const events: CalendarEvent[] = useMemo(() => {
-    if (!tasks || tasks.length === 0) {
+    if (!filteredTasks || filteredTasks.length === 0) {
       return [];
     }
 
-    return tasks.flatMap(task => {
+    return filteredTasks.flatMap(task => {
       // Transform using taskToEvent utility
       const baseEvent = taskToEvent({
         id: task.id,
@@ -930,7 +955,7 @@ export function TaskCalendar({
       // For active tasks (TO_DO, IN_PROGRESS, BLOCKED), generate future occurrences
       return generateRecurringEvents(baseEvent, task.recurringInterval, 12);
     });
-  }, [tasks]);
+  }, [filteredTasks]);
 
   // Handle export
   const handleExport = () => {
@@ -1087,6 +1112,27 @@ export function TaskCalendar({
           max-height: 700px !important;
         }
 
+        /* Week view: Extend vertical lines between dates through scrollable area */
+        .rbc-time-view .rbc-row-bg {
+          display: flex !important;
+          height: 100% !important;
+        }
+        .rbc-time-view .rbc-day-bg {
+          border-right: 1px solid #ddd !important;
+          flex: 1 !important;
+        }
+        .rbc-time-view .rbc-day-bg:last-child {
+          border-right: none !important;
+        }
+
+        /* Make sure header columns also have borders */
+        .rbc-time-view .rbc-header {
+          border-right: 1px solid #ddd !important;
+        }
+        .rbc-time-view .rbc-header:last-child {
+          border-right: none !important;
+        }
+
         /* Custom scrollbar styling */
         .rbc-overlay::-webkit-scrollbar,
         .rbc-time-view .rbc-allday-cell::-webkit-scrollbar {
@@ -1112,9 +1158,32 @@ export function TaskCalendar({
 
       <div style={styles.header}>
         <h2 style={styles.title}>{title}</h2>
-        <button onClick={handleExport} style={styles.exportButton}>
-          📥 Export to iCal
-        </button>
+        <div style={styles.headerActions}>
+          {showDepartmentFilter && departments.length > 0 && (
+            <div style={styles.filterContainer}>
+              <label htmlFor='department-filter' style={styles.filterLabel}>
+                Department:
+              </label>
+              <select
+                id='department-filter'
+                value={departmentFilter}
+                onChange={e => setDepartmentFilter(e.target.value)}
+                style={styles.filterSelect}
+                data-testid='department-filter'
+              >
+                <option value=''>All Departments</option>
+                {departments.map(dept => (
+                  <option key={dept} value={dept}>
+                    {dept}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          <button onClick={handleExport} style={styles.exportButton}>
+            📥 Export to iCal
+          </button>
+        </div>
       </div>
 
       <div style={styles.calendarWrapper}>
@@ -1464,6 +1533,35 @@ const styles = {
     fontWeight: 600,
     color: '#2d3748',
     margin: 0,
+  },
+  headerActions: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '1rem',
+  },
+  filterContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+  },
+  filterLabel: {
+    fontSize: '0.875rem',
+    fontWeight: 500,
+    color: '#4a5568',
+  },
+  filterSelect: {
+    padding: '0.5rem 1rem',
+    borderWidth: '1px',
+    borderStyle: 'solid',
+    borderColor: '#e2e8f0',
+    backgroundColor: '#ffffff',
+    borderRadius: '6px',
+    fontSize: '0.875rem',
+    fontWeight: 500,
+    color: '#4a5568',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+    minWidth: '200px',
   },
   exportButton: {
     padding: '0.5rem 1rem',

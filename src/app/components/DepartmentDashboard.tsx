@@ -4,6 +4,7 @@ import { TaskTable } from './TaskTable';
 import { TaskCalendar } from './Calendar/TaskCalendar';
 import { DashboardTabs } from './DashboardTabs';
 import { trpc } from '../lib/trpc';
+import { useAuth } from '@/lib/supabase/auth-context';
 
 /**
  * Department Dashboard Component
@@ -12,6 +13,7 @@ import { trpc } from '../lib/trpc';
  * Supports both Table and Calendar views via tabs
  */
 export function DepartmentDashboard() {
+  const { userProfile } = useAuth();
   const { data, isLoading, error, refetch } =
     trpc.task.getDepartmentTasksForUser.useQuery();
 
@@ -43,6 +45,7 @@ export function DepartmentDashboard() {
           isLoading={isLoading}
           error={error ? new Error(error.message) : null}
           onTaskUpdated={refetch}
+          showDepartmentFilter={userProfile?.role === 'MANAGER'}
         />
       }
       defaultTab='table'
