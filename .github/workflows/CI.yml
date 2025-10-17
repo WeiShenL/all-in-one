@@ -304,6 +304,7 @@ jobs:
           npm install --save-dev @types/react
 
       - name: Restore Playwright cache
+        id: restore-cache
         uses: actions/cache/restore@v4
         with:
           path: ~/.cache/ms-playwright
@@ -313,7 +314,7 @@ jobs:
 
       - name: Ensure Playwright browsers (fallback)
         run: npx playwright install --with-deps
-        if: hashFiles('~/.cache/ms-playwright') == ''
+        if: steps.restore-cache.outputs.cache-hit != 'true'
 
       - name: Run E2E Tests Against Preview (Sharded)
         env:
