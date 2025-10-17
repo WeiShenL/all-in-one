@@ -1684,6 +1684,9 @@ const agendaStyles = {
     gap: '0.25rem',
     width: '100%',
     borderLeft: '4px solid',
+    position: 'sticky' as const,
+    top: 0,
+    zIndex: 10,
   },
   dateTitle: {
     fontSize: '0.875rem',
