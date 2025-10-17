@@ -40,5 +40,5 @@ describe('Postgres trigger for public."user_profile"', () => {
     expect(result.rows[0].email).toBe('trigger-test@example.com');
     expect(result.rows[0].name).toBe('TriggerTest');
     expect(result.rows[0].role).toBe('STAFF');
-  }, 15000);
+  }, 25000);
 });

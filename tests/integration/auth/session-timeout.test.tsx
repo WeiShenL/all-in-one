@@ -50,7 +50,7 @@ describe('Session Timeout Integration Tests', () => {
 
     it('should include redirect URL in message when provided', () => {
       const mockSearchParams = new URLSearchParams(
-        'expired=true&redirect=%2Fdashboard%2Fstaff'
+        'expired=true&redirect=%2Fdashboard%2Fpersonal'
       );
       (useSearchParams as jest.Mock).mockReturnValue(mockSearchParams);
 
@@ -90,7 +90,7 @@ describe('Session Timeout Integration Tests', () => {
   describe('Session Expiry Redirect After Login', () => {
     it('should redirect to original page after successful login from session expiry', async () => {
       const mockSearchParams = new URLSearchParams(
-        'expired=true&redirect=%2Fdashboard%2Fmanager'
+        'expired=true&redirect=%2Fdashboard%2Fdepartment'
       );
       (useSearchParams as jest.Mock).mockReturnValue(mockSearchParams);
 
@@ -130,7 +130,7 @@ describe('Session Timeout Integration Tests', () => {
 
       // Should redirect to the original page from redirect param
       await waitFor(() => {
-        expect(mockPush).toHaveBeenCalledWith('/dashboard/manager');
+        expect(mockPush).toHaveBeenCalledWith('/dashboard/department');
       });
     });
 

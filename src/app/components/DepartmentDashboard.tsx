@@ -14,8 +14,25 @@ import { useAuth } from '@/lib/supabase/auth-context';
  */
 export function DepartmentDashboard() {
   const { userProfile } = useAuth();
-  const { data, isLoading, error, refetch } =
+
+  // Try to get utils for query invalidation (may not be available in test environment)
+  let utils;
+  try {
+    utils = trpc.useUtils();
+  } catch {
+    // useUtils not available (e.g., in test environment without provider)
+    utils = null;
+  }
+
+  const { data, isLoading, error } =
     trpc.task.getDepartmentTasksForUser.useQuery();
+
+  const handleTaskUpdated = utils
+    ? () => {
+        // Invalidate the query to trigger a refetch
+        utils.task.getDepartmentTasksForUser.invalidate();
+      }
+    : undefined;
 
   const emptyStateConfig = {
     icon: '📁',
@@ -34,7 +51,7 @@ export function DepartmentDashboard() {
           emptyStateConfig={emptyStateConfig}
           isLoading={isLoading}
           error={error ? new Error(error.message) : null}
-          onTaskUpdated={refetch}
+          onTaskUpdated={handleTaskUpdated}
         />
       }
       calendarView={
@@ -44,7 +61,7 @@ export function DepartmentDashboard() {
           emptyStateConfig={emptyStateConfig}
           isLoading={isLoading}
           error={error ? new Error(error.message) : null}
-          onTaskUpdated={refetch}
+          onTaskUpdated={handleTaskUpdated}
           showDepartmentFilter={userProfile?.role === 'MANAGER'}
         />
       }

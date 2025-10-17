@@ -28,7 +28,7 @@ jest.mock('@/lib/context/NotificationContext', () => ({
 describe('useSessionTimeout', () => {
   const mockPush = jest.fn();
   const mockOnTimeout = jest.fn();
-  const mockPathname = '/dashboard/staff';
+  const mockPathname = '/dashboard/personal';
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -92,7 +92,7 @@ describe('useSessionTimeout', () => {
     });
 
     it('should store session expired info in localStorage after timeout', async () => {
-      (usePathname as jest.Mock).mockReturnValue('/dashboard/manager');
+      (usePathname as jest.Mock).mockReturnValue('/dashboard/department');
 
       renderHook(() =>
         useSessionTimeout({
@@ -109,7 +109,7 @@ describe('useSessionTimeout', () => {
         expect(mockOnTimeout).toHaveBeenCalledTimes(1);
         expect(localStorage.getItem('sessionExpired')).toBe('true');
         expect(localStorage.getItem('sessionExpiredRedirect')).toBe(
-          '/dashboard/manager'
+          '/dashboard/department'
         );
       });
     });

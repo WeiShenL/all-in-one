@@ -216,7 +216,7 @@ test.describe('Subtask Creation E2E - SCRUM-65', () => {
      * STEP 2: Wait for dashboard to load
      */
     await expect(
-      page.getByRole('heading', { name: /staff dashboard/i })
+      page.getByRole('heading', { name: /personal dashboard/i })
     ).toBeVisible({ timeout: 40000 });
 
     // Verify parent task appears in dashboard
@@ -225,7 +225,7 @@ test.describe('Subtask Creation E2E - SCRUM-65', () => {
     });
 
     /**
-     * STEP 3: Navigate to Create Task page
+     * STEP 3: Open Create Task modal
      */
     const createTaskButton = page.getByRole('button', {
       name: /\+ Create Task/i,
@@ -233,50 +233,54 @@ test.describe('Subtask Creation E2E - SCRUM-65', () => {
     await expect(createTaskButton).toBeVisible({ timeout: 40000 });
     await createTaskButton.click();
 
-    // Wait for task creation form
-    await expect(page).toHaveURL(/\/tasks\/create/, { timeout: 40000 });
+    // Wait for modal to open
+    await expect(
+      page.getByRole('heading', { name: /create new task/i })
+    ).toBeVisible({ timeout: 40000 });
 
     /**
      * STEP 4: Fill out subtask form
      */
     // Fill title
-    await page.getByLabel(/title/i).fill('E2E Test Subtask');
+    await page
+      .getByPlaceholder(/implement login feature/i)
+      .fill('E2E Test Subtask');
 
     // Fill description
     await page
-      .getByLabel(/description/i)
+      .getByPlaceholder(/detailed description/i)
       .fill('This is a subtask created via Playwright E2E test');
 
     // Fill priority
-    await page.getByLabel(/priority/i).fill('7');
+    await page.locator('input[type="number"]').first().fill('7');
 
-    // Fill due date (using id selector)
-    await page.locator('#date').fill('2025-12-30');
+    // Fill due date
+    await page.locator('input[type="date"]').first().fill('2025-12-30');
 
     // SELECT PARENT TASK - This makes it a subtask!
-    const parentTaskSelect = page.locator('select[name="parentTaskId"]');
+    const parentTaskSelect = page
+      .locator('select')
+      .filter({ hasText: /select parent task/i });
     await expect(parentTaskSelect).toBeVisible({ timeout: 40000 });
     await parentTaskSelect.selectOption(testParentTaskId);
 
-    // Fill assignee emails (comma-separated in single input)
-    await page
-      .getByPlaceholder('user1@example.com, user2@example.com')
-      .fill(testEmail);
+    // User is auto-assigned, no need to manually add assignee
 
     /**
      * STEP 5: Submit the form
      */
     const createButton = page.getByRole('button', {
-      name: /create task/i,
-      exact: false,
+      name: /✓ create task/i,
     });
     await expect(createButton).toBeEnabled({ timeout: 40000 });
     await createButton.click();
 
     /**
-     * STEP 6: Verify redirect to dashboard
+     * STEP 6: Verify modal closes
      */
-    await expect(page).toHaveURL(/\/dashboard/, { timeout: 40000 });
+    await expect(
+      page.getByRole('heading', { name: /create new task/i })
+    ).not.toBeVisible({ timeout: 40000 });
 
     /**
      * STEP 7: Verify subtask appears in UI

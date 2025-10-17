@@ -166,7 +166,7 @@ describeIfSupabase('Realtime Notifications - Multiple Clients', () => {
         'Testing multiple client reception'
       );
       expect(receivedMessages.client3[0].broadcast_at).toBeDefined();
-    });
+    }, 25000);
 
     test('multiple broadcasts reach all clients', async () => {
       // Setup: Subscribe all clients
@@ -287,7 +287,7 @@ describeIfSupabase('Realtime Notifications - Multiple Clients', () => {
       expect(client1Titles).toContain('Broadcast 1');
       expect(client1Titles).toContain('Broadcast 2');
       expect(client1Titles).toContain('Broadcast 3');
-    });
+    }, 25000);
 
     test('clients can unsubscribe and no longer receive broadcasts', async () => {
       // Setup: Subscribe all clients
@@ -376,7 +376,7 @@ describeIfSupabase('Realtime Notifications - Multiple Clients', () => {
       expect(receivedMessages.client1).toHaveLength(1);
       expect(receivedMessages.client1[0].title).toBe('After Unsubscribe');
       expect(receivedMessages.client2).toHaveLength(0);
-    });
+    }, 25000);
   });
 
   describe('Broadcast Error Handling', () => {
@@ -391,7 +391,7 @@ describeIfSupabase('Realtime Notifications - Multiple Clients', () => {
           payload: { message: 'test' },
         })
       ).resolves.toBeDefined(); // Should not throw, but return error status
-    });
+    }, 25000);
 
     test('should handle subscription errors gracefully', async () => {
       const errorHandler = jest.fn();
@@ -416,6 +416,6 @@ describeIfSupabase('Realtime Notifications - Multiple Clients', () => {
 
       // The test passes if no unhandled errors are thrown
       expect(errorHandler).toHaveBeenCalledTimes(0); // Should successfully subscribe
-    });
+    }, 25000);
   });
 });

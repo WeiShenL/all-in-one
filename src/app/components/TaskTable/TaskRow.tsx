@@ -264,6 +264,13 @@ export const TaskRow = ({
           )}
         </td>
         <td style={styles.td}>
+          {task.project?.name || (
+            <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>
+              No project assigned
+            </span>
+          )}
+        </td>
+        <td style={styles.td}>
           {departmentData.find(d => d.id === task.departmentId)?.name || 'N/A'}
         </td>
         <td style={styles.td}>
@@ -283,7 +290,7 @@ export const TaskRow = ({
         <>
           <tr style={{ backgroundColor: '#f8fafc' }}>
             <td
-              colSpan={7}
+              colSpan={8}
               style={{
                 padding: '8px 16px',
                 fontSize: '12px',

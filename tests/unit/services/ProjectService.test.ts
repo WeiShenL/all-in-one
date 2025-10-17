@@ -75,7 +75,6 @@ describe('ProjectService', () => {
             name: input.name,
             description: input.description,
             priority: input.priority,
-            dueDate: input.dueDate,
             departmentId: input.departmentId,
             creatorId: input.creatorId,
           },

@@ -56,6 +56,13 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
   // File upload state
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
+  // Auto-assign current user's email
+  useEffect(() => {
+    if (userProfile?.email) {
+      setAssigneeEmails(userProfile.email);
+    }
+  }, [userProfile]);
+
   // Fetch user's tasks for parent task selector
   useEffect(() => {
     async function fetchTasks() {

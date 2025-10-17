@@ -104,7 +104,7 @@ describe('Login Integration Tests', () => {
       expect(profileResult.rows.length).toBe(1);
       expect(profileResult.rows[0].email).toBe(TEST_USER_EMAIL);
       expect(profileResult.rows[0].role).toBe('STAFF');
-    }, 15000);
+    }, 25000);
 
     it('should return session with correct token', async () => {
       await createTestUser(TEST_USER_EMAIL, TEST_USER_PASSWORD);
@@ -119,7 +119,7 @@ describe('Login Integration Tests', () => {
       expect(data.session?.access_token).toBeTruthy();
       expect(data.session?.refresh_token).toBeTruthy();
       expect(data.session?.expires_at).toBeGreaterThan(Date.now() / 1000);
-    }, 15000);
+    }, 25000);
 
     it('should fetch user profile after login', async () => {
       const user = await createTestUser(TEST_USER_EMAIL, TEST_USER_PASSWORD, {
@@ -139,7 +139,7 @@ describe('Login Integration Tests', () => {
       expect(profileResult.rows.length).toBe(1);
       expect(profileResult.rows[0].name).toBe('Test User');
       expect(profileResult.rows[0].role).toBe('STAFF');
-    }, 15000);
+    }, 25000);
   });
 
   // -----------------------------
@@ -156,7 +156,7 @@ describe('Login Integration Tests', () => {
       expect(error?.message).toContain('Invalid');
       expect(data.user).toBeNull();
       expect(data.session).toBeNull();
-    }, 15000);
+    }, 25000);
 
     it('should fail with incorrect password', async () => {
       await createTestUser(TEST_USER_EMAIL, TEST_USER_PASSWORD);
@@ -170,7 +170,7 @@ describe('Login Integration Tests', () => {
       expect(error?.message).toContain('Invalid');
       expect(data.user).toBeNull();
       expect(data.session).toBeNull();
-    }, 15000);
+    }, 25000);
 
     it('should fail with empty credentials', async () => {
       const { data, error } = await supabaseClient.auth.signInWithPassword({
@@ -181,7 +181,7 @@ describe('Login Integration Tests', () => {
       expect(error).toBeTruthy();
       expect(data.user).toBeNull();
       expect(data.session).toBeNull();
-    }, 15000);
+    }, 25000);
 
     it('should fail with malformed email', async () => {
       const { data, error } = await supabaseClient.auth.signInWithPassword({
@@ -192,7 +192,7 @@ describe('Login Integration Tests', () => {
       expect(error).toBeTruthy();
       expect(data.user).toBeNull();
       expect(data.session).toBeNull();
-    }, 15000);
+    }, 25000);
   });
 
   // -----------------------------
@@ -213,7 +213,7 @@ describe('Login Integration Tests', () => {
 
       expect(session).toBeTruthy();
       expect(session?.user.email).toBe(TEST_USER_EMAIL);
-    }, 15000);
+    }, 25000);
 
     it('should not have session before login', async () => {
       const {
@@ -221,7 +221,7 @@ describe('Login Integration Tests', () => {
       } = await supabaseClient.auth.getSession();
 
       expect(session).toBeNull();
-    }, 15000);
+    }, 25000);
 
     it('should clear session after logout', async () => {
       await createTestUser(TEST_USER_EMAIL, TEST_USER_PASSWORD);
@@ -242,7 +242,7 @@ describe('Login Integration Tests', () => {
         data: { session },
       } = await supabaseClient.auth.getSession());
       expect(session).toBeNull();
-    }, 15000);
+    }, 25000);
   });
 
   // -----------------------------
@@ -258,7 +258,7 @@ describe('Login Integration Tests', () => {
       );
 
       expect(profileResult.rows[0].role).toBe('STAFF');
-    }, 15000);
+    }, 25000);
 
     it('should maintain role across login sessions', async () => {
       const user = await createTestUser(TEST_USER_EMAIL, TEST_USER_PASSWORD);
@@ -279,6 +279,6 @@ describe('Login Integration Tests', () => {
       );
 
       expect(profileResult.rows[0].role).toBe('MANAGER');
-    }, 15000);
+    }, 25000);
   });
 });

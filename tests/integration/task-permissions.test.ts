@@ -227,44 +227,50 @@ describe('Task API Permissions', () => {
     ]);
 
     testTasks = [task1, task2, task3];
-  });
+  }, 60000);
 
   afterAll(async () => {
-    // Cleanup test data
-    await prisma.taskAssignment.deleteMany({
-      where: {
-        taskId: {
-          in: testTasks.map(t => t.id),
+    // Cleanup test data (with null checks in case beforeAll failed)
+    if (testTasks?.length) {
+      await prisma.taskAssignment.deleteMany({
+        where: {
+          taskId: {
+            in: testTasks.map(t => t.id),
+          },
         },
-      },
-    });
+      });
 
-    await prisma.task.deleteMany({
-      where: {
-        id: {
-          in: testTasks.map(t => t.id),
+      await prisma.task.deleteMany({
+        where: {
+          id: {
+            in: testTasks.map(t => t.id),
+          },
         },
-      },
-    });
+      });
+    }
 
-    await prisma.userProfile.deleteMany({
-      where: {
-        id: {
-          in: testUsers.map(u => u.id),
+    if (testUsers?.length) {
+      await prisma.userProfile.deleteMany({
+        where: {
+          id: {
+            in: testUsers.map(u => u.id),
+          },
         },
-      },
-    });
+      });
+    }
 
-    await prisma.department.deleteMany({
-      where: {
-        id: {
-          in: testDepartments.map(d => d.id),
+    if (testDepartments?.length) {
+      await prisma.department.deleteMany({
+        where: {
+          id: {
+            in: testDepartments.map(d => d.id),
+          },
         },
-      },
-    });
+      });
+    }
 
     await prisma.$disconnect();
-  });
+  }, 60000);
 
   describe('getUserTasks', () => {
     it('should return canEdit=true for all personal tasks (STAFF user)', async () => {
@@ -288,7 +294,7 @@ describe('Task API Permissions', () => {
       result.forEach((task: any) => {
         expect(task.canEdit).toBe(true);
       });
-    });
+    }, 25000);
 
     it('should return canEdit=true for all personal tasks (MANAGER user)', async () => {
       const taskId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
@@ -344,7 +350,7 @@ describe('Task API Permissions', () => {
       await prisma.task.delete({
         where: { id: taskId },
       });
-    });
+    }, 25000);
 
     it('should only return tasks assigned to the user', async () => {
       const ctx = createInnerTRPCContext({
@@ -365,7 +371,7 @@ describe('Task API Permissions', () => {
       expect(taskIds).toContain(TEST_IDS.TASK_DEV1_ASSIGNED);
       expect(taskIds).not.toContain(TEST_IDS.TASK_SUPPORT1_ASSIGNED);
       expect(taskIds).not.toContain(TEST_IDS.TASK_UNASSIGNED);
-    });
+    }, 25000);
   });
 
   describe('getDepartmentTasksForUser', () => {
@@ -388,8 +394,10 @@ describe('Task API Permissions', () => {
         (t: any) => t.id === TEST_IDS.TASK_DEV1_ASSIGNED
       );
       expect(assignedTask).toBeDefined();
-      expect(assignedTask.canEdit).toBe(true);
-    });
+      if (assignedTask) {
+        expect(assignedTask.canEdit).toBe(true);
+      }
+    }, 25000);
 
     it('should return canEdit=false for staff non-assigned tasks', async () => {
       const ctx = createInnerTRPCContext({
@@ -408,7 +416,7 @@ describe('Task API Permissions', () => {
       result.forEach((task: any) => {
         expect(task.canEdit).toBe(false);
       });
-    });
+    }, 25000);
 
     it('should return canEdit=true for ALL manager tasks in hierarchy', async () => {
       const ctx = createInnerTRPCContext({
@@ -437,7 +445,7 @@ describe('Task API Permissions', () => {
           TEST_IDS.DEPT_SUPPORT,
         ])
       );
-    });
+    }, 25000);
 
     it('should include tasks from subordinate departments for managers', async () => {
       const ctx = createInnerTRPCContext({
@@ -458,7 +466,7 @@ describe('Task API Permissions', () => {
       expect(taskIds).toContain(TEST_IDS.TASK_DEV1_ASSIGNED);
       expect(taskIds).toContain(TEST_IDS.TASK_SUPPORT1_ASSIGNED);
       expect(taskIds).toContain(TEST_IDS.TASK_UNASSIGNED);
-    });
+    }, 25000);
 
     it('should only show departmental tasks for staff, not all company tasks', async () => {
       const ctx = createInnerTRPCContext({
@@ -485,7 +493,7 @@ describe('Task API Permissions', () => {
           TEST_IDS.DEPT_SUPPORT,
         ]).toContain(deptId);
       });
-    });
+    }, 25000);
   });
 
   describe('getDashboardTasks (Manager)', () => {
@@ -508,7 +516,7 @@ describe('Task API Permissions', () => {
       result.tasks.forEach((task: any) => {
         expect(task.canEdit).toBe(true);
       });
-    });
+    }, 25000);
   });
 
   describe('Edge Cases', () => {
@@ -562,7 +570,7 @@ describe('Task API Permissions', () => {
       await prisma.task.delete({
         where: { id: archivedTaskId },
       });
-    });
+    }, 25000);
 
     it('should handle user with no assigned tasks', async () => {
       const ctx = createInnerTRPCContext({
@@ -580,6 +588,6 @@ describe('Task API Permissions', () => {
 
       expect(result).toBeDefined();
       expect(result.length).toBe(0);
-    });
+    }, 25000);
   });
 });

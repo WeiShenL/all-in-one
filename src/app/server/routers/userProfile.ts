@@ -63,9 +63,10 @@ export const userProfileRouter = router({
     .input(
       z.object({
         email: z.string().email(),
-        name: z.string().optional(),
+        name: z.string(),
         role: z.enum(['STAFF', 'MANAGER', 'HR_ADMIN']).optional(),
         departmentId: z.string(),
+        isHrAdmin: z.boolean().optional(),
       })
     )
     .mutation(({ ctx, input }) => {
@@ -82,6 +83,7 @@ export const userProfileRouter = router({
         role: z.enum(['STAFF', 'MANAGER', 'HR_ADMIN']).optional(),
         departmentId: z.string().optional(),
         isActive: z.boolean().optional(),
+        isHrAdmin: z.boolean().optional(),
       })
     )
     .mutation(({ ctx, input }) => {

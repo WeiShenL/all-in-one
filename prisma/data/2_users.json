@@ -48,7 +48,8 @@
     "id": "1f2636b6-57af-4e5e-9eab-3985620aa910",
     "email": "sally.loh@allinone.com",
     "name": "Sally Loh",
-    "role": "HR_ADMIN",
+    "role": "STAFF",
+    "isHrAdmin": true,
     "departmentId": "60e6fc6e-b46c-4b78-9687-40e45546599f",
     "createdAt": "2025-01-01T00:00:00.000Z",
     "updatedAt": "2025-01-01T00:00:00.000Z"

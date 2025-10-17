@@ -26,9 +26,10 @@ export interface UpdateDepartmentInput {
 // UserProfile Types
 export interface CreateUserProfileInput {
   email: string;
-  name?: string;
+  name: string;
   role?: 'STAFF' | 'MANAGER' | 'HR_ADMIN';
   departmentId: string;
+  isHrAdmin?: boolean;
 }
 
 export interface UpdateUserProfileInput {
@@ -37,6 +38,7 @@ export interface UpdateUserProfileInput {
   role?: 'STAFF' | 'MANAGER' | 'HR_ADMIN';
   departmentId?: string;
   isActive?: boolean;
+  isHrAdmin?: boolean;
 }
 
 // Team Types
@@ -162,7 +164,7 @@ export interface DashboardData {
     assignments: Array<{
       user: {
         id: string;
-        name: string | null;
+        name: string;
         email: string;
       };
     }>;

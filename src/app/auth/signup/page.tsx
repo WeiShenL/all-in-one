@@ -19,7 +19,8 @@ export default function SignupPage() {
     password: '',
     confirmPassword: '',
     name: '',
-    role: 'STAFF' as 'STAFF' | 'MANAGER' | 'HR_ADMIN',
+    role: 'STAFF' as 'STAFF' | 'MANAGER',
+    isHrAdmin: false,
     departmentId: '',
   });
   const [error, setError] = useState<string>('');
@@ -43,13 +44,8 @@ export default function SignupPage() {
   // Redirect if already logged in
   useEffect(() => {
     if (!authLoading && user && userProfile) {
-      // All users (STAFF, MANAGER) go to personal dashboard
-      // HR_ADMIN still uses their own dashboard
-      if (userProfile.role === 'HR_ADMIN') {
-        router.push('/dashboard/hr');
-      } else {
-        router.push('/dashboard/personal');
-      }
+      // All users (STAFF, MANAGER, HR/Admin) go to personal dashboard
+      router.push('/dashboard/personal');
     }
   }, [user, userProfile, authLoading, router]);
 
@@ -78,6 +74,11 @@ export default function SignupPage() {
       return;
     }
 
+    if (!formData.name || formData.name.trim() === '') {
+      setError('Name is required');
+      return;
+    }
+
     setLoading(true);
     console.warn('🔍 About to call signUp function');
 
@@ -85,13 +86,15 @@ export default function SignupPage() {
       console.warn('🔍 Calling signUp with:', {
         email: formData.email,
         role: formData.role,
+        isHrAdmin: formData.isHrAdmin,
       });
       const { error: signUpError } = await signUp(
         formData.email,
         formData.password,
         {
-          name: formData.name || undefined,
+          name: formData.name,
           role: formData.role,
+          isHrAdmin: formData.isHrAdmin,
           departmentId: formData.departmentId,
         }
       );
@@ -218,7 +221,7 @@ export default function SignupPage() {
                 fontSize: '0.875rem',
               }}
             >
-              Name (Optional)
+              Name <span style={{ color: '#e53e3e' }}>*</span>
             </label>
             <input
               id='name'
@@ -226,6 +229,7 @@ export default function SignupPage() {
               value={formData.name}
               onChange={e => setFormData({ ...formData, name: e.target.value })}
               placeholder='Enter your name'
+              required
               style={{
                 width: '100%',
                 padding: '0.75rem',
@@ -272,7 +276,7 @@ export default function SignupPage() {
                 onChange={e =>
                   setFormData({
                     ...formData,
-                    role: e.target.value as 'STAFF' | 'MANAGER' | 'HR_ADMIN',
+                    role: e.target.value as 'STAFF' | 'MANAGER',
                   })
                 }
                 required
@@ -297,7 +301,6 @@ export default function SignupPage() {
               >
                 <option value='STAFF'>Staff</option>
                 <option value='MANAGER'>Manager</option>
-                <option value='HR_ADMIN'>HR Admin</option>
               </select>
               <span
                 style={{
@@ -313,6 +316,67 @@ export default function SignupPage() {
                 ▼
               </span>
             </div>
+          </div>
+
+          <div style={{ marginBottom: '1rem' }}>
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                cursor: 'pointer',
+                padding: '0.75rem',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                backgroundColor: formData.isHrAdmin ? '#ebf8ff' : '#ffffff',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={e => {
+                if (!formData.isHrAdmin) {
+                  e.currentTarget.style.backgroundColor = '#f7fafc';
+                }
+              }}
+              onMouseLeave={e => {
+                if (!formData.isHrAdmin) {
+                  e.currentTarget.style.backgroundColor = '#ffffff';
+                }
+              }}
+            >
+              <input
+                id='isHrAdmin'
+                type='checkbox'
+                checked={formData.isHrAdmin}
+                onChange={e =>
+                  setFormData({ ...formData, isHrAdmin: e.target.checked })
+                }
+                style={{
+                  width: '1.25rem',
+                  height: '1.25rem',
+                  marginRight: '0.75rem',
+                  cursor: 'pointer',
+                  accentColor: '#3182ce',
+                }}
+              />
+              <div style={{ flex: 1 }}>
+                <span
+                  style={{
+                    fontWeight: '600',
+                    color: '#2d3748',
+                    fontSize: '0.875rem',
+                  }}
+                >
+                  HR/Admin
+                </span>
+                <p
+                  style={{
+                    margin: '0.25rem 0 0 0',
+                    fontSize: '0.75rem',
+                    color: '#718096',
+                  }}
+                >
+                  Check this if the user has HR or Admin responsibilities
+                </p>
+              </div>
+            </label>
           </div>
 
           <div style={{ marginBottom: '1rem' }}>
@@ -429,6 +493,8 @@ export default function SignupPage() {
               !passwordValidation.isValid ||
               formData.password !== formData.confirmPassword ||
               !formData.departmentId ||
+              !formData.name ||
+              formData.name.trim() === '' ||
               loading
             }
             style={{
@@ -439,6 +505,8 @@ export default function SignupPage() {
                 passwordValidation.isValid &&
                 formData.password === formData.confirmPassword &&
                 formData.departmentId &&
+                formData.name &&
+                formData.name.trim() !== '' &&
                 !loading
                   ? '#48bb78'
                   : '#cbd5e0',
@@ -452,6 +520,8 @@ export default function SignupPage() {
                 passwordValidation.isValid &&
                 formData.password === formData.confirmPassword &&
                 formData.departmentId &&
+                formData.name &&
+                formData.name.trim() !== '' &&
                 !loading
                   ? 'pointer'
                   : 'not-allowed',
@@ -463,6 +533,8 @@ export default function SignupPage() {
                 passwordValidation.isValid &&
                 formData.password === formData.confirmPassword &&
                 formData.departmentId &&
+                formData.name &&
+                formData.name.trim() !== '' &&
                 !loading
               ) {
                 e.currentTarget.style.backgroundColor = '#38a169';
@@ -474,6 +546,8 @@ export default function SignupPage() {
                 passwordValidation.isValid &&
                 formData.password === formData.confirmPassword &&
                 formData.departmentId &&
+                formData.name &&
+                formData.name.trim() !== '' &&
                 !loading
               ) {
                 e.currentTarget.style.backgroundColor = '#48bb78';

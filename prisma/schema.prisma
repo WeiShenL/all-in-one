@@ -74,9 +74,10 @@ model Department {
 model UserProfile {
   id           String   @id @default(uuid())
   email        String   @unique
-  name         String?
+  name         String
   role         UserRole @default(STAFF)
   departmentId String
+  isHrAdmin    Boolean  @default(false)
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -140,10 +141,9 @@ model TeamMember {
 // PROJECT
 model Project {
   id           String        @id @default(uuid())
-  name         String
+  name         String        @unique
   description  String?       @db.Text
   priority     Int           @default(5) // Priority scale 1-10
-  dueDate      DateTime?
   status       ProjectStatus @default(ACTIVE)
   departmentId String
   creatorId    String
@@ -159,7 +159,6 @@ model Project {
   @@index([creatorId])
   @@index([status])
   @@index([isArchived])
-  @@index([dueDate])
   @@map("project")
 }
 

@@ -9,17 +9,8 @@ export default function Navbar() {
 
   // Get dashboard route - all users go to personal dashboard by default
   const getDashboardRoute = () => {
-    if (!userProfile?.role) {
-      return '/dashboard';
-    }
-
-    const roleRoutes = {
-      STAFF: '/dashboard/personal',
-      MANAGER: '/dashboard/personal', // All users use personal dashboard as their main dashboard
-      HR_ADMIN: '/dashboard/hr',
-    };
-
-    return roleRoutes[userProfile.role] || '/dashboard';
+    // All users (including HR/Admin) use personal dashboard
+    return '/dashboard/personal';
   };
 
   return (
@@ -77,6 +68,44 @@ export default function Navbar() {
             }}
           >
             Department
+          </a>
+          {/* Company link - visible only to HR/Admin users */}
+          {userProfile &&
+            (userProfile.isHrAdmin || userProfile.role === 'HR_ADMIN') && (
+              <a
+                href='/dashboard/company'
+                style={{
+                  color: '#495057',
+                  textDecoration: 'none',
+                  fontWeight: '500',
+                }}
+              >
+                Company
+              </a>
+            )}
+          {/* Admin Dashboard link - visible only to HR/Admin users */}
+          {userProfile &&
+            (userProfile.isHrAdmin || userProfile.role === 'HR_ADMIN') && (
+              <a
+                href='/dashboard/hr'
+                style={{
+                  color: '#495057',
+                  textDecoration: 'none',
+                  fontWeight: '500',
+                }}
+              >
+                Admin
+              </a>
+            )}
+          <a
+            href='/projects'
+            style={{
+              color: '#495057',
+              textDecoration: 'none',
+              fontWeight: '500',
+            }}
+          >
+            Projects
           </a>
           <a
             href='/profile'

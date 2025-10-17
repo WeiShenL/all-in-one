@@ -1,8 +1,8 @@
 'use client';
 
 import { useMemo, useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
 import { TaskCard } from '../TaskCard';
+import { TaskCreateModal } from '../TaskCreateModal';
 import { trpc } from '@/app/lib/trpc';
 import departmentData from '@/../prisma/data/1_departments.json';
 import {
@@ -55,6 +55,7 @@ export function TaskTable({
   title = 'All Tasks',
   showCreateButton = true,
   onCreateTask,
+  onTaskCreated,
   emptyStateConfig = {
     icon: '📝',
     title: 'No tasks assigned to you yet',
@@ -65,18 +66,19 @@ export function TaskTable({
   error = null,
   onTaskUpdated,
 }: TaskTableProps) {
-  const router = useRouter();
   const [filters, setFilters] = useState<Filters>({
     title: '',
-    status: '',
-    assignee: '',
-    department: '',
+    status: [],
+    assignee: [],
+    department: [],
+    project: [],
   });
   const [userSort, setUserSort] = useState<SortCriterion[]>([]);
   const [userHasSorted, setUserHasSorted] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [viewingTaskId, setViewingTaskId] = useState<string | null>(null);
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
+  const [isCreateModalOpen, setCreateModalOpen] = useState(false);
   const modalContentRef = useRef<HTMLDivElement>(null);
 
   // Get all unique user IDs from task assignments
@@ -104,18 +106,22 @@ export function TaskTable({
         if (viewingTaskId) {
           setViewingTaskId(null);
         }
+        if (isCreateModalOpen) {
+          setCreateModalOpen(false);
+        }
       }
     };
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
-  }, [editingTaskId, viewingTaskId]);
+  }, [editingTaskId, viewingTaskId, isCreateModalOpen]);
 
-  const { departments, assignees } = useMemo(() => {
+  const { departments, assignees, projects } = useMemo(() => {
     if (!tasks) {
-      return { departments: [], assignees: [] };
+      return { departments: [], assignees: [], projects: [] };
     }
     const departmentsSet = new Set<string>();
     const assigneesMap = new Map<string, { id: string; name: string }>();
+    const projectsMap = new Map<string, { id: string; name: string }>();
 
     tasks.forEach((task: Task) => {
       const dept = departmentData.find(d => d.id === task.departmentId);
@@ -131,11 +137,24 @@ export function TaskTable({
           name: userName,
         });
       });
+
+      // Collect projects
+      if (task.project) {
+        projectsMap.set(task.project.id, {
+          id: task.project.id,
+          name: task.project.name,
+        });
+      }
     });
 
     return {
       departments: Array.from(departmentsSet).sort(),
       assignees: Array.from(assigneesMap.values()).sort((a, b) => {
+        const nameA = String(a.name || '');
+        const nameB = String(b.name || '');
+        return nameA.localeCompare(nameB);
+      }),
+      projects: Array.from(projectsMap.values()).sort((a, b) => {
         const nameA = String(a.name || '');
         const nameB = String(b.name || '');
         return nameA.localeCompare(nameB);
@@ -150,13 +169,14 @@ export function TaskTable({
     setUserSort(prev => {
       const existingSort = prev.find(s => s.key === key);
       if (existingSort) {
-        if (existingSort.direction === 'asc') {
-          return prev.map(s =>
-            s.key === key ? { ...s, direction: 'desc' } : s
-          );
-        }
-        return prev.filter(s => s.key !== key);
+        // Toggle between asc and desc only (don't remove)
+        return prev.map(s =>
+          s.key === key
+            ? { ...s, direction: s.direction === 'asc' ? 'desc' : 'asc' }
+            : s
+        );
       } else {
+        // Add new sort criterion starting with asc
         return [...prev, { key, direction: 'asc' }];
       }
     });
@@ -174,32 +194,76 @@ export function TaskTable({
       const titleMatch = task.title
         .toLowerCase()
         .includes(filters.title.toLowerCase());
-      const statusMatch = filters.status
-        ? task.status === filters.status
-        : true;
+
+      const statusMatch =
+        filters.status.length === 0 || filters.status.includes(task.status);
+
       const dept = departmentData.find(d => d.id === task.departmentId);
-      const departmentMatch = filters.department
-        ? dept?.name === filters.department
-        : true;
-      const assigneeMatch = filters.assignee
-        ? task.assignments.some(a => a.userId === filters.assignee)
-        : true;
-      return titleMatch && statusMatch && departmentMatch && assigneeMatch;
+      const departmentMatch =
+        filters.department.length === 0 ||
+        (dept && filters.department.includes(dept.name));
+
+      const assigneeMatch =
+        filters.assignee.length === 0 ||
+        task.assignments.some(a => filters.assignee.includes(a.userId));
+
+      const projectMatch =
+        filters.project.length === 0 ||
+        (task.project && filters.project.includes(task.project.id));
+
+      return (
+        titleMatch &&
+        statusMatch &&
+        departmentMatch &&
+        assigneeMatch &&
+        projectMatch
+      );
     });
 
     const criteria =
       userHasSorted && userSort.length > 0 ? userSort : defaultSortOrder;
     sortTasks(processedTasks, criteria);
 
-    return organizeTasksHierarchically(processedTasks);
+    // Check if tasks already have subtasks nested (e.g., from getDepartmentTasksForUser)
+    // If so, just mark hasSubtasks flag; otherwise organize hierarchically
+    const hasNestedSubtasks = processedTasks.some(
+      task => task.subtasks && task.subtasks.length > 0
+    );
+
+    if (hasNestedSubtasks) {
+      // Tasks already have nested subtasks, just add hasSubtasks flag
+      return processedTasks.map(task => ({
+        ...task,
+        hasSubtasks: task.subtasks && task.subtasks.length > 0,
+      }));
+    } else {
+      // Tasks are flat, organize hierarchically
+      return organizeTasksHierarchically(processedTasks);
+    }
   }, [tasks, filters, userSort, userHasSorted]);
 
   const handleFilterChange = (filterName: keyof Filters, value: string) => {
-    setFilters(prev => ({ ...prev, [filterName]: value }));
+    if (filterName === 'title') {
+      setFilters(prev => ({ ...prev, [filterName]: value }));
+    } else {
+      // For array filters (status, assignee, department, project)
+      setFilters(prev => {
+        const currentValues = prev[filterName] as string[];
+        const newValues = currentValues.includes(value)
+          ? currentValues.filter(v => v !== value) // Remove if exists
+          : [...currentValues, value]; // Add if doesn't exist
+        return { ...prev, [filterName]: newValues };
+      });
+    }
   };
 
-  const resetFilter = (filterName: keyof Filters) =>
-    handleFilterChange(filterName, '');
+  const resetFilter = (filterName: keyof Filters) => {
+    if (filterName === 'title') {
+      setFilters(prev => ({ ...prev, [filterName]: '' }));
+    } else {
+      setFilters(prev => ({ ...prev, [filterName]: [] }));
+    }
+  };
 
   const toggleTaskExpansion = (taskId: string) => {
     setExpandedTasks(prev => {
@@ -220,9 +284,12 @@ export function TaskTable({
     return <div>Error: {error.message}</div>;
   }
 
-  const activeFilters = Object.entries(filters).filter(
-    ([, value]) => value !== ''
-  );
+  const activeFilters = Object.entries(filters).filter(([key, value]) => {
+    if (key === 'title') {
+      return value !== '';
+    }
+    return Array.isArray(value) && value.length > 0;
+  });
 
   const SortIndicator = ({ sortKey }: { sortKey: SortableColumn }) => {
     const sortInfo = userSort.find(s => s.key === sortKey);
@@ -240,7 +307,7 @@ export function TaskTable({
     if (onCreateTask) {
       onCreateTask();
     } else {
-      router.push('/tasks/create');
+      setCreateModalOpen(true);
     }
   };
 
@@ -304,20 +371,46 @@ export function TaskTable({
         {activeFilters.length > 0 && (
           <div style={styles.filterBar}>
             <strong style={{ color: '#4a5568' }}>Filters:</strong>
-            {activeFilters.map(([key, value]) => (
-              <span key={key} style={styles.filterPill}>
-                {key}:{' '}
-                {key === 'assignee'
-                  ? assignees.find(a => a.id === value)?.name || value
-                  : value}
-                <button
-                  onClick={() => resetFilter(key as keyof Filters)}
-                  style={styles.filterRemoveBtn}
-                >
-                  ×
-                </button>
-              </span>
-            ))}
+            {activeFilters.map(([key, value]) => {
+              if (key === 'title') {
+                return (
+                  <span key={key} style={styles.filterPill}>
+                    {key}: {value as string}
+                    <button
+                      onClick={() => resetFilter(key as keyof Filters)}
+                      style={styles.filterRemoveBtn}
+                    >
+                      ×
+                    </button>
+                  </span>
+                );
+              }
+
+              // For array filters
+              const values = value as string[];
+              return values.map(v => {
+                let displayValue = v;
+                if (key === 'assignee') {
+                  displayValue = assignees.find(a => a.id === v)?.name || v;
+                } else if (key === 'project') {
+                  displayValue = projects.find(p => p.id === v)?.name || v;
+                }
+
+                return (
+                  <span key={`${key}-${v}`} style={styles.filterPill}>
+                    {key}: {displayValue}
+                    <button
+                      onClick={() =>
+                        handleFilterChange(key as keyof Filters, v)
+                      }
+                      style={styles.filterRemoveBtn}
+                    >
+                      ×
+                    </button>
+                  </span>
+                );
+              });
+            })}
           </div>
         )}
 
@@ -372,19 +465,42 @@ export function TaskTable({
                         <>Status</>
                         <SortIndicator sortKey='status' />
                       </div>
-                      <select
-                        value={filters.status}
-                        onChange={e =>
-                          handleFilterChange('status', e.target.value)
-                        }
-                        style={styles.select}
-                      >
-                        <option value=''>All</option>
-                        <option value='TO_DO'>To Do</option>
-                        <option value='IN_PROGRESS'>In Progress</option>
-                        <option value='COMPLETED'>Completed</option>
-                        <option value='BLOCKED'>Blocked</option>
-                      </select>
+                      <div style={{ position: 'relative' }}>
+                        <select
+                          value=''
+                          onChange={e => {
+                            if (e.target.value) {
+                              handleFilterChange('status', e.target.value);
+                            }
+                          }}
+                          style={{
+                            ...styles.select,
+                            backgroundColor:
+                              filters.status.length > 0 ? '#ebf8ff' : 'white',
+                          }}
+                        >
+                          <option value=''>
+                            {filters.status.length > 0
+                              ? `${filters.status.length} selected`
+                              : 'All'}
+                          </option>
+                          <option value='TO_DO'>
+                            {filters.status.includes('TO_DO') ? '✓ ' : ''}To Do
+                          </option>
+                          <option value='IN_PROGRESS'>
+                            {filters.status.includes('IN_PROGRESS') ? '✓ ' : ''}
+                            In Progress
+                          </option>
+                          <option value='COMPLETED'>
+                            {filters.status.includes('COMPLETED') ? '✓ ' : ''}
+                            Completed
+                          </option>
+                          <option value='BLOCKED'>
+                            {filters.status.includes('BLOCKED') ? '✓ ' : ''}
+                            Blocked
+                          </option>
+                        </select>
+                      </div>
                     </div>
                   </th>
                   <th style={styles.th}>
@@ -421,16 +537,63 @@ export function TaskTable({
                         <SortIndicator sortKey='assignees' />
                       </div>
                       <select
-                        value={filters.assignee}
-                        onChange={e =>
-                          handleFilterChange('assignee', e.target.value)
-                        }
-                        style={styles.select}
+                        value=''
+                        onChange={e => {
+                          if (e.target.value) {
+                            handleFilterChange('assignee', e.target.value);
+                          }
+                        }}
+                        style={{
+                          ...styles.select,
+                          backgroundColor:
+                            filters.assignee.length > 0 ? '#ebf8ff' : 'white',
+                        }}
                       >
-                        <option value=''>All</option>
+                        <option value=''>
+                          {filters.assignee.length > 0
+                            ? `${filters.assignee.length} selected`
+                            : 'All'}
+                        </option>
                         {assignees.map(a => (
                           <option key={a.id} value={a.id}>
+                            {filters.assignee.includes(a.id) ? '✓ ' : ''}
                             {a.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </th>
+                  <th style={styles.th}>
+                    <div style={styles.thContent}>
+                      <div
+                        style={styles.thTitle}
+                        onClick={() => handleSortChange('project')}
+                      >
+                        <>Project</>
+                        <SortIndicator sortKey='project' />
+                      </div>
+                      <select
+                        value=''
+                        onChange={e => {
+                          if (e.target.value) {
+                            handleFilterChange('project', e.target.value);
+                          }
+                        }}
+                        style={{
+                          ...styles.select,
+                          backgroundColor:
+                            filters.project.length > 0 ? '#ebf8ff' : 'white',
+                        }}
+                      >
+                        <option value=''>
+                          {filters.project.length > 0
+                            ? `${filters.project.length} selected`
+                            : 'All'}
+                        </option>
+                        {projects.map(p => (
+                          <option key={p.id} value={p.id}>
+                            {filters.project.includes(p.id) ? '✓ ' : ''}
+                            {p.name}
                           </option>
                         ))}
                       </select>
@@ -446,15 +609,26 @@ export function TaskTable({
                         <SortIndicator sortKey='department' />
                       </div>
                       <select
-                        value={filters.department}
-                        onChange={e =>
-                          handleFilterChange('department', e.target.value)
-                        }
-                        style={styles.select}
+                        value=''
+                        onChange={e => {
+                          if (e.target.value) {
+                            handleFilterChange('department', e.target.value);
+                          }
+                        }}
+                        style={{
+                          ...styles.select,
+                          backgroundColor:
+                            filters.department.length > 0 ? '#ebf8ff' : 'white',
+                        }}
                       >
-                        <option value=''>All</option>
+                        <option value=''>
+                          {filters.department.length > 0
+                            ? `${filters.department.length} selected`
+                            : 'All'}
+                        </option>
                         {departments.map(d => (
                           <option key={d} value={d}>
+                            {filters.department.includes(d) ? '✓ ' : ''}
                             {d}
                           </option>
                         ))}
@@ -535,6 +709,21 @@ export function TaskTable({
             />
           </div>
         </div>
+      )}
+
+      {/* Create Task Modal */}
+      {isCreateModalOpen && (
+        <TaskCreateModal
+          isOpen={isCreateModalOpen}
+          onClose={() => setCreateModalOpen(false)}
+          onSuccess={() => {
+            setCreateModalOpen(false);
+            // Trigger refetch of tasks
+            if (onTaskCreated) {
+              onTaskCreated();
+            }
+          }}
+        />
       )}
     </div>
   );

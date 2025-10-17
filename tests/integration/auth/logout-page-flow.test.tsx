@@ -429,7 +429,7 @@ describe('Logout Page Flow', () => {
       render(<HRDashboard />);
 
       const personalLink = screen.getByText('Personal').closest('a');
-      expect(personalLink).toHaveAttribute('href', '/dashboard/hr');
+      expect(personalLink).toHaveAttribute('href', '/dashboard/personal');
     });
 
     it('should have Profile link in navbar', () => {
