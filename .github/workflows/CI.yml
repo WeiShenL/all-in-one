@@ -174,8 +174,8 @@ jobs:
     needs: [staging-db-migrate]
     strategy:
       matrix:
-        shard: [1, 2, 3]
-        shards: [3]
+        shard: [1, 2, 3, 4]
+        shards: [4]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -337,6 +337,15 @@ jobs:
             playwright-report
             test-results
 
+  coverage-merge:
+    name: Merge Coverage Reports
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [base-tests, integration-tests]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       # Download unit coverage artifact
       - name: Download Unit Coverage Artifact
         uses: actions/download-artifact@v4
@@ -345,7 +354,7 @@ jobs:
           path: coverage/unit
 
       # Download integration coverage artifacts from all shards
-      - name: Download Integration Coverage Artifacts (All Shards)
+      - name: Download Integration Coverage Artifacts (Shard 1)
         uses: actions/download-artifact@v4
         with:
           name: coverage-integration-shard-1
