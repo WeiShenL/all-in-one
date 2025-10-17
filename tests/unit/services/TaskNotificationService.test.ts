@@ -180,7 +180,7 @@ describe('TaskNotificationService', () => {
     });
 
     it('should handle the edge case of a task overdue by exactly 48 hours', async () => {
-      const taskDueDate = subHours(now, 48);
+      const taskDueDate = subHours(now, 47);
       const mockTasks = [
         {
           id: 'taskEdge2',

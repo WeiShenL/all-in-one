@@ -9,6 +9,16 @@
  * Each test gets a fresh database with complete isolation
  */
 
+jest.mock('resend', () => ({
+  Resend: jest.fn().mockImplementation(() => ({
+    emails: {
+      send: jest
+        .fn()
+        .mockResolvedValue({ data: { id: 'mock-email-id' }, error: null }),
+    },
+  })),
+}));
+
 import { Client } from 'pg';
 import { NotificationService } from '@/app/server/services/NotificationService';
 import { TaskNotificationService } from '@/app/server/services/TaskNotificationService';
@@ -25,19 +35,19 @@ let emailService: EmailService;
 let realtimeService: RealtimeService;
 
 // Mock the Resend SDK
-jest.mock('resend', () => ({
-  Resend: jest.fn().mockImplementation(() => ({
-    emails: {
-      send: jest
-        .fn()
-        .mockResolvedValue({ data: { id: 'mock-email-id' }, error: null }),
-    },
-  })),
-}));
 
-let mockResendSend: jest.Mock;
 
 describe('NotificationService Integration Tests', () => {
+  jest.mock('resend', () => ({
+    Resend: jest.fn().mockImplementation(() => ({
+      emails: {
+        send: jest
+          .fn()
+          .mockResolvedValue({ data: { id: 'mock-email-id' }, error: null }),
+      },
+    })),
+  }));
+
   beforeAll(async () => {
     pgClient = new Client({
       connectionString: process.env.DATABASE_URL,
@@ -55,8 +65,16 @@ describe('NotificationService Integration Tests', () => {
     );
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
+    emailService = new EmailService();
+    notificationService = new NotificationService(prisma, emailService);
+    taskNotificationService = new TaskNotificationService(
+      prisma,
+      notificationService,
+      realtimeService,
+      emailService
+    );
     mockResendSend = (Resend as jest.Mock).mock.results[0].value.emails.send;
   });
 
@@ -101,6 +119,7 @@ describe('NotificationService Integration Tests', () => {
       [testTaskId, testUserId]
     );
 
+    mockResendSend = (Resend as jest.Mock).mock.results[0].value.emails.send;
     await taskNotificationService.sendDeadlineReminders(now);
 
     // Check for email

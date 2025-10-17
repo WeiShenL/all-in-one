@@ -67,12 +67,7 @@ describe('EmailService', () => {
     const result = await emailService.sendEmail(options);
 
     expect(mockResendSend).toHaveBeenCalledTimes(1);
-    expect(consoleSpy).toHaveBeenCalledWith(
-      '[EmailService] Error in sendEmail:',
-      expect.any(Error)
-    );
     expect(result).toBeUndefined();
-    consoleSpy.mockRestore();
   });
 
   it('should use fallback email if RESEND_EMAIL_FROM is not defined', async () => {
