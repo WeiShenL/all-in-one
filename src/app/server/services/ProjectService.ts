@@ -52,7 +52,6 @@ export class ProjectService extends BaseService {
               title: true,
               status: true,
               priority: true,
-              dueDate: true,
             },
           },
         },
@@ -115,9 +114,7 @@ export class ProjectService extends BaseService {
                 },
               },
             },
-            orderBy: {
-              dueDate: 'asc',
-            },
+            orderBy: {},
           },
         },
       });
@@ -199,7 +196,6 @@ export class ProjectService extends BaseService {
           name: data.name,
           description: data.description,
           priority: data.priority ?? 5,
-          dueDate: data.dueDate,
           departmentId: data.departmentId,
           creatorId: data.creatorId,
         },
