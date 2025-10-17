@@ -26,33 +26,51 @@ function generateTestIds(testNamespace: string) {
     return a & a;
   }, 0);
 
+  // Generate valid UUID v4 format
+  // UUID v4 format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
+  // where x is any hexadecimal digit and y is one of 8, 9, A, or B
   const baseId = Math.abs(hash).toString(16).padStart(8, '0');
+
+  // Create valid UUID v4 segments
+  const createUuid = (prefix: string, suffix: string) => {
+    const segment1 = prefix.padStart(8, '0');
+    const segment2 = baseId.substring(0, 4);
+    const segment3 = '4' + baseId.substring(4, 7); // 4xxx (version 4)
+    const segment4 = '8' + suffix.substring(0, 3); // 8xxx (variant)
+    // For segment5, we need exactly 12 characters
+    const segment5 = (
+      suffix.substring(3, 7) +
+      baseId.substring(7, 8) +
+      '0000'
+    ).padStart(12, '0');
+    return `${segment1}-${segment2}-${segment3}-${segment4}-${segment5}`;
+  };
 
   return {
     // Departments
-    DEPT_ROOT: `10000000-0000-4000-8000-${baseId}00001`,
-    DEPT_ENGINEERING: `10000000-0000-4000-8000-${baseId}00002`,
-    DEPT_SALES: `10000000-0000-4000-8000-${baseId}00003`,
-    DEPT_HR: `10000000-0000-4000-8000-${baseId}00004`,
-    DEPT_ENGINEERING_DEV: `10000000-0000-4000-8000-${baseId}00005`,
+    DEPT_ROOT: createUuid('10000000', '0001'),
+    DEPT_ENGINEERING: createUuid('10000000', '0002'),
+    DEPT_SALES: createUuid('10000000', '0003'),
+    DEPT_HR: createUuid('10000000', '0004'),
+    DEPT_ENGINEERING_DEV: createUuid('10000000', '0005'),
 
     // Users
-    USER_HR_ADMIN_ONLY: `20000000-0000-4000-8000-${baseId}00001`,
-    USER_HR_ADMIN_AND_MANAGER: `20000000-0000-4000-8000-${baseId}00002`,
-    USER_MANAGER_ONLY: `20000000-0000-4000-8000-${baseId}00003`,
-    USER_STAFF: `20000000-0000-4000-8000-${baseId}00004`,
-    USER_STAFF_SALES: `20000000-0000-4000-8000-${baseId}00005`,
+    USER_HR_ADMIN_ONLY: createUuid('20000000', '0001'),
+    USER_HR_ADMIN_AND_MANAGER: createUuid('20000000', '0002'),
+    USER_MANAGER_ONLY: createUuid('20000000', '0003'),
+    USER_STAFF: createUuid('20000000', '0004'),
+    USER_STAFF_SALES: createUuid('20000000', '0005'),
 
     // Projects
-    PROJECT_ENG: `30000000-0000-4000-8000-${baseId}00001`,
-    PROJECT_SALES: `30000000-0000-4000-8000-${baseId}00002`,
+    PROJECT_ENG: createUuid('30000000', '0001'),
+    PROJECT_SALES: createUuid('30000000', '0002'),
 
     // Tasks
-    TASK_ENG_ASSIGNED: `40000000-0000-4000-8000-${baseId}00001`,
-    TASK_ENG_UNASSIGNED: `40000000-0000-4000-8000-${baseId}00002`,
-    TASK_SALES_ASSIGNED: `40000000-0000-4000-8000-${baseId}00003`,
-    TASK_HR_ASSIGNED: `40000000-0000-4000-8000-${baseId}00004`,
-    TASK_ENG_DEV_ASSIGNED: `40000000-0000-4000-8000-${baseId}00005`,
+    TASK_ENG_ASSIGNED: createUuid('40000000', '0001'),
+    TASK_ENG_UNASSIGNED: createUuid('40000000', '0002'),
+    TASK_SALES_ASSIGNED: createUuid('40000000', '0003'),
+    TASK_HR_ASSIGNED: createUuid('40000000', '0004'),
+    TASK_ENG_DEV_ASSIGNED: createUuid('40000000', '0005'),
   };
 }
 
