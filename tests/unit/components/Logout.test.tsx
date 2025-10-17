@@ -9,6 +9,7 @@ import {
 import { useRouter } from 'next/navigation';
 import Navbar from '@/app/components/Navbar';
 import { useAuth } from '@/lib/supabase/auth-context';
+import { NotificationProvider } from '@/lib/context/NotificationContext'; // Import NotificationProvider
 
 // Mock external dependencies
 jest.mock('next/navigation', () => ({
@@ -39,11 +40,19 @@ describe('Logout Functionality', () => {
     (useAuth as jest.Mock).mockReturnValue(mockLoggedInUser);
   });
 
+  const renderNavbarWithProvider = () => {
+    return render(
+      <NotificationProvider>
+        <Navbar />
+      </NotificationProvider>
+    );
+  };
+
   describe('Core logout acceptance criteria', () => {
     test('logout button is accessible and calls signOut when clicked', async () => {
       mockSignOut.mockResolvedValue({ error: null });
 
-      render(<Navbar />);
+      renderNavbarWithProvider(); // Use the helper function
 
       // click the logout button
       const logoutButton = screen.getByText('Sign Out');
@@ -62,7 +71,7 @@ describe('Logout Functionality', () => {
     test('user is redirected to login page after successful logout', async () => {
       mockSignOut.mockResolvedValue({ error: null });
 
-      render(<Navbar />);
+      renderNavbarWithProvider(); // Use the helper function
 
       const logoutButton = screen.getByText('Sign Out');
 
@@ -79,7 +88,7 @@ describe('Logout Functionality', () => {
     test('session token invalidation happens immediately (signOut called)', async () => {
       mockSignOut.mockResolvedValue({ error: null });
 
-      render(<Navbar />);
+      renderNavbarWithProvider(); // Use the helper function
 
       const logoutButton = screen.getByText('Sign Out');
 
@@ -99,7 +108,7 @@ describe('Logout Functionality', () => {
       mockSignOut.mockResolvedValue({ error: 'Network error' });
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
 
-      render(<Navbar />);
+      renderNavbarWithProvider(); // Use the helper function
 
       const logoutButton = screen.getByText('Sign Out');
 
@@ -122,7 +131,7 @@ describe('Logout Functionality', () => {
       mockSignOut.mockRejectedValue(new Error('Unexpected error'));
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
 
-      render(<Navbar />);
+      renderNavbarWithProvider(); // Use the helper function
 
       const logoutButton = screen.getByText('Sign Out');
 

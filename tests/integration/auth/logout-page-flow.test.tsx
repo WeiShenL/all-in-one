@@ -6,6 +6,11 @@ import PersonalDashboard from '@/app/dashboard/personal/page';
 import DepartmentDashboard from '@/app/dashboard/department/page';
 import HRDashboard from '@/app/dashboard/hr/page';
 import ProfilePage from '@/app/profile/page';
+import { NotificationProvider } from '@/lib/context/NotificationContext';
+
+const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <NotificationProvider>{children}</NotificationProvider>
+);
 
 // Mock dependencies
 jest.mock('next/navigation', () => ({
@@ -121,7 +126,7 @@ describe('Logout Page Flow', () => {
 
   describe('Rendering', () => {
     it('should render logout button in navbar on personal dashboard', () => {
-      render(<PersonalDashboard />);
+      render(<PersonalDashboard />, { wrapper: TestWrapper });
 
       expect(screen.getByText('Sign Out')).toBeInTheDocument();
     });
@@ -132,7 +137,7 @@ describe('Logout Page Flow', () => {
         userProfile: { name: 'Manager User', role: 'MANAGER' },
       });
 
-      render(<DepartmentDashboard />);
+      render(<DepartmentDashboard />, { wrapper: TestWrapper });
 
       expect(screen.getByText('Sign Out')).toBeInTheDocument();
     });

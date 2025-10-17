@@ -2,10 +2,14 @@
 
 import { useAuth } from '@/lib/supabase/auth-context';
 import { useSecureLogout } from '@/lib/hooks/useSecureLogout';
+import { useNotifications } from '@/lib/context/NotificationContext'; // Import useNotifications
+import { useRouter } from 'next/navigation'; // Import useRouter
 
 export default function Navbar() {
   const { user, userProfile } = useAuth();
   const { handleSecureLogout, isLoggingOut } = useSecureLogout();
+  const { notifications } = useNotifications(); // Get notifications from context
+  const router = useRouter(); // Initialize useRouter
 
   // Get dashboard route - all users go to personal dashboard by default
   const getDashboardRoute = () => {
@@ -117,6 +121,40 @@ export default function Navbar() {
             gap: '1rem',
           }}
         >
+          {/* Notification Button */}
+          <button
+            style={{
+              position: 'relative',
+              backgroundColor: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '0.5rem',
+              color: '#495057',
+              fontSize: '1.25rem',
+            }}
+            onClick={() => router.push('/notifications')} // Navigate to notifications page
+          >
+            🔔
+            {notifications.length > 0 && (
+              <span
+                style={{
+                  position: 'absolute',
+                  top: '0',
+                  right: '0',
+                  backgroundColor: '#dc3545',
+                  color: 'white',
+                  borderRadius: '50%',
+                  padding: '0.2em 0.5em',
+                  fontSize: '0.75rem',
+                  lineHeight: '1',
+                  transform: 'translate(50%, -50%)',
+                }}
+              >
+                {notifications.length}
+              </span>
+            )}
+          </button>
+
           <span
             style={{
               color: '#6c757d',
