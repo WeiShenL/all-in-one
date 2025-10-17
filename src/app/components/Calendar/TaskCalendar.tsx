@@ -90,6 +90,7 @@ function getOriginalTaskId(eventId: string): string {
 
 /**
  * Custom event style getter - applies visual styling with priority border and recurring indicator
+ * Also adds data attributes for E2E testing
  */
 function eventStyleGetter(event: CalendarEvent) {
   const isStarted = event.resource.isStarted;
@@ -109,6 +110,9 @@ function eventStyleGetter(event: CalendarEvent) {
       : getStatusColor('TO_DO'); // TO_DO uses #E8C0FA
   }
 
+  // Get original task ID (without -recur- suffix)
+  const originalId = event.id.split('-recur-')[0];
+
   return {
     style: {
       backgroundColor,
@@ -121,6 +125,10 @@ function eventStyleGetter(event: CalendarEvent) {
       fontSize: '0.875rem',
       padding: '2px 5px',
     },
+    // Add data attributes for E2E testing
+    className: `calendar-event calendar-event-${event.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+    'data-task-title': event.title,
+    'data-task-id': originalId,
   };
 }
 
@@ -137,8 +145,21 @@ function EventComponent({ event, title }: EventComponentProps) {
     event.resource.recurringInterval && event.resource.recurringInterval > 0;
   const isSubtask = event.resource.parentTaskId !== null;
 
+  // Create unique data-testid using both title and event ID to handle multi-day events
+  const sanitizedTitle = title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .substring(0, 30);
+  // Use the original task ID (without -recur- suffix for recurring instances)
+  const originalId = event.id.split('-recur-')[0];
+  const testId = `calendar-event-${sanitizedTitle}-${originalId}`;
+
   return (
-    <span>
+    <span
+      data-testid={testId}
+      data-task-title={title}
+      data-task-id={originalId}
+    >
       {isSubtask && '↳ '}
       {isRecurring && '🔁 '}
       {title}
@@ -174,18 +195,21 @@ function CustomToolbar({
         <button
           onClick={() => onNavigate('TODAY')}
           style={toolbarStyles.navButton}
+          data-testid='nav-today'
         >
           Today
         </button>
         <button
           onClick={() => onNavigate('PREV')}
           style={toolbarStyles.navButton}
+          data-testid='nav-back'
         >
           ← Back
         </button>
         <button
           onClick={() => onNavigate('NEXT')}
           style={toolbarStyles.navButton}
+          data-testid='nav-next'
         >
           Next →
         </button>
@@ -204,6 +228,7 @@ function CustomToolbar({
             ...toolbarStyles.viewButton,
             ...(view === 'month' ? toolbarStyles.viewButtonActive : {}),
           }}
+          data-testid='view-month'
         >
           Month
         </button>
@@ -213,6 +238,7 @@ function CustomToolbar({
             ...toolbarStyles.viewButton,
             ...(view === 'week' ? toolbarStyles.viewButtonActive : {}),
           }}
+          data-testid='view-week'
         >
           Week
         </button>
@@ -222,6 +248,7 @@ function CustomToolbar({
             ...toolbarStyles.viewButton,
             ...(view === 'day' ? toolbarStyles.viewButtonActive : {}),
           }}
+          data-testid='view-day'
         >
           Day
         </button>
@@ -231,6 +258,7 @@ function CustomToolbar({
             ...toolbarStyles.viewButton,
             ...(view === 'agenda' ? toolbarStyles.viewButtonActive : {}),
           }}
+          data-testid='view-agenda'
         >
           Agenda
         </button>
@@ -365,6 +393,8 @@ export function TaskCalendar({
                       <div
                         key={task.id}
                         className='kanban-card'
+                        data-task-title={task.title}
+                        data-task-id={getOriginalTaskId(task.id)}
                         onClick={() =>
                           setSelectedTaskId(getOriginalTaskId(task.id))
                         }
@@ -600,6 +630,8 @@ export function TaskCalendar({
                     <div
                       key={event.id}
                       className='agenda-card'
+                      data-task-title={event.title}
+                      data-task-id={getOriginalTaskId(event.id)}
                       onClick={() =>
                         setSelectedTaskId(getOriginalTaskId(event.id))
                       }
@@ -740,6 +772,8 @@ export function TaskCalendar({
                           <div
                             key={event.id}
                             className='agenda-card'
+                            data-task-title={event.title}
+                            data-task-id={getOriginalTaskId(event.id)}
                             onClick={() =>
                               setSelectedTaskId(getOriginalTaskId(event.id))
                             }
@@ -943,7 +977,7 @@ export function TaskCalendar({
 
   // Render calendar
   return (
-    <div style={styles.container}>
+    <div style={styles.container} data-testid='task-calendar'>
       <style
         dangerouslySetInnerHTML={{
           __html: `
