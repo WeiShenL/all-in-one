@@ -41,9 +41,12 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
       process.env.NEXT_PUBLIC_ANON_KEY!
     );
 
-    // Create worker-specific namespace for test data isolation
+    // Create robust worker-specific namespace for test data isolation
     const workerId = process.env.PLAYWRIGHT_WORKER_INDEX || '0';
-    testNamespace = `w${workerId}_${crypto.randomUUID().slice(0, 8)}`;
+    const timestamp = Date.now();
+    const processId = process.pid;
+    const randomSuffix = crypto.randomUUID().slice(0, 8);
+    testNamespace = `w${workerId}_${timestamp}_${processId}_${randomSuffix}`;
 
     // Create unique credentials with worker-specific namespace
     testEmail = `e2e.task.create.ui.${testNamespace}@example.com`;
@@ -106,13 +109,24 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
   test.afterAll(async () => {
     try {
       // Cleanup - order matters due to foreign keys
+      let taskIds: string[] = [];
 
       // 1. Get all task IDs created by test user
-      const taskIdsResult = await pgClient.query(
-        'SELECT id FROM "task" WHERE "ownerId" = $1',
-        [testUserId]
+      if (testUserId) {
+        const taskIdsResult = await pgClient.query(
+          'SELECT id FROM "task" WHERE "ownerId" = $1',
+          [testUserId]
+        );
+        taskIds = taskIdsResult.rows.map(row => row.id);
+      }
+
+      // Also clean up any tasks with our namespace in title (fallback cleanup)
+      const namespaceTaskResult = await pgClient.query(
+        'SELECT id FROM "task" WHERE title LIKE $1',
+        [`%${testNamespace}%`]
       );
-      const taskIds = taskIdsResult.rows.map(row => row.id);
+      const namespaceTaskIds = namespaceTaskResult.rows.map(row => row.id);
+      taskIds = [...new Set([...taskIds, ...namespaceTaskIds])]; // Remove duplicates
 
       if (taskIds.length > 0) {
         // 2. Delete task assignments (task_assignment has taskId, userId, assignedById)
@@ -134,9 +148,12 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
       }
 
       // 5. Delete tags created during test
-      await pgClient.query('DELETE FROM "tag" WHERE name LIKE $1', [
-        `e2e-ui-%${testNamespace}%`,
-      ]);
+      const tagResult = await pgClient.query(
+        'DELETE FROM "tag" WHERE name LIKE $1 RETURNING name',
+        [`e2e-ui-%${testNamespace}%`]
+      );
+      if (tagResult.rows.length > 0) {
+      }
 
       // 6. Delete user profile
       if (testUserId) {
@@ -160,7 +177,10 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
         ]);
       }
     } catch (error) {
-      console.error('Error during cleanup:', error);
+      console.error(
+        `❌ Error during cleanup for namespace ${testNamespace}:`,
+        error
+      );
     } finally {
       // 9. Close connections
       if (pgClient) {
@@ -238,16 +258,18 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
     const viewButton = page.getByTestId(`view-task-button-${createdTaskId}`);
     await expect(viewButton).toBeVisible({ timeout: 65000 });
 
-    // Step 10: Find task row to verify details
-    const taskRow = page.locator('tr', {
-      hasText: `E2E UI Test Task ${testNamespace}`,
+    // Step 10: Find task row to verify details using the view button
+    const taskRow = page.locator('tr').filter({ has: viewButton });
+
+    // Step 11: Verify priority badge shows 8 (use more specific selector)
+    await expect(taskRow.locator('td').nth(2).getByText('8')).toBeVisible({
+      timeout: 65000,
     });
 
-    // Step 11: Verify priority badge shows 8
-    await expect(taskRow.getByText('8')).toBeVisible({ timeout: 65000 });
-
-    // Step 12: Verify status is TO DO
-    await expect(taskRow.getByText(/to do/i)).toBeVisible({ timeout: 65000 });
+    // Step 12: Verify status is TO DO (use more specific selector)
+    await expect(taskRow.locator('td').nth(1).getByText(/to do/i)).toBeVisible({
+      timeout: 65000,
+    });
   });
 
   test('should create task with optional tags through UI', async ({ page }) => {

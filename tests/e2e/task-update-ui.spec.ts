@@ -94,9 +94,12 @@ test.describe('Task Update - Complete UI Flow', () => {
       process.env.NEXT_PUBLIC_ANON_KEY!
     );
 
-    // Create worker-specific namespace for test data isolation
+    // Create robust worker-specific namespace for test data isolation
     const workerId = process.env.PLAYWRIGHT_WORKER_INDEX || '0';
-    testNamespace = `w${workerId}_${crypto.randomUUID().slice(0, 8)}`;
+    const timestamp = Date.now();
+    const processId = process.pid;
+    const randomSuffix = crypto.randomUUID().slice(0, 8);
+    testNamespace = `w${workerId}_${timestamp}_${processId}_${randomSuffix}`;
 
     // Create unique credentials with worker-specific namespace
     testEmail = `e2e.task.update.${testNamespace}@example.com`;
