@@ -233,7 +233,12 @@ export class TaskService extends BaseService {
       this.validateId(userId, 'User ID');
 
       const assignments = await this.prisma.taskAssignment.findMany({
-        where: { userId },
+        where: {
+          userId,
+          task: {
+            isArchived: false,
+          },
+        },
         include: {
           task: {
             include: {
