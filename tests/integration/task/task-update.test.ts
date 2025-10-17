@@ -186,7 +186,7 @@ describe('Task Update Integration Tests', () => {
        VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, NOW(), NOW())
        RETURNING id`,
       [
-        'Test Project',
+        `Update Test Project-${testNamespace}`,
         'Integration test project',
         5,
         testDepartmentId,

@@ -87,7 +87,7 @@ describe('Integration Tests - Subtask Creation (SCRUM-65)', () => {
        VALUES (gen_random_uuid(), $1, $2, 5, 'ACTIVE', $3, $4, false, NOW(), NOW())
        RETURNING id`,
       [
-        'Test Project',
+        `Subtask Test Project-${testRunId}`,
         'Test project for subtask tests',
         testDepartmentId,
         testStaffUserId,
