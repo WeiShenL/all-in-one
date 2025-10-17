@@ -89,6 +89,9 @@ async function createTaskWithAssignment(taskData: {
 }
 
 describe('Task Update Integration Tests', () => {
+  // Unique namespace for this test run
+  const testNamespace = `test-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
   // Setup before all tests
   beforeAll(async () => {
     // Initialize pg client
@@ -103,7 +106,7 @@ describe('Task Update Integration Tests', () => {
       `INSERT INTO "department" (id, name, "isActive", "createdAt", "updatedAt")
        VALUES (gen_random_uuid(), $1, true, NOW(), NOW())
        RETURNING id`,
-      ['Test Engineering Dept']
+      [`Test Engineering Dept-${testNamespace}`]
     );
     testDepartmentId = deptResult.rows[0].id;
 
@@ -113,7 +116,7 @@ describe('Task Update Integration Tests', () => {
        VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
        RETURNING id`,
       [
-        'task-update-owner@test.com',
+        `task-update-owner@${testNamespace}.com`,
         'Task Update Owner',
         'STAFF',
         testDepartmentId,
@@ -126,7 +129,12 @@ describe('Task Update Integration Tests', () => {
       `INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt")
        VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
        RETURNING id`,
-      ['update-assignee2@test.com', 'Assignee 2', 'STAFF', testDepartmentId]
+      [
+        `update-assignee2@${testNamespace}.com`,
+        'Assignee 2',
+        'STAFF',
+        testDepartmentId,
+      ]
     );
     testAssignee2Id = assignee2Result.rows[0].id;
 
@@ -134,7 +142,12 @@ describe('Task Update Integration Tests', () => {
       `INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt")
        VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
        RETURNING id`,
-      ['update-assignee3@test.com', 'Assignee 3', 'STAFF', testDepartmentId]
+      [
+        `update-assignee3@${testNamespace}.com`,
+        'Assignee 3',
+        'STAFF',
+        testDepartmentId,
+      ]
     );
     testAssignee3Id = assignee3Result.rows[0].id;
 
@@ -142,7 +155,12 @@ describe('Task Update Integration Tests', () => {
       `INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt")
        VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
        RETURNING id`,
-      ['update-assignee4@test.com', 'Assignee 4', 'STAFF', testDepartmentId]
+      [
+        `update-assignee4@${testNamespace}.com`,
+        'Assignee 4',
+        'STAFF',
+        testDepartmentId,
+      ]
     );
     testAssignee4Id = assignee4Result.rows[0].id;
 
@@ -150,7 +168,12 @@ describe('Task Update Integration Tests', () => {
       `INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt")
        VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
        RETURNING id`,
-      ['update-assignee5@test.com', 'Assignee 5', 'STAFF', testDepartmentId]
+      [
+        `update-assignee5@${testNamespace}.com`,
+        'Assignee 5',
+        'STAFF',
+        testDepartmentId,
+      ]
     );
     testAssignee5Id = assignee5Result.rows[0].id;
 

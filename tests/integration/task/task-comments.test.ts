@@ -75,6 +75,9 @@ async function createTaskWithAssignment(taskData: {
 }
 
 describe('Task Comment Integration Tests', () => {
+  // Unique namespace for this test run
+  const testNamespace = `test-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
   // Setup before all tests
   beforeAll(async () => {
     // Initialize pg client
@@ -89,7 +92,7 @@ describe('Task Comment Integration Tests', () => {
       `INSERT INTO "department" (id, name, "isActive", "createdAt", "updatedAt")
        VALUES (gen_random_uuid(), $1, true, NOW(), NOW())
        RETURNING id`,
-      ['Test Engineering Dept']
+      [`Test Engineering Dept-${testNamespace}`]
     );
     testDepartmentId = deptResult.rows[0].id;
 
@@ -99,7 +102,7 @@ describe('Task Comment Integration Tests', () => {
        VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
        RETURNING id`,
       [
-        'task-comment-owner@test.com',
+        `task-comment-owner@${testNamespace}.com`,
         'Task Comment Owner',
         'STAFF',
         testDepartmentId,
@@ -113,7 +116,7 @@ describe('Task Comment Integration Tests', () => {
        VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
        RETURNING id`,
       [
-        'task-comment-user2@test.com',
+        `task-comment-user2@${testNamespace}.com`,
         'Task Comment User 2',
         'STAFF',
         testDepartmentId,
@@ -258,7 +261,7 @@ describe('Task Comment Integration Tests', () => {
         `INSERT INTO "department" (id, name, "isActive", "createdAt", "updatedAt")
          VALUES (gen_random_uuid(), $1, true, NOW(), NOW())
          RETURNING id`,
-        ['HR Dept']
+        [`HR Dept-${testNamespace}`]
       );
       const hrDeptId = hrDeptResult.rows[0].id;
 
@@ -266,7 +269,12 @@ describe('Task Comment Integration Tests', () => {
         `INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt")
          VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
          RETURNING id`,
-        ['unauthorized@test.com', 'Unauthorized User', 'STAFF', hrDeptId]
+        [
+          `unauthorized@${testNamespace}.com`,
+          'Unauthorized User',
+          'STAFF',
+          hrDeptId,
+        ]
       );
       const unauthorizedUserId = unauthorizedUserResult.rows[0].id;
 
