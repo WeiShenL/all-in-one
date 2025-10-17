@@ -30,53 +30,56 @@ let testProjectId: string;
 // Track created tasks and comments for cleanup
 const createdTaskIds: string[] = [];
 
-/**
- * Helper to create a task with assignment for testing
- */
-async function createTaskWithAssignment(taskData: {
-  id: string;
-  title: string;
-  description?: string;
-  priority?: number;
-  dueDate?: Date;
-  status?: 'TO_DO' | 'IN_PROGRESS' | 'COMPLETED';
-  recurringInterval?: number | null;
-}) {
-  const taskResult = await pgClient.query(
-    `INSERT INTO "task" (id, title, description, priority, "dueDate", "ownerId", "departmentId", "projectId", status, "recurringInterval", "createdAt", "updatedAt")
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
-     RETURNING *`,
-    [
-      taskData.id,
-      taskData.title,
-      taskData.description || 'Test description',
-      taskData.priority || 5,
-      taskData.dueDate || new Date('2025-12-31'),
-      testUserId,
-      testDepartmentId,
-      testProjectId,
-      taskData.status || 'TO_DO',
-      taskData.recurringInterval !== undefined
-        ? taskData.recurringInterval
-        : null,
-    ]
-  );
-  const task = taskResult.rows[0];
-  createdTaskIds.push(task.id);
-
-  // Assign user to task for authorization
-  await pgClient.query(
-    `INSERT INTO "task_assignment" ("taskId", "userId", "assignedById", "assignedAt")
-     VALUES ($1, $2, $3, NOW())`,
-    [task.id, testUserId, testUserId]
-  );
-
-  return task;
-}
-
 describe('Task Comment Integration Tests', () => {
   // Unique namespace for this test run
   const testNamespace = `test-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+  /**
+   * Helper to create a task with assignment for testing
+   */
+  async function createTaskWithAssignment(taskData: {
+    id: string;
+    title: string;
+    description?: string;
+    priority?: number;
+    dueDate?: Date;
+    status?: 'TO_DO' | 'IN_PROGRESS' | 'COMPLETED';
+    recurringInterval?: number | null;
+  }) {
+    // Generate unique task ID based on original ID and test namespace
+    const uniqueTaskId = `${taskData.id}-${testNamespace}`;
+
+    const taskResult = await pgClient.query(
+      `INSERT INTO "task" (id, title, description, priority, "dueDate", "ownerId", "departmentId", "projectId", status, "recurringInterval", "createdAt", "updatedAt")
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
+       RETURNING *`,
+      [
+        uniqueTaskId,
+        taskData.title,
+        taskData.description || 'Test description',
+        taskData.priority || 5,
+        taskData.dueDate || new Date('2025-12-31'),
+        testUserId,
+        testDepartmentId,
+        testProjectId,
+        taskData.status || 'TO_DO',
+        taskData.recurringInterval !== undefined
+          ? taskData.recurringInterval
+          : null,
+      ]
+    );
+    const task = taskResult.rows[0];
+    createdTaskIds.push(task.id);
+
+    // Assign user to task for authorization
+    await pgClient.query(
+      `INSERT INTO "task_assignment" ("taskId", "userId", "assignedById", "assignedAt")
+       VALUES ($1, $2, $3, NOW())`,
+      [task.id, testUserId, testUserId]
+    );
+
+    return task;
+  }
 
   // Setup before all tests
   beforeAll(async () => {
