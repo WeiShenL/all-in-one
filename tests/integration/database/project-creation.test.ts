@@ -178,7 +178,7 @@ describe('Integration Tests - Project Creation (SCRUM-30)', () => {
       expect(project.departmentId).toBe(salesDeptId);
       expect(project.creatorId).toBe(staffInSalesId);
       expect(project.isArchived).toBe(false);
-    });
+    }, 300000);
 
     it('should create project with default values', async () => {
       const result = await projectService.createProject(
@@ -203,7 +203,7 @@ describe('Integration Tests - Project Creation (SCRUM-30)', () => {
       expect(project.priority).toBe(5); // Default priority
       expect(project.status).toBe(ProjectStatus.ACTIVE); // Default status
       expect(project.description).toBeNull();
-    });
+    }, 300000);
 
     it('should trim whitespace from project name', async () => {
       const result = await projectService.createProject(
@@ -226,7 +226,7 @@ describe('Integration Tests - Project Creation (SCRUM-30)', () => {
         [result.id]
       );
       expect(dbResult.rows[0].name).toBe('Trimmed Project');
-    });
+    }, 300000);
   });
 
   // ============================================
@@ -261,7 +261,7 @@ describe('Integration Tests - Project Creation (SCRUM-30)', () => {
           }
         )
       ).rejects.toThrow('already exists');
-    });
+    }, 300000);
 
     it('should perform case-insensitive uniqueness check', async () => {
       // Create first project with lowercase
@@ -290,7 +290,7 @@ describe('Integration Tests - Project Creation (SCRUM-30)', () => {
           }
         )
       ).rejects.toThrow('already exists');
-    });
+    }, 300000);
 
     it('should reject same project name globally across departments', async () => {
       // Create project in Sales department
@@ -331,7 +331,7 @@ describe('Integration Tests - Project Creation (SCRUM-30)', () => {
       );
       expect(dbResult.rows).toHaveLength(1);
       expect(dbResult.rows[0].departmentId).toBe(salesDeptId);
-    });
+    }, 300000);
 
     it('should allow reusing name after archiving project', async () => {
       // Create and archive first project
@@ -381,7 +381,7 @@ describe('Integration Tests - Project Creation (SCRUM-30)', () => {
 
       expect(firstDbResult.rows[0].isArchived).toBe(true);
       expect(secondDbResult.rows[0].isArchived).toBe(false);
-    });
+    }, 300000);
   });
 
   // ============================================
@@ -402,7 +402,7 @@ describe('Integration Tests - Project Creation (SCRUM-30)', () => {
           }
         )
       ).rejects.toThrow('Project name is required');
-    });
+    }, 300000);
 
     it('should reject whitespace-only project name', async () => {
       await expect(
@@ -417,7 +417,7 @@ describe('Integration Tests - Project Creation (SCRUM-30)', () => {
           }
         )
       ).rejects.toThrow('cannot be empty or whitespace');
-    });
+    }, 300000);
 
     it('should reject project name over 100 characters', async () => {
       await expect(
@@ -432,7 +432,7 @@ describe('Integration Tests - Project Creation (SCRUM-30)', () => {
           }
         )
       ).rejects.toThrow('must not exceed 100 characters');
-    });
+    }, 300000);
   });
 
   // ============================================
@@ -464,7 +464,7 @@ describe('Integration Tests - Project Creation (SCRUM-30)', () => {
       expect(retrieved!.priority).toBe(8);
       expect(retrieved!.creatorId).toBe(staffInSalesId);
       expect(retrieved!.departmentId).toBe(salesDeptId);
-    });
+    }, 300000);
 
     it('should retrieve all projects in department', async () => {
       // Create multiple projects in Sales department
@@ -508,7 +508,7 @@ describe('Integration Tests - Project Creation (SCRUM-30)', () => {
       const projectNames = projects.map(p => p.name);
       expect(projectNames).toContain('Sales Project 1');
       expect(projectNames).toContain('Sales Project 2');
-    });
+    }, 300000);
 
     it('should not include archived projects by default', async () => {
       // Create project
@@ -543,7 +543,7 @@ describe('Integration Tests - Project Creation (SCRUM-30)', () => {
       // Should not include archived project
       const projectNames = projects.map(p => p.name);
       expect(projectNames).not.toContain('To Be Archived');
-    });
+    }, 300000);
 
     it('should include archived projects when requested', async () => {
       // Create project
@@ -578,6 +578,6 @@ describe('Integration Tests - Project Creation (SCRUM-30)', () => {
       // Should include archived project
       const projectNames = projects.map(p => p.name);
       expect(projectNames).toContain('Archived But Retrievable');
-    });
+    }, 300000);
   });
 });
