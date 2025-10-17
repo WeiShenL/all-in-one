@@ -45,6 +45,7 @@ export function PersonalDashboard() {
           emptyStateConfig={emptyStateConfig}
           isLoading={isLoading}
           error={error ? new Error(error.message) : null}
+          onTaskUpdated={refetch}
         />
       }
       defaultTab='table'

@@ -42,6 +42,7 @@ export function DepartmentDashboard() {
           emptyStateConfig={emptyStateConfig}
           isLoading={isLoading}
           error={error ? new Error(error.message) : null}
+          onTaskUpdated={refetch}
         />
       }
       defaultTab='table'
