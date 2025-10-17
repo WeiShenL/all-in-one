@@ -25,6 +25,9 @@ describe('Task API Permissions', () => {
 
   beforeAll(async () => {
     // Cleanup any existing test data first
+    // Delete in correct order to respect foreign key constraints
+
+    // 1. Delete task assignments first
     await prisma.taskAssignment.deleteMany({
       where: {
         OR: [
@@ -51,16 +54,35 @@ describe('Task API Permissions', () => {
       },
     });
 
+    // 2. Delete tasks second (before users since tasks reference users as owners)
+    // Delete ALL tasks that reference our test users as owners
     await prisma.task.deleteMany({
       where: {
-        id: {
-          in: Object.values(TEST_IDS).filter(
-            id => id.startsWith('8') || id.startsWith('9') || id.startsWith('a')
-          ),
-        },
+        OR: [
+          {
+            id: {
+              in: Object.values(TEST_IDS).filter(
+                id =>
+                  id.startsWith('8') || id.startsWith('9') || id.startsWith('a')
+              ),
+            },
+          },
+          {
+            ownerId: {
+              in: Object.values(TEST_IDS).filter(
+                id =>
+                  id.startsWith('4') ||
+                  id.startsWith('5') ||
+                  id.startsWith('6') ||
+                  id.startsWith('7')
+              ),
+            },
+          },
+        ],
       },
     });
 
+    // 3. Delete user profiles third (after tasks are deleted)
     await prisma.userProfile.deleteMany({
       where: {
         id: {
@@ -75,6 +97,7 @@ describe('Task API Permissions', () => {
       },
     });
 
+    // 4. Delete departments last (after users are deleted)
     await prisma.department.deleteMany({
       where: {
         id: {
