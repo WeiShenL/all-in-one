@@ -98,6 +98,16 @@ export default function Navbar() {
               </a>
             )}
           <a
+            href='/projects'
+            style={{
+              color: '#495057',
+              textDecoration: 'none',
+              fontWeight: '500',
+            }}
+          >
+            Projects
+          </a>
+          <a
             href='/profile'
             style={{
               color: '#495057',
