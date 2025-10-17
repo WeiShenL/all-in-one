@@ -725,12 +725,18 @@ describe('HR/Admin Company Dashboard - Integration Tests', () => {
 
   describe('Edge Cases', () => {
     it('should handle archived tasks based on filter', async () => {
-      await prisma.$transaction(async tx => {
-        // Create test-specific archived tasks within transaction
-        await tx.task.create({
-          data: {
-            id: 'test-archived-task-1',
-            title: 'Archived Test Task 1',
+      // Create unique IDs using testNamespace
+      const archivedIds = [
+        `archived-1-${testNamespace}`,
+        `archived-2-${testNamespace}`,
+      ];
+
+      // Create tasks OUTSIDE transaction
+      await prisma.task.createMany({
+        data: [
+          {
+            id: archivedIds[0],
+            title: `Archived Task 1 ${testNamespace}`,
             description: 'Test archived task for filtering',
             priority: 5,
             dueDate: new Date('2025-12-31'),
@@ -739,15 +745,10 @@ describe('HR/Admin Company Dashboard - Integration Tests', () => {
             departmentId: TEST_IDS.DEPT_ENGINEERING,
             projectId: TEST_IDS.PROJECT_ENG,
             isArchived: true,
-            createdAt: new Date(),
-            updatedAt: new Date(),
           },
-        });
-
-        await tx.task.create({
-          data: {
-            id: 'test-archived-task-2',
-            title: 'Archived Test Task 2',
+          {
+            id: archivedIds[1],
+            title: `Archived Task 2 ${testNamespace}`,
             description: 'Another archived task for filtering',
             priority: 3,
             dueDate: new Date('2025-11-30'),
@@ -756,20 +757,17 @@ describe('HR/Admin Company Dashboard - Integration Tests', () => {
             departmentId: TEST_IDS.DEPT_SALES,
             projectId: TEST_IDS.PROJECT_SALES,
             isArchived: true,
-            createdAt: new Date(),
-            updatedAt: new Date(),
           },
-        });
+        ],
+      });
 
-        // Create tRPC context with transaction
+      try {
         const ctx = createInnerTRPCContext({
           session: {
             user: { id: TEST_IDS.USER_HR_ADMIN_ONLY },
             expires: new Date(Date.now() + 86400000).toISOString(),
           },
         });
-        // Override prisma with transaction
-        ctx.prisma = tx as any;
         const caller = appRouter.createCaller(ctx);
 
         const resultWithArchived = await caller.task.getCompanyTasks({
@@ -779,24 +777,26 @@ describe('HR/Admin Company Dashboard - Integration Tests', () => {
           includeArchived: false,
         });
 
-        // Verify archived tasks are included when includeArchived=true
-        expect(resultWithArchived.length).toBeGreaterThanOrEqual(
-          resultWithoutArchived.length
+        // Assert on YOUR specific tasks only
+        expect(resultWithArchived.some(t => t.id === archivedIds[0])).toBe(
+          true
+        );
+        expect(resultWithArchived.some(t => t.id === archivedIds[1])).toBe(
+          true
         );
 
-        // Verify our specific archived tasks are present
-        const archivedTaskIds = resultWithArchived
-          .filter(task => task.isArchived)
-          .map(task => task.id);
-        expect(archivedTaskIds).toContain('test-archived-task-1');
-        expect(archivedTaskIds).toContain('test-archived-task-2');
-
-        // Verify archived tasks are not included when includeArchived=false
-        const nonArchivedTaskIds = resultWithoutArchived.map(task => task.id);
-        expect(nonArchivedTaskIds).not.toContain('test-archived-task-1');
-        expect(nonArchivedTaskIds).not.toContain('test-archived-task-2');
-      });
-      // Transaction automatically rolls back - no cleanup needed
+        expect(resultWithoutArchived.some(t => t.id === archivedIds[0])).toBe(
+          false
+        );
+        expect(resultWithoutArchived.some(t => t.id === archivedIds[1])).toBe(
+          false
+        );
+      } finally {
+        // Clean up your tasks
+        await prisma.task.deleteMany({
+          where: { id: { in: archivedIds } },
+        });
+      }
     }, 30000);
 
     it('should return empty array when no tasks match filters', async () => {

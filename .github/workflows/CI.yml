@@ -200,7 +200,7 @@ jobs:
           NEXT_PUBLIC_ANON_KEY: ${{ secrets.NEXT_PUBLIC_ANON_KEY }}
           SERVICE_ROLE_KEY: ${{ secrets.SERVICE_ROLE_KEY }}
           DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL_POOLED }}
-        run: npm run test:integration:original -- --shard=${{ matrix.shard }}/${{ matrix.shards }} --maxWorkers=4 --coverage --coverageDirectory=coverage/integration
+        run: npm run test:integration -- --shard=${{ matrix.shard }}/${{ matrix.shards }} --maxWorkers=4 --coverage --coverageDirectory=coverage/integration
 
       - name: Upload Integration Coverage Artifact
         uses: actions/upload-artifact@v4
