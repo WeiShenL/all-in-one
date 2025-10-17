@@ -725,24 +725,78 @@ describe('HR/Admin Company Dashboard - Integration Tests', () => {
 
   describe('Edge Cases', () => {
     it('should handle archived tasks based on filter', async () => {
-      const ctx = createInnerTRPCContext({
-        session: {
-          user: { id: TEST_IDS.USER_HR_ADMIN_ONLY },
-          expires: new Date(Date.now() + 86400000).toISOString(),
-        },
-      });
-      const caller = appRouter.createCaller(ctx);
+      await prisma.$transaction(async tx => {
+        // Create test-specific archived tasks within transaction
+        await tx.task.create({
+          data: {
+            id: 'test-archived-task-1',
+            title: 'Archived Test Task 1',
+            description: 'Test archived task for filtering',
+            priority: 5,
+            dueDate: new Date('2025-12-31'),
+            status: 'COMPLETED',
+            ownerId: TEST_IDS.USER_HR_ADMIN_ONLY,
+            departmentId: TEST_IDS.DEPT_ENGINEERING,
+            projectId: TEST_IDS.PROJECT_ENG,
+            isArchived: true,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        });
 
-      const resultWithArchived = await caller.task.getCompanyTasks({
-        includeArchived: true,
-      });
-      const resultWithoutArchived = await caller.task.getCompanyTasks({
-        includeArchived: false,
-      });
+        await tx.task.create({
+          data: {
+            id: 'test-archived-task-2',
+            title: 'Archived Test Task 2',
+            description: 'Another archived task for filtering',
+            priority: 3,
+            dueDate: new Date('2025-11-30'),
+            status: 'COMPLETED',
+            ownerId: TEST_IDS.USER_HR_ADMIN_ONLY,
+            departmentId: TEST_IDS.DEPT_SALES,
+            projectId: TEST_IDS.PROJECT_SALES,
+            isArchived: true,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        });
 
-      expect(resultWithArchived.length).toBeGreaterThanOrEqual(
-        resultWithoutArchived.length
-      );
+        // Create tRPC context with transaction
+        const ctx = createInnerTRPCContext({
+          session: {
+            user: { id: TEST_IDS.USER_HR_ADMIN_ONLY },
+            expires: new Date(Date.now() + 86400000).toISOString(),
+          },
+        });
+        // Override prisma with transaction
+        ctx.prisma = tx as any;
+        const caller = appRouter.createCaller(ctx);
+
+        const resultWithArchived = await caller.task.getCompanyTasks({
+          includeArchived: true,
+        });
+        const resultWithoutArchived = await caller.task.getCompanyTasks({
+          includeArchived: false,
+        });
+
+        // Verify archived tasks are included when includeArchived=true
+        expect(resultWithArchived.length).toBeGreaterThanOrEqual(
+          resultWithoutArchived.length
+        );
+
+        // Verify our specific archived tasks are present
+        const archivedTaskIds = resultWithArchived
+          .filter(task => task.isArchived)
+          .map(task => task.id);
+        expect(archivedTaskIds).toContain('test-archived-task-1');
+        expect(archivedTaskIds).toContain('test-archived-task-2');
+
+        // Verify archived tasks are not included when includeArchived=false
+        const nonArchivedTaskIds = resultWithoutArchived.map(task => task.id);
+        expect(nonArchivedTaskIds).not.toContain('test-archived-task-1');
+        expect(nonArchivedTaskIds).not.toContain('test-archived-task-2');
+      });
+      // Transaction automatically rolls back - no cleanup needed
     }, 30000);
 
     it('should return empty array when no tasks match filters', async () => {

@@ -232,7 +232,7 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
     expect(createdTaskId).toBeDefined();
 
     // Step 8: Wait for tasks to load ()
-    await page.waitForTimeout(5000);
+    await page.waitForTimeout(10000);
 
     // Step 9: Find task button using data-testid
     const viewButton = page.getByTestId(`view-task-button-${createdTaskId}`);

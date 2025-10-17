@@ -200,7 +200,7 @@ jobs:
           NEXT_PUBLIC_ANON_KEY: ${{ secrets.NEXT_PUBLIC_ANON_KEY }}
           SERVICE_ROLE_KEY: ${{ secrets.SERVICE_ROLE_KEY }}
           DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL_POOLED }}
-        run: npm run test:integration:parallel -- --shard=${{ matrix.shard }}/${{ matrix.shards }} --maxWorkers=4 --coverage --coverageDirectory=coverage/integration
+        run: npm run test:integration:original -- --shard=${{ matrix.shard }}/${{ matrix.shards }} --maxWorkers=4 --coverage --coverageDirectory=coverage/integration
 
       - name: Upload Integration Coverage Artifact
         uses: actions/upload-artifact@v4
@@ -208,50 +208,12 @@ jobs:
           name: coverage-integration-shard-${{ matrix.shard }}
           path: coverage/
 
-  integration-tests-serial:
-    name: Integration Tests serial
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    environment: Preview
-    needs: [staging-db-migrate]
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20.x'
-          cache: 'npm'
-
-      - name: Install dependencies
-        # Dont install husky to avoid build error
-        env:
-          HUSKY: 0
-        run: |
-          npm ci
-          npm install --save-dev @types/react
-
-      - name: Run integration tests
-        env:
-          NEXT_PUBLIC_API_EXTERNAL_URL: ${{ secrets.NEXT_PUBLIC_API_EXTERNAL_URL }}
-          NEXT_PUBLIC_ANON_KEY: ${{ secrets.NEXT_PUBLIC_ANON_KEY }}
-          SERVICE_ROLE_KEY: ${{ secrets.SERVICE_ROLE_KEY }}
-          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL_POOLED }}
-        run: npm run test:integration:serial -- --coverage --coverageDirectory=coverage/integration
-
-      - name: Upload Integration Coverage Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-integration-serial
-          path: coverage/integration
-
   vercel-preview:
     name: Deploy Vercel Preview
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: Preview
-    needs: [integration-tests-parallel, integration-tests-serial]
+    needs: [integration-tests]
     outputs:
       vercel_url: ${{ steps.vercel-deploy.outputs.VERCEL_URL }}
     steps:
@@ -412,12 +374,6 @@ jobs:
         with:
           name: coverage-integration-shard-4
           path: coverage/integration-shard-4
-
-      - name: Download Integration Coverage Artifacts (serial)
-        uses: actions/download-artifact@v4
-        with:
-          name: coverage-integration-serial
-          path: coverage/integration
 
       # Merge unit + integration coverage
       - name: Merge Coverage (unit + integration parallel + integration serial)
