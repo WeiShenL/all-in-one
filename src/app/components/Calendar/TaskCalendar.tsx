@@ -926,7 +926,7 @@ export function TaskCalendar({
       return [];
     }
 
-    return filteredTasks.flatMap(task => {
+    const allEvents = filteredTasks.flatMap(task => {
       // Transform using taskToEvent utility
       const baseEvent = taskToEvent({
         id: task.id,
@@ -954,6 +954,34 @@ export function TaskCalendar({
 
       // For active tasks (TO_DO, IN_PROGRESS, BLOCKED), generate future occurrences
       return generateRecurringEvents(baseEvent, task.recurringInterval, 12);
+    });
+
+    // Sort events for consistent, priority-aware display across all views
+    return allEvents.sort((a, b) => {
+      // 1. Completed tasks go to the bottom
+      const aCompleted = a.resource.status === 'COMPLETED';
+      const bCompleted = b.resource.status === 'COMPLETED';
+      if (aCompleted && !bCompleted) {
+        return 1;
+      }
+      if (!aCompleted && bCompleted) {
+        return -1;
+      }
+
+      // 2. Sort by due date (earliest first)
+      const dateCompare = a.end.getTime() - b.end.getTime();
+      if (dateCompare !== 0) {
+        return dateCompare;
+      }
+
+      // 3. Sort by priority (high to low: 10→1)
+      const priorityCompare = b.resource.priority - a.resource.priority;
+      if (priorityCompare !== 0) {
+        return priorityCompare;
+      }
+
+      // 4. Alphabetically by title (tie-breaker)
+      return a.title.localeCompare(b.title);
     });
   }, [filteredTasks]);
 
