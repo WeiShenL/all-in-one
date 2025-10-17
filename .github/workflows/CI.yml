@@ -194,13 +194,6 @@ jobs:
           npm ci
           npm install --save-dev @types/react
 
-      - name: Build check
-        env:
-          NEXT_PUBLIC_API_EXTERNAL_URL: ${{ secrets.NEXT_PUBLIC_API_EXTERNAL_URL }}
-          NEXT_PUBLIC_ANON_KEY: ${{ secrets.NEXT_PUBLIC_ANON_KEY }}
-          SERVICE_ROLE_KEY: ${{ secrets.SERVICE_ROLE_KEY }}
-        run: npm run build
-
       - name: Run integration tests
         env:
           NEXT_PUBLIC_API_EXTERNAL_URL: ${{ secrets.NEXT_PUBLIC_API_EXTERNAL_URL }}
@@ -240,6 +233,13 @@ jobs:
         run: |
           npm ci
           npm install --save-dev @types/react
+
+      - name: Build check
+        env:
+          NEXT_PUBLIC_API_EXTERNAL_URL: ${{ secrets.NEXT_PUBLIC_API_EXTERNAL_URL }}
+          NEXT_PUBLIC_ANON_KEY: ${{ secrets.NEXT_PUBLIC_ANON_KEY }}
+          SERVICE_ROLE_KEY: ${{ secrets.SERVICE_ROLE_KEY }}
+        run: npm run build
 
       - name: Deploy to Vercel Preview
         id: vercel-deploy
