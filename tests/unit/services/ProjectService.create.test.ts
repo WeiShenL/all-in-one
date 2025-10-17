@@ -60,8 +60,7 @@ describe('ProjectService.createProject() - Service Orchestration', () => {
 
       // Verify uniqueness check was called
       expect(mockProjectRepository.isProjectNameUnique).toHaveBeenCalledWith(
-        'Customer Portal Redesign',
-        'dept-456'
+        'Customer Portal Redesign'
       );
 
       // Verify repository was called
@@ -94,8 +93,7 @@ describe('ProjectService.createProject() - Service Orchestration', () => {
 
       // Should check with trimmed name
       expect(mockProjectRepository.isProjectNameUnique).toHaveBeenCalledWith(
-        'Customer Portal',
-        'dept-456'
+        'Customer Portal'
       );
     });
 
@@ -184,8 +182,7 @@ describe('ProjectService.createProject() - Service Orchestration', () => {
 
       // Should check uniqueness
       expect(mockProjectRepository.isProjectNameUnique).toHaveBeenCalledWith(
-        'Existing Project',
-        'dept-456'
+        'Existing Project'
       );
 
       // Should NOT call createProject
@@ -206,8 +203,7 @@ describe('ProjectService.createProject() - Service Orchestration', () => {
       // Service should pass the name as-is (trimmed)
       // Repository handles case-insensitive check
       expect(mockProjectRepository.isProjectNameUnique).toHaveBeenCalledWith(
-        'customer portal',
-        'dept-456'
+        'customer portal'
       );
     });
 
