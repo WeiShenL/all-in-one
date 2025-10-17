@@ -8,6 +8,7 @@ import { projectRouter } from './project';
 
 import { notificationRouter } from './notification';
 import { taskRouter } from './task';
+import { projectRouter } from './project';
 
 // here we import from our init (server/trpc.ts)
 import { router } from '../trpc';
@@ -20,6 +21,7 @@ export const appRouter = router({
   project: projectRouter,
   notification: notificationRouter,
   task: taskRouter,
+  project: projectRouter,
 });
 
 // Export type router type signature,

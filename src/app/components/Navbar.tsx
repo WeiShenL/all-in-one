@@ -156,6 +156,17 @@ export default function Navbar() {
                 </a>
               )}
             <a
+              href='/projects'
+              style={{
+                color: '#495057',
+                textDecoration: 'none',
+                fontWeight: '500',
+                fontSize: 'clamp(0.875rem, 2vw, 1rem)',
+              }}
+            >
+              Projects
+            </a>
+            <a
               href='/profile'
               style={{
                 color: '#495057',
@@ -284,6 +295,19 @@ export default function Navbar() {
                   </a>
                 </>
               )}
+            <a
+              href='/projects'
+              style={{
+                color: '#495057',
+                textDecoration: 'none',
+                fontWeight: '500',
+                padding: '0.75rem',
+                borderRadius: '4px',
+                backgroundColor: '#fff',
+              }}
+            >
+              Projects
+            </a>
             <a
               href='/profile'
               style={{

@@ -1,14 +1,39 @@
+import { router, publicProcedure, Context } from '../trpc';
 import { z } from 'zod';
-import { router, publicProcedure } from '../trpc';
-import { ProjectService } from '../services/ProjectService';
+import { PrismaProjectRepository } from '@/repositories/PrismaProjectRepository';
+import { ProjectService as NewProjectService } from '@/services/project/ProjectService';
+import { ProjectService as OldProjectService } from '../services/ProjectService';
 import { ProjectStatus } from '@prisma/client';
+
+async function getUserContext(ctx: Context) {
+  if (!ctx.userId) {
+    throw new Error('User not authenticated');
+  }
+  const user = await ctx.prisma.userProfile.findUnique({
+    where: { id: ctx.userId },
+  });
+  if (!user) {
+    throw new Error('User profile not found');
+  }
+  return {
+    userId: ctx.userId,
+    departmentId: user.departmentId,
+    role: user.role as 'STAFF' | 'MANAGER' | 'ADMIN',
+  };
+}
 
 /**
  * Project Router
  *
- * Thin tRPC wrapper that delegates to ProjectService
+ * Combines:
+ * - Create operation using new DDD architecture (from teammate)
+ * - Read operations using existing service layer (your code)
+ * - Update operations using existing service layer (your code)
  */
 export const projectRouter = router({
+  // ============================================
+  // READ OPERATIONS (Your code - using old service)
+  // ============================================
   getAll: publicProcedure
     .input(
       z
@@ -21,57 +46,70 @@ export const projectRouter = router({
         .optional()
     )
     .query(({ ctx, input }) => {
-      const service = new ProjectService(ctx.prisma);
+      const service = new OldProjectService(ctx.prisma);
       return service.getAll(input);
     }),
 
   getById: publicProcedure
     .input(z.object({ id: z.string() }))
     .query(({ ctx, input }) => {
-      const service = new ProjectService(ctx.prisma);
+      const service = new OldProjectService(ctx.prisma);
       return service.getById(input.id);
     }),
 
   getByDepartment: publicProcedure
     .input(z.object({ departmentId: z.string() }))
     .query(({ ctx, input }) => {
-      const service = new ProjectService(ctx.prisma);
+      const service = new OldProjectService(ctx.prisma);
       return service.getByDepartment(input.departmentId);
     }),
 
   getByCreator: publicProcedure
     .input(z.object({ creatorId: z.string() }))
     .query(({ ctx, input }) => {
-      const service = new ProjectService(ctx.prisma);
+      const service = new OldProjectService(ctx.prisma);
       return service.getByCreator(input.creatorId);
     }),
 
   getByStatus: publicProcedure
     .input(z.object({ status: z.nativeEnum(ProjectStatus) }))
     .query(({ ctx, input }) => {
-      const service = new ProjectService(ctx.prisma);
+      const service = new OldProjectService(ctx.prisma);
       return service.getByStatus(input.status);
     }),
 
+  // ============================================
+  // CREATE OPERATION (Teammate's DDD architecture)
+  // ============================================
   create: publicProcedure
     .input(
       z.object({
         name: z.string().min(1),
-        description: z.string(),
-        priority: z.number().int().min(1).max(10).optional(),
-        dueDate: z.string().datetime(),
-        departmentId: z.string(),
-        creatorId: z.string(),
+        description: z.string().optional(),
+        priority: z.number().min(1).max(10).optional(),
       })
     )
-    .mutation(({ ctx, input }) => {
-      const service = new ProjectService(ctx.prisma);
-      return service.create({
-        ...input,
-        dueDate: new Date(input.dueDate),
-      });
+    .mutation(async ({ ctx, input }) => {
+      const repo = new PrismaProjectRepository(ctx.prisma);
+      const service = new NewProjectService(repo);
+      const user = await getUserContext(ctx);
+
+      const result = await service.createProject(
+        {
+          name: input.name,
+          description: input.description,
+          priority: input.priority,
+        },
+        user
+      );
+
+      // Return minimal data for confirmation message
+      return result; // { id, name }
     }),
 
+  // ============================================
+  // UPDATE OPERATIONS (Your code - using old service)
+  // ============================================
   update: publicProcedure
     .input(
       z.object({
@@ -79,18 +117,14 @@ export const projectRouter = router({
         name: z.string().min(1).optional(),
         description: z.string().optional(),
         priority: z.number().int().min(1).max(10).optional(),
-        dueDate: z.string().datetime().optional(),
         status: z.nativeEnum(ProjectStatus).optional(),
         isArchived: z.boolean().optional(),
       })
     )
     .mutation(({ ctx, input }) => {
-      const service = new ProjectService(ctx.prisma);
-      const { id, dueDate, ...data } = input;
-      return service.update(id, {
-        ...data,
-        ...(dueDate && { dueDate: new Date(dueDate) }),
-      });
+      const service = new OldProjectService(ctx.prisma);
+      const { id, ...data } = input;
+      return service.update(id, data);
     }),
 
   updateStatus: publicProcedure
@@ -101,28 +135,28 @@ export const projectRouter = router({
       })
     )
     .mutation(({ ctx, input }) => {
-      const service = new ProjectService(ctx.prisma);
+      const service = new OldProjectService(ctx.prisma);
       return service.updateStatus(input.id, input.status);
     }),
 
   archive: publicProcedure
     .input(z.object({ id: z.string() }))
     .mutation(({ ctx, input }) => {
-      const service = new ProjectService(ctx.prisma);
+      const service = new OldProjectService(ctx.prisma);
       return service.archive(input.id);
     }),
 
   unarchive: publicProcedure
     .input(z.object({ id: z.string() }))
     .mutation(({ ctx, input }) => {
-      const service = new ProjectService(ctx.prisma);
+      const service = new OldProjectService(ctx.prisma);
       return service.unarchive(input.id);
     }),
 
   delete: publicProcedure
     .input(z.object({ id: z.string() }))
     .mutation(({ ctx, input }) => {
-      const service = new ProjectService(ctx.prisma);
+      const service = new OldProjectService(ctx.prisma);
       return service.delete(input.id);
     }),
 });
