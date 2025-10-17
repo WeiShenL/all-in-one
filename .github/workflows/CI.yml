@@ -283,8 +283,8 @@ jobs:
     needs: [playwright-setup, vercel-preview]
     strategy:
       matrix:
-        shard: [1, 2, 3]
-        shards: [3]
+        shard: [1, 2, 3, 4]
+        shards: [4]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -372,6 +372,12 @@ jobs:
           name: coverage-integration-shard-3
           path: coverage/integration-shard-3
 
+      - name: Download Integration Coverage Artifacts (Shard 4)
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-integration-shard-4
+          path: coverage/integration-shard-4
+
       # Merge unit + integration coverage
       - name: Merge Coverage (unit + integration shards)
         run: |
@@ -388,7 +394,7 @@ jobs:
           cat coverage/unit/lcov.info > coverage/lcov.info
 
           # Append each shard's coverage file
-          for shard in 1 2 3; do
+          for shard in 1 2 3 4; do
             if [ -f "coverage/integration-shard-$shard/lcov.info" ]; then
               echo "Adding shard $shard coverage..."
               cat coverage/integration-shard-$shard/lcov.info >> coverage/lcov.info
