@@ -18,37 +18,48 @@ import { createInnerTRPCContext } from '../../src/app/server/trpc';
 
 const prisma = new PrismaClient();
 
-// Test IDs using proper UUID v4 format
-const TEST_IDS = {
-  // Departments
-  DEPT_ROOT: '10000000-0000-4000-8000-000000000001',
-  DEPT_ENGINEERING: '10000000-0000-4000-8000-000000000002',
-  DEPT_SALES: '10000000-0000-4000-8000-000000000003',
-  DEPT_HR: '10000000-0000-4000-8000-000000000004',
-  DEPT_ENGINEERING_DEV: '10000000-0000-4000-8000-000000000005',
+// Generate unique test IDs based on namespace to avoid conflicts in parallel test runs
+function generateTestIds(testNamespace: string) {
+  // Create a hash from the namespace to generate consistent but unique IDs
+  const hash = testNamespace.split('').reduce((a, b) => {
+    a = (a << 5) - a + b.charCodeAt(0);
+    return a & a;
+  }, 0);
 
-  // Users
-  USER_HR_ADMIN_ONLY: '20000000-0000-4000-8000-000000000001',
-  USER_HR_ADMIN_AND_MANAGER: '20000000-0000-4000-8000-000000000002',
-  USER_MANAGER_ONLY: '20000000-0000-4000-8000-000000000003',
-  USER_STAFF: '20000000-0000-4000-8000-000000000004',
-  USER_STAFF_SALES: '20000000-0000-4000-8000-000000000005',
+  const baseId = Math.abs(hash).toString(16).padStart(8, '0');
 
-  // Projects
-  PROJECT_ENG: '30000000-0000-4000-8000-000000000001',
-  PROJECT_SALES: '30000000-0000-4000-8000-000000000002',
+  return {
+    // Departments
+    DEPT_ROOT: `10000000-0000-4000-8000-${baseId}00001`,
+    DEPT_ENGINEERING: `10000000-0000-4000-8000-${baseId}00002`,
+    DEPT_SALES: `10000000-0000-4000-8000-${baseId}00003`,
+    DEPT_HR: `10000000-0000-4000-8000-${baseId}00004`,
+    DEPT_ENGINEERING_DEV: `10000000-0000-4000-8000-${baseId}00005`,
 
-  // Tasks
-  TASK_ENG_ASSIGNED: '40000000-0000-4000-8000-000000000001',
-  TASK_ENG_UNASSIGNED: '40000000-0000-4000-8000-000000000002',
-  TASK_SALES_ASSIGNED: '40000000-0000-4000-8000-000000000003',
-  TASK_HR_ASSIGNED: '40000000-0000-4000-8000-000000000004',
-  TASK_ENG_DEV_ASSIGNED: '40000000-0000-4000-8000-000000000005',
-};
+    // Users
+    USER_HR_ADMIN_ONLY: `20000000-0000-4000-8000-${baseId}00001`,
+    USER_HR_ADMIN_AND_MANAGER: `20000000-0000-4000-8000-${baseId}00002`,
+    USER_MANAGER_ONLY: `20000000-0000-4000-8000-${baseId}00003`,
+    USER_STAFF: `20000000-0000-4000-8000-${baseId}00004`,
+    USER_STAFF_SALES: `20000000-0000-4000-8000-${baseId}00005`,
+
+    // Projects
+    PROJECT_ENG: `30000000-0000-4000-8000-${baseId}00001`,
+    PROJECT_SALES: `30000000-0000-4000-8000-${baseId}00002`,
+
+    // Tasks
+    TASK_ENG_ASSIGNED: `40000000-0000-4000-8000-${baseId}00001`,
+    TASK_ENG_UNASSIGNED: `40000000-0000-4000-8000-${baseId}00002`,
+    TASK_SALES_ASSIGNED: `40000000-0000-4000-8000-${baseId}00003`,
+    TASK_HR_ASSIGNED: `40000000-0000-4000-8000-${baseId}00004`,
+    TASK_ENG_DEV_ASSIGNED: `40000000-0000-4000-8000-${baseId}00005`,
+  };
+}
 
 describe('HR/Admin Company Dashboard - Integration Tests', () => {
   // Unique namespace for this test run
   const testNamespace = `test-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  const TEST_IDS = generateTestIds(testNamespace);
 
   async function setupTestData() {
     // Create departments with unique names
