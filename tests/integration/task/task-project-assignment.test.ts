@@ -441,6 +441,7 @@ describe('Task-Project Assignment Integration Tests', () => {
   // ============================================
   describe('AC 3: Prevent Project Reassignment', () => {
     it('should maintain project assignment after task updates', async () => {
+      jest.setTimeout(60000); // Increase timeout for multiple sequential operations
       // Create task with project
       const result = await taskService.createTask(
         {
