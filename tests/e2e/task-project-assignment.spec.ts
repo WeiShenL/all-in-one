@@ -506,12 +506,14 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
     // Wait for projects to load
     await page.waitForFunction(
       projectName => {
-        const select = document.querySelector('[data-testid="project-select"]');
+        const select = document.querySelector(
+          '[data-testid="project-select"]'
+        ) as HTMLSelectElement | null;
         if (!select) {
           return false;
         }
         const options = Array.from(select.options);
-        return options.some(opt => opt.text.includes(projectName));
+        return options.some(opt => opt.text.includes(projectName as string));
       },
       testProjectName,
       { timeout: 15000 }
