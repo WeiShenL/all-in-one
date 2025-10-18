@@ -441,7 +441,6 @@ describe('Task-Project Assignment Integration Tests', () => {
   // ============================================
   describe('AC 3: Prevent Project Reassignment', () => {
     it('should maintain project assignment after task updates', async () => {
-      jest.setTimeout(60000); // Increase timeout for multiple sequential operations
       // Create task with project
       const result = await taskService.createTask(
         {
@@ -482,7 +481,7 @@ describe('Task-Project Assignment Integration Tests', () => {
       // Verify no updateProjectId method exists on service
       // @ts-expect-error - updateProjectId should not exist
       expect(taskService.updateProjectId).toBeUndefined();
-    }, 30000);
+    }, 60000); // Increased timeout for staging environment with multiple sequential operations
 
     it('should prevent project reassignment via direct database manipulation', async () => {
       // Create task with project
