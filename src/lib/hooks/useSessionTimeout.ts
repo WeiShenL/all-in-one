@@ -1,8 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import { useNotifications } from '@/lib/context/NotificationContext';
-import { toFrontendNotificationType } from '@/lib/notificationTypeMapping';
-import { NotificationType } from '@prisma/client';
 
 const INACTIVITY_TIMEOUT = 15 * 60 * 1000; // 15 minutes in milliseconds
 const WARNING_TIMEOUT = 14 * 60 * 1000; // 14 minutes - show warning 1 min before
@@ -64,7 +62,7 @@ export function useSessionTimeout({
     if (warningShownRef.current) {
       // Dismiss all warning notifications with animation
       notifications.forEach(notification => {
-        if (toFrontendNotificationType(notification.type) === 'warning') {
+        if (notification.type === 'warning') {
           dismissNotification(notification.id);
         }
       });
@@ -82,7 +80,7 @@ export function useSessionTimeout({
     warningRef.current = setTimeout(() => {
       warningShownRef.current = true;
       addNotification(
-        NotificationType.DEADLINE_REMINDER,
+        'warning',
         'Inactivity Warning',
         'Your session will expire soon due to inactivity. Move your mouse or press a key to stay logged in.'
       );
@@ -139,7 +137,7 @@ export function useSessionTimeout({
       warningRef.current = setTimeout(() => {
         warningShownRef.current = true;
         addNotification(
-          NotificationType.DEADLINE_REMINDER,
+          'warning',
           'Inactivity Warning',
           'Your session will expire soon due to inactivity. Move your mouse or press a key to stay logged in.'
         );

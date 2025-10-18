@@ -137,19 +137,17 @@ describeIfSupabase('Realtime Notifications - Multiple Clients', () => {
       await new Promise(resolve => setTimeout(resolve, 500));
 
       // Act: Send broadcast from client1
-      const testNotification: Omit<RealtimeNotification, 'broadcast_at'> = {
+      const testNotification: RealtimeNotification = {
         type: NotificationType.TASK_ASSIGNED,
         title: 'Test Broadcast',
         message: 'Testing multiple client reception',
+        broadcast_at: new Date().toISOString(),
       };
 
       await channel1.send({
         type: 'broadcast',
         event: 'notification',
-        payload: {
-          ...testNotification,
-          broadcast_at: new Date().toISOString(),
-        },
+        payload: testNotification,
       });
 
       // Wait for broadcast to propagate

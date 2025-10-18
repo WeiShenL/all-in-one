@@ -110,6 +110,9 @@ export class TaskNotificationService {
         emailMessage += `<p>You can view the task here: <a href="${process.env.NEXT_PUBLIC_BASE_URL}/tasks/${task.id}">${task.title}</a></p><p>Regards,<br>Your Application Team</p>`;
 
         await this.emailService.sendEmail({
+          // TODO [NEXT USER STORY]: Change to user.email once Resend domain is verified
+          // Current: Hardcoded for testing with unverified domain
+          // Will need actual user emails for task update notifications
           to: 'james626629@gmail.com', // Hardcode for testing with Resend unverified domain
           subject: title,
           text: message,

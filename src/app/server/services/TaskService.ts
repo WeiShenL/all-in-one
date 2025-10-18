@@ -474,11 +474,21 @@ export class TaskService extends BaseService {
       // Check task exists
       const existing = await this.prisma.task.findUnique({
         where: { id },
+        include: {
+          assignments: {
+            include: {
+              user: true,
+            },
+          },
+        },
       });
 
       if (!existing) {
         throw new Error('Task not found');
       }
+
+      // TODO [NSY003 - NEXT USER STORY]: Add task update notification logic here
+      // When implementing task update notifications:
 
       return await this.prisma.task.update({
         where: { id },
@@ -692,7 +702,7 @@ export class TaskService extends BaseService {
         throw new Error('User is already assigned to this task');
       }
 
-      return await this.prisma.taskAssignment.create({
+      const newAssignment = await this.prisma.taskAssignment.create({
         data: {
           taskId,
           userId,
@@ -715,6 +725,24 @@ export class TaskService extends BaseService {
           },
         },
       });
+
+      // TODO [NSY003 - NEXT USER STORY]: Add assignment notification logic here
+      // When implementing task assignment notifications:
+      // 1. Call NotificationService.create() with type: 'TASK_ASSIGNED'
+      // 2. Notify the newly assigned user (userId)
+      // 3. Call RealtimeService.sendNotification() for instant in-app alerts
+      // 4. Send email notification via EmailService
+      // 5. Include link to task details: /tasks/${taskId}
+      // Example:
+      // await notificationService.create({
+      //   userId: userId,
+      //   taskId: taskId,
+      //   type: 'TASK_ASSIGNED',
+      //   title: 'New Task Assigned',
+      //   message: `You have been assigned to task "${task.title}" by ${assignedBy.name}`
+      // });
+
+      return newAssignment;
     } catch (error) {
       this.handleError(error, 'assignUser');
     }

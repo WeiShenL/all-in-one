@@ -1,10 +1,9 @@
 import { NotificationType as PrismaNotificationType } from '@prisma/client';
-
-export type FrontendNotificationType = 'info' | 'success' | 'warning' | 'error';
+import type { NotificationSeverity } from '@/types/notification';
 
 export const toFrontendNotificationType = (
   prismaType: PrismaNotificationType
-): FrontendNotificationType => {
+): NotificationSeverity => {
   switch (prismaType) {
     case PrismaNotificationType.TASK_ASSIGNED:
     case PrismaNotificationType.TASK_UPDATED:
