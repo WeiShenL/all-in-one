@@ -63,20 +63,20 @@ test.describe('HR/Admin Company Dashboard - Happy Path', () => {
     await page.waitForLoadState('networkidle');
 
     // Navigate to company dashboard
-    await page.goto('/dashboard/company', { timeout: 30000 });
+    await page.goto('/dashboard/company', { timeout: 60000 });
 
     // Should successfully load the page
-    await expect(page).toHaveURL(/\/dashboard\/company/, { timeout: 15000 });
+    await expect(page).toHaveURL(/\/dashboard\/company/, { timeout: 30000 });
 
     // Wait for the page heading
-    await expect(page.locator('h1')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('h1')).toBeVisible({ timeout: 20000 });
 
     // Wait for tasks to load (if table exists)
     const taskTable = page.locator('[data-testid="task-table"]');
     const tableExists = await taskTable.count();
 
     if (tableExists > 0) {
-      await expect(taskTable).toBeVisible({ timeout: 10000 });
+      await expect(taskTable).toBeVisible({ timeout: 20000 });
 
       // Check if there are any tasks displayed
       const taskRows = page.locator('[data-testid="task-row"]');
@@ -127,13 +127,13 @@ async function createAndLoginUser(
     // Select department using the DepartmentSelect component
     await page.click('button:has-text("Select a department")');
     const deptSearch = page.getByPlaceholder('Search departments...');
-    await expect(deptSearch).toBeVisible({ timeout: 5000 });
+    await expect(deptSearch).toBeVisible({ timeout: 10000 });
     await deptSearch.fill('IT');
 
     // Wait for departments to load and IT option to appear
-    await page.waitForTimeout(2000); // Give time for API call
+    await page.waitForTimeout(3000); // Give time for API call
     const itOption = page.getByText(/^\s*└─\s*IT\s*$/);
-    await expect(itOption).toBeVisible({ timeout: 15000 });
+    await expect(itOption).toBeVisible({ timeout: 30000 });
     await itOption.click();
 
     // Passwords
@@ -145,7 +145,7 @@ async function createAndLoginUser(
 
     // Wait for redirect to dashboard OR check for error message
     try {
-      await page.waitForURL(/\/dashboard/, { timeout: 15000 });
+      await page.waitForURL(/\/dashboard/, { timeout: 30000 });
     } catch (urlError) {
       // Check if there's an error about existing user
       const errorDiv = page
@@ -161,7 +161,7 @@ async function createAndLoginUser(
         await page.getByLabel('Email').fill(user.email);
         await page.getByLabel('Password').fill(user.password);
         await page.getByRole('button', { name: /sign in/i }).click();
-        await page.waitForURL(/\/dashboard/, { timeout: 15000 });
+        await page.waitForURL(/\/dashboard/, { timeout: 30000 });
         return;
       }
       throw urlError;

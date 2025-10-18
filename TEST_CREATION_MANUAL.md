@@ -721,6 +721,7 @@ When refactoring tests for parallel execution:
 - [ ] Monitor for race conditions
 - [ ] Document test data patterns
 - [ ] Verify cleanup effectiveness
+- [ ] increase timeouts and to be visible timings to account for CICD to run slower than local
 
 ## Conclusion
 

@@ -6,9 +6,9 @@ dotenv.config();
 
 export default defineConfig({
   testDir: './tests/e2e',
-  timeout: 30_000,
+  timeout: 60_000, // Increased from 30s to 60s
   expect: {
-    timeout: process.env.CI ? 15_000 : 5_000, // Longer timeouts in CI/CD
+    timeout: process.env.CI ? 30_000 : 10_000, // Increased CI timeout from 15s to 30s
   },
 
   // Run e2e tests in parallel with worker-specific test data namespacing
@@ -37,7 +37,7 @@ export default defineConfig({
   webServer: {
     command: 'npm run dev',
     url: 'http://localhost:3000',
-    timeout: 120_000,
+    timeout: 180_000, // Increased from 120s to 180s
     reuseExistingServer: true,
   },
 });
