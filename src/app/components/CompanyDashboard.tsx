@@ -34,6 +34,7 @@ export function CompanyDashboard() {
         title='All Company Tasks'
         showCreateButton={true}
         onTaskCreated={handleTaskCreated}
+        onTaskUpdated={handleTaskCreated}
         emptyStateConfig={{
           icon: '🌐',
           title: 'No tasks found',

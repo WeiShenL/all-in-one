@@ -52,6 +52,7 @@ export function PersonalDashboard() {
           emptyStateConfig={emptyStateConfig}
           isLoading={isLoading}
           error={error ? new Error(error.message) : null}
+          onTaskCreated={handleTaskUpdated}
           onTaskUpdated={handleTaskUpdated}
         />
       }
