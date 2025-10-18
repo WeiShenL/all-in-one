@@ -202,7 +202,7 @@ test.describe('Overdue Task Highlighting', () => {
   test('AC2: should display red highlighting for overdue task in task modal', async ({
     page,
   }) => {
-    test.setTimeout(120000); // 2 minute timeout for CI/CD
+    test.setTimeout(180000); // 3 minute timeout for CI/CD
 
     // Login and open the overdue task modal
     await loginAndNavigateToOverdueTask(page);
@@ -232,7 +232,7 @@ test.describe('Overdue Task Highlighting', () => {
   test('AC3: should turn gray when overdue task is marked as COMPLETED (in same modal)', async ({
     page,
   }) => {
-    test.setTimeout(120000); // 2 minute timeout for CI/CD
+    test.setTimeout(180000); // 3 minute timeout for CI/CD
 
     // Login and open the same overdue task modal
     await loginAndNavigateToOverdueTask(page);

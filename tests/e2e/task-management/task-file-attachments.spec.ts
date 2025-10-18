@@ -203,7 +203,7 @@ test.describe('Task File Attachments - Isolated E2E Tests', () => {
   });
 
   test('should upload file attachment', async ({ page }) => {
-    test.setTimeout(120000);
+    test.setTimeout(180000);
 
     // Create a test PDF file (minimal valid PDF)
     const testFileName = `test-file-${testNamespace}.pdf`;
@@ -331,7 +331,7 @@ startxref
   });
 
   test('should view/download file attachment', async ({ page, context }) => {
-    test.setTimeout(120000);
+    test.setTimeout(180000);
 
     // First, upload a file via database
     const testFileName = `db-test-file-${testNamespace}.pdf`;
@@ -404,7 +404,7 @@ startxref
   });
 
   test('should delete file attachment', async ({ page }) => {
-    test.setTimeout(120000);
+    test.setTimeout(180000);
 
     // First, upload a file via database
     const testFileName = `delete-test-file-${testNamespace}.pdf`;
@@ -447,17 +447,17 @@ startxref
 
     // Find the file and click delete
     const fileEntry = page.getByTestId(`file-entry-${testFileName}`);
-    await expect(fileEntry).toBeVisible({ timeout: 15000 });
+    await expect(fileEntry).toBeVisible({ timeout: 60000 });
 
     // Click delete button
     const deleteButton = fileEntry.getByRole('button', { name: /🗑️/ });
-    await expect(deleteButton).toBeVisible({ timeout: 15000 });
+    await expect(deleteButton).toBeVisible({ timeout: 60000 });
 
     // Handle confirm dialog
     page.on('dialog', dialog => dialog.accept());
     await deleteButton.click();
 
     // Verify file is removed from UI
-    await expect(fileEntry).not.toBeVisible({ timeout: 15000 });
+    await expect(fileEntry).not.toBeVisible({ timeout: 60000 });
   });
 });

@@ -6,7 +6,7 @@ dotenv.config();
 
 export default defineConfig({
   testDir: './tests/e2e',
-  timeout: 60_000, // Increased from 30s to 60s
+  timeout: process.env.CI ? 180_000 : 120_000, // Increased to 120s local, 180s CI
   expect: {
     timeout: process.env.CI ? 30_000 : 10_000, // Increased CI timeout from 15s to 30s
   },

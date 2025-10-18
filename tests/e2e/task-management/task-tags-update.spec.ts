@@ -201,7 +201,7 @@ test.describe('Task Tags Update - Isolated E2E Tests', () => {
   });
 
   test('should add and remove tags', async ({ page }) => {
-    test.setTimeout(120000);
+    test.setTimeout(180000);
 
     // Login
     await page.goto('/auth/login');

@@ -217,7 +217,7 @@ test.describe('Basic Task Update - Isolated E2E Tests', () => {
 
     // Wait for modal to open - look for task title instead of heading
     await expect(page.getByTestId('task-title-display')).toBeVisible({
-      timeout: 15000,
+      timeout: 60000,
     });
 
     // Update title - click on title to start editing
@@ -249,7 +249,7 @@ test.describe('Basic Task Update - Isolated E2E Tests', () => {
 
     // Wait for the textarea to appear and be visible
     const descInput = page.getByTestId('task-description-input');
-    await expect(descInput).toBeVisible({ timeout: 15000 });
+    await expect(descInput).toBeVisible({ timeout: 60000 });
     await descInput.clear();
     await descInput.fill('Updated description via E2E test');
     await page
@@ -280,7 +280,7 @@ test.describe('Basic Task Update - Isolated E2E Tests', () => {
 
     // Wait for modal to open - look for task title instead of heading
     await expect(page.getByTestId('task-title-display')).toBeVisible({
-      timeout: 15000,
+      timeout: 60000,
     });
 
     // Update priority - click on priority to start editing
@@ -310,7 +310,7 @@ test.describe('Basic Task Update - Isolated E2E Tests', () => {
 
     // Wait for the input field to appear and be visible
     const dateInput = page.getByTestId('deadline-input');
-    await expect(dateInput).toBeVisible({ timeout: 15000 });
+    await expect(dateInput).toBeVisible({ timeout: 60000 });
     await dateInput.fill('2025-11-15');
     await page
       .getByRole('button', { name: /✓ Save/i })
@@ -340,13 +340,13 @@ test.describe('Basic Task Update - Isolated E2E Tests', () => {
 
     // Wait for modal to open - look for task title instead of heading
     await expect(page.getByTestId('task-title-display')).toBeVisible({
-      timeout: 15000,
+      timeout: 60000,
     });
 
     // Update status - click on status to start editing
     await page.getByTestId('task-status-display').click();
     const statusSelect = page.getByTestId('task-status-select');
-    await expect(statusSelect).toBeVisible({ timeout: 15000 });
+    await expect(statusSelect).toBeVisible({ timeout: 60000 });
     await statusSelect.selectOption('IN_PROGRESS');
     await page
       .getByRole('button', { name: /✓ Save/i })

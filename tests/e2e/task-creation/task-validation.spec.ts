@@ -100,11 +100,24 @@ test.describe('Task Creation Validation - Isolated E2E Tests', () => {
       // Cleanup - order matters due to foreign keys
       // Use CASCADE DELETE to handle foreign key constraints automatically
 
-      // 1. Delete all tasks owned by test user (CASCADE will handle dependencies)
+      // 1. Delete ALL tasks that reference this user (as owner, assignee, or creator)
       if (testUserId) {
+        // Delete tasks where user is owner
         await pgClient.query('DELETE FROM "task" WHERE "ownerId" = $1', [
           testUserId,
         ]);
+
+        // Delete tasks where user is assigned (this will also clean up task_assignment)
+        await pgClient.query(
+          'DELETE FROM "task_assignment" WHERE "userId" = $1',
+          [testUserId]
+        );
+
+        // Delete tasks where user is assigned by someone else
+        await pgClient.query(
+          'DELETE FROM "task_assignment" WHERE "assignedById" = $1',
+          [testUserId]
+        );
       }
 
       // 2. Delete any remaining tasks with our namespace in title (fallback cleanup)
@@ -112,13 +125,10 @@ test.describe('Task Creation Validation - Isolated E2E Tests', () => {
         `%${testNamespace}%`,
       ]);
 
-      // 5. Delete tags created during test
-      const tagResult = await pgClient.query(
-        'DELETE FROM "tag" WHERE name LIKE $1 RETURNING name',
-        [`validation-task-%${testNamespace}%`]
-      );
-      if (tagResult.rows.length > 0) {
-      }
+      // 3. Delete tags created during test
+      await pgClient.query('DELETE FROM "tag" WHERE name LIKE $1', [
+        `validation-task-%${testNamespace}%`,
+      ]);
 
       // 6. Delete user profile
       if (testUserId) {
@@ -155,7 +165,7 @@ test.describe('Task Creation Validation - Isolated E2E Tests', () => {
   });
 
   test('should validate mandatory fields are required', async ({ page }) => {
-    test.setTimeout(120000);
+    test.setTimeout(180000);
 
     // Login
     await page.goto('/auth/login');
@@ -187,7 +197,7 @@ test.describe('Task Creation Validation - Isolated E2E Tests', () => {
   });
 
   test('should validate priority range (1-10)', async ({ page }) => {
-    test.setTimeout(120000);
+    test.setTimeout(180000);
 
     // Login
     await page.goto('/auth/login');

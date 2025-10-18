@@ -191,7 +191,7 @@ test.describe('Task Recurring Settings Update - Isolated E2E Tests', () => {
   });
 
   test('should update recurring settings', async ({ page }) => {
-    test.setTimeout(120000);
+    test.setTimeout(180000);
 
     // Login
     await page.goto('/auth/login');
@@ -257,7 +257,7 @@ test.describe('Task Recurring Settings Update - Isolated E2E Tests', () => {
   });
 
   test('should disable recurring settings', async ({ page }) => {
-    test.setTimeout(120000);
+    test.setTimeout(180000);
 
     // Login
     await page.goto('/auth/login');

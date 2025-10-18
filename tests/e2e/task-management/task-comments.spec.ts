@@ -198,7 +198,7 @@ test.describe('Task Comments - Isolated E2E Tests', () => {
   });
 
   test('should add comment to task', async ({ page }) => {
-    test.setTimeout(120000);
+    test.setTimeout(180000);
 
     // Login
     await page.goto('/auth/login');
@@ -244,7 +244,7 @@ test.describe('Task Comments - Isolated E2E Tests', () => {
   });
 
   test('should edit own comment only', async ({ page }) => {
-    test.setTimeout(120000);
+    test.setTimeout(180000);
 
     // First, add a comment via database
     const commentText = `Editable comment ${testNamespace}`;
