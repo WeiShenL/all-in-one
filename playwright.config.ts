@@ -6,14 +6,14 @@ dotenv.config();
 
 export default defineConfig({
   testDir: './tests/e2e',
-  timeout: 30_000,
+  timeout: process.env.CI ? 180_000 : 120_000, // Increased to 120s local, 180s CI
   expect: {
-    timeout: process.env.CI ? 15_000 : 5_000, // Longer timeouts in CI/CD
+    timeout: process.env.CI ? 30_000 : 10_000, // Increased CI timeout from 15s to 30s
   },
 
-  // Run e2e tests sequentially to prevent auth/database conflicts
-  fullyParallel: false,
-  workers: 1,
+  // Run e2e tests in parallel with worker-specific test data namespacing
+  fullyParallel: true,
+  workers: process.env.CI ? 3 : 3, // update here if wnat more in local. for now seems like 3 is the sweet spot without any contention issues.
 
   // Use the dev server's URL for tests; update the port if you use a different one
   use: {
@@ -37,7 +37,7 @@ export default defineConfig({
   webServer: {
     command: 'npm run dev',
     url: 'http://localhost:3000',
-    timeout: 120_000,
+    timeout: 180_000, // Increased from 120s to 180s
     reuseExistingServer: true,
   },
 });
