@@ -305,10 +305,11 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
 
     // Verify tags appear in the task detail modal
     await expect(page.getByText('🏷️ Tags')).toBeVisible({ timeout: 65000 });
-    await expect(page.getByText('e2e-ui-urgent')).toBeVisible({
+    // Use data-testid to target specific tag removal buttons (which indicates the tag exists)
+    await expect(page.getByTestId('remove-tag-e2e-ui-urgent')).toBeVisible({
       timeout: 65000,
     });
-    await expect(page.getByText('e2e-ui-frontend')).toBeVisible({
+    await expect(page.getByTestId('remove-tag-e2e-ui-frontend')).toBeVisible({
       timeout: 65000,
     });
   });

@@ -152,7 +152,7 @@ export const taskRouter = router({
         priority: z.number().min(1).max(10),
         dueDate: z.coerce.date(),
         assigneeIds: z.array(z.string().uuid()).min(1).max(5),
-        projectId: z.string().uuid().optional(),
+        projectId: z.string().uuid().nullable().optional(),
         tags: z.array(z.string()).optional(),
         recurringInterval: z.number().positive().optional(),
         parentTaskId: z.string().uuid().optional(),
@@ -170,7 +170,7 @@ export const taskRouter = router({
           priority: input.priority,
           dueDate: input.dueDate,
           assigneeIds: input.assigneeIds,
-          projectId: input.projectId,
+          projectId: input.projectId || undefined,
           parentTaskId: input.parentTaskId,
           tags: input.tags,
           recurringInterval: input.recurringInterval,
@@ -474,7 +474,7 @@ export const taskRouter = router({
     .input(
       z.object({
         taskId: z.string().uuid(),
-        projectId: z.string().uuid(),
+        projectId: z.string().uuid().nullable(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -492,6 +492,15 @@ export const taskRouter = router({
 
       if (existingTask.projectId) {
         throw new Error('Task already has a project and cannot be reassigned');
+      }
+
+      // If projectId is null, just update to null (unassign)
+      if (!input.projectId) {
+        await ctx.prisma.task.update({
+          where: { id: input.taskId },
+          data: { projectId: null },
+        });
+        return { success: true, message: 'Project removed from task' };
       }
 
       // Validate project exists

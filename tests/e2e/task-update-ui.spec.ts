@@ -668,11 +668,10 @@ test.describe('Task Update - Complete UI Flow', () => {
     });
   });
 
-  // skipped for now due to the timeout duration
-  test.skip('AC7 + TM015: should add assignees up to max 5 and cannot remove', async ({
+  test('AC7 + TM015: should add assignees up to max 5 and cannot remove', async ({
     page,
   }) => {
-    test.setTimeout(120000); // Extended timeout - adds 4 assignees, each takes ~15s in CI/CD
+    test.setTimeout(180000); // Extended timeout - adds 4 assignees, each takes ~15s in CI/CD
 
     await loginAndNavigateToTaskEdit(page);
 

@@ -410,7 +410,7 @@ export function TaskCreateModal({
             ownerId: userProfile.id,
             assigneeIds,
             ...(tagList.length > 0 && { tags: tagList }),
-            ...(projectId && { projectId }),
+            ...(projectId && projectId.trim() !== '' && { projectId }), // Only include if not empty
             ...(recurringEnabled &&
               recurringInterval && {
                 recurringInterval: Number(recurringInterval),

@@ -162,19 +162,27 @@ test.describe('Subtask Creation E2E - SCRUM-65', () => {
       ]);
     }
 
-    // 4. Delete user profile
+    // 4. Delete user profile first (since auth user doesn't cascade)
     if (testUserId) {
-      await pgClient.query('DELETE FROM "user_profile" WHERE id = $1', [
-        testUserId,
-      ]);
+      try {
+        await pgClient.query('DELETE FROM "user_profile" WHERE id = $1', [
+          testUserId,
+        ]);
+      } catch (err) {
+        console.error('Failed to delete user_profile:', err);
+      }
     }
 
     // 5. Delete auth user
     await supabaseClient.auth.signOut();
     const unique = testEmail.split('.')[2].split('@')[0];
-    await pgClient.query('DELETE FROM auth.users WHERE email LIKE $1', [
-      `e2e.subtask.${unique}%`,
-    ]);
+    try {
+      await pgClient.query('DELETE FROM auth.users WHERE email LIKE $1', [
+        `e2e.subtask.${unique}%`,
+      ]);
+    } catch (err) {
+      console.error('Failed to delete auth user:', err);
+    }
 
     // 6. Delete department
     if (testDepartmentId) {
@@ -290,18 +298,26 @@ test.describe('Subtask Creation E2E - SCRUM-65', () => {
       timeout: 40000,
     });
 
-    // Click the dropdown arrow to expand the parent task and reveal subtasks
-    // The dropdown button is next to parent tasks that have subtasks
-    const dropdownButton = page
+    // Click the View button to open the parent task modal
+    // The View button shows the subtasks in a "Connected Tasks" table
+    const viewButton = page
       .locator('tr')
       .filter({ hasText: 'E2E Parent Task for Subtask' })
-      .locator('button')
+      .getByTestId(/view-task-button-.*/)
       .first();
-    await expect(dropdownButton).toBeVisible({ timeout: 40000 });
-    await dropdownButton.click();
+    await expect(viewButton).toBeVisible({ timeout: 40000 });
+    await viewButton.click();
 
-    // Now the subtask should be visible (indented under parent)
-    await expect(page.getByText('E2E Test Subtask')).toBeVisible({
+    // Wait for the parent task modal to open
+    await expect(
+      page.getByRole('heading', { name: /E2E Parent Task for Subtask/i })
+    ).toBeVisible({
+      timeout: 40000,
+    });
+
+    // Now the subtask should be visible in the "Connected Tasks (2)" table
+    // Look for the subtask text in the Connected Tasks section
+    await expect(page.getByText('E2E Test Subtask').first()).toBeVisible({
       timeout: 40000,
     });
 

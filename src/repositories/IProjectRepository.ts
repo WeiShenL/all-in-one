@@ -87,4 +87,28 @@ export interface IProjectRepository {
    * @param id - Project ID
    */
   archiveProject(id: string): Promise<void>;
+
+  /**
+   * Get all projects with optional filters
+   * @param filters - Optional filters for querying projects
+   */
+  getAllProjects(filters?: {
+    departmentId?: string;
+    creatorId?: string;
+    status?: string;
+    isArchived?: boolean;
+  }): Promise<
+    Array<{
+      id: string;
+      name: string;
+      description: string | null;
+      priority: number;
+      status: string;
+      departmentId: string;
+      creatorId: string;
+      isArchived: boolean;
+      createdAt: Date;
+      updatedAt: Date;
+    }>
+  >;
 }

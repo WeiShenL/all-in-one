@@ -194,91 +194,102 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
     await page.waitForURL(/\/dashboard/, { timeout: 15000 });
 
     // 2. Navigate to task creation page/modal
-    // Look for "Create Task" or "New Task" button
+    // Look for "Create Task" button (exact text: "+ Create Task")
     const createTaskButton = page
       .locator('button', {
-        hasText: /create task|new task|add task/i,
+        hasText: /create task/i,
       })
       .first();
 
     await expect(createTaskButton).toBeVisible({ timeout: 10000 });
     await createTaskButton.click();
 
-    // Wait for task creation form/modal
-    await page.waitForSelector(
-      'input[name="title"], input[placeholder*="title" i]',
-      {
-        timeout: 10000,
-      }
-    );
+    // Wait for modal to appear (TaskCreateModal opens, not a page navigation)
+    // Look for modal heading "Create New Task"
+    await page.waitForSelector('text=Create New Task', {
+      timeout: 10000,
+    });
 
     // 3. Fill in task details
     const taskTitle = `E2E Task in Project ${Date.now()}`;
     const taskDescription =
       'This task is assigned to a project and cannot be reassigned';
 
-    // Fill title
-    await page.fill(
-      'input[name="title"], input[placeholder*="title" i]',
-      taskTitle
+    // Fill title - use placeholder to identify the correct input
+    const titleInput = page.locator(
+      'input[placeholder="e.g., Implement login feature"]'
     );
+    await titleInput.fill(taskTitle);
 
-    // Fill description
-    await page.fill(
-      'textarea[name="description"], textarea[placeholder*="description" i]',
-      taskDescription
+    // Fill description - use placeholder to identify the correct textarea
+    const descriptionInput = page.locator(
+      'textarea[placeholder="Detailed description of the task..."]'
     );
+    await descriptionInput.fill(taskDescription);
 
-    // Set priority (look for slider, select, or number input)
-    const priorityInput = page
-      .locator(
-        'input[name="priority"], input[type="number"][aria-label*="priority" i], select[name="priority"]'
-      )
-      .first();
-    if (await priorityInput.isVisible()) {
-      await priorityInput.fill('7');
-    }
+    // Set priority - number input with min=1, max=10
+    const priorityInput = page.locator('input[type="number"]').first();
+    await priorityInput.fill('7');
 
-    // Set deadline
-    const deadlineInput = page
-      .locator(
-        'input[name="dueDate"], input[name="deadline"], input[type="date"]'
-      )
-      .first();
-    if (await deadlineInput.isVisible()) {
-      await deadlineInput.fill('2025-12-31');
-    }
+    // Set deadline - date input
+    const deadlineInput = page.locator('input[type="date"]').first();
+    await deadlineInput.fill('2025-12-31');
 
     // 4. Select project from dropdown
-    // Look for project select/combobox
-    const projectSelect = page
-      .locator('select[name="projectId"], select[aria-label*="project" i]')
-      .first();
+    // Scroll down to see the project dropdown (it's below the fold)
+    await page.evaluate(() => {
+      const modal = document.querySelector('form');
+      if (modal) {
+        modal.scrollTop = modal.scrollHeight;
+      }
+    });
+    await page.waitForTimeout(500);
 
-    if (await projectSelect.isVisible()) {
-      // Standard select element
-      await projectSelect.selectOption({ label: testProjectName });
-    } else {
-      // Try custom combobox/dropdown
-      const projectCombobox = page
-        .locator('[role="combobox"]', {
-          hasText: /project/i,
-        })
-        .first();
+    // The modal has a select for project (after "🗂️ Project (Optional)" label)
+    // Wait for projects to load and select the test project
+    await page.waitForFunction(
+      projectName => {
+        const forms = Array.from(document.querySelectorAll('form'));
+        const visibleForm = forms.find(f => f.offsetParent !== null);
+        if (!visibleForm) {
+          return false;
+        }
 
-      if (await projectCombobox.isVisible()) {
-        await projectCombobox.click();
-        await page.waitForTimeout(500);
+        const selects = Array.from(visibleForm.querySelectorAll('select'));
+        // Find the project select (should have "Project" related option text)
+        const projectSelect = selects.find(s => {
+          const firstOption = s.options[0];
+          return (
+            firstOption && firstOption.text.toLowerCase().includes('project')
+          );
+        });
 
-        // Select project option
-        const projectOption = page
-          .locator('[role="option"]', {
-            hasText: testProjectName,
-          })
-          .first();
-        await projectOption.click();
+        if (!projectSelect) {
+          return false;
+        }
+        const options = Array.from(projectSelect.options);
+        return options.some(opt => opt.text.includes(projectName));
+      },
+      testProjectName,
+      { timeout: 15000 }
+    );
+
+    // Now select using a more reliable selector - find the select that contains the project option
+    const allSelects = await page.locator('select').all();
+    let projectSelect = null;
+    for (const select of allSelects) {
+      const options = await select.locator('option').allTextContents();
+      if (options.some(opt => opt.toLowerCase().includes('project'))) {
+        projectSelect = select;
+        break;
       }
     }
+
+    if (!projectSelect) {
+      throw new Error('Could not find project select dropdown');
+    }
+
+    await projectSelect.selectOption({ label: testProjectName });
 
     // 5. Submit form
     const submitButton = page
@@ -330,7 +341,8 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
       .first();
 
     if (await editButton.isVisible()) {
-      await editButton.click();
+      // Force click in case there's an overlay
+      await editButton.click({ force: true });
       await page.waitForTimeout(1000);
 
       // Project field should either:
@@ -381,13 +393,6 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
         await expect(taskInProject).toBeVisible({ timeout: 5000 });
       }
     }
-
-    console.warn('✓ E2E Happy Path Test Passed:');
-    console.warn('  - Task created with project assignment');
-    console.warn('  - Confirmation message displayed');
-    console.warn('  - Task belongs to exactly one project');
-    console.warn('  - Project assignment is immutable');
-    console.warn('  - Task appears in project view');
   });
 
   // ============================================
@@ -410,29 +415,91 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
     // 2. Create parent task with project
     const createTaskButton = page
       .locator('button', {
-        hasText: /create task|new task|add task/i,
+        hasText: /create task/i,
       })
       .first();
     await createTaskButton.click();
 
+    // Wait for modal to appear (TaskCreateModal opens, not a page navigation)
+    await page.waitForSelector('text=Create New Task', {
+      timeout: 10000,
+    });
+
     const parentTitle = `E2E Parent Task ${Date.now()}`;
-    await page.fill(
-      'input[name="title"], input[placeholder*="title" i]',
-      parentTitle
+
+    // Fill title - use placeholder to identify the correct input
+    const titleInput = page.locator(
+      'input[placeholder="e.g., Implement login feature"]'
     );
-    await page.fill(
-      'textarea[name="description"], textarea[placeholder*="description" i]',
-      'Parent task with project'
+    await titleInput.fill(parentTitle);
+
+    // Fill description
+    const descriptionInput = page.locator(
+      'textarea[placeholder="Detailed description of the task..."]'
+    );
+    await descriptionInput.fill('Parent task with project');
+
+    // Fill priority
+    const priorityInput = page.locator('input[type="number"]').first();
+    await priorityInput.fill('5');
+
+    // Fill deadline
+    const deadlineInput = page.locator('input[type="date"]').first();
+    await deadlineInput.fill('2025-12-31');
+
+    // Scroll down to see the project dropdown (it's below the fold)
+    await page.evaluate(() => {
+      const modal = document.querySelector('form');
+      if (modal) {
+        modal.scrollTop = modal.scrollHeight;
+      }
+    });
+    await page.waitForTimeout(500);
+
+    // Select project - wait for projects to load and select
+    await page.waitForFunction(
+      projectName => {
+        const forms = Array.from(document.querySelectorAll('form'));
+        const visibleForm = forms.find(f => f.offsetParent !== null);
+        if (!visibleForm) {
+          return false;
+        }
+
+        const selects = Array.from(visibleForm.querySelectorAll('select'));
+        // Find the project select (should have "Project" related option text)
+        const projectSelect = selects.find(s => {
+          const firstOption = s.options[0];
+          return (
+            firstOption && firstOption.text.toLowerCase().includes('project')
+          );
+        });
+
+        if (!projectSelect) {
+          return false;
+        }
+        const options = Array.from(projectSelect.options);
+        return options.some(opt => opt.text.includes(projectName));
+      },
+      testProjectName,
+      { timeout: 15000 }
     );
 
-    // Select project
-    const projectSelect = page
-      .locator('select[name="projectId"], select[aria-label*="project" i]')
-      .first();
-
-    if (await projectSelect.isVisible()) {
-      await projectSelect.selectOption({ label: testProjectName });
+    // Now select using a more reliable selector - find the select that contains the project option
+    const allSelects2 = await page.locator('select').all();
+    let projectSelect2 = null;
+    for (const select of allSelects2) {
+      const options = await select.locator('option').allTextContents();
+      if (options.some(opt => opt.toLowerCase().includes('project'))) {
+        projectSelect2 = select;
+        break;
+      }
     }
+
+    if (!projectSelect2) {
+      throw new Error('Could not find project select dropdown');
+    }
+
+    await projectSelect2.selectOption({ label: testProjectName });
 
     const submitButton = page
       .locator('button[type="submit"]', {
@@ -441,14 +508,27 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
       .first();
     await submitButton.click();
 
-    // Wait for confirmation
-    await page.waitForTimeout(2000);
+    // Wait for confirmation message
+    const confirmationMessage = page
+      .locator('text=/task created|success/i')
+      .first();
+    await expect(confirmationMessage).toBeVisible({ timeout: 10000 });
+
+    // Wait for modal to close and task to be saved
+    await page.waitForTimeout(3000);
 
     // 3. Get parent task ID
     const parentResult = await pgClient.query(
       'SELECT id, "projectId" FROM "task" WHERE title = $1 AND "ownerId" = $2',
       [parentTitle, testUserId]
     );
+
+    if (parentResult.rows.length === 0) {
+      throw new Error(
+        `Parent task not found in database. Title: ${parentTitle}, OwnerId: ${testUserId}`
+      );
+    }
+
     const parentTask = parentResult.rows[0];
     expect(parentTask.projectId).toBe(testProjectId);
 
@@ -471,14 +551,15 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
 
       // Fill subtask details
       const subtaskTitle = `E2E Subtask ${Date.now()}`;
-      await page.fill(
-        'input[name="title"], input[placeholder*="title" i]',
-        subtaskTitle
-      );
-      await page.fill(
-        'textarea[name="description"], textarea[placeholder*="description" i]',
-        'Subtask should inherit project'
-      );
+
+      // Wait for subtask modal/form to appear
+      await page.waitForTimeout(500);
+
+      const subtaskTitleInput = page.locator('input[type="text"]').last();
+      await subtaskTitleInput.fill(subtaskTitle);
+
+      const subtaskDescInput = page.locator('textarea').last();
+      await subtaskDescInput.fill('Subtask should inherit project');
 
       // Submit subtask
       const subtaskSubmit = page
