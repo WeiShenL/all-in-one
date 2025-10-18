@@ -2,14 +2,14 @@
 
 import { useAuth } from '@/lib/supabase/auth-context';
 import { useSecureLogout } from '@/lib/hooks/useSecureLogout';
-import { useNotifications } from '@/lib/context/NotificationContext'; // Import useNotifications
-import { useRouter } from 'next/navigation'; // Import useRouter
+import { useUnreadNotificationCount } from '@/lib/hooks/useUnreadNotificationCount';
+import { useRouter } from 'next/navigation';
 
 export default function Navbar() {
   const { user, userProfile } = useAuth();
   const { handleSecureLogout, isLoggingOut } = useSecureLogout();
-  const { notifications } = useNotifications(); // Get notifications from context
-  const router = useRouter(); // Initialize useRouter
+  const { count: unreadCount } = useUnreadNotificationCount();
+  const router = useRouter();
 
   // Get dashboard route - all users go to personal dashboard by default
   const getDashboardRoute = () => {
@@ -142,10 +142,10 @@ export default function Navbar() {
               color: '#495057',
               fontSize: '1.25rem',
             }}
-            onClick={() => router.push('/notifications')} // Navigate to notifications page
+            onClick={() => router.push('/notifications')}
           >
             🔔
-            {notifications.length > 0 && (
+            {unreadCount > 0 && (
               <span
                 style={{
                   position: 'absolute',
@@ -160,7 +160,7 @@ export default function Navbar() {
                   transform: 'translate(50%, -50%)',
                 }}
               >
-                {notifications.length}
+                {unreadCount}
               </span>
             )}
           </button>

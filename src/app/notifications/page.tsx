@@ -1,20 +1,27 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import Navbar from '@/app/components/Navbar';
-import { trpc } from '@/app/lib/trpc'; // Import trpc client
-import { useAuth } from '@/lib/supabase/auth-context'; // Import useAuth for userId
+import { trpc } from '@/app/lib/trpc';
+import { useAuth } from '@/lib/supabase/auth-context';
+import { useUnreadNotificationCount } from '@/lib/hooks/useUnreadNotificationCount';
 
 export default function NotificationsPage() {
   const { user } = useAuth();
+  const { resetCount } = useUnreadNotificationCount();
   const {
     data: notifications,
     isLoading,
     error,
   } = trpc.notification.getNotifications.useQuery(
     { userId: user?.id || '' },
-    { enabled: !!user?.id } // Only fetch if user ID is available
+    { enabled: !!user?.id }
   );
+
+  // Reset unread count when user opens this page
+  useEffect(() => {
+    resetCount();
+  }, [resetCount]);
 
   if (isLoading) {
     return (
