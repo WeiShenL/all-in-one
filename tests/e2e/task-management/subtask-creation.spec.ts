@@ -24,6 +24,7 @@ test.describe('Subtask Creation E2E - SCRUM-65', () => {
   let testParentTaskId: string;
   let testEmail: string;
   let testPassword: string;
+  let testNamespace: string;
   const createdSubtaskIds: string[] = [];
 
   test.beforeAll(async () => {
@@ -36,15 +37,21 @@ test.describe('Subtask Creation E2E - SCRUM-65', () => {
       process.env.NEXT_PUBLIC_ANON_KEY!
     );
 
-    // Create unique credentials
-    const unique = Date.now();
-    testEmail = `e2e.subtask.${unique}@example.com`;
+    // Create robust worker-specific namespace for test data isolation
+    const workerId = process.env.PLAYWRIGHT_WORKER_INDEX || '0';
+    const timestamp = Date.now();
+    const processId = process.pid;
+    const randomSuffix = crypto.randomUUID().slice(0, 8);
+    testNamespace = `w${workerId}_${timestamp}_${processId}_${randomSuffix}`;
+
+    // Create unique credentials with worker-specific namespace
+    testEmail = `e2e.subtask.${testNamespace}@example.com`;
     testPassword = 'Test123!@#';
 
     // 1. Create department
     const deptResult = await pgClient.query(
       'INSERT INTO "department" (id, name, "isActive", "createdAt", "updatedAt") VALUES (gen_random_uuid(), $1, true, NOW(), NOW()) RETURNING id',
-      [`E2E Subtask Dept ${unique}`]
+      [`E2E Subtask Dept ${testNamespace}`]
     );
     testDepartmentId = deptResult.rows[0].id;
 
@@ -81,7 +88,12 @@ test.describe('Subtask Creation E2E - SCRUM-65', () => {
     // Update the department, role, and name
     await pgClient.query(
       'UPDATE "user_profile" SET "departmentId" = $1, role = $2, name = $3 WHERE id = $4',
-      [testDepartmentId, 'STAFF', 'E2E Subtask User', authData.user.id]
+      [
+        testDepartmentId,
+        'STAFF',
+        `E2E Subtask User ${testNamespace}`,
+        authData.user.id,
+      ]
     );
     testUserId = authData.user.id;
 
@@ -89,7 +101,7 @@ test.describe('Subtask Creation E2E - SCRUM-65', () => {
     const projectResult = await pgClient.query(
       'INSERT INTO "project" (id, name, description, priority, status, "departmentId", "creatorId", "isArchived", "createdAt", "updatedAt") VALUES (gen_random_uuid(), $1, $2, 5, $3, $4, $5, false, NOW(), NOW()) RETURNING id',
       [
-        'E2E Subtask Project',
+        `E2E Subtask Project ${testNamespace}`,
         'Project for subtask E2E testing',
         'ACTIVE',
         testDepartmentId,
@@ -102,7 +114,7 @@ test.describe('Subtask Creation E2E - SCRUM-65', () => {
     const parentResult = await pgClient.query(
       'INSERT INTO "task" (id, title, description, priority, "dueDate", status, "ownerId", "departmentId", "projectId", "parentTaskId", "recurringInterval", "isArchived", "createdAt", "updatedAt") VALUES (gen_random_uuid(), $1, $2, 5, $3, $4, $5, $6, $7, NULL, NULL, false, NOW(), NOW()) RETURNING id',
       [
-        'E2E Parent Task for Subtask',
+        `E2E Parent Task for Subtask ${testNamespace}`,
         'Parent task to create subtasks under',
         new Date('2025-12-31'),
         'TO_DO',
@@ -220,7 +232,9 @@ test.describe('Subtask Creation E2E - SCRUM-65', () => {
     ).toBeVisible({ timeout: 40000 });
 
     // Verify parent task appears in dashboard
-    await expect(page.getByText('E2E Parent Task for Subtask')).toBeVisible({
+    await expect(
+      page.getByText(`E2E Parent Task for Subtask ${testNamespace}`)
+    ).toBeVisible({
       timeout: 40000,
     });
 
@@ -244,7 +258,7 @@ test.describe('Subtask Creation E2E - SCRUM-65', () => {
     // Fill title
     await page
       .getByPlaceholder(/implement login feature/i)
-      .fill('E2E Test Subtask');
+      .fill(`E2E Test Subtask ${testNamespace}`);
 
     // Fill description
     await page
@@ -286,7 +300,9 @@ test.describe('Subtask Creation E2E - SCRUM-65', () => {
      * STEP 7: Verify subtask appears in UI
      */
     // First verify parent task is still visible
-    await expect(page.getByText('E2E Parent Task for Subtask')).toBeVisible({
+    await expect(
+      page.getByText(`E2E Parent Task for Subtask ${testNamespace}`)
+    ).toBeVisible({
       timeout: 40000,
     });
 
@@ -294,14 +310,16 @@ test.describe('Subtask Creation E2E - SCRUM-65', () => {
     // The dropdown button is next to parent tasks that have subtasks
     const dropdownButton = page
       .locator('tr')
-      .filter({ hasText: 'E2E Parent Task for Subtask' })
+      .filter({ hasText: `E2E Parent Task for Subtask ${testNamespace}` })
       .locator('button')
       .first();
     await expect(dropdownButton).toBeVisible({ timeout: 40000 });
     await dropdownButton.click();
 
     // Now the subtask should be visible (indented under parent)
-    await expect(page.getByText('E2E Test Subtask')).toBeVisible({
+    await expect(
+      page.getByText(`E2E Test Subtask ${testNamespace}`)
+    ).toBeVisible({
       timeout: 40000,
     });
 
@@ -310,7 +328,7 @@ test.describe('Subtask Creation E2E - SCRUM-65', () => {
      */
     const subtaskResult = await pgClient.query(
       'SELECT * FROM "task" WHERE "parentTaskId" = $1 AND title = $2',
-      [testParentTaskId, 'E2E Test Subtask']
+      [testParentTaskId, `E2E Test Subtask ${testNamespace}`]
     );
 
     expect(subtaskResult.rows.length).toBe(1);
@@ -320,7 +338,7 @@ test.describe('Subtask Creation E2E - SCRUM-65', () => {
     createdSubtaskIds.push(subtask.id);
 
     // Verify all subtask properties
-    expect(subtask.title).toBe('E2E Test Subtask');
+    expect(subtask.title).toBe(`E2E Test Subtask ${testNamespace}`);
     expect(subtask.description).toBe(
       'This is a subtask created via Playwright E2E test'
     );

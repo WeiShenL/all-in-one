@@ -25,6 +25,9 @@ describe('Integration Tests - Manager Dashboard', () => {
   let prisma: PrismaClient;
   let taskService: TaskService;
 
+  // Unique namespace for this test run
+  const testNamespace = `test-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
   // Test data IDs
   let parentDeptId: string;
   let childDeptId: string;
@@ -49,24 +52,24 @@ describe('Integration Tests - Manager Dashboard', () => {
     // Clean up any leftover test data from previous failed runs
     await pgClient.query(
       `DELETE FROM "task_assignment" WHERE "assignedById" IN (
-        SELECT id FROM "user_profile" WHERE email LIKE '%@test.com'
+        SELECT id FROM "user_profile" WHERE email LIKE '%@${testNamespace}.com'
       )`
     );
     await pgClient.query(
       `DELETE FROM "task" WHERE "ownerId" IN (
-        SELECT id FROM "user_profile" WHERE email LIKE '%@test.com'
+        SELECT id FROM "user_profile" WHERE email LIKE '%@${testNamespace}.com'
       )`
     );
     await pgClient.query(
       `DELETE FROM "project" WHERE "creatorId" IN (
-        SELECT id FROM "user_profile" WHERE email LIKE '%@test.com'
+        SELECT id FROM "user_profile" WHERE email LIKE '%@${testNamespace}.com'
       )`
     );
     await pgClient.query(
-      `DELETE FROM "user_profile" WHERE email LIKE '%@test.com'`
+      `DELETE FROM "user_profile" WHERE email LIKE '%@${testNamespace}.com'`
     );
     await pgClient.query(
-      `DELETE FROM "department" WHERE name IN ('Engineering', 'Backend Team', 'Marketing', 'Empty Department')`
+      `DELETE FROM "department" WHERE name LIKE '%${testNamespace}%'`
     );
 
     // Create parent department (manager's department)
@@ -74,7 +77,7 @@ describe('Integration Tests - Manager Dashboard', () => {
       `INSERT INTO "department" (id, name, "parentId", "isActive", "createdAt", "updatedAt")
        VALUES (gen_random_uuid(), $1, NULL, true, NOW(), NOW())
        RETURNING id`,
-      ['Engineering']
+      [`Engineering-${testNamespace}`]
     );
     parentDeptId = parentDeptResult.rows[0].id;
 
@@ -83,7 +86,7 @@ describe('Integration Tests - Manager Dashboard', () => {
       `INSERT INTO "department" (id, name, "parentId", "isActive", "createdAt", "updatedAt")
        VALUES (gen_random_uuid(), $1, $2, true, NOW(), NOW())
        RETURNING id`,
-      ['Backend Team', parentDeptId]
+      [`Backend Team-${testNamespace}`, parentDeptId]
     );
     childDeptId = childDeptResult.rows[0].id;
 
@@ -92,7 +95,7 @@ describe('Integration Tests - Manager Dashboard', () => {
       `INSERT INTO "department" (id, name, "parentId", "isActive", "createdAt", "updatedAt")
        VALUES (gen_random_uuid(), $1, NULL, true, NOW(), NOW())
        RETURNING id`,
-      ['Marketing']
+      [`Marketing-${testNamespace}`]
     );
     peerDeptId = peerDeptResult.rows[0].id;
 
@@ -101,7 +104,12 @@ describe('Integration Tests - Manager Dashboard', () => {
       `INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt")
        VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
        RETURNING id`,
-      ['manager@test.com', 'Engineering Manager', 'MANAGER', parentDeptId]
+      [
+        `manager@${testNamespace}.com`,
+        'Engineering Manager',
+        'MANAGER',
+        parentDeptId,
+      ]
     );
     managerId = managerResult.rows[0].id;
 
@@ -110,7 +118,12 @@ describe('Integration Tests - Manager Dashboard', () => {
       `INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt")
        VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
        RETURNING id`,
-      ['staff-parent@test.com', 'Staff Parent', 'STAFF', parentDeptId]
+      [
+        `staff-parent@${testNamespace}.com`,
+        'Staff Parent',
+        'STAFF',
+        parentDeptId,
+      ]
     );
     staffInParentDeptId = staffParentResult.rows[0].id;
 
@@ -119,7 +132,7 @@ describe('Integration Tests - Manager Dashboard', () => {
       `INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt")
        VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
        RETURNING id`,
-      ['staff-child@test.com', 'Staff Child', 'STAFF', childDeptId]
+      [`staff-child@${testNamespace}.com`, 'Staff Child', 'STAFF', childDeptId]
     );
     staffInChildDeptId = staffChildResult.rows[0].id;
 
@@ -128,7 +141,7 @@ describe('Integration Tests - Manager Dashboard', () => {
       `INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt")
        VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
        RETURNING id`,
-      ['staff-peer@test.com', 'Staff Peer', 'STAFF', peerDeptId]
+      [`staff-peer@${testNamespace}.com`, 'Staff Peer', 'STAFF', peerDeptId]
     );
     staffInPeerDeptId = staffPeerResult.rows[0].id;
   });
@@ -139,7 +152,7 @@ describe('Integration Tests - Manager Dashboard', () => {
     // 1. Delete task assignments first
     await pgClient.query(
       `DELETE FROM "task_assignment" WHERE "assignedById" IN (
-        SELECT id FROM "user_profile" WHERE email LIKE '%@test.com'
+        SELECT id FROM "user_profile" WHERE email LIKE '%@${testNamespace}.com'
       )`
     );
 
@@ -153,25 +166,25 @@ describe('Integration Tests - Manager Dashboard', () => {
     // 3. Delete all tasks related to test users
     await pgClient.query(
       `DELETE FROM "task" WHERE "ownerId" IN (
-        SELECT id FROM "user_profile" WHERE email LIKE '%@test.com'
+        SELECT id FROM "user_profile" WHERE email LIKE '%@${testNamespace}.com'
       )`
     );
 
     // 4. Clean up projects created by test users
     await pgClient.query(
       `DELETE FROM "project" WHERE "creatorId" IN (
-        SELECT id FROM "user_profile" WHERE email LIKE '%@test.com'
+        SELECT id FROM "user_profile" WHERE email LIKE '%@${testNamespace}.com'
       )`
     );
 
     // 5. Clean up test users
     await pgClient.query(
-      `DELETE FROM "user_profile" WHERE email LIKE '%@test.com'`
+      `DELETE FROM "user_profile" WHERE email LIKE '%@${testNamespace}.com'`
     );
 
     // 6. Clean up test departments
     await pgClient.query(
-      `DELETE FROM "department" WHERE name IN ('Engineering', 'Backend Team', 'Marketing', 'Empty Department')`
+      `DELETE FROM "department" WHERE name LIKE '%${testNamespace}%'`
     );
 
     await pgClient.end();
@@ -239,7 +252,7 @@ describe('Integration Tests - Manager Dashboard', () => {
         `INSERT INTO "department" (id, name, "isActive", "createdAt", "updatedAt")
          VALUES (gen_random_uuid(), $1, true, NOW(), NOW())
          RETURNING id`,
-        ['Empty Department']
+        [`Empty Department-${testNamespace}`]
       );
       const emptyDeptId = emptyDeptResult.rows[0].id;
 
@@ -247,7 +260,12 @@ describe('Integration Tests - Manager Dashboard', () => {
         `INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt")
          VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
          RETURNING id`,
-        ['empty-manager@test.com', 'Empty Manager', 'MANAGER', emptyDeptId]
+        [
+          `empty-manager@${testNamespace}.com`,
+          'Empty Manager',
+          'MANAGER',
+          emptyDeptId,
+        ]
       );
       const emptyManagerId = emptyManagerResult.rows[0].id;
 
@@ -259,6 +277,14 @@ describe('Integration Tests - Manager Dashboard', () => {
       expect(result!.metrics.completed).toBe(0);
       expect(result!.metrics.blocked).toBe(0);
       expect(result!.tasks).toHaveLength(0);
+
+      // Clean up the empty manager and department
+      await pgClient.query(`DELETE FROM "user_profile" WHERE email = $1`, [
+        `empty-manager@${testNamespace}.com`,
+      ]);
+      await pgClient.query(`DELETE FROM "department" WHERE name = $1`, [
+        `Empty Department-${testNamespace}`,
+      ]);
     });
   });
 

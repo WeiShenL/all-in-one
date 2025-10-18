@@ -18,35 +18,311 @@ import { createInnerTRPCContext } from '../../src/app/server/trpc';
 
 const prisma = new PrismaClient();
 
-// Test IDs using proper UUID v4 format
-const TEST_IDS = {
-  // Departments
-  DEPT_ROOT: '10000000-0000-4000-8000-000000000001',
-  DEPT_ENGINEERING: '10000000-0000-4000-8000-000000000002',
-  DEPT_SALES: '10000000-0000-4000-8000-000000000003',
-  DEPT_HR: '10000000-0000-4000-8000-000000000004',
-  DEPT_ENGINEERING_DEV: '10000000-0000-4000-8000-000000000005',
+// Generate unique test IDs based on namespace to avoid conflicts in parallel test runs
+function generateTestIds(testNamespace: string) {
+  // Create a hash from the namespace to generate consistent but unique IDs
+  const hash = testNamespace.split('').reduce((a, b) => {
+    a = (a << 5) - a + b.charCodeAt(0);
+    return a & a;
+  }, 0);
 
-  // Users
-  USER_HR_ADMIN_ONLY: '20000000-0000-4000-8000-000000000001',
-  USER_HR_ADMIN_AND_MANAGER: '20000000-0000-4000-8000-000000000002',
-  USER_MANAGER_ONLY: '20000000-0000-4000-8000-000000000003',
-  USER_STAFF: '20000000-0000-4000-8000-000000000004',
-  USER_STAFF_SALES: '20000000-0000-4000-8000-000000000005',
+  // Generate valid UUID v4 format
+  // UUID v4 format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
+  // where x is any hexadecimal digit and y is one of 8, 9, A, or B
+  const baseId = Math.abs(hash).toString(16).padStart(8, '0');
 
-  // Projects
-  PROJECT_ENG: '30000000-0000-4000-8000-000000000001',
-  PROJECT_SALES: '30000000-0000-4000-8000-000000000002',
+  // Create valid UUID v4 segments
+  const createUuid = (prefix: string, suffix: string) => {
+    const segment1 = prefix.padStart(8, '0');
+    const segment2 = baseId.substring(0, 4);
+    const segment3 = '4' + baseId.substring(4, 7); // 4xxx (version 4)
+    const segment4 = '8' + suffix.substring(0, 3); // 8xxx (variant)
+    // For segment5, we need exactly 12 characters
+    const segment5 = (
+      suffix.substring(3, 7) +
+      baseId.substring(7, 8) +
+      '0000'
+    ).padStart(12, '0');
+    return `${segment1}-${segment2}-${segment3}-${segment4}-${segment5}`;
+  };
 
-  // Tasks
-  TASK_ENG_ASSIGNED: '40000000-0000-4000-8000-000000000001',
-  TASK_ENG_UNASSIGNED: '40000000-0000-4000-8000-000000000002',
-  TASK_SALES_ASSIGNED: '40000000-0000-4000-8000-000000000003',
-  TASK_HR_ASSIGNED: '40000000-0000-4000-8000-000000000004',
-  TASK_ENG_DEV_ASSIGNED: '40000000-0000-4000-8000-000000000005',
-};
+  return {
+    // Departments
+    DEPT_ROOT: createUuid('10000000', '0001'),
+    DEPT_ENGINEERING: createUuid('10000000', '0002'),
+    DEPT_SALES: createUuid('10000000', '0003'),
+    DEPT_HR: createUuid('10000000', '0004'),
+    DEPT_ENGINEERING_DEV: createUuid('10000000', '0005'),
+
+    // Users
+    USER_HR_ADMIN_ONLY: createUuid('20000000', '0001'),
+    USER_HR_ADMIN_AND_MANAGER: createUuid('20000000', '0002'),
+    USER_MANAGER_ONLY: createUuid('20000000', '0003'),
+    USER_STAFF: createUuid('20000000', '0004'),
+    USER_STAFF_SALES: createUuid('20000000', '0005'),
+
+    // Projects
+    PROJECT_ENG: createUuid('30000000', '0001'),
+    PROJECT_SALES: createUuid('30000000', '0002'),
+
+    // Tasks
+    TASK_ENG_ASSIGNED: createUuid('40000000', '0001'),
+    TASK_ENG_UNASSIGNED: createUuid('40000000', '0002'),
+    TASK_SALES_ASSIGNED: createUuid('40000000', '0003'),
+    TASK_HR_ASSIGNED: createUuid('40000000', '0004'),
+    TASK_ENG_DEV_ASSIGNED: createUuid('40000000', '0005'),
+  };
+}
 
 describe('HR/Admin Company Dashboard - Integration Tests', () => {
+  // Unique namespace for this test run
+  const testNamespace = `test-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  const TEST_IDS = generateTestIds(testNamespace);
+
+  async function setupTestData() {
+    // Create departments with unique names
+    await prisma.department.createMany({
+      data: [
+        {
+          id: TEST_IDS.DEPT_ROOT,
+          name: `Root Test Dept-${testNamespace}`,
+          parentId: null,
+          isActive: true,
+        },
+        {
+          id: TEST_IDS.DEPT_ENGINEERING,
+          name: `Engineering Test Dept-${testNamespace}`,
+          parentId: TEST_IDS.DEPT_ROOT,
+          isActive: true,
+        },
+        {
+          id: TEST_IDS.DEPT_ENGINEERING_DEV,
+          name: `Engineering Dev Team-${testNamespace}`,
+          parentId: TEST_IDS.DEPT_ENGINEERING,
+          isActive: true,
+        },
+        {
+          id: TEST_IDS.DEPT_SALES,
+          name: `Sales Test Dept-${testNamespace}`,
+          parentId: TEST_IDS.DEPT_ROOT,
+          isActive: true,
+        },
+        {
+          id: TEST_IDS.DEPT_HR,
+          name: `HR Test Dept-${testNamespace}`,
+          parentId: TEST_IDS.DEPT_ROOT,
+          isActive: true,
+        },
+      ],
+    });
+
+    // Create users with unique emails
+    await prisma.userProfile.createMany({
+      data: [
+        {
+          id: TEST_IDS.USER_HR_ADMIN_ONLY,
+          email: `hr-admin@${testNamespace}.com`,
+          name: 'HR Admin User',
+          role: 'HR_ADMIN',
+          departmentId: TEST_IDS.DEPT_HR,
+          isActive: true,
+        },
+        {
+          id: TEST_IDS.USER_HR_ADMIN_AND_MANAGER,
+          email: `hr-admin-manager@${testNamespace}.com`,
+          name: 'HR Admin Manager',
+          role: 'HR_ADMIN',
+          departmentId: TEST_IDS.DEPT_ENGINEERING,
+          isActive: true,
+        },
+        {
+          id: TEST_IDS.USER_MANAGER_ONLY,
+          email: `manager-only@${testNamespace}.com`,
+          name: 'Manager Only',
+          role: 'MANAGER',
+          departmentId: TEST_IDS.DEPT_ENGINEERING,
+          isActive: true,
+        },
+        {
+          id: TEST_IDS.USER_STAFF,
+          email: `staff-engineering@${testNamespace}.com`,
+          name: 'Engineering Staff',
+          role: 'STAFF',
+          departmentId: TEST_IDS.DEPT_ENGINEERING,
+          isActive: true,
+        },
+        {
+          id: TEST_IDS.USER_STAFF_SALES,
+          email: `staff-sales@${testNamespace}.com`,
+          name: 'Sales Staff',
+          role: 'STAFF',
+          departmentId: TEST_IDS.DEPT_SALES,
+          isActive: true,
+        },
+      ],
+    });
+
+    // Create projects with unique names
+    await prisma.project.createMany({
+      data: [
+        {
+          id: TEST_IDS.PROJECT_ENG,
+          name: `Engineering Project-${testNamespace}`,
+          description: 'Engineering project',
+          status: 'ACTIVE',
+          creatorId: TEST_IDS.USER_STAFF,
+          departmentId: TEST_IDS.DEPT_ENGINEERING,
+        },
+        {
+          id: TEST_IDS.PROJECT_SALES,
+          name: `Sales Project-${testNamespace}`,
+          description: 'Sales project',
+          status: 'ACTIVE',
+          creatorId: TEST_IDS.USER_STAFF_SALES,
+          departmentId: TEST_IDS.DEPT_SALES,
+        },
+      ],
+    });
+
+    // Create tasks
+    await prisma.task.createMany({
+      data: [
+        {
+          id: TEST_IDS.TASK_ENG_UNASSIGNED,
+          title: 'Engineering Unassigned Task',
+          description: 'Task in engineering dept',
+          priority: 5,
+          dueDate: new Date('2025-12-31'),
+          status: 'TO_DO',
+          ownerId: TEST_IDS.USER_STAFF,
+          departmentId: TEST_IDS.DEPT_ENGINEERING,
+          projectId: TEST_IDS.PROJECT_ENG,
+        },
+        {
+          id: TEST_IDS.TASK_ENG_ASSIGNED,
+          title: 'Engineering Assigned Task',
+          description: 'Assigned task in engineering dept',
+          priority: 7,
+          dueDate: new Date('2025-12-31'),
+          status: 'IN_PROGRESS',
+          ownerId: TEST_IDS.USER_STAFF,
+          departmentId: TEST_IDS.DEPT_ENGINEERING,
+          projectId: TEST_IDS.PROJECT_ENG,
+        },
+        {
+          id: TEST_IDS.TASK_SALES_ASSIGNED,
+          title: 'Sales Assigned Task',
+          description: 'Assigned task in sales dept',
+          priority: 6,
+          dueDate: new Date('2025-12-31'),
+          status: 'TO_DO',
+          ownerId: TEST_IDS.USER_STAFF_SALES,
+          departmentId: TEST_IDS.DEPT_SALES,
+          projectId: TEST_IDS.PROJECT_SALES,
+        },
+        {
+          id: TEST_IDS.TASK_HR_ASSIGNED,
+          title: 'HR Assigned Task',
+          description: 'Assigned task in HR dept',
+          priority: 8,
+          dueDate: new Date('2025-12-31'),
+          status: 'COMPLETED',
+          ownerId: TEST_IDS.USER_HR_ADMIN_ONLY,
+          departmentId: TEST_IDS.DEPT_HR,
+          projectId: null,
+        },
+        {
+          id: TEST_IDS.TASK_ENG_DEV_ASSIGNED,
+          title: 'Dev Team Assigned Task',
+          description: 'Assigned task in dev team',
+          priority: 9,
+          dueDate: new Date('2025-12-31'),
+          status: 'IN_PROGRESS',
+          ownerId: TEST_IDS.USER_STAFF,
+          departmentId: TEST_IDS.DEPT_ENGINEERING_DEV,
+          projectId: TEST_IDS.PROJECT_ENG,
+        },
+      ],
+    });
+
+    // Create task assignments
+    await prisma.taskAssignment.createMany({
+      data: [
+        {
+          taskId: TEST_IDS.TASK_ENG_ASSIGNED,
+          userId: TEST_IDS.USER_STAFF,
+          assignedById: TEST_IDS.USER_STAFF,
+        },
+        {
+          taskId: TEST_IDS.TASK_SALES_ASSIGNED,
+          userId: TEST_IDS.USER_STAFF_SALES,
+          assignedById: TEST_IDS.USER_STAFF_SALES,
+        },
+        {
+          taskId: TEST_IDS.TASK_HR_ASSIGNED,
+          userId: TEST_IDS.USER_HR_ADMIN_ONLY,
+          assignedById: TEST_IDS.USER_HR_ADMIN_ONLY,
+        },
+        {
+          taskId: TEST_IDS.TASK_ENG_DEV_ASSIGNED,
+          userId: TEST_IDS.USER_STAFF,
+          assignedById: TEST_IDS.USER_STAFF,
+        },
+      ],
+    });
+  }
+
+  async function cleanupTestData() {
+    // Delete in reverse order of foreign key constraints using unique namespace
+    await prisma.taskAssignment.deleteMany({
+      where: {
+        task: {
+          owner: {
+            email: {
+              contains: testNamespace,
+            },
+          },
+        },
+      },
+    });
+
+    await prisma.task.deleteMany({
+      where: {
+        owner: {
+          email: {
+            contains: testNamespace,
+          },
+        },
+      },
+    });
+
+    await prisma.project.deleteMany({
+      where: {
+        creator: {
+          email: {
+            contains: testNamespace,
+          },
+        },
+      },
+    });
+
+    await prisma.userProfile.deleteMany({
+      where: {
+        email: {
+          contains: testNamespace,
+        },
+      },
+    });
+
+    await prisma.department.deleteMany({
+      where: {
+        name: {
+          contains: testNamespace,
+        },
+      },
+    });
+  }
+
   beforeAll(async () => {
     // Cleanup existing test data
     await cleanupTestData();
@@ -449,24 +725,78 @@ describe('HR/Admin Company Dashboard - Integration Tests', () => {
 
   describe('Edge Cases', () => {
     it('should handle archived tasks based on filter', async () => {
-      const ctx = createInnerTRPCContext({
-        session: {
-          user: { id: TEST_IDS.USER_HR_ADMIN_ONLY },
-          expires: new Date(Date.now() + 86400000).toISOString(),
-        },
-      });
-      const caller = appRouter.createCaller(ctx);
+      // Create unique IDs using testNamespace
+      const archivedIds = [
+        `archived-1-${testNamespace}`,
+        `archived-2-${testNamespace}`,
+      ];
 
-      const resultWithArchived = await caller.task.getCompanyTasks({
-        includeArchived: true,
-      });
-      const resultWithoutArchived = await caller.task.getCompanyTasks({
-        includeArchived: false,
+      // Create tasks OUTSIDE transaction
+      await prisma.task.createMany({
+        data: [
+          {
+            id: archivedIds[0],
+            title: `Archived Task 1 ${testNamespace}`,
+            description: 'Test archived task for filtering',
+            priority: 5,
+            dueDate: new Date('2025-12-31'),
+            status: 'COMPLETED',
+            ownerId: TEST_IDS.USER_HR_ADMIN_ONLY,
+            departmentId: TEST_IDS.DEPT_ENGINEERING,
+            projectId: TEST_IDS.PROJECT_ENG,
+            isArchived: true,
+          },
+          {
+            id: archivedIds[1],
+            title: `Archived Task 2 ${testNamespace}`,
+            description: 'Another archived task for filtering',
+            priority: 3,
+            dueDate: new Date('2025-11-30'),
+            status: 'COMPLETED',
+            ownerId: TEST_IDS.USER_HR_ADMIN_ONLY,
+            departmentId: TEST_IDS.DEPT_SALES,
+            projectId: TEST_IDS.PROJECT_SALES,
+            isArchived: true,
+          },
+        ],
       });
 
-      expect(resultWithArchived.length).toBeGreaterThanOrEqual(
-        resultWithoutArchived.length
-      );
+      try {
+        const ctx = createInnerTRPCContext({
+          session: {
+            user: { id: TEST_IDS.USER_HR_ADMIN_ONLY },
+            expires: new Date(Date.now() + 86400000).toISOString(),
+          },
+        });
+        const caller = appRouter.createCaller(ctx);
+
+        const resultWithArchived = await caller.task.getCompanyTasks({
+          includeArchived: true,
+        });
+        const resultWithoutArchived = await caller.task.getCompanyTasks({
+          includeArchived: false,
+        });
+
+        // Assert on YOUR specific tasks only
+        expect(resultWithArchived.some(t => t.id === archivedIds[0])).toBe(
+          true
+        );
+        expect(resultWithArchived.some(t => t.id === archivedIds[1])).toBe(
+          true
+        );
+
+        expect(resultWithoutArchived.some(t => t.id === archivedIds[0])).toBe(
+          false
+        );
+        expect(resultWithoutArchived.some(t => t.id === archivedIds[1])).toBe(
+          false
+        );
+      } finally {
+        // Clean up your tasks
+        await prisma.task.deleteMany({
+          where: { id: { in: archivedIds } },
+        });
+      }
     }, 30000);
 
     it('should return empty array when no tasks match filters', async () => {
@@ -501,256 +831,3 @@ describe('HR/Admin Company Dashboard - Integration Tests', () => {
     }, 30000);
   });
 });
-
-// Helper functions
-async function setupTestData() {
-  // Create departments
-  await prisma.department.createMany({
-    data: [
-      {
-        id: TEST_IDS.DEPT_ROOT,
-        name: 'Root Test Dept',
-        parentId: null,
-        isActive: true,
-      },
-      {
-        id: TEST_IDS.DEPT_ENGINEERING,
-        name: 'Engineering Test Dept',
-        parentId: TEST_IDS.DEPT_ROOT,
-        isActive: true,
-      },
-      {
-        id: TEST_IDS.DEPT_ENGINEERING_DEV,
-        name: 'Engineering Dev Team',
-        parentId: TEST_IDS.DEPT_ENGINEERING,
-        isActive: true,
-      },
-      {
-        id: TEST_IDS.DEPT_SALES,
-        name: 'Sales Test Dept',
-        parentId: TEST_IDS.DEPT_ROOT,
-        isActive: true,
-      },
-      {
-        id: TEST_IDS.DEPT_HR,
-        name: 'HR Test Dept',
-        parentId: TEST_IDS.DEPT_ROOT,
-        isActive: true,
-      },
-    ],
-  });
-
-  // Create users
-  await prisma.userProfile.createMany({
-    data: [
-      {
-        id: TEST_IDS.USER_HR_ADMIN_ONLY,
-        email: 'hradmin.only@test.com',
-        name: 'HR Admin Only',
-        role: 'STAFF',
-        isHrAdmin: true,
-        departmentId: TEST_IDS.DEPT_HR,
-        isActive: true,
-      },
-      {
-        id: TEST_IDS.USER_HR_ADMIN_AND_MANAGER,
-        email: 'hradmin.manager@test.com',
-        name: 'HR Admin and Manager',
-        role: 'MANAGER',
-        isHrAdmin: true,
-        departmentId: TEST_IDS.DEPT_ENGINEERING,
-        isActive: true,
-      },
-      {
-        id: TEST_IDS.USER_MANAGER_ONLY,
-        email: 'manager.only@test.com',
-        name: 'Manager Only',
-        role: 'MANAGER',
-        isHrAdmin: false,
-        departmentId: TEST_IDS.DEPT_SALES,
-        isActive: true,
-      },
-      {
-        id: TEST_IDS.USER_STAFF,
-        email: 'staff@test.com',
-        name: 'Staff User',
-        role: 'STAFF',
-        isHrAdmin: false,
-        departmentId: TEST_IDS.DEPT_ENGINEERING,
-        isActive: true,
-      },
-      {
-        id: TEST_IDS.USER_STAFF_SALES,
-        email: 'staff.sales@test.com',
-        name: 'Sales Staff',
-        role: 'STAFF',
-        isHrAdmin: false,
-        departmentId: TEST_IDS.DEPT_SALES,
-        isActive: true,
-      },
-    ],
-  });
-
-  // Create projects
-  await prisma.project.createMany({
-    data: [
-      {
-        id: TEST_IDS.PROJECT_ENG,
-        name: 'Engineering Project',
-        description: 'Test engineering project',
-        priority: 5,
-        dueDate: new Date('2025-12-31'),
-        status: 'ACTIVE',
-        departmentId: TEST_IDS.DEPT_ENGINEERING,
-        creatorId: TEST_IDS.USER_HR_ADMIN_AND_MANAGER,
-        isArchived: false,
-      },
-      {
-        id: TEST_IDS.PROJECT_SALES,
-        name: 'Sales Project',
-        description: 'Test sales project',
-        priority: 7,
-        dueDate: new Date('2025-12-31'),
-        status: 'ACTIVE',
-        departmentId: TEST_IDS.DEPT_SALES,
-        creatorId: TEST_IDS.USER_MANAGER_ONLY,
-        isArchived: false,
-      },
-    ],
-  });
-
-  // Create tasks
-  await prisma.task.createMany({
-    data: [
-      {
-        id: TEST_IDS.TASK_ENG_ASSIGNED,
-        title: 'Engineering Task - Assigned',
-        description: 'Test task assigned to staff',
-        priority: 5,
-        dueDate: new Date('2025-12-31'),
-        status: 'IN_PROGRESS',
-        ownerId: TEST_IDS.USER_HR_ADMIN_AND_MANAGER,
-        departmentId: TEST_IDS.DEPT_ENGINEERING,
-        projectId: TEST_IDS.PROJECT_ENG,
-        isArchived: false,
-      },
-      {
-        id: TEST_IDS.TASK_ENG_UNASSIGNED,
-        title: 'Engineering Task - Unassigned',
-        description: 'Test task with no assignees',
-        priority: 3,
-        dueDate: new Date('2025-12-31'),
-        status: 'TO_DO',
-        ownerId: TEST_IDS.USER_HR_ADMIN_AND_MANAGER,
-        departmentId: TEST_IDS.DEPT_ENGINEERING,
-        projectId: TEST_IDS.PROJECT_ENG,
-        isArchived: false,
-      },
-      {
-        id: TEST_IDS.TASK_SALES_ASSIGNED,
-        title: 'Sales Task - Assigned',
-        description: 'Test sales task',
-        priority: 7,
-        dueDate: new Date('2025-12-31'),
-        status: 'TO_DO',
-        ownerId: TEST_IDS.USER_MANAGER_ONLY,
-        departmentId: TEST_IDS.DEPT_SALES,
-        projectId: TEST_IDS.PROJECT_SALES,
-        isArchived: false,
-      },
-      {
-        id: TEST_IDS.TASK_HR_ASSIGNED,
-        title: 'HR Task - Assigned',
-        description: 'Test HR task',
-        priority: 5,
-        dueDate: new Date('2025-12-31'),
-        status: 'IN_PROGRESS',
-        ownerId: TEST_IDS.USER_HR_ADMIN_ONLY,
-        departmentId: TEST_IDS.DEPT_HR,
-        projectId: null,
-        isArchived: false,
-      },
-      {
-        id: TEST_IDS.TASK_ENG_DEV_ASSIGNED,
-        title: 'Engineering Dev Task',
-        description: 'Test task in subordinate department',
-        priority: 6,
-        dueDate: new Date('2025-12-31'),
-        status: 'TO_DO',
-        ownerId: TEST_IDS.USER_HR_ADMIN_AND_MANAGER,
-        departmentId: TEST_IDS.DEPT_ENGINEERING_DEV,
-        projectId: null,
-        isArchived: false,
-      },
-    ],
-  });
-
-  // Create task assignments
-  await prisma.taskAssignment.createMany({
-    data: [
-      {
-        taskId: TEST_IDS.TASK_ENG_ASSIGNED,
-        userId: TEST_IDS.USER_STAFF,
-        assignedById: TEST_IDS.USER_HR_ADMIN_AND_MANAGER,
-      },
-      {
-        taskId: TEST_IDS.TASK_SALES_ASSIGNED,
-        userId: TEST_IDS.USER_STAFF_SALES,
-        assignedById: TEST_IDS.USER_MANAGER_ONLY,
-      },
-      {
-        taskId: TEST_IDS.TASK_HR_ASSIGNED,
-        userId: TEST_IDS.USER_HR_ADMIN_ONLY,
-        assignedById: TEST_IDS.USER_HR_ADMIN_ONLY,
-      },
-      {
-        taskId: TEST_IDS.TASK_ENG_DEV_ASSIGNED,
-        userId: TEST_IDS.USER_STAFF,
-        assignedById: TEST_IDS.USER_HR_ADMIN_AND_MANAGER,
-      },
-    ],
-  });
-}
-
-async function cleanupTestData() {
-  // Delete in reverse order of foreign key constraints
-  await prisma.taskAssignment.deleteMany({
-    where: {
-      taskId: {
-        in: Object.values(TEST_IDS).filter(id => id.startsWith('40000000')),
-      },
-    },
-  });
-
-  await prisma.task.deleteMany({
-    where: {
-      id: {
-        in: Object.values(TEST_IDS).filter(id => id.startsWith('40000000')),
-      },
-    },
-  });
-
-  await prisma.project.deleteMany({
-    where: {
-      id: {
-        in: Object.values(TEST_IDS).filter(id => id.startsWith('30000000')),
-      },
-    },
-  });
-
-  await prisma.userProfile.deleteMany({
-    where: {
-      id: {
-        in: Object.values(TEST_IDS).filter(id => id.startsWith('20000000')),
-      },
-    },
-  });
-
-  await prisma.department.deleteMany({
-    where: {
-      id: {
-        in: Object.values(TEST_IDS).filter(id => id.startsWith('10000000')),
-      },
-    },
-  });
-}
