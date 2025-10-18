@@ -273,7 +273,9 @@ test.describe('Task Tags Update - Isolated E2E Tests', () => {
 
     // Wait for tag removal to complete and verify tag is gone
     await page.waitForTimeout(2000); // Give time for removal to process
-    await expect(page.getByText('e2e-test-tag-urgent')).not.toBeVisible({
+    await expect(
+      page.locator('span:has-text("e2e-test-tag-urgent×")')
+    ).not.toBeVisible({
       timeout: 65000,
     });
   });

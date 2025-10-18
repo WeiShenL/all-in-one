@@ -37,6 +37,9 @@ let testProject2Id: string;
 // Track created resources for cleanup
 const createdTaskIds: string[] = [];
 
+// Generate unique test run ID to avoid conflicts
+const testNamespace = `test-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
 /**
  * Helper to create a test project
  */
@@ -88,7 +91,7 @@ describe('Task-Project Assignment Integration Tests', () => {
       `INSERT INTO "department" (id, name, "isActive", "createdAt", "updatedAt")
        VALUES (gen_random_uuid(), $1, true, NOW(), NOW())
        RETURNING id`,
-      ['Task-Project Integration Test Dept']
+      [`Task-Project Integration Test Dept-${testNamespace}`]
     );
     testDepartmentId = deptResult.rows[0].id;
 
@@ -98,8 +101,8 @@ describe('Task-Project Assignment Integration Tests', () => {
        VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
        RETURNING id`,
       [
-        'task-project-owner@test.com',
-        'Task Project Owner',
+        `task-project-owner@${testNamespace}.com`,
+        `Task Project Owner ${testNamespace}`,
         'STAFF',
         testDepartmentId,
       ]
@@ -111,17 +114,22 @@ describe('Task-Project Assignment Integration Tests', () => {
       `INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt")
        VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
        RETURNING id`,
-      ['task-project-assignee@test.com', 'Assignee', 'STAFF', testDepartmentId]
+      [
+        `task-project-assignee@${testNamespace}.com`,
+        `Assignee ${testNamespace}`,
+        'STAFF',
+        testDepartmentId,
+      ]
     );
     testAssigneeId = assigneeResult.rows[0].id;
 
     // Create test projects
     testProject1Id = await createTestProject(
-      'Project Alpha',
+      `Project Alpha-${testNamespace}`,
       'First test project'
     );
     testProject2Id = await createTestProject(
-      'Project Beta',
+      `Project Beta-${testNamespace}`,
       'Second test project'
     );
 
@@ -185,7 +193,7 @@ describe('Task-Project Assignment Integration Tests', () => {
         ]);
       }
     } catch (error) {
-      console.error('Error during cleanup:', error);
+      console.error(`Cleanup error for namespace ${testNamespace}:`, error);
     } finally {
       if (pgClient) {
         await pgClient.end();
