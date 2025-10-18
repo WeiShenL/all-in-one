@@ -1,7 +1,6 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useSessionTimeout } from '@/lib/hooks/useSessionTimeout';
-import { NotificationType } from '@prisma/client';
 
 // Mock Next.js navigation
 jest.mock('next/navigation', () => ({
@@ -399,7 +398,7 @@ describe('useSessionTimeout', () => {
 
       // Verify the notification was added
       expect(mockAddNotification).toHaveBeenCalledWith(
-        NotificationType.DEADLINE_REMINDER,
+        'warning',
         'Inactivity Warning',
         'Your session will expire soon due to inactivity. Move your mouse or press a key to stay logged in.'
       );

@@ -54,7 +54,7 @@ describe('EmailService', () => {
       data: null,
       error: new Error(errorMessage),
     });
-    const consoleSpy = jest
+    const _consoleSpy = jest
       .spyOn(console, 'error')
       .mockImplementation(() => {});
 
