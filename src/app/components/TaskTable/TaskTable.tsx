@@ -56,6 +56,7 @@ export function TaskTable({
   showCreateButton = true,
   onCreateTask,
   onTaskCreated,
+  onTaskUpdated,
   emptyStateConfig = {
     icon: '📝',
     title: 'No tasks assigned to you yet',
@@ -740,6 +741,7 @@ export function TaskTable({
             <TaskCard
               taskId={editingTaskId}
               onTaskChange={newTaskId => setEditingTaskId(newTaskId)}
+              onTaskUpdated={onTaskUpdated}
             />
           </div>
         </div>
@@ -764,6 +766,7 @@ export function TaskTable({
             <TaskCard
               taskId={viewingTaskId}
               onTaskChange={newTaskId => setViewingTaskId(newTaskId)}
+              onTaskUpdated={onTaskUpdated}
             />
           </div>
         </div>

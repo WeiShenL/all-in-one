@@ -69,6 +69,7 @@ export interface TaskTableProps {
   showCreateButton?: boolean;
   onCreateTask?: () => void;
   onTaskCreated?: () => void;
+  onTaskUpdated?: () => void;
   emptyStateConfig?: {
     icon: string;
     title: string;

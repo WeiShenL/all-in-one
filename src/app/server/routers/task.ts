@@ -790,6 +790,23 @@ export const taskRouter = router({
 
       const userMap = new Map(users.map(u => [u.id, u]));
 
+      // Get all unique project IDs
+      const projectIds = new Set<string>();
+      tasks.forEach(task => {
+        const projectId = task.getProjectId();
+        if (projectId) {
+          projectIds.add(projectId);
+        }
+      });
+
+      // Fetch project details for all projects
+      const projects = await ctx.prisma.project.findMany({
+        where: { id: { in: Array.from(projectIds) } },
+        select: { id: true, name: true },
+      });
+
+      const projectMap = new Map(projects.map(p => [p.id, p]));
+
       // Add canEdit=true and full user details to all personal tasks
       return tasks.map(task => {
         const serialized = serializeTask(task);
@@ -805,9 +822,14 @@ export const taskRouter = router({
           })
         );
 
+        // Add project details if available
+        const projectId = task.getProjectId();
+        const project = projectId ? projectMap.get(projectId) : null;
+
         return {
           ...serialized,
           assignments: assignmentsWithDetails,
+          project: project || null,
           canEdit: true,
         };
       });
