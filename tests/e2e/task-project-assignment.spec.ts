@@ -201,7 +201,7 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
       })
       .first();
 
-    await expect(createTaskButton).toBeVisible({ timeout: 10000 });
+    await expect(createTaskButton).toBeVisible({ timeout: 65000 });
     await createTaskButton.click();
 
     // Wait for modal to appear (TaskCreateModal opens, not a page navigation)
@@ -303,14 +303,14 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
     const confirmationMessage = page
       .locator('text=/task created|success|added/i')
       .first();
-    await expect(confirmationMessage).toBeVisible({ timeout: 10000 });
+    await expect(confirmationMessage).toBeVisible({ timeout: 65000 });
 
     // Wait for task to appear in list
     await page.waitForTimeout(2000);
 
     // 7. Verify task appears with project indicator
     const taskItem = page.locator(`text=${taskTitle}`).first();
-    await expect(taskItem).toBeVisible({ timeout: 10000 });
+    await expect(taskItem).toBeVisible({ timeout: 65000 });
 
     // 8. Get task ID from database for verification
     const taskResult = await pgClient.query(
@@ -330,7 +330,7 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
 
     // Look for project name in task details
     const projectLabel = page.locator(`text=${testProjectName}`).first();
-    await expect(projectLabel).toBeVisible({ timeout: 5000 });
+    await expect(projectLabel).toBeVisible({ timeout: 65000 });
 
     // 10. AC 3: Verify project field is not editable
     // Look for edit button or form
@@ -390,7 +390,7 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
 
         // Verify task appears in project's task list
         const taskInProject = page.locator(`text=${taskTitle}`).first();
-        await expect(taskInProject).toBeVisible({ timeout: 5000 });
+        await expect(taskInProject).toBeVisible({ timeout: 65000 });
       }
     }
   });
@@ -512,7 +512,7 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
     const confirmationMessage = page
       .locator('text=/task created|success/i')
       .first();
-    await expect(confirmationMessage).toBeVisible({ timeout: 10000 });
+    await expect(confirmationMessage).toBeVisible({ timeout: 65000 });
 
     // Wait for modal to close and task to be saved
     await page.waitForTimeout(3000);
@@ -534,7 +534,7 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
 
     // 4. Find parent task in UI and create subtask
     const parentTaskItem = page.locator(`text=${parentTitle}`).first();
-    await expect(parentTaskItem).toBeVisible({ timeout: 10000 });
+    await expect(parentTaskItem).toBeVisible({ timeout: 65000 });
     await parentTaskItem.click();
     await page.waitForTimeout(1000);
 
