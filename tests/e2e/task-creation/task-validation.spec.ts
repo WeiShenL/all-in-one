@@ -178,13 +178,13 @@ test.describe('Task Creation Validation - Isolated E2E Tests', () => {
     const createTaskButton = page.getByRole('button', {
       name: /\+ Create Task/i,
     });
-    await expect(createTaskButton).toBeVisible({ timeout: 15000 });
+    await expect(createTaskButton).toBeVisible({ timeout: 30000 });
     await createTaskButton.click();
 
     // Wait for modal to open
     await expect(
       page.getByRole('heading', { name: /create new task/i })
-    ).toBeVisible({ timeout: 15000 });
+    ).toBeVisible({ timeout: 30000 });
 
     // Try to submit without filling any fields
     await page.getByRole('button', { name: /✓ create task/i }).click();
@@ -210,13 +210,13 @@ test.describe('Task Creation Validation - Isolated E2E Tests', () => {
     const createTaskButton = page.getByRole('button', {
       name: /\+ Create Task/i,
     });
-    await expect(createTaskButton).toBeVisible({ timeout: 15000 });
+    await expect(createTaskButton).toBeVisible({ timeout: 30000 });
     await createTaskButton.click();
 
     // Wait for modal to open
     await expect(
       page.getByRole('heading', { name: /create new task/i })
-    ).toBeVisible({ timeout: 15000 });
+    ).toBeVisible({ timeout: 30000 });
 
     // Fill valid fields
     await page

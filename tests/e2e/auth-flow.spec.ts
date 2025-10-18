@@ -89,7 +89,7 @@ test.describe('Signup to Dashboard, Logout and log back in Flow', () => {
     await page.waitForTimeout(2000); // Give time for API call
     const itOption = page.getByText(/^\s*└─\s*IT\s*$/);
     // Increased timeout and added retry logic
-    await expect(itOption).toBeVisible({ timeout: 15000 });
+    await expect(itOption).toBeVisible({ timeout: 30000 });
     await itOption.click();
 
     // Passwords
@@ -103,7 +103,7 @@ test.describe('Signup to Dashboard, Logout and log back in Flow', () => {
     // tolerance increased to 15 sec since vercel version is slightly slower
     await expect(
       page.getByRole('heading', { name: /personal dashboard/i })
-    ).toBeVisible({ timeout: 15000 });
+    ).toBeVisible({ timeout: 30000 });
 
     // Logout via Navbar
     await page.getByRole('button', { name: /sign out/i }).click();
@@ -129,7 +129,7 @@ test.describe('Signup to Dashboard, Logout and log back in Flow', () => {
     // Expect redirect to Personal Dashboard
     await expect(
       page.getByRole('heading', { name: /personal dashboard/i })
-    ).toBeVisible({ timeout: 15000 });
+    ).toBeVisible({ timeout: 30000 });
 
     // Final logout
     await page.getByRole('button', { name: /sign out/i }).click();

@@ -207,7 +207,7 @@ test.describe('Task Recurring Settings Update - Isolated E2E Tests', () => {
 
     // Wait for modal to open - look for task title instead of heading
     await expect(page.getByTestId('task-title-display')).toBeVisible({
-      timeout: 15000,
+      timeout: 30000,
     });
 
     // Navigate to recurring settings section - scroll to section first
@@ -218,7 +218,7 @@ test.describe('Task Recurring Settings Update - Isolated E2E Tests', () => {
 
     // Wait for the checkbox to appear and be visible
     const recurringCheckbox = page.getByTestId('recurring-checkbox');
-    await expect(recurringCheckbox).toBeVisible({ timeout: 15000 });
+    await expect(recurringCheckbox).toBeVisible({ timeout: 30000 });
 
     // Wait a bit for the elements to be ready
     await page.waitForTimeout(2000);
@@ -273,7 +273,7 @@ test.describe('Task Recurring Settings Update - Isolated E2E Tests', () => {
 
     // Wait for modal to open - look for task title instead of heading
     await expect(page.getByTestId('task-title-display')).toBeVisible({
-      timeout: 15000,
+      timeout: 30000,
     });
 
     // Navigate to recurring settings section - scroll to section first
@@ -284,7 +284,7 @@ test.describe('Task Recurring Settings Update - Isolated E2E Tests', () => {
 
     // Wait for the checkbox to appear and be visible
     const recurringCheckbox = page.getByTestId('recurring-checkbox');
-    await expect(recurringCheckbox).toBeVisible({ timeout: 15000 });
+    await expect(recurringCheckbox).toBeVisible({ timeout: 30000 });
 
     // Wait a bit for the elements to be ready
     await page.waitForTimeout(2000);

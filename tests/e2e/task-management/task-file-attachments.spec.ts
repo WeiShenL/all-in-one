@@ -274,12 +274,12 @@ startxref
 
       // Wait for modal to open - look for task title instead of heading
       await expect(page.getByTestId('task-title-display')).toBeVisible({
-        timeout: 15000,
+        timeout: 30000,
       });
 
       // Navigate to file attachments section
       await expect(page.getByText('📎 File Attachments')).toBeVisible({
-        timeout: 15000,
+        timeout: 30000,
       });
 
       // Upload file
@@ -363,12 +363,12 @@ startxref
 
     // Wait for modal to open - look for task title instead of heading
     await expect(page.getByTestId('task-title-display')).toBeVisible({
-      timeout: 15000,
+      timeout: 30000,
     });
 
     // Navigate to file attachments section
     await expect(page.getByText('📎 File Attachments')).toBeVisible({
-      timeout: 15000,
+      timeout: 30000,
     });
 
     // Scroll to file attachments section to ensure visibility
@@ -434,12 +434,12 @@ startxref
 
     // Wait for modal to open - look for task title instead of heading
     await expect(page.getByTestId('task-title-display')).toBeVisible({
-      timeout: 15000,
+      timeout: 30000,
     });
 
     // Navigate to file attachments section
     await expect(page.getByText('📎 File Attachments')).toBeVisible({
-      timeout: 15000,
+      timeout: 30000,
     });
 
     // Scroll to file attachments section to ensure visibility

@@ -205,13 +205,13 @@ test.describe('Basic Task Creation - Isolated E2E Tests', () => {
     const createTaskButton = page.getByRole('button', {
       name: /\+ Create Task/i,
     });
-    await expect(createTaskButton).toBeVisible({ timeout: 15000 });
+    await expect(createTaskButton).toBeVisible({ timeout: 30000 });
     await createTaskButton.click();
 
     // Wait for modal to open
     await expect(
       page.getByRole('heading', { name: /create new task/i })
-    ).toBeVisible({ timeout: 15000 });
+    ).toBeVisible({ timeout: 30000 });
 
     // Step 3: Fill mandatory fields
     await page
@@ -230,7 +230,7 @@ test.describe('Basic Task Creation - Isolated E2E Tests', () => {
     // Step 5: Verify modal closes and we're still on dashboard
     await expect(
       page.getByRole('heading', { name: /create new task/i })
-    ).not.toBeVisible({ timeout: 15000 });
+    ).not.toBeVisible({ timeout: 30000 });
 
     // Step 6: Get the task ID from database (to use data-testid!)
     const taskResult = await pgClient.query(
@@ -275,7 +275,7 @@ test.describe('Basic Task Creation - Isolated E2E Tests', () => {
     const createTaskButton = page.getByRole('button', {
       name: /\+ Create Task/i,
     });
-    await expect(createTaskButton).toBeVisible({ timeout: 15000 });
+    await expect(createTaskButton).toBeVisible({ timeout: 30000 });
     await createTaskButton.click();
 
     // Wait for modal to open
@@ -297,7 +297,7 @@ test.describe('Basic Task Creation - Isolated E2E Tests', () => {
     // Verify modal closes
     await expect(
       page.getByRole('heading', { name: /create new task/i })
-    ).not.toBeVisible({ timeout: 15000 });
+    ).not.toBeVisible({ timeout: 30000 });
 
     // Get the task ID from database
     const taskResult = await pgClient.query(

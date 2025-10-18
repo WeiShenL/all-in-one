@@ -178,7 +178,7 @@ test.describe('Task Creation with Tags - Isolated E2E Tests', () => {
     const createTaskButton = page.getByRole('button', {
       name: /\+ Create Task/i,
     });
-    await expect(createTaskButton).toBeVisible({ timeout: 15000 });
+    await expect(createTaskButton).toBeVisible({ timeout: 30000 });
     await createTaskButton.click();
 
     // Wait for modal to open

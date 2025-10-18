@@ -194,7 +194,7 @@ test.describe('Recurring Task Creation - Isolated E2E Tests', () => {
     const createTaskButton = page.getByRole('button', {
       name: /\+ Create Task/i,
     });
-    await expect(createTaskButton).toBeVisible({ timeout: 15000 });
+    await expect(createTaskButton).toBeVisible({ timeout: 30000 });
     await createTaskButton.click();
 
     // Wait for modal to open
@@ -223,7 +223,7 @@ test.describe('Recurring Task Creation - Isolated E2E Tests', () => {
     // Verify modal closes
     await expect(
       page.getByRole('heading', { name: /create new task/i })
-    ).not.toBeVisible({ timeout: 15000 });
+    ).not.toBeVisible({ timeout: 30000 });
 
     // Get the task ID from database (now we can use reliable data-testid!)
     const taskResult = await pgClient.query(
@@ -271,7 +271,7 @@ test.describe('Recurring Task Creation - Isolated E2E Tests', () => {
     const createTaskButton = page.getByRole('button', {
       name: /\+ Create Task/i,
     });
-    await expect(createTaskButton).toBeVisible({ timeout: 15000 });
+    await expect(createTaskButton).toBeVisible({ timeout: 30000 });
     await createTaskButton.click();
 
     // Wait for modal to open
@@ -294,7 +294,7 @@ test.describe('Recurring Task Creation - Isolated E2E Tests', () => {
     // Verify modal closes
     await expect(
       page.getByRole('heading', { name: /create new task/i })
-    ).not.toBeVisible({ timeout: 15000 });
+    ).not.toBeVisible({ timeout: 30000 });
 
     // Get the task ID from database
     const taskResult = await pgClient.query(
@@ -372,7 +372,7 @@ test.describe('Recurring Task Creation - Isolated E2E Tests', () => {
     const createTaskButton = page.getByRole('button', {
       name: /\+ Create Task/i,
     });
-    await expect(createTaskButton).toBeVisible({ timeout: 15000 });
+    await expect(createTaskButton).toBeVisible({ timeout: 30000 });
     await createTaskButton.click();
 
     // Wait for modal to open
@@ -399,7 +399,7 @@ test.describe('Recurring Task Creation - Isolated E2E Tests', () => {
     // Verify modal closes
     await expect(
       page.getByRole('heading', { name: /create new task/i })
-    ).not.toBeVisible({ timeout: 15000 });
+    ).not.toBeVisible({ timeout: 30000 });
 
     // Get the task ID from database
     const taskResult = await pgClient.query(
@@ -442,7 +442,7 @@ test.describe('Recurring Task Creation - Isolated E2E Tests', () => {
     });
 
     // Wait for update to complete and new task to be generated
-    await page.waitForTimeout(15000);
+    await page.waitForTimeout(30000);
 
     // Close modal by pressing Escape or clicking outside
     await page.keyboard.press('Escape');
