@@ -353,7 +353,7 @@ export const TaskRow = ({
             </span>
           )}
         </td>
-        <td style={styles.td}>
+        <td style={styles.td} data-testid={`task-project-${task.id}`}>
           {task.project?.name || (
             <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>
               No project assigned

@@ -324,13 +324,16 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
     // AC 2: Verify task belongs to exactly one project
     expect(createdTask.projectId).toBe(testProjectId);
 
-    // 9. Open task details to verify project is displayed
+    // 9. Verify project is displayed in the table
+    const projectCell = page.locator(
+      `[data-testid="task-project-${createdTask.id}"]`
+    );
+    await expect(projectCell).toBeVisible({ timeout: 65000 });
+    await expect(projectCell).toContainText(testProjectName);
+
+    // Open task details to verify project is displayed
     await taskItem.click();
     await page.waitForTimeout(1000);
-
-    // Look for project name in task details
-    const projectLabel = page.locator(`text=${testProjectName}`).first();
-    await expect(projectLabel).toBeVisible({ timeout: 65000 });
 
     // 10. AC 3: Verify project field is not editable
     // Look for edit button or form
@@ -456,50 +459,25 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
     });
     await page.waitForTimeout(500);
 
-    // Select project - wait for projects to load and select
+    // Select project using data-testid
+    const projectSelect = page.locator('[data-testid="project-select"]');
+    await projectSelect.waitFor({ state: 'visible', timeout: 15000 });
+
+    // Wait for projects to load
     await page.waitForFunction(
       projectName => {
-        const forms = Array.from(document.querySelectorAll('form'));
-        const visibleForm = forms.find(f => f.offsetParent !== null);
-        if (!visibleForm) {
+        const select = document.querySelector('[data-testid="project-select"]');
+        if (!select) {
           return false;
         }
-
-        const selects = Array.from(visibleForm.querySelectorAll('select'));
-        // Find the project select (should have "Project" related option text)
-        const projectSelect = selects.find(s => {
-          const firstOption = s.options[0];
-          return (
-            firstOption && firstOption.text.toLowerCase().includes('project')
-          );
-        });
-
-        if (!projectSelect) {
-          return false;
-        }
-        const options = Array.from(projectSelect.options);
+        const options = Array.from(select.options);
         return options.some(opt => opt.text.includes(projectName));
       },
       testProjectName,
       { timeout: 15000 }
     );
 
-    // Now select using a more reliable selector - find the select that contains the project option
-    const allSelects2 = await page.locator('select').all();
-    let projectSelect2 = null;
-    for (const select of allSelects2) {
-      const options = await select.locator('option').allTextContents();
-      if (options.some(opt => opt.toLowerCase().includes('project'))) {
-        projectSelect2 = select;
-        break;
-      }
-    }
-
-    if (!projectSelect2) {
-      throw new Error('Could not find project select dropdown');
-    }
-
-    await projectSelect2.selectOption({ label: testProjectName });
+    await projectSelect.selectOption({ label: testProjectName });
 
     const submitButton = page
       .locator('button[type="submit"]', {

@@ -1020,6 +1020,7 @@ export function TaskCreateModal({
                 🗂️ Project (Optional)
               </div>
               <select
+                data-testid='project-select'
                 value={projectId}
                 onChange={e => setProjectId(e.target.value)}
                 disabled={loadingProjects}
