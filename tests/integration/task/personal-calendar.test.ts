@@ -30,167 +30,173 @@ describe('Integration Tests - Personal Calendar', () => {
   let user2Id: string; // Other user
   let managerId: string;
 
-  // Track created tasks for cleanup
+  // Track created resources for comprehensive cleanup
   const createdTaskIds: string[] = [];
+  const createdUserIds: string[] = [];
+
+  // Generate unique namespace for parallel test execution
+  const testNamespace = `personalcal-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+  /**
+   * Helper function to create test user
+   */
+  async function createTestUser(
+    email: string,
+    name: string,
+    role: 'STAFF' | 'MANAGER'
+  ): Promise<string> {
+    const userResult = await pgClient.query(
+      `INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt")
+       VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
+       RETURNING id`,
+      [email, name, role, deptId]
+    );
+    const userId = userResult.rows[0].id;
+    createdUserIds.push(userId);
+    return userId;
+  }
+
+  /**
+   * Helper function to create test task
+   */
+  async function createTestTask(
+    title: string,
+    description: string,
+    priority: number,
+    dueDate: Date,
+    status: 'TO_DO' | 'IN_PROGRESS' | 'COMPLETED' | 'BLOCKED',
+    ownerId: string,
+    recurringInterval: number | null = null,
+    isArchived: boolean = false
+  ): Promise<string> {
+    const taskResult = await pgClient.query(
+      `INSERT INTO "task" (id, title, description, priority, "dueDate", status, "ownerId", "departmentId", "isArchived", "recurringInterval", "createdAt", "updatedAt")
+       VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
+       RETURNING id`,
+      [
+        title,
+        description,
+        priority,
+        dueDate,
+        status,
+        ownerId,
+        deptId,
+        isArchived,
+        recurringInterval,
+      ]
+    );
+    const taskId = taskResult.rows[0].id;
+    createdTaskIds.push(taskId);
+    return taskId;
+  }
+
+  /**
+   * Helper function to assign task to user
+   */
+  async function assignTask(taskId: string, userId: string): Promise<void> {
+    await pgClient.query(
+      `INSERT INTO "task_assignment" ("taskId", "userId", "assignedById", "assignedAt")
+       VALUES ($1, $2, $3, NOW())`,
+      [taskId, userId, managerId]
+    );
+  }
 
   beforeAll(async () => {
     // Connect to database
-    pgClient = new Client({ connectionString: process.env.DATABASE_URL });
+    pgClient = new Client({
+      connectionString: process.env.DATABASE_URL,
+      connectionTimeoutMillis: 10000,
+    });
     await pgClient.connect();
 
     // Initialize Prisma client and service
     prisma = new PrismaClient();
     taskService = new TaskService(prisma);
 
-    // Clean up any leftover test data from previous failed runs
-    await pgClient.query(
-      `DELETE FROM "task_assignment" WHERE "assignedById" IN (
-        SELECT id FROM "user_profile" WHERE email LIKE '%@personalcal.test.com'
-      )`
-    );
-    await pgClient.query(
-      `DELETE FROM "task" WHERE "ownerId" IN (
-        SELECT id FROM "user_profile" WHERE email LIKE '%@personalcal.test.com'
-      )`
-    );
-    await pgClient.query(
-      `DELETE FROM "user_profile" WHERE email LIKE '%@personalcal.test.com'`
-    );
-    await pgClient.query(
-      `DELETE FROM "department" WHERE name = 'Personal Calendar Test Dept'`
-    );
-
-    // Create test department
+    // Create test department with unique name
     const deptResult = await pgClient.query(
       `INSERT INTO "department" (id, name, "isActive", "createdAt", "updatedAt")
        VALUES (gen_random_uuid(), $1, true, NOW(), NOW())
        RETURNING id`,
-      ['Personal Calendar Test Dept']
+      [`Personal Calendar Dept ${testNamespace}`]
     );
     deptId = deptResult.rows[0].id;
 
-    // Create manager
-    const managerResult = await pgClient.query(
-      `INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt")
-       VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
-       RETURNING id`,
-      ['manager@personalcal.test.com', 'Test Manager', 'MANAGER', deptId]
+    // Create test users with namespaced emails
+    managerId = await createTestUser(
+      `manager-${testNamespace}@test.com`,
+      'Test Manager',
+      'MANAGER'
     );
-    managerId = managerResult.rows[0].id;
-
-    // Create user1 (primary test user)
-    const user1Result = await pgClient.query(
-      `INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt")
-       VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
-       RETURNING id`,
-      ['user1@personalcal.test.com', 'User One', 'STAFF', deptId]
+    user1Id = await createTestUser(
+      `user1-${testNamespace}@test.com`,
+      'User One',
+      'STAFF'
     );
-    user1Id = user1Result.rows[0].id;
-
-    // Create user2 (other user)
-    const user2Result = await pgClient.query(
-      `INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt")
-       VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
-       RETURNING id`,
-      ['user2@personalcal.test.com', 'User Two', 'STAFF', deptId]
+    user2Id = await createTestUser(
+      `user2-${testNamespace}@test.com`,
+      'User Two',
+      'STAFF'
     );
-    user2Id = user2Result.rows[0].id;
-  });
+  }, 60000);
 
   afterAll(async () => {
-    // Clean up in proper order to avoid foreign key constraint violations
+    // Clean up in proper order to respect foreign key constraints
 
     // 1. Delete task assignments first
-    await pgClient.query(
-      `DELETE FROM "task_assignment" WHERE "assignedById" IN (
-        SELECT id FROM "user_profile" WHERE email LIKE '%@personalcal.test.com'
-      )`
-    );
+    if (createdTaskIds.length > 0) {
+      await pgClient.query(
+        `DELETE FROM "task_assignment" WHERE "taskId" = ANY($1)`,
+        [createdTaskIds]
+      );
+    }
 
     // 2. Delete created tasks
     if (createdTaskIds.length > 0) {
-      await pgClient.query(`DELETE FROM "task" WHERE id = ANY($1::uuid[])`, [
+      await pgClient.query(`DELETE FROM "task" WHERE id = ANY($1)`, [
         createdTaskIds,
       ]);
     }
 
-    // 3. Delete all tasks related to test users
-    await pgClient.query(
-      `DELETE FROM "task" WHERE "ownerId" IN (
-        SELECT id FROM "user_profile" WHERE email LIKE '%@personalcal.test.com'
-      )`
-    );
+    // 3. Clean up test users
+    if (createdUserIds.length > 0) {
+      await pgClient.query(`DELETE FROM "user_profile" WHERE id = ANY($1)`, [
+        createdUserIds,
+      ]);
+    }
 
-    // 4. Clean up test users
-    await pgClient.query(
-      `DELETE FROM "user_profile" WHERE email LIKE '%@personalcal.test.com'`
-    );
-
-    // 5. Clean up test department
-    await pgClient.query(
-      `DELETE FROM "department" WHERE name = 'Personal Calendar Test Dept'`
-    );
+    // 4. Clean up test department
+    if (deptId) {
+      await pgClient.query(`DELETE FROM "department" WHERE id = $1`, [deptId]);
+    }
 
     await pgClient.end();
     await prisma.$disconnect();
   });
 
-  afterEach(() => {
-    // Clear the task IDs array after each test cleanup
-    createdTaskIds.length = 0;
-  });
-
   describe('Personal Task Fetching (CIT001)', () => {
     it('should fetch only tasks assigned to the authenticated user', async () => {
       // Create task assigned to user1
-      const task1Result = await pgClient.query(
-        `INSERT INTO "task" (id, title, description, priority, "dueDate", status, "ownerId", "departmentId", "isArchived", "createdAt", "updatedAt")
-         VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, false, NOW(), NOW())
-         RETURNING id`,
-        [
-          'User1 Task',
-          'Assigned to user1',
-          5,
-          new Date('2025-12-31'),
-          'TO_DO',
-          managerId,
-          deptId,
-        ]
+      const task1Id = await createTestTask(
+        'User1 Task',
+        'Assigned to user1',
+        5,
+        new Date('2025-12-31'),
+        'TO_DO',
+        managerId
       );
-      const task1Id = task1Result.rows[0].id;
-      createdTaskIds.push(task1Id);
-
-      // Assign to user1
-      await pgClient.query(
-        `INSERT INTO "task_assignment" ("taskId", "userId", "assignedById", "assignedAt")
-         VALUES ($1, $2, $3, NOW())`,
-        [task1Id, user1Id, managerId]
-      );
+      await assignTask(task1Id, user1Id);
 
       // Create task assigned to user2 (should NOT appear for user1)
-      const task2Result = await pgClient.query(
-        `INSERT INTO "task" (id, title, description, priority, "dueDate", status, "ownerId", "departmentId", "isArchived", "createdAt", "updatedAt")
-         VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, false, NOW(), NOW())
-         RETURNING id`,
-        [
-          'User2 Task',
-          'Assigned to user2 only',
-          5,
-          new Date('2025-12-31'),
-          'TO_DO',
-          managerId,
-          deptId,
-        ]
+      const task2Id = await createTestTask(
+        'User2 Task',
+        'Assigned to user2 only',
+        5,
+        new Date('2025-12-31'),
+        'TO_DO',
+        managerId
       );
-      const task2Id = task2Result.rows[0].id;
-      createdTaskIds.push(task2Id);
-
-      // Assign to user2
-      await pgClient.query(
-        `INSERT INTO "task_assignment" ("taskId", "userId", "assignedById", "assignedAt")
-         VALUES ($1, $2, $3, NOW())`,
-        [task2Id, user2Id, managerId]
-      );
+      await assignTask(task2Id, user2Id);
 
       // Get tasks for user1
       const user1Tasks = await taskService.getByAssignee(user1Id);
@@ -200,34 +206,20 @@ describe('Integration Tests - Personal Calendar', () => {
       const user1TaskIds = user1Tasks!.map((t: any) => t.id);
       expect(user1TaskIds).toContain(task1Id);
       expect(user1TaskIds).not.toContain(task2Id);
-    }, 15000);
+    }, 25000);
 
     it('should not return tasks assigned to other users', async () => {
       // Create multiple tasks for user2
       for (let i = 1; i <= 3; i++) {
-        const taskResult = await pgClient.query(
-          `INSERT INTO "task" (id, title, description, priority, "dueDate", status, "ownerId", "departmentId", "isArchived", "createdAt", "updatedAt")
-           VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, false, NOW(), NOW())
-           RETURNING id`,
-          [
-            `User2 Task ${i}`,
-            'Should not appear for user1',
-            5,
-            new Date('2025-12-31'),
-            'TO_DO',
-            managerId,
-            deptId,
-          ]
+        const taskId = await createTestTask(
+          `User2 Task ${i}`,
+          'Should not appear for user1',
+          5,
+          new Date('2025-12-31'),
+          'TO_DO',
+          managerId
         );
-        const taskId = taskResult.rows[0].id;
-        createdTaskIds.push(taskId);
-
-        // Assign to user2
-        await pgClient.query(
-          `INSERT INTO "task_assignment" ("taskId", "userId", "assignedById", "assignedAt")
-           VALUES ($1, $2, $3, NOW())`,
-          [taskId, user2Id, managerId]
-        );
+        await assignTask(taskId, user2Id);
       }
 
       // Get tasks for user1
@@ -238,33 +230,20 @@ describe('Integration Tests - Personal Calendar', () => {
       expect(user1TaskTitles).not.toContain('User2 Task 1');
       expect(user1TaskTitles).not.toContain('User2 Task 2');
       expect(user1TaskTitles).not.toContain('User2 Task 3');
-    }, 15000);
+    }, 25000);
 
     it('should include task details needed for calendar display', async () => {
       // Create task with all details
-      const taskResult = await pgClient.query(
-        `INSERT INTO "task" (id, title, description, priority, "dueDate", status, "ownerId", "departmentId", "isArchived", "recurringInterval", "createdAt", "updatedAt")
-         VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, false, 7, NOW(), NOW())
-         RETURNING id`,
-        [
-          'Detailed Task',
-          'Task with full details',
-          8,
-          new Date('2025-12-31'),
-          'IN_PROGRESS',
-          managerId,
-          deptId,
-        ]
+      const taskId = await createTestTask(
+        'Detailed Task',
+        'Task with full details',
+        8,
+        new Date('2025-12-31'),
+        'IN_PROGRESS',
+        managerId,
+        7 // Weekly recurring
       );
-      const taskId = taskResult.rows[0].id;
-      createdTaskIds.push(taskId);
-
-      // Assign to user1
-      await pgClient.query(
-        `INSERT INTO "task_assignment" ("taskId", "userId", "assignedById", "assignedAt")
-         VALUES ($1, $2, $3, NOW())`,
-        [taskId, user1Id, managerId]
-      );
+      await assignTask(taskId, user1Id);
 
       // Get tasks
       const tasks = await taskService.getByAssignee(user1Id);
@@ -281,35 +260,21 @@ describe('Integration Tests - Personal Calendar', () => {
       expect(task!.owner).toBeDefined();
       expect(task!.department).toBeDefined();
       expect(task!.recurringInterval).toBe(7);
-    }, 15000);
+    }, 25000);
   });
 
   describe('Completed Task Visibility (CIT006)', () => {
     it('should show completed tasks on personal calendar', async () => {
       // Create completed task
-      const taskResult = await pgClient.query(
-        `INSERT INTO "task" (id, title, description, priority, "dueDate", status, "ownerId", "departmentId", "isArchived", "createdAt", "updatedAt")
-         VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, false, NOW(), NOW())
-         RETURNING id`,
-        [
-          'Completed Task',
-          'Task that is done',
-          5,
-          new Date('2025-10-15'),
-          'COMPLETED',
-          managerId,
-          deptId,
-        ]
+      const taskId = await createTestTask(
+        'Completed Task',
+        'Task that is done',
+        5,
+        new Date('2025-10-15'),
+        'COMPLETED',
+        managerId
       );
-      const taskId = taskResult.rows[0].id;
-      createdTaskIds.push(taskId);
-
-      // Assign to user1
-      await pgClient.query(
-        `INSERT INTO "task_assignment" ("taskId", "userId", "assignedById", "assignedAt")
-         VALUES ($1, $2, $3, NOW())`,
-        [taskId, user1Id, managerId]
-      );
+      await assignTask(taskId, user1Id);
 
       // Get tasks
       const tasks = await taskService.getByAssignee(user1Id);
@@ -318,36 +283,23 @@ describe('Integration Tests - Personal Calendar', () => {
       const completedTask = tasks!.find((t: any) => t.id === taskId);
       expect(completedTask).toBeDefined();
       expect(completedTask!.status).toBe('COMPLETED');
-    }, 15000);
+    }, 25000);
 
     it('should include status field for visual distinction of completed tasks', async () => {
       // Create mix of tasks with different statuses
-      const statuses = ['TO_DO', 'IN_PROGRESS', 'COMPLETED', 'BLOCKED'];
+      const statuses: Array<'TO_DO' | 'IN_PROGRESS' | 'COMPLETED' | 'BLOCKED'> =
+        ['TO_DO', 'IN_PROGRESS', 'COMPLETED', 'BLOCKED'];
 
       for (const status of statuses) {
-        const taskResult = await pgClient.query(
-          `INSERT INTO "task" (id, title, description, priority, "dueDate", status, "ownerId", "departmentId", "isArchived", "createdAt", "updatedAt")
-           VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, false, NOW(), NOW())
-           RETURNING id`,
-          [
-            `${status} Task`,
-            `Task with ${status} status`,
-            5,
-            new Date('2025-12-31'),
-            status,
-            managerId,
-            deptId,
-          ]
+        const taskId = await createTestTask(
+          `${status} Task`,
+          `Task with ${status} status`,
+          5,
+          new Date('2025-12-31'),
+          status,
+          managerId
         );
-        const taskId = taskResult.rows[0].id;
-        createdTaskIds.push(taskId);
-
-        // Assign to user1
-        await pgClient.query(
-          `INSERT INTO "task_assignment" ("taskId", "userId", "assignedById", "assignedAt")
-           VALUES ($1, $2, $3, NOW())`,
-          [taskId, user1Id, managerId]
-        );
+        await assignTask(taskId, user1Id);
       }
 
       // Get tasks
@@ -359,35 +311,22 @@ describe('Integration Tests - Personal Calendar', () => {
       expect(taskStatuses).toContain('IN_PROGRESS');
       expect(taskStatuses).toContain('COMPLETED');
       expect(taskStatuses).toContain('BLOCKED');
-    }, 15000);
+    }, 25000);
   });
 
   describe('Recurring Task Handling (CIT007)', () => {
     it('should include recurring task metadata', async () => {
       // Create recurring task
-      const taskResult = await pgClient.query(
-        `INSERT INTO "task" (id, title, description, priority, "dueDate", status, "ownerId", "departmentId", "isArchived", "recurringInterval", "createdAt", "updatedAt")
-         VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, false, 7, NOW(), NOW())
-         RETURNING id`,
-        [
-          'Weekly Standup',
-          'Recurring weekly meeting',
-          5,
-          new Date('2025-12-31'),
-          'TO_DO',
-          managerId,
-          deptId,
-        ]
+      const taskId = await createTestTask(
+        'Weekly Standup',
+        'Recurring weekly meeting',
+        5,
+        new Date('2025-12-31'),
+        'TO_DO',
+        managerId,
+        7 // Weekly
       );
-      const taskId = taskResult.rows[0].id;
-      createdTaskIds.push(taskId);
-
-      // Assign to user1
-      await pgClient.query(
-        `INSERT INTO "task_assignment" ("taskId", "userId", "assignedById", "assignedAt")
-         VALUES ($1, $2, $3, NOW())`,
-        [taskId, user1Id, managerId]
-      );
+      await assignTask(taskId, user1Id);
 
       // Get tasks
       const tasks = await taskService.getByAssignee(user1Id);
@@ -396,33 +335,20 @@ describe('Integration Tests - Personal Calendar', () => {
       // Verify recurring metadata is present
       expect(recurringTask).toBeDefined();
       expect(recurringTask!.recurringInterval).toBe(7);
-    }, 15000);
+    }, 25000);
 
     it('should handle non-recurring tasks correctly', async () => {
       // Create non-recurring task
-      const taskResult = await pgClient.query(
-        `INSERT INTO "task" (id, title, description, priority, "dueDate", status, "ownerId", "departmentId", "isArchived", "createdAt", "updatedAt")
-         VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, false, NOW(), NOW())
-         RETURNING id`,
-        [
-          'One-time Task',
-          'Single occurrence',
-          5,
-          new Date('2025-12-31'),
-          'TO_DO',
-          managerId,
-          deptId,
-        ]
+      const taskId = await createTestTask(
+        'One-time Task',
+        'Single occurrence',
+        5,
+        new Date('2025-12-31'),
+        'TO_DO',
+        managerId,
+        null // Not recurring
       );
-      const taskId = taskResult.rows[0].id;
-      createdTaskIds.push(taskId);
-
-      // Assign to user1
-      await pgClient.query(
-        `INSERT INTO "task_assignment" ("taskId", "userId", "assignedById", "assignedAt")
-         VALUES ($1, $2, $3, NOW())`,
-        [taskId, user1Id, managerId]
-      );
+      await assignTask(taskId, user1Id);
 
       // Get tasks
       const tasks = await taskService.getByAssignee(user1Id);
@@ -431,19 +357,17 @@ describe('Integration Tests - Personal Calendar', () => {
       // Verify non-recurring task
       expect(oneTimeTask).toBeDefined();
       expect(oneTimeTask!.recurringInterval).toBeNull();
-    }, 15000);
+    }, 25000);
   });
 
   describe('Edge Cases', () => {
     it('should handle empty results when user has no assignments', async () => {
       // Create new user with no tasks
-      const newUserResult = await pgClient.query(
-        `INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt")
-         VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
-         RETURNING id`,
-        ['newuser@personalcal.test.com', 'New User', 'STAFF', deptId]
+      const newUserId = await createTestUser(
+        `newuser-${testNamespace}@test.com`,
+        'New User',
+        'STAFF'
       );
-      const newUserId = newUserResult.rows[0].id;
 
       // Get tasks
       const tasks = await taskService.getByAssignee(newUserId);
@@ -451,40 +375,28 @@ describe('Integration Tests - Personal Calendar', () => {
       // Verify empty result
       expect(tasks).toBeDefined();
       expect(tasks!.length).toBe(0);
-    }, 15000);
+    }, 25000);
 
     it('should not return archived tasks', async () => {
       // Create archived task
-      const taskResult = await pgClient.query(
-        `INSERT INTO "task" (id, title, description, priority, "dueDate", status, "ownerId", "departmentId", "isArchived", "createdAt", "updatedAt")
-         VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, true, NOW(), NOW())
-         RETURNING id`,
-        [
-          'Archived Task',
-          'Should not appear',
-          5,
-          new Date('2025-12-31'),
-          'COMPLETED',
-          managerId,
-          deptId,
-        ]
+      const taskId = await createTestTask(
+        'Archived Task',
+        'Should not appear',
+        5,
+        new Date('2025-12-31'),
+        'COMPLETED',
+        managerId,
+        null,
+        true // Archived
       );
-      const archivedTaskId = taskResult.rows[0].id;
-      createdTaskIds.push(archivedTaskId);
-
-      // Assign to user1
-      await pgClient.query(
-        `INSERT INTO "task_assignment" ("taskId", "userId", "assignedById", "assignedAt")
-         VALUES ($1, $2, $3, NOW())`,
-        [archivedTaskId, user1Id, managerId]
-      );
+      await assignTask(taskId, user1Id);
 
       // Get tasks
       const tasks = await taskService.getByAssignee(user1Id);
 
       // Verify archived task is not included
-      const archivedTask = tasks!.find((t: any) => t.id === archivedTaskId);
+      const archivedTask = tasks!.find((t: any) => t.id === taskId);
       expect(archivedTask).toBeUndefined();
-    }, 15000);
+    }, 25000);
   });
 });

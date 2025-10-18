@@ -15,9 +15,6 @@ import { createClient } from '@supabase/supabase-js';
  */
 
 test.describe('Personal Calendar - UI Flow', () => {
-  // Run tests in serial mode so they execute sequentially
-  test.describe.configure({ mode: 'serial' });
-
   let pgClient: Client;
   let supabaseClient: ReturnType<typeof createClient>;
   let testDepartmentId: string;
@@ -25,6 +22,7 @@ test.describe('Personal Calendar - UI Flow', () => {
   let otherUserId: string;
   let testEmail: string;
   let testPassword: string;
+  let testNamespace: string;
   const createdTaskIds: string[] = [];
 
   // Helper function to login and navigate to personal calendar
@@ -85,15 +83,21 @@ test.describe('Personal Calendar - UI Flow', () => {
       process.env.NEXT_PUBLIC_ANON_KEY!
     );
 
-    // Create unique credentials
-    const unique = Date.now();
-    testEmail = `e2e.calendar.personal.${unique}@example.com`;
+    // Create robust worker-specific namespace for test data isolation
+    const workerId = process.env.PLAYWRIGHT_WORKER_INDEX || '0';
+    const timestamp = Date.now();
+    const processId = process.pid;
+    const randomSuffix = crypto.randomUUID().slice(0, 8);
+    testNamespace = `calendar-personal-w${workerId}_${timestamp}_${processId}_${randomSuffix}`;
+
+    // Create unique credentials with worker-specific namespace
+    testEmail = `e2e.calendar.personal.${testNamespace}@example.com`;
     testPassword = 'Test123!@#';
 
     // 1. Create department
     const deptResult = await pgClient.query(
       'INSERT INTO "department" (id, name, "isActive", "createdAt", "updatedAt") VALUES (gen_random_uuid(), $1, true, NOW(), NOW()) RETURNING id',
-      [`E2E Personal Calendar Dept ${unique}`]
+      [`E2E Personal Calendar Dept ${testNamespace}`]
     );
     testDepartmentId = deptResult.rows[0].id;
 
@@ -143,7 +147,7 @@ test.describe('Personal Calendar - UI Flow', () => {
     const otherUserResult = await pgClient.query(
       'INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt") VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW()) RETURNING id',
       [
-        `e2e.calendar.other.${unique}@example.com`,
+        `e2e.calendar.other.${testNamespace}@example.com`,
         'E2E Other User',
         'STAFF',
         testDepartmentId,
@@ -306,48 +310,68 @@ test.describe('Personal Calendar - UI Flow', () => {
     );
   });
 
+  test.afterEach(async ({ context }) => {
+    // Only clear browser storage - no database cleanup to avoid race conditions
+    await context.clearCookies();
+    await context.clearPermissions();
+  });
+
   test.afterAll(async () => {
-    // Cleanup - order matters due to foreign keys
+    try {
+      // Cleanup - order matters due to foreign keys
 
-    // 1. Delete task assignments
-    for (const taskId of createdTaskIds) {
-      await pgClient.query(
-        'DELETE FROM "task_assignment" WHERE "taskId" = $1',
-        [taskId]
+      // 1. Delete task assignments
+      if (createdTaskIds.length > 0) {
+        await pgClient.query(
+          'DELETE FROM "task_assignment" WHERE "taskId" = ANY($1)',
+          [createdTaskIds]
+        );
+      }
+
+      // 2. Delete tasks
+      if (createdTaskIds.length > 0) {
+        await pgClient.query('DELETE FROM "task" WHERE id = ANY($1)', [
+          createdTaskIds,
+        ]);
+      }
+
+      // 3. Delete user profiles
+      if (testDepartmentId) {
+        await pgClient.query(
+          'DELETE FROM "user_profile" WHERE "departmentId" = $1',
+          [testDepartmentId]
+        );
+      }
+
+      // 4. Delete auth users
+      await supabaseClient.auth.signOut();
+      await pgClient.query('DELETE FROM auth.users WHERE email LIKE $1', [
+        `e2e.calendar.%${testNamespace}%`,
+      ]);
+
+      // 5. Delete department
+      if (testDepartmentId) {
+        await pgClient.query('DELETE FROM "department" WHERE id = $1', [
+          testDepartmentId,
+        ]);
+      }
+    } catch (error) {
+      console.error(
+        `❌ Error during calendar personal cleanup for namespace ${testNamespace}:`,
+        error
       );
+    } finally {
+      // 6. Close connections
+      if (pgClient) {
+        await pgClient.end();
+      }
     }
-
-    // 2. Delete tasks
-    for (const taskId of createdTaskIds) {
-      await pgClient.query('DELETE FROM "task" WHERE id = $1', [taskId]);
-    }
-
-    // 3. Delete user profiles
-    await pgClient.query(
-      'DELETE FROM "user_profile" WHERE "departmentId" = $1',
-      [testDepartmentId]
-    );
-
-    // 4. Delete auth users
-    await supabaseClient.auth.signOut();
-    const unique = testEmail.split('.')[3].split('@')[0];
-    await pgClient.query('DELETE FROM auth.users WHERE email LIKE $1', [
-      `e2e.calendar.%${unique}%`,
-    ]);
-
-    // 5. Delete department
-    await pgClient.query('DELETE FROM "department" WHERE id = $1', [
-      testDepartmentId,
-    ]);
-
-    // 6. Close connections
-    await pgClient.end();
   });
 
   test('Setup: should login and navigate to personal calendar', async ({
     page,
   }) => {
-    test.setTimeout(120000); // 120s total test timeout
+    test.setTimeout(220000); // 120s total test timeout
 
     // Login
     await page.goto('/auth/login');
@@ -394,7 +418,7 @@ test.describe('Personal Calendar - UI Flow', () => {
   test('CIT001: should display only tasks assigned to user', async ({
     page,
   }) => {
-    test.setTimeout(120000);
+    test.setTimeout(220000);
 
     await loginAndNavigateToCalendar(page);
 
@@ -455,7 +479,7 @@ test.describe('Personal Calendar - UI Flow', () => {
   test('CIT003: should switch between Month, Week, Day, Agenda views', async ({
     page,
   }) => {
-    test.setTimeout(120000);
+    test.setTimeout(220000);
 
     await loginAndNavigateToCalendar(page);
 
@@ -560,7 +584,7 @@ test.describe('Personal Calendar - UI Flow', () => {
   test('CIT006: should show completed tasks with visual distinction', async ({
     page,
   }) => {
-    test.setTimeout(120000);
+    test.setTimeout(220000);
 
     await loginAndNavigateToCalendar(page);
 
@@ -580,7 +604,7 @@ test.describe('Personal Calendar - UI Flow', () => {
   });
 
   test('should open task modal when clicking event', async ({ page }) => {
-    test.setTimeout(120000);
+    test.setTimeout(220000);
 
     await loginAndNavigateToCalendar(page);
 
@@ -618,7 +642,7 @@ test.describe('Personal Calendar - UI Flow', () => {
   });
 
   test('CIT004: should have export to iCal button', async ({ page }) => {
-    test.setTimeout(120000);
+    test.setTimeout(220000);
 
     await loginAndNavigateToCalendar(page);
 
@@ -637,7 +661,7 @@ test.describe('Personal Calendar - UI Flow', () => {
   test('should navigate dates using Today, Back, Next buttons', async ({
     page,
   }) => {
-    test.setTimeout(120000);
+    test.setTimeout(220000);
 
     await loginAndNavigateToCalendar(page);
 

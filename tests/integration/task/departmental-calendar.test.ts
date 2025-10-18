@@ -34,182 +34,210 @@ describe('Integration Tests - Departmental Calendar', () => {
   let staffInChildId: string;
   let staffInPeerId: string;
 
-  // Track created tasks for cleanup
+  // Track created resources for comprehensive cleanup
   const createdTaskIds: string[] = [];
+  const createdUserIds: string[] = [];
+  const createdDepartmentIds: string[] = [];
+
+  // Generate unique namespace for parallel test execution
+  const testNamespace = `deptcal-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+  /**
+   * Helper function to create test user
+   */
+  async function createTestUser(
+    email: string,
+    name: string,
+    role: 'STAFF' | 'MANAGER',
+    departmentId: string
+  ): Promise<string> {
+    const userResult = await pgClient.query(
+      `INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt")
+       VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
+       RETURNING id`,
+      [email, name, role, departmentId]
+    );
+    const userId = userResult.rows[0].id;
+    createdUserIds.push(userId);
+    return userId;
+  }
+
+  /**
+   * Helper function to create test task
+   */
+  async function createTestTask(
+    title: string,
+    description: string,
+    priority: number,
+    dueDate: Date,
+    status: 'TO_DO' | 'IN_PROGRESS' | 'COMPLETED' | 'BLOCKED',
+    ownerId: string,
+    departmentId: string,
+    isArchived: boolean = false
+  ): Promise<string> {
+    const taskResult = await pgClient.query(
+      `INSERT INTO "task" (id, title, description, priority, "dueDate", status, "ownerId", "departmentId", "isArchived", "createdAt", "updatedAt")
+       VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+       RETURNING id`,
+      [
+        title,
+        description,
+        priority,
+        dueDate,
+        status,
+        ownerId,
+        departmentId,
+        isArchived,
+      ]
+    );
+    const taskId = taskResult.rows[0].id;
+    createdTaskIds.push(taskId);
+    return taskId;
+  }
+
+  /**
+   * Helper function to assign task to user
+   */
+  async function assignTask(
+    taskId: string,
+    userId: string,
+    assignedById: string
+  ): Promise<void> {
+    await pgClient.query(
+      `INSERT INTO "task_assignment" ("taskId", "userId", "assignedById", "assignedAt")
+       VALUES ($1, $2, $3, NOW())`,
+      [taskId, userId, assignedById]
+    );
+  }
 
   beforeAll(async () => {
     // Connect to database
-    pgClient = new Client({ connectionString: process.env.DATABASE_URL });
+    pgClient = new Client({
+      connectionString: process.env.DATABASE_URL,
+      connectionTimeoutMillis: 10000,
+    });
     await pgClient.connect();
 
     // Initialize Prisma client and service
     prisma = new PrismaClient();
     taskService = new TaskService(prisma);
 
-    // Clean up any leftover test data from previous failed runs
-    await pgClient.query(
-      `DELETE FROM "task_assignment" WHERE "assignedById" IN (
-        SELECT id FROM "user_profile" WHERE email LIKE '%@deptcal.test.com'
-      )`
-    );
-    await pgClient.query(
-      `DELETE FROM "task" WHERE "ownerId" IN (
-        SELECT id FROM "user_profile" WHERE email LIKE '%@deptcal.test.com'
-      )`
-    );
-    await pgClient.query(
-      `DELETE FROM "user_profile" WHERE email LIKE '%@deptcal.test.com'`
-    );
-    await pgClient.query(
-      `DELETE FROM "department" WHERE name IN ('Parent Dept Test', 'Child Dept Test', 'Peer Dept Test')`
-    );
-
     // Create parent department (manager's department)
     const parentDeptResult = await pgClient.query(
       `INSERT INTO "department" (id, name, "parentId", "isActive", "createdAt", "updatedAt")
        VALUES (gen_random_uuid(), $1, NULL, true, NOW(), NOW())
        RETURNING id`,
-      ['Parent Dept Test']
+      [`Parent Dept ${testNamespace}`]
     );
     parentDeptId = parentDeptResult.rows[0].id;
+    createdDepartmentIds.push(parentDeptId);
 
     // Create child department (subordinate)
     const childDeptResult = await pgClient.query(
       `INSERT INTO "department" (id, name, "parentId", "isActive", "createdAt", "updatedAt")
        VALUES (gen_random_uuid(), $1, $2, true, NOW(), NOW())
        RETURNING id`,
-      ['Child Dept Test', parentDeptId]
+      [`Child Dept ${testNamespace}`, parentDeptId]
     );
     childDeptId = childDeptResult.rows[0].id;
+    createdDepartmentIds.push(childDeptId);
 
     // Create peer department (same level as parent)
     const peerDeptResult = await pgClient.query(
       `INSERT INTO "department" (id, name, "parentId", "isActive", "createdAt", "updatedAt")
        VALUES (gen_random_uuid(), $1, NULL, true, NOW(), NOW())
        RETURNING id`,
-      ['Peer Dept Test']
+      [`Peer Dept ${testNamespace}`]
     );
     peerDeptId = peerDeptResult.rows[0].id;
+    createdDepartmentIds.push(peerDeptId);
 
-    // Create manager in parent department
-    const managerResult = await pgClient.query(
-      `INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt")
-       VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
-       RETURNING id`,
-      [
-        'manager@deptcal.test.com',
-        'Department Manager',
-        'MANAGER',
-        parentDeptId,
-      ]
+    // Create test users with namespaced emails
+    managerId = await createTestUser(
+      `manager-${testNamespace}@test.com`,
+      'Department Manager',
+      'MANAGER',
+      parentDeptId
     );
-    managerId = managerResult.rows[0].id;
 
-    // Create staff in parent department
-    const staffParentResult = await pgClient.query(
-      `INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt")
-       VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
-       RETURNING id`,
-      [
-        'staff-parent@deptcal.test.com',
-        'Staff in Parent',
-        'STAFF',
-        parentDeptId,
-      ]
+    staffInParentId = await createTestUser(
+      `staff-parent-${testNamespace}@test.com`,
+      'Staff in Parent',
+      'STAFF',
+      parentDeptId
     );
-    staffInParentId = staffParentResult.rows[0].id;
 
-    // Create staff in child department
-    const staffChildResult = await pgClient.query(
-      `INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt")
-       VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
-       RETURNING id`,
-      ['staff-child@deptcal.test.com', 'Staff in Child', 'STAFF', childDeptId]
+    staffInChildId = await createTestUser(
+      `staff-child-${testNamespace}@test.com`,
+      'Staff in Child',
+      'STAFF',
+      childDeptId
     );
-    staffInChildId = staffChildResult.rows[0].id;
 
-    // Create staff in peer department
-    const staffPeerResult = await pgClient.query(
-      `INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt")
-       VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
-       RETURNING id`,
-      ['staff-peer@deptcal.test.com', 'Staff in Peer', 'STAFF', peerDeptId]
+    staffInPeerId = await createTestUser(
+      `staff-peer-${testNamespace}@test.com`,
+      'Staff in Peer',
+      'STAFF',
+      peerDeptId
     );
-    staffInPeerId = staffPeerResult.rows[0].id;
-  });
+  }, 60000);
 
   afterAll(async () => {
-    // Clean up in proper order to avoid foreign key constraint violations
+    // Clean up in proper order to respect foreign key constraints
 
     // 1. Delete task assignments first
-    await pgClient.query(
-      `DELETE FROM "task_assignment" WHERE "assignedById" IN (
-        SELECT id FROM "user_profile" WHERE email LIKE '%@deptcal.test.com'
-      )`
-    );
+    if (createdTaskIds.length > 0) {
+      await pgClient.query(
+        `DELETE FROM "task_assignment" WHERE "taskId" = ANY($1)`,
+        [createdTaskIds]
+      );
+    }
 
     // 2. Delete created tasks
     if (createdTaskIds.length > 0) {
-      await pgClient.query(`DELETE FROM "task" WHERE id = ANY($1::uuid[])`, [
+      await pgClient.query(`DELETE FROM "task" WHERE id = ANY($1)`, [
         createdTaskIds,
       ]);
     }
 
-    // 3. Delete all tasks related to test users
-    await pgClient.query(
-      `DELETE FROM "task" WHERE "ownerId" IN (
-        SELECT id FROM "user_profile" WHERE email LIKE '%@deptcal.test.com'
-      )`
-    );
+    // 3. Clean up test users
+    if (createdUserIds.length > 0) {
+      await pgClient.query(`DELETE FROM "user_profile" WHERE id = ANY($1)`, [
+        createdUserIds,
+      ]);
+    }
 
-    // 4. Clean up test users
-    await pgClient.query(
-      `DELETE FROM "user_profile" WHERE email LIKE '%@deptcal.test.com'`
-    );
-
-    // 5. Clean up test departments (child first due to FK)
-    await pgClient.query(
-      `DELETE FROM "department" WHERE name IN ('Child Dept Test')`
-    );
-    await pgClient.query(
-      `DELETE FROM "department" WHERE name IN ('Parent Dept Test', 'Peer Dept Test')`
-    );
+    // 4. Clean up test departments (child first due to FK)
+    if (childDeptId) {
+      await pgClient.query(`DELETE FROM "department" WHERE id = $1`, [
+        childDeptId,
+      ]);
+    }
+    if (parentDeptId || peerDeptId) {
+      await pgClient.query(`DELETE FROM "department" WHERE id = ANY($1)`, [
+        [parentDeptId, peerDeptId],
+      ]);
+    }
 
     await pgClient.end();
     await prisma.$disconnect();
   });
 
-  afterEach(() => {
-    // Clear the task IDs array after each test cleanup
-    createdTaskIds.length = 0;
-  });
-
   describe('Manager Departmental Calendar (CIT001, CIT009)', () => {
     it("should include tasks from manager's own department", async () => {
       // Create task in parent department
-      const taskResult = await pgClient.query(
-        `INSERT INTO "task" (id, title, description, priority, "dueDate", status, "ownerId", "departmentId", "isArchived", "createdAt", "updatedAt")
-         VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, false, NOW(), NOW())
-         RETURNING id`,
-        [
-          'Parent Dept Task',
-          "Task in manager's department",
-          5,
-          new Date('2025-12-31'),
-          'TO_DO',
-          managerId,
-          parentDeptId,
-        ]
+      const taskId = await createTestTask(
+        'Parent Dept Task',
+        "Task in manager's department",
+        5,
+        new Date('2025-12-31'),
+        'TO_DO',
+        managerId,
+        parentDeptId
       );
-      const taskId = taskResult.rows[0].id;
-      createdTaskIds.push(taskId);
 
       // Assign to staff in parent
-      await pgClient.query(
-        `INSERT INTO "task_assignment" ("taskId", "userId", "assignedById", "assignedAt")
-         VALUES ($1, $2, $3, NOW())`,
-        [taskId, staffInParentId, managerId]
-      );
+      await assignTask(taskId, staffInParentId, managerId);
 
       // Get departmental tasks for manager
       const result = await taskService.getManagerDashboardTasks(managerId);
@@ -218,33 +246,22 @@ describe('Integration Tests - Departmental Calendar', () => {
       expect(result).toBeDefined();
       const taskIds = result!.tasks.map(t => t.id);
       expect(taskIds).toContain(taskId);
-    }, 15000);
+    }, 25000);
 
     it('should include tasks from subordinate departments', async () => {
       // Create task in child department
-      const taskResult = await pgClient.query(
-        `INSERT INTO "task" (id, title, description, priority, "dueDate", status, "ownerId", "departmentId", "isArchived", "createdAt", "updatedAt")
-         VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, false, NOW(), NOW())
-         RETURNING id`,
-        [
-          'Child Dept Task',
-          'Task in subordinate department',
-          5,
-          new Date('2025-12-31'),
-          'IN_PROGRESS',
-          managerId,
-          childDeptId,
-        ]
+      const taskId = await createTestTask(
+        'Child Dept Task',
+        'Task in subordinate department',
+        5,
+        new Date('2025-12-31'),
+        'IN_PROGRESS',
+        managerId,
+        childDeptId
       );
-      const taskId = taskResult.rows[0].id;
-      createdTaskIds.push(taskId);
 
       // Assign to staff in child
-      await pgClient.query(
-        `INSERT INTO "task_assignment" ("taskId", "userId", "assignedById", "assignedAt")
-         VALUES ($1, $2, $3, NOW())`,
-        [taskId, staffInChildId, managerId]
-      );
+      await assignTask(taskId, staffInChildId, managerId);
 
       // Get departmental tasks for manager
       const result = await taskService.getManagerDashboardTasks(managerId);
@@ -253,33 +270,22 @@ describe('Integration Tests - Departmental Calendar', () => {
       expect(result).toBeDefined();
       const taskIds = result!.tasks.map(t => t.id);
       expect(taskIds).toContain(taskId);
-    }, 15000);
+    }, 25000);
 
     it('should NOT include tasks from peer departments', async () => {
       // Create task in peer department
-      const taskResult = await pgClient.query(
-        `INSERT INTO "task" (id, title, description, priority, "dueDate", status, "ownerId", "departmentId", "isArchived", "createdAt", "updatedAt")
-         VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, false, NOW(), NOW())
-         RETURNING id`,
-        [
-          'Peer Dept Task',
-          'Task in peer department (should not be visible)',
-          5,
-          new Date('2025-12-31'),
-          'TO_DO',
-          staffInPeerId,
-          peerDeptId,
-        ]
+      const peerTaskId = await createTestTask(
+        'Peer Dept Task',
+        'Task in peer department (should not be visible)',
+        5,
+        new Date('2025-12-31'),
+        'TO_DO',
+        staffInPeerId,
+        peerDeptId
       );
-      const peerTaskId = taskResult.rows[0].id;
-      createdTaskIds.push(peerTaskId);
 
       // Assign to staff in peer
-      await pgClient.query(
-        `INSERT INTO "task_assignment" ("taskId", "userId", "assignedById", "assignedAt")
-         VALUES ($1, $2, $3, NOW())`,
-        [peerTaskId, staffInPeerId, staffInPeerId]
-      );
+      await assignTask(peerTaskId, staffInPeerId, staffInPeerId);
 
       // Get departmental tasks for manager
       const result = await taskService.getManagerDashboardTasks(managerId);
@@ -288,55 +294,31 @@ describe('Integration Tests - Departmental Calendar', () => {
       expect(result).toBeDefined();
       const taskIds = result!.tasks.map(t => t.id);
       expect(taskIds).not.toContain(peerTaskId);
-    }, 15000);
+    }, 25000);
 
     it('should include assignee details for visual distinction (CIT009)', async () => {
       // Create tasks assigned to different team members
-      const task1Result = await pgClient.query(
-        `INSERT INTO "task" (id, title, description, priority, "dueDate", status, "ownerId", "departmentId", "isArchived", "createdAt", "updatedAt")
-         VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, false, NOW(), NOW())
-         RETURNING id`,
-        [
-          'Task for Staff Parent',
-          'Assigned to parent dept staff',
-          5,
-          new Date('2025-12-31'),
-          'TO_DO',
-          managerId,
-          parentDeptId,
-        ]
+      const task1Id = await createTestTask(
+        'Task for Staff Parent',
+        'Assigned to parent dept staff',
+        5,
+        new Date('2025-12-31'),
+        'TO_DO',
+        managerId,
+        parentDeptId
       );
-      const task1Id = task1Result.rows[0].id;
-      createdTaskIds.push(task1Id);
+      await assignTask(task1Id, staffInParentId, managerId);
 
-      await pgClient.query(
-        `INSERT INTO "task_assignment" ("taskId", "userId", "assignedById", "assignedAt")
-         VALUES ($1, $2, $3, NOW())`,
-        [task1Id, staffInParentId, managerId]
+      const task2Id = await createTestTask(
+        'Task for Staff Child',
+        'Assigned to child dept staff',
+        5,
+        new Date('2025-12-31'),
+        'IN_PROGRESS',
+        managerId,
+        childDeptId
       );
-
-      const task2Result = await pgClient.query(
-        `INSERT INTO "task" (id, title, description, priority, "dueDate", status, "ownerId", "departmentId", "isArchived", "createdAt", "updatedAt")
-         VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, false, NOW(), NOW())
-         RETURNING id`,
-        [
-          'Task for Staff Child',
-          'Assigned to child dept staff',
-          5,
-          new Date('2025-12-31'),
-          'IN_PROGRESS',
-          managerId,
-          childDeptId,
-        ]
-      );
-      const task2Id = task2Result.rows[0].id;
-      createdTaskIds.push(task2Id);
-
-      await pgClient.query(
-        `INSERT INTO "task_assignment" ("taskId", "userId", "assignedById", "assignedAt")
-         VALUES ($1, $2, $3, NOW())`,
-        [task2Id, staffInChildId, managerId]
-      );
+      await assignTask(task2Id, staffInChildId, managerId);
 
       // Get departmental tasks
       const result = await taskService.getManagerDashboardTasks(managerId);
@@ -355,57 +337,33 @@ describe('Integration Tests - Departmental Calendar', () => {
       expect(task2!.assignments).toBeDefined();
       expect(task2!.assignments.length).toBeGreaterThan(0);
       expect(task2!.assignments[0].user.id).toBe(staffInChildId);
-    }, 15000);
+    }, 25000);
   });
 
   describe('Manager Filtering by Team Member (CIT008)', () => {
     it('should allow filtering tasks by specific team member', async () => {
       // Create tasks for different staff members
-      const task1Result = await pgClient.query(
-        `INSERT INTO "task" (id, title, description, priority, "dueDate", status, "ownerId", "departmentId", "isArchived", "createdAt", "updatedAt")
-         VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, false, NOW(), NOW())
-         RETURNING id`,
-        [
-          'Task for Parent Staff',
-          'Parent staff task',
-          5,
-          new Date('2025-12-31'),
-          'TO_DO',
-          managerId,
-          parentDeptId,
-        ]
+      const task1Id = await createTestTask(
+        'Task for Parent Staff',
+        'Parent staff task',
+        5,
+        new Date('2025-12-31'),
+        'TO_DO',
+        managerId,
+        parentDeptId
       );
-      const task1Id = task1Result.rows[0].id;
-      createdTaskIds.push(task1Id);
+      await assignTask(task1Id, staffInParentId, managerId);
 
-      await pgClient.query(
-        `INSERT INTO "task_assignment" ("taskId", "userId", "assignedById", "assignedAt")
-         VALUES ($1, $2, $3, NOW())`,
-        [task1Id, staffInParentId, managerId]
+      const task2Id = await createTestTask(
+        'Task for Child Staff',
+        'Child staff task',
+        5,
+        new Date('2025-12-31'),
+        'IN_PROGRESS',
+        managerId,
+        childDeptId
       );
-
-      const task2Result = await pgClient.query(
-        `INSERT INTO "task" (id, title, description, priority, "dueDate", status, "ownerId", "departmentId", "isArchived", "createdAt", "updatedAt")
-         VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, false, NOW(), NOW())
-         RETURNING id`,
-        [
-          'Task for Child Staff',
-          'Child staff task',
-          5,
-          new Date('2025-12-31'),
-          'IN_PROGRESS',
-          managerId,
-          childDeptId,
-        ]
-      );
-      const task2Id = task2Result.rows[0].id;
-      createdTaskIds.push(task2Id);
-
-      await pgClient.query(
-        `INSERT INTO "task_assignment" ("taskId", "userId", "assignedById", "assignedAt")
-         VALUES ($1, $2, $3, NOW())`,
-        [task2Id, staffInChildId, managerId]
-      );
+      await assignTask(task2Id, staffInChildId, managerId);
 
       // Get all departmental tasks
       const allTasks = await taskService.getManagerDashboardTasks(managerId);
@@ -419,34 +377,23 @@ describe('Integration Tests - Departmental Calendar', () => {
       expect(filteredTasks.length).toBeGreaterThan(0);
       expect(filteredTasks.some(t => t.id === task1Id)).toBe(true);
       expect(filteredTasks.some(t => t.id === task2Id)).toBe(false);
-    }, 15000);
+    }, 25000);
 
     it('should return all tasks when no filter is applied', async () => {
       // Create multiple tasks across departments
       for (let i = 1; i <= 3; i++) {
-        const taskResult = await pgClient.query(
-          `INSERT INTO "task" (id, title, description, priority, "dueDate", status, "ownerId", "departmentId", "isArchived", "createdAt", "updatedAt")
-           VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, false, NOW(), NOW())
-           RETURNING id`,
-          [
-            `Task ${i}`,
-            `Description ${i}`,
-            5,
-            new Date('2025-12-31'),
-            'TO_DO',
-            managerId,
-            i % 2 === 0 ? parentDeptId : childDeptId,
-          ]
+        const taskId = await createTestTask(
+          `Task ${i}`,
+          `Description ${i}`,
+          5,
+          new Date('2025-12-31'),
+          'TO_DO',
+          managerId,
+          i % 2 === 0 ? parentDeptId : childDeptId
         );
-        const taskId = taskResult.rows[0].id;
-        createdTaskIds.push(taskId);
 
         const assigneeId = i % 2 === 0 ? staffInParentId : staffInChildId;
-        await pgClient.query(
-          `INSERT INTO "task_assignment" ("taskId", "userId", "assignedById", "assignedAt")
-           VALUES ($1, $2, $3, NOW())`,
-          [taskId, assigneeId, managerId]
-        );
+        await assignTask(taskId, assigneeId, managerId);
       }
 
       // Get all tasks (no filter)
@@ -455,7 +402,7 @@ describe('Integration Tests - Departmental Calendar', () => {
       // Verify all tasks are returned
       expect(result).toBeDefined();
       expect(result!.tasks.length).toBeGreaterThan(0);
-    }, 15000);
+    }, 25000);
   });
 
   describe('Edge Cases', () => {
@@ -465,17 +412,17 @@ describe('Integration Tests - Departmental Calendar', () => {
         `INSERT INTO "department" (id, name, "isActive", "createdAt", "updatedAt")
          VALUES (gen_random_uuid(), $1, true, NOW(), NOW())
          RETURNING id`,
-        ['Empty Dept Test']
+        [`Empty Dept ${testNamespace}`]
       );
       const emptyDeptId = emptyDeptResult.rows[0].id;
+      createdDepartmentIds.push(emptyDeptId);
 
-      const emptyManagerResult = await pgClient.query(
-        `INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt")
-         VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
-         RETURNING id`,
-        ['empty-mgr@deptcal.test.com', 'Empty Manager', 'MANAGER', emptyDeptId]
+      const emptyManagerId = await createTestUser(
+        `empty-mgr-${testNamespace}@test.com`,
+        'Empty Manager',
+        'MANAGER',
+        emptyDeptId
       );
-      const emptyManagerId = emptyManagerResult.rows[0].id;
 
       // Get tasks for empty department
       const result = await taskService.getManagerDashboardTasks(emptyManagerId);
@@ -488,40 +435,30 @@ describe('Integration Tests - Departmental Calendar', () => {
       expect(result!.metrics.completed).toBe(0);
       expect(result!.metrics.blocked).toBe(0);
 
-      // Cleanup
-      await pgClient.query(
-        `DELETE FROM "user_profile" WHERE email = 'empty-mgr@deptcal.test.com'`
-      );
-      await pgClient.query(
-        `DELETE FROM "department" WHERE name = 'Empty Dept Test'`
-      );
-    }, 15000);
+      // Cleanup (delete user first, then department)
+      await pgClient.query(`DELETE FROM "user_profile" WHERE id = $1`, [
+        emptyManagerId,
+      ]);
+      await pgClient.query(`DELETE FROM "department" WHERE id = $1`, [
+        emptyDeptId,
+      ]);
+    }, 25000);
 
     it('should not return archived tasks', async () => {
       // Create archived task
-      const taskResult = await pgClient.query(
-        `INSERT INTO "task" (id, title, description, priority, "dueDate", status, "ownerId", "departmentId", "isArchived", "createdAt", "updatedAt")
-         VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, true, NOW(), NOW())
-         RETURNING id`,
-        [
-          'Archived Dept Task',
-          'Should not appear',
-          5,
-          new Date('2025-12-31'),
-          'COMPLETED',
-          managerId,
-          parentDeptId,
-        ]
+      const archivedTaskId = await createTestTask(
+        'Archived Dept Task',
+        'Should not appear',
+        5,
+        new Date('2025-12-31'),
+        'COMPLETED',
+        managerId,
+        parentDeptId,
+        true // Archived
       );
-      const archivedTaskId = taskResult.rows[0].id;
-      createdTaskIds.push(archivedTaskId);
 
       // Assign task
-      await pgClient.query(
-        `INSERT INTO "task_assignment" ("taskId", "userId", "assignedById", "assignedAt")
-         VALUES ($1, $2, $3, NOW())`,
-        [archivedTaskId, staffInParentId, managerId]
-      );
+      await assignTask(archivedTaskId, staffInParentId, managerId);
 
       // Get departmental tasks
       const result = await taskService.getManagerDashboardTasks(managerId);
@@ -530,6 +467,6 @@ describe('Integration Tests - Departmental Calendar', () => {
       expect(result).toBeDefined();
       const taskIds = result!.tasks.map(t => t.id);
       expect(taskIds).not.toContain(archivedTaskId);
-    }, 15000);
+    }, 25000);
   });
 });

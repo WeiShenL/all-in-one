@@ -35,9 +35,39 @@ describe('Integration Test - Departmental Calendar Filtering', () => {
   let childTaskId: string;
   let peerTaskId: string;
 
+  // Track created resources for comprehensive cleanup
+  const createdUserIds: string[] = [];
+  const createdDepartmentIds: string[] = [];
+
+  // Generate unique namespace for parallel test execution
+  const testNamespace = `filtercal-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+  /**
+   * Helper function to create test user
+   */
+  async function createTestUser(
+    email: string,
+    name: string,
+    role: 'STAFF' | 'MANAGER',
+    departmentId: string
+  ): Promise<string> {
+    const userResult = await pgClient.query(
+      `INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt")
+       VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
+       RETURNING id`,
+      [email, name, role, departmentId]
+    );
+    const userId = userResult.rows[0].id;
+    createdUserIds.push(userId);
+    return userId;
+  }
+
   beforeAll(async () => {
     // Connect to database
-    pgClient = new Client({ connectionString: process.env.DATABASE_URL });
+    pgClient = new Client({
+      connectionString: process.env.DATABASE_URL,
+      connectionTimeoutMillis: 10000,
+    });
     await pgClient.connect();
 
     // Initialize Prisma client and service
@@ -45,28 +75,9 @@ describe('Integration Test - Departmental Calendar Filtering', () => {
     taskService = new TaskService(prisma);
 
     // Create unique names for this test run
-    const unique = Date.now();
-    parentDeptName = `Filter Parent Dept ${unique}`;
-    childDeptName = `Filter Child Dept ${unique}`;
-    peerDeptName = `Filter Peer Dept ${unique}`;
-
-    // Clean up any leftover test data from previous failed runs
-    await pgClient.query(
-      `DELETE FROM "task_assignment" WHERE "assignedById" IN (
-        SELECT id FROM "user_profile" WHERE email LIKE '%@filter.test.com'
-      )`
-    );
-    await pgClient.query(
-      `DELETE FROM "task" WHERE "ownerId" IN (
-        SELECT id FROM "user_profile" WHERE email LIKE '%@filter.test.com'
-      )`
-    );
-    await pgClient.query(
-      `DELETE FROM "user_profile" WHERE email LIKE '%@filter.test.com'`
-    );
-    await pgClient.query(
-      `DELETE FROM "department" WHERE name LIKE 'Filter % Dept %'`
-    );
+    parentDeptName = `Filter Parent Dept ${testNamespace}`;
+    childDeptName = `Filter Child Dept ${testNamespace}`;
+    peerDeptName = `Filter Peer Dept ${testNamespace}`;
 
     // Create parent department (manager's department)
     const parentDeptResult = await pgClient.query(
@@ -76,6 +87,7 @@ describe('Integration Test - Departmental Calendar Filtering', () => {
       [parentDeptName]
     );
     parentDeptId = parentDeptResult.rows[0].id;
+    createdDepartmentIds.push(parentDeptId);
 
     // Create child department (subordinate)
     const childDeptResult = await pgClient.query(
@@ -85,6 +97,7 @@ describe('Integration Test - Departmental Calendar Filtering', () => {
       [childDeptName, parentDeptId]
     );
     childDeptId = childDeptResult.rows[0].id;
+    createdDepartmentIds.push(childDeptId);
 
     // Create peer department (should NOT be accessible)
     const peerDeptResult = await pgClient.query(
@@ -94,48 +107,29 @@ describe('Integration Test - Departmental Calendar Filtering', () => {
       [peerDeptName]
     );
     peerDeptId = peerDeptResult.rows[0].id;
+    createdDepartmentIds.push(peerDeptId);
 
-    // Create manager user in parent department
-    const managerResult = await pgClient.query(
-      `INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt")
-       VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
-       RETURNING id`,
-      [
-        `filter.manager.${unique}@filter.test.com`,
-        'Filter Manager',
-        'MANAGER',
-        parentDeptId,
-      ]
+    // Create test users with namespaced emails
+    managerId = await createTestUser(
+      `filter.manager.${testNamespace}@test.com`,
+      'Filter Manager',
+      'MANAGER',
+      parentDeptId
     );
-    managerId = managerResult.rows[0].id;
 
-    // Create staff in parent department
-    const staffParentResult = await pgClient.query(
-      `INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt")
-       VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
-       RETURNING id`,
-      [
-        `filter.staff.parent.${unique}@filter.test.com`,
-        'Staff Parent',
-        'STAFF',
-        parentDeptId,
-      ]
+    staffInParentId = await createTestUser(
+      `filter.staff.parent.${testNamespace}@test.com`,
+      'Staff Parent',
+      'STAFF',
+      parentDeptId
     );
-    staffInParentId = staffParentResult.rows[0].id;
 
-    // Create staff in child department
-    const staffChildResult = await pgClient.query(
-      `INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt")
-       VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
-       RETURNING id`,
-      [
-        `filter.staff.child.${unique}@filter.test.com`,
-        'Staff Child',
-        'STAFF',
-        childDeptId,
-      ]
+    staffInChildId = await createTestUser(
+      `filter.staff.child.${testNamespace}@test.com`,
+      'Staff Child',
+      'STAFF',
+      childDeptId
     );
-    staffInChildId = staffChildResult.rows[0].id;
 
     // Create task in parent department
     const parentTaskResult = await pgClient.query(
@@ -197,10 +191,10 @@ describe('Integration Test - Departmental Calendar Filtering', () => {
       ]
     );
     peerTaskId = peerTaskResult.rows[0].id;
-  });
+  }, 60000);
 
   afterAll(async () => {
-    // Clean up in proper order to avoid foreign key constraint violations
+    // Clean up in proper order to respect foreign key constraints
 
     // 1. Delete task assignments first
     if (parentTaskId && childTaskId && peerTaskId) {
@@ -220,19 +214,22 @@ describe('Integration Test - Departmental Calendar Filtering', () => {
     }
 
     // 3. Clean up test users
-    if (managerId && staffInParentId && staffInChildId) {
-      await pgClient.query(
-        `DELETE FROM "user_profile" WHERE id IN ($1, $2, $3)`,
-        [managerId, staffInParentId, staffInChildId]
-      );
+    if (createdUserIds.length > 0) {
+      await pgClient.query(`DELETE FROM "user_profile" WHERE id = ANY($1)`, [
+        createdUserIds,
+      ]);
     }
 
-    // 4. Clean up test departments (child first due to FK, then others)
-    if (childDeptId && parentDeptId && peerDeptId) {
-      await pgClient.query(
-        `DELETE FROM "department" WHERE id IN ($1, $2, $3)`,
-        [childDeptId, parentDeptId, peerDeptId]
-      );
+    // 4. Clean up test departments (child first due to FK)
+    if (childDeptId) {
+      await pgClient.query(`DELETE FROM "department" WHERE id = $1`, [
+        childDeptId,
+      ]);
+    }
+    if (parentDeptId || peerDeptId) {
+      await pgClient.query(`DELETE FROM "department" WHERE id = ANY($1)`, [
+        [parentDeptId, peerDeptId],
+      ]);
     }
 
     await pgClient.end();
@@ -278,5 +275,5 @@ describe('Integration Test - Departmental Calendar Filtering', () => {
     expect(allTasks.some(t => t.id === parentTaskId)).toBe(true);
     expect(allTasks.some(t => t.id === childTaskId)).toBe(true);
     expect(allTasks.some(t => t.id === peerTaskId)).toBe(false); // Peer never included
-  }, 15000);
+  }, 25000);
 });

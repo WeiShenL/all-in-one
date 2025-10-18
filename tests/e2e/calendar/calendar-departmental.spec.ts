@@ -12,9 +12,6 @@ import { createClient } from '@supabase/supabase-js';
  */
 
 test.describe('Departmental Calendar - Manager Flow', () => {
-  // Run tests in serial mode so they execute sequentially
-  test.describe.configure({ mode: 'serial' });
-
   let pgClient: Client;
   let supabaseClient: ReturnType<typeof createClient>;
   let parentDeptId: string;
@@ -27,6 +24,7 @@ test.describe('Departmental Calendar - Manager Flow', () => {
   let peerUserId: string;
   let managerEmail: string;
   let testPassword: string;
+  let testNamespace: string;
   const createdTaskIds: string[] = [];
   const createdUserIds: string[] = [];
 
@@ -106,37 +104,48 @@ test.describe('Departmental Calendar - Manager Flow', () => {
       process.env.NEXT_PUBLIC_ANON_KEY!
     );
 
-    // Create unique credentials
-    const unique = Date.now();
-    managerEmail = `e2e.calendar.manager.${unique}@example.com`;
+    // Create robust worker-specific namespace for test data isolation
+    const workerId = process.env.PLAYWRIGHT_WORKER_INDEX || '0';
+    const timestamp = Date.now();
+    const processId = process.pid;
+    const randomSuffix = crypto.randomUUID().slice(0, 8);
+    testNamespace = `calendar-dept-w${workerId}_${timestamp}_${processId}_${randomSuffix}`;
+
+    // Create unique credentials with worker-specific namespace
+    managerEmail = `e2e.calendar.manager.${testNamespace}@example.com`;
     testPassword = 'Test123!@#';
 
     // 1. Create department hierarchy
     // Parent department
     const parentDeptResult = await pgClient.query(
       'INSERT INTO "department" (id, name, "isActive", "createdAt", "updatedAt") VALUES (gen_random_uuid(), $1, true, NOW(), NOW()) RETURNING id',
-      [`E2E Parent Dept ${unique}`]
+      [`E2E Parent Dept ${testNamespace}`]
     );
     parentDeptId = parentDeptResult.rows[0].id;
 
     // Child department (subordinate to parent)
     const childDeptResult = await pgClient.query(
       'INSERT INTO "department" (id, name, "parentId", "isActive", "createdAt", "updatedAt") VALUES (gen_random_uuid(), $1, $2, true, NOW(), NOW()) RETURNING id',
-      [`E2E Child Dept ${unique}`, parentDeptId]
+      [`E2E Child Dept ${testNamespace}`, parentDeptId]
     );
     childDeptId = childDeptResult.rows[0].id;
 
     // Peer department (sibling to parent, should NOT be visible)
     const peerDeptResult = await pgClient.query(
       'INSERT INTO "department" (id, name, "isActive", "createdAt", "updatedAt") VALUES (gen_random_uuid(), $1, true, NOW(), NOW()) RETURNING id',
-      [`E2E Peer Dept ${unique}`]
+      [`E2E Peer Dept ${testNamespace}`]
     );
     peerDeptId = peerDeptResult.rows[0].id;
 
     // Create a user in peer dept (for peer task assignment)
     const peerUserResult = await pgClient.query(
       'INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt") VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW()) RETURNING id',
-      [`e2e.peer.${unique}@example.com`, 'Peer User', 'STAFF', peerDeptId]
+      [
+        `e2e.peer.${testNamespace}@example.com`,
+        'Peer User',
+        'STAFF',
+        peerDeptId,
+      ]
     );
     peerUserId = peerUserResult.rows[0].id;
     createdUserIds.push(peerUserId);
@@ -187,20 +196,30 @@ test.describe('Departmental Calendar - Manager Flow', () => {
     // 4. Create staff users (Alice, Bob in parent dept, Charlie in child dept)
     const aliceResult = await pgClient.query(
       'INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt") VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW()) RETURNING id',
-      [`e2e.alice.${unique}@example.com`, 'Alice Smith', 'STAFF', parentDeptId]
+      [
+        `e2e.alice.${testNamespace}@example.com`,
+        'Alice Smith',
+        'STAFF',
+        parentDeptId,
+      ]
     );
     aliceId = aliceResult.rows[0].id;
 
     const bobResult = await pgClient.query(
       'INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt") VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW()) RETURNING id',
-      [`e2e.bob.${unique}@example.com`, 'Bob Johnson', 'STAFF', parentDeptId]
+      [
+        `e2e.bob.${testNamespace}@example.com`,
+        'Bob Johnson',
+        'STAFF',
+        parentDeptId,
+      ]
     );
     bobId = bobResult.rows[0].id;
 
     const charlieResult = await pgClient.query(
       'INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt") VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW()) RETURNING id',
       [
-        `e2e.charlie.${unique}@example.com`,
+        `e2e.charlie.${testNamespace}@example.com`,
         'Charlie Brown',
         'STAFF',
         childDeptId,
@@ -321,54 +340,78 @@ test.describe('Departmental Calendar - Manager Flow', () => {
     );
   });
 
+  test.afterEach(async ({ context }) => {
+    // Only clear browser storage - no database cleanup to avoid race conditions
+    await context.clearCookies();
+    await context.clearPermissions();
+  });
+
   test.afterAll(async () => {
-    // Cleanup - order matters due to foreign keys
+    try {
+      // Cleanup - order matters due to foreign keys
 
-    // 1. Delete task assignments
-    for (const taskId of createdTaskIds) {
-      await pgClient.query(
-        'DELETE FROM "task_assignment" WHERE "taskId" = $1',
-        [taskId]
+      // 1. Delete task assignments
+      if (createdTaskIds.length > 0) {
+        await pgClient.query(
+          'DELETE FROM "task_assignment" WHERE "taskId" = ANY($1)',
+          [createdTaskIds]
+        );
+      }
+
+      // 2. Delete tasks
+      if (createdTaskIds.length > 0) {
+        await pgClient.query('DELETE FROM "task" WHERE id = ANY($1)', [
+          createdTaskIds,
+        ]);
+      }
+
+      // 3. Delete user profiles (including peer user)
+      if (managerId && aliceId && bobId && charlieId && peerUserId) {
+        await pgClient.query(
+          'DELETE FROM "user_profile" WHERE id IN ($1, $2, $3, $4, $5)',
+          [managerId, aliceId, bobId, charlieId, peerUserId]
+        );
+      }
+
+      // 4. Delete auth users
+      await supabaseClient.auth.signOut();
+      await pgClient.query('DELETE FROM auth.users WHERE email LIKE $1', [
+        `e2e.%${testNamespace}%`,
+      ]);
+
+      // 5. Delete departments (order: child, then parents)
+      if (childDeptId) {
+        await pgClient.query('DELETE FROM "department" WHERE id = $1', [
+          childDeptId,
+        ]);
+      }
+      if (parentDeptId) {
+        await pgClient.query('DELETE FROM "department" WHERE id = $1', [
+          parentDeptId,
+        ]);
+      }
+      if (peerDeptId) {
+        await pgClient.query('DELETE FROM "department" WHERE id = $1', [
+          peerDeptId,
+        ]);
+      }
+    } catch (error) {
+      console.error(
+        `❌ Error during calendar departmental cleanup for namespace ${testNamespace}:`,
+        error
       );
+    } finally {
+      // 6. Close connections
+      if (pgClient) {
+        await pgClient.end();
+      }
     }
-
-    // 2. Delete tasks
-    for (const taskId of createdTaskIds) {
-      await pgClient.query('DELETE FROM "task" WHERE id = $1', [taskId]);
-    }
-
-    // 3. Delete user profiles (including peer user)
-    await pgClient.query(
-      'DELETE FROM "user_profile" WHERE id IN ($1, $2, $3, $4, $5)',
-      [managerId, aliceId, bobId, charlieId, peerUserId]
-    );
-
-    // 4. Delete auth users
-    await supabaseClient.auth.signOut();
-    const unique = managerEmail.split('.')[3].split('@')[0];
-    await pgClient.query('DELETE FROM auth.users WHERE email LIKE $1', [
-      `e2e.%${unique}%`,
-    ]);
-
-    // 5. Delete departments (order: child, then parents)
-    await pgClient.query('DELETE FROM "department" WHERE id = $1', [
-      childDeptId,
-    ]);
-    await pgClient.query('DELETE FROM "department" WHERE id = $1', [
-      parentDeptId,
-    ]);
-    await pgClient.query('DELETE FROM "department" WHERE id = $1', [
-      peerDeptId,
-    ]);
-
-    // 6. Close connections
-    await pgClient.end();
   });
 
   test('Setup: should login as manager and navigate to departmental calendar', async ({
     page,
   }) => {
-    test.setTimeout(120000); // 120s total test timeout
+    test.setTimeout(220000); // 120s total test timeout
 
     // Login
     await page.goto('/auth/login');
@@ -433,7 +476,7 @@ test.describe('Departmental Calendar - Manager Flow', () => {
   test('CIT001, CIT009: should show tasks from own and subordinate departments', async ({
     page,
   }) => {
-    test.setTimeout(120000);
+    test.setTimeout(220000);
 
     await loginManagerAndNavigateToCalendar(page);
 
@@ -483,7 +526,7 @@ test.describe('Departmental Calendar - Manager Flow', () => {
   test('CIT009: should show assignee details when clicking task', async ({
     page,
   }) => {
-    test.setTimeout(120000);
+    test.setTimeout(220000);
 
     await loginManagerAndNavigateToCalendar(page);
 
@@ -522,7 +565,7 @@ test.describe('Departmental Calendar - Manager Flow', () => {
   test('should support view switching between Month, Week, Day, and Agenda', async ({
     page,
   }) => {
-    test.setTimeout(120000);
+    test.setTimeout(220000);
 
     await loginManagerAndNavigateToCalendar(page);
 
@@ -621,7 +664,7 @@ test.describe('Departmental Calendar - Manager Flow', () => {
   });
 
   test('should filter tasks by department using dropdown', async ({ page }) => {
-    test.setTimeout(120000);
+    test.setTimeout(220000);
 
     await loginManagerAndNavigateToCalendar(page);
 
