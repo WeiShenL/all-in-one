@@ -28,12 +28,20 @@ export function DepartmentDashboard() {
       }
     : undefined;
 
+  const handleTaskUpdated = utils
+    ? () => {
+        // Invalidate the query to trigger a refetch
+        utils.task.getDepartmentTasksForUser.invalidate();
+      }
+    : undefined;
+
   return (
     <TaskTable
       tasks={data || []}
       title='All Tasks'
       showCreateButton={true}
       onTaskCreated={handleTaskCreated}
+      onTaskUpdated={handleTaskUpdated}
       emptyStateConfig={{
         icon: '📁',
         title: 'No tasks in your department yet',

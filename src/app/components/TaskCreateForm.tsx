@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/supabase/auth-context';
+import { useNotifications } from '@/lib/context/NotificationContext';
 
 interface TaskCreateFormProps {
   onSuccess?: (taskId: string) => void;
@@ -25,13 +26,14 @@ interface TaskCreateFormProps {
  */
 export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
   const { user, userProfile } = useAuth();
+  const { addNotification } = useNotifications();
 
   // Form state
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState(5);
   const [dueDate, setDueDate] = useState('');
-  const [assigneeEmails, setAssigneeEmails] = useState<string>(''); // Comma-separated emails
+  const [assigneeIds, setAssigneeIds] = useState<string[]>([]); // Selected assignee user IDs
   const [tags, setTags] = useState<string>(''); // Comma-separated tags
   const [projectId, setProjectId] = useState('');
   const [parentTaskId, setParentTaskId] = useState('');
@@ -53,13 +55,32 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
   >([]);
   const [loadingTasks, setLoadingTasks] = useState(true);
 
+  // Available projects for dropdown
+  const [availableProjects, setAvailableProjects] = useState<
+    Array<{
+      id: string;
+      name: string;
+    }>
+  >([]);
+  const [loadingProjects, setLoadingProjects] = useState(false);
+
+  // Available users for assignee dropdown
+  const [availableUsers, setAvailableUsers] = useState<
+    Array<{
+      id: string;
+      name: string;
+      email: string;
+    }>
+  >([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+
   // File upload state
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
-  // Auto-assign current user's email
+  // Auto-assign current user's ID
   useEffect(() => {
-    if (userProfile?.email) {
-      setAssigneeEmails(userProfile.email);
+    if (userProfile?.id) {
+      setAssigneeIds([userProfile.id]);
     }
   }, [userProfile]);
 
@@ -107,6 +128,71 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
     fetchTasks();
   }, [userProfile]);
 
+  // Fetch all projects for dropdown
+  useEffect(() => {
+    async function fetchProjects() {
+      if (!userProfile) {
+        return;
+      }
+
+      setLoadingProjects(true);
+      try {
+        const response = await fetch(
+          `/api/trpc/project.getAll?input=${encodeURIComponent(JSON.stringify({ isArchived: false }))}`
+        );
+        const data = await response.json();
+
+        if (data.result?.data) {
+          setAvailableProjects(
+            data.result.data.map((p: any) => ({
+              id: p.id,
+              name: p.name,
+            }))
+          );
+        }
+      } catch (err) {
+        console.error('Failed to fetch projects:', err);
+      } finally {
+        setLoadingProjects(false);
+      }
+    }
+
+    fetchProjects();
+  }, [userProfile]);
+
+  // Fetch all active users for assignee dropdown
+  useEffect(() => {
+    async function fetchUsers() {
+      if (!userProfile) {
+        return;
+      }
+
+      setLoadingUsers(true);
+      try {
+        const response = await fetch('/api/trpc/userProfile.getAll');
+        const data = await response.json();
+
+        if (data.result?.data) {
+          // Filter for active users only
+          const activeUsers = data.result.data.filter((u: any) => u.isActive);
+          setAvailableUsers(
+            activeUsers.map((u: any) => ({
+              id: u.id,
+              name: u.name,
+              email: u.email,
+            }))
+          );
+        }
+      } catch (err) {
+        console.error('Failed to fetch users:', err);
+      } finally {
+        setLoadingUsers(false);
+      }
+    }
+
+    fetchUsers();
+  }, [userProfile]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -117,18 +203,13 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
       return;
     }
 
-    // Validate assignees (1-5)
-    const assigneeList = assigneeEmails
-      .split(',')
-      .map(e => e.trim())
-      .filter(e => e.length > 0);
-
-    if (assigneeList.length < 1) {
+    // Validate assignees (1-5) - now using dropdown selection
+    if (assigneeIds.length < 1) {
       setError('At least 1 assignee is required');
       return;
     }
 
-    if (assigneeList.length > 5) {
+    if (assigneeIds.length > 5) {
       setError('Maximum 5 assignees allowed');
       return;
     }
@@ -158,32 +239,7 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
     setLoading(true);
 
     try {
-      // Step 1: Look up assignee user IDs from emails
-      const assigneeIdsResponse = await fetch(
-        '/api/trpc/userProfile.findByEmails',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ emails: assigneeList }),
-        }
-      );
-
-      if (!assigneeIdsResponse.ok) {
-        throw new Error('Failed to lookup assignee emails');
-      }
-
-      const assigneeData = await assigneeIdsResponse.json();
-      const assigneeIds = assigneeData.result?.data || [];
-
-      if (assigneeIds.length !== assigneeList.length) {
-        setError(
-          `Some assignee emails not found. Found ${assigneeIds.length} out of ${assigneeList.length}`
-        );
-        setLoading(false);
-        return;
-      }
-
-      // Step 2: Create task or subtask
+      // Step 1: Create task or subtask (assigneeIds already selected from dropdown)
       const tagList = tags
         .split(',')
         .map(t => t.trim())
@@ -235,6 +291,13 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
       const result = await response.json();
       const createdTask = result.result?.data;
 
+      // Step 2: Show success notification with task name
+      addNotification(
+        'success',
+        'Task Created Successfully',
+        `Task "${title.trim()}" created successfully`
+      );
+
       // Step 3: Upload files if any were selected
       if (selectedFiles.length > 0 && createdTask?.id) {
         for (const file of selectedFiles) {
@@ -277,7 +340,6 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
       setDescription('');
       setPriority(5);
       setDueDate('');
-      setAssigneeEmails('');
       setTags('');
       setProjectId('');
       setParentTaskId('');
@@ -427,7 +489,7 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
           />
         </div>
 
-        {/* Assignees - Mandatory (1-5) */}
+        {/* Assignees - Mandatory (1-5) - Multi-select dropdown */}
         <div style={{ marginBottom: '1rem' }}>
           <label
             style={{
@@ -436,24 +498,46 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
               fontWeight: '500',
             }}
           >
-            Assignee Emails (1-5) <span style={{ color: 'red' }}>*</span>
+            Assigned Staff (1-5) <span style={{ color: 'red' }}>*</span>
           </label>
-          <input
-            data-testid='assignee-emails-input'
-            type='text'
-            value={assigneeEmails}
-            onChange={e => setAssigneeEmails(e.target.value)}
+          <select
+            data-testid='assignee-select'
+            multiple
+            value={assigneeIds}
+            onChange={e => {
+              const selected = Array.from(
+                e.target.selectedOptions,
+                option => option.value
+              );
+              if (selected.length > 5) {
+                setError('Maximum 5 assignees allowed');
+                return;
+              }
+              setAssigneeIds(selected);
+              setError(null);
+            }}
             required
+            disabled={loadingUsers}
             style={{
               width: '100%',
               padding: '0.5rem',
               border: '1px solid #ccc',
               borderRadius: '4px',
+              minHeight: '120px',
+              backgroundColor: loadingUsers ? '#f5f5f5' : 'white',
+              cursor: loadingUsers ? 'not-allowed' : 'pointer',
             }}
-            placeholder='user1@example.com, user2@example.com'
-          />
+          >
+            {availableUsers.map(user => (
+              <option key={user.id} value={user.id}>
+                {user.name} ({user.email})
+              </option>
+            ))}
+          </select>
           <small style={{ color: '#666', fontSize: '0.875rem' }}>
-            Comma-separated emails (minimum 1, maximum 5)
+            {loadingUsers
+              ? 'Loading users...'
+              : `Hold Ctrl/Cmd to select multiple (${assigneeIds.length}/5 selected)`}
           </small>
         </div>
 
@@ -486,7 +570,7 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
           </small>
         </div>
 
-        {/* Project - Optional */}
+        {/* Project - Optional - Dropdown */}
         <div style={{ marginBottom: '1rem' }}>
           <label
             style={{
@@ -497,18 +581,32 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
           >
             Project (Optional)
           </label>
-          <input
-            type='text'
+          <select
+            name='projectId'
             value={projectId}
             onChange={e => setProjectId(e.target.value)}
+            disabled={loadingProjects}
             style={{
               width: '100%',
               padding: '0.5rem',
               border: '1px solid #ccc',
               borderRadius: '4px',
+              backgroundColor: loadingProjects ? '#f5f5f5' : 'white',
+              cursor: loadingProjects ? 'not-allowed' : 'pointer',
             }}
-            placeholder='Project ID (leave empty for standalone task)'
-          />
+          >
+            <option value=''>-- No Project (Standalone Task) --</option>
+            {availableProjects.map(project => (
+              <option key={project.id} value={project.id}>
+                {project.name}
+              </option>
+            ))}
+          </select>
+          <small style={{ color: '#666', fontSize: '0.875rem' }}>
+            {loadingProjects
+              ? 'Loading projects...'
+              : 'Select a project or leave empty for standalone task'}
+          </small>
         </div>
 
         {/* Parent Task - Optional (for subtasks) */}

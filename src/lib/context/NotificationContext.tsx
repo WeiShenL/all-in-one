@@ -19,7 +19,8 @@ interface NotificationContextType {
   addNotification: (
     type: NotificationType,
     title: string,
-    message: string
+    message: string,
+    customTimeout?: number
   ) => void;
   removeNotification: (id: string) => void;
   dismissNotification: (id: string) => void;
@@ -78,7 +79,12 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
   );
 
   const addNotification = useCallback(
-    (type: NotificationType, title: string, message: string) => {
+    (
+      type: NotificationType,
+      title: string,
+      message: string,
+      customTimeout?: number
+    ) => {
       const id = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
       const notification: Notification = {
         id,
@@ -94,14 +100,16 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
         return updated.slice(0, maxNotifications);
       });
 
-      // Auto-remove after delay
-      if (autoRemoveDelay > 0) {
+      // Auto-remove after delay (use customTimeout if provided, otherwise use default)
+      const timeoutDuration =
+        customTimeout !== undefined ? customTimeout : autoRemoveDelay;
+      if (timeoutDuration > 0) {
         setTimeout(() => {
-          removeNotification(id);
-        }, autoRemoveDelay);
+          dismissNotification(id); // Use dismissNotification to trigger exit animation
+        }, timeoutDuration);
       }
     },
-    [autoRemoveDelay, maxNotifications, removeNotification]
+    [autoRemoveDelay, maxNotifications, dismissNotification]
   );
 
   const clearAll = useCallback(() => {

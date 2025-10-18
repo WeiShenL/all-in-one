@@ -45,6 +45,7 @@ export interface Filters {
   assignee: string[];
   department: string[];
   project: string[];
+  tags: string[];
 }
 
 export type SortableColumn =
@@ -54,7 +55,8 @@ export type SortableColumn =
   | 'dueDate'
   | 'assignees'
   | 'department'
-  | 'project';
+  | 'project'
+  | 'tags';
 
 export interface SortCriterion {
   key: SortableColumn;
@@ -67,6 +69,7 @@ export interface TaskTableProps {
   showCreateButton?: boolean;
   onCreateTask?: () => void;
   onTaskCreated?: () => void;
+  onTaskUpdated?: () => void;
   emptyStateConfig?: {
     icon: string;
     title: string;

@@ -29,13 +29,10 @@ export const ToastContainer: React.FC = () => {
         className='flex flex-col gap-2'
         style={{
           position: 'fixed',
-          top: 'calc(1rem + 56px + 0.75rem)',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          maxWidth: '1200px',
+          top: 'calc(clamp(0.75rem, 2vw, 1rem) * 2 + 56px + 0.75rem)',
+          right: 'clamp(1rem, 3vw, 2rem)',
+          maxWidth: 'min(90vw, 400px)',
           width: '100%',
-          paddingLeft: '2rem',
-          paddingRight: '2rem',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'flex-end',
@@ -47,7 +44,7 @@ export const ToastContainer: React.FC = () => {
       >
         <div
           style={{
-            maxWidth: '320px',
+            width: '100%',
             pointerEvents: 'auto',
             display: 'flex',
             flexDirection: 'column',

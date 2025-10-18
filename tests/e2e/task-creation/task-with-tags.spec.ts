@@ -251,12 +251,12 @@ test.describe('Task Creation with Tags - Isolated E2E Tests', () => {
     // Verify tags appear in the task detail modal
     await expect(page.getByText('🏷️ Tags')).toBeVisible({ timeout: 65000 });
     await expect(
-      page.getByText(`tags-task-urgent-${testNamespace}`)
+      page.locator(`span:has-text("tags-task-urgent-${testNamespace}×")`)
     ).toBeVisible({
       timeout: 65000,
     });
     await expect(
-      page.getByText(`tags-task-frontend-${testNamespace}`)
+      page.locator(`span:has-text("tags-task-frontend-${testNamespace}×")`)
     ).toBeVisible({
       timeout: 65000,
     });

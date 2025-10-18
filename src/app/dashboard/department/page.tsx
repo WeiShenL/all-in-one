@@ -45,11 +45,22 @@ export default function DepartmentDashboardPage() {
       }}
     >
       <Navbar />
-      <div style={{ padding: '2rem' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+      <div
+        style={{
+          padding: 'clamp(1rem, 3vw, 2rem)',
+          maxWidth: '100%',
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 'min(100%, 1600px)',
+            margin: '0 auto',
+            width: '100%',
+          }}
+        >
           <header
             style={{
-              marginBottom: '2rem',
+              marginBottom: 'clamp(1rem, 2vw, 2rem)',
               paddingBottom: '1rem',
               borderBottom: '2px solid #e2e8f0',
             }}
@@ -58,22 +69,28 @@ export default function DepartmentDashboardPage() {
               style={{
                 marginBottom: '0.5rem',
                 color: '#1a202c',
-                fontSize: '2rem',
+                fontSize: 'clamp(1.5rem, 4vw, 2rem)',
                 fontWeight: '700',
               }}
             >
               Department Dashboard
             </h1>
-            <p style={{ color: '#718096', margin: 0, fontSize: '0.875rem' }}>
+            <p
+              style={{
+                color: '#718096',
+                margin: 0,
+                fontSize: 'clamp(0.75rem, 2vw, 0.875rem)',
+              }}
+            >
               Welcome, {userProfile?.name || user.email}
             </p>
           </header>
 
-          <div style={{ marginBottom: '2rem' }}>
+          <div style={{ marginBottom: 'clamp(1rem, 2vw, 2rem)' }}>
             <div
               style={{
                 backgroundColor: '#ffffff',
-                padding: '0 1.5rem 1.5rem',
+                padding: 'clamp(1rem, 2vw, 1.5rem)',
                 borderRadius: '12px',
                 marginBottom: '1rem',
                 boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
@@ -81,22 +98,42 @@ export default function DepartmentDashboardPage() {
             >
               <h2
                 style={{
-                  paddingTop: '1.5rem',
                   color: '#2d3748',
-                  fontSize: '1.25rem',
+                  fontSize: 'clamp(1rem, 3vw, 1.25rem)',
                   fontWeight: '600',
+                  marginBottom: '1rem',
                 }}
               >
                 User Information
               </h2>
               <div style={{ display: 'grid', gap: '0.75rem' }}>
-                <p style={{ color: '#4a5568', margin: 0 }}>
+                <p
+                  style={{
+                    color: '#4a5568',
+                    margin: 0,
+                    fontSize: 'clamp(0.875rem, 2vw, 1rem)',
+                    wordBreak: 'break-word',
+                  }}
+                >
                   <strong>Email:</strong> {user.email}
                 </p>
-                <p style={{ color: '#4a5568', margin: 0 }}>
+                <p
+                  style={{
+                    color: '#4a5568',
+                    margin: 0,
+                    fontSize: 'clamp(0.875rem, 2vw, 1rem)',
+                  }}
+                >
                   <strong>Role:</strong> {userProfile?.role || 'N/A'}
                 </p>
-                <p style={{ color: '#4a5568', margin: 0 }}>
+                <p
+                  style={{
+                    color: '#4a5568',
+                    margin: 0,
+                    fontSize: 'clamp(0.875rem, 2vw, 1rem)',
+                    wordBreak: 'break-all',
+                  }}
+                >
                   <strong>User ID:</strong> {user.id}
                 </p>
               </div>

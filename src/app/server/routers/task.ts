@@ -152,7 +152,7 @@ export const taskRouter = router({
         priority: z.number().min(1).max(10),
         dueDate: z.coerce.date(),
         assigneeIds: z.array(z.string().uuid()).min(1).max(5),
-        projectId: z.string().uuid().optional(),
+        projectId: z.string().uuid().nullable().optional(),
         tags: z.array(z.string()).optional(),
         recurringInterval: z.number().positive().optional(),
         parentTaskId: z.string().uuid().optional(),
@@ -170,7 +170,7 @@ export const taskRouter = router({
           priority: input.priority,
           dueDate: input.dueDate,
           assigneeIds: input.assigneeIds,
-          projectId: input.projectId,
+          projectId: input.projectId || undefined,
           parentTaskId: input.parentTaskId,
           tags: input.tags,
           recurringInterval: input.recurringInterval,
@@ -466,6 +466,105 @@ export const taskRouter = router({
     }),
 
   /**
+   * Assign project to task (SCRUM-31)
+   * Can only be done if task doesn't already have a project
+   * Once assigned, cannot be changed
+   */
+  assignProject: publicProcedure
+    .input(
+      z.object({
+        taskId: z.string().uuid(),
+        projectId: z.string().uuid().nullable(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const user = await getUserContext(ctx);
+
+      // Check if task already has a project
+      const existingTask = await ctx.prisma.task.findUnique({
+        where: { id: input.taskId },
+        select: { projectId: true },
+      });
+
+      if (!existingTask) {
+        throw new Error('Task not found');
+      }
+
+      if (existingTask.projectId) {
+        throw new Error('Task already has a project and cannot be reassigned');
+      }
+
+      // If projectId is null, just update to null (unassign)
+      if (!input.projectId) {
+        await ctx.prisma.task.update({
+          where: { id: input.taskId },
+          data: { projectId: null },
+        });
+        return { success: true, message: 'Project removed from task' };
+      }
+
+      // Validate project exists
+      const project = await ctx.prisma.project.findUnique({
+        where: { id: input.projectId },
+      });
+
+      if (!project) {
+        throw new Error('Project not found');
+      }
+
+      // Update task with project
+      await ctx.prisma.task.update({
+        where: { id: input.taskId },
+        data: { projectId: input.projectId },
+        include: {
+          assignments: {
+            include: {
+              user: {
+                select: { id: true, name: true, email: true },
+              },
+            },
+          },
+          tags: {
+            include: {
+              tag: true,
+            },
+          },
+          comments: true,
+          files: true,
+        },
+      });
+
+      // Log the action
+      await ctx.prisma.taskLog.create({
+        data: {
+          taskId: input.taskId,
+          userId: user.userId,
+          action: 'UPDATED',
+          field: 'Project',
+          changes: {
+            from: null,
+            to: input.projectId,
+          },
+          metadata: {
+            source: 'web_ui',
+            projectName: project.name,
+          },
+        },
+      });
+
+      // Return serialized task
+      const repository = new PrismaTaskRepository(ctx.prisma);
+      const service = new TaskService(repository);
+      const task = await service.getTaskById(input.taskId, user);
+
+      if (!task) {
+        throw new Error('Failed to retrieve updated task');
+      }
+
+      return serializeTask(task);
+    }),
+
+  /**
    * Archive task (soft delete)
    */
   archive: publicProcedure
@@ -691,6 +790,23 @@ export const taskRouter = router({
 
       const userMap = new Map(users.map(u => [u.id, u]));
 
+      // Get all unique project IDs
+      const projectIds = new Set<string>();
+      tasks.forEach(task => {
+        const projectId = task.getProjectId();
+        if (projectId) {
+          projectIds.add(projectId);
+        }
+      });
+
+      // Fetch project details for all projects
+      const projects = await ctx.prisma.project.findMany({
+        where: { id: { in: Array.from(projectIds) } },
+        select: { id: true, name: true },
+      });
+
+      const projectMap = new Map(projects.map(p => [p.id, p]));
+
       // Add canEdit=true and full user details to all personal tasks
       return tasks.map(task => {
         const serialized = serializeTask(task);
@@ -706,9 +822,14 @@ export const taskRouter = router({
           })
         );
 
+        // Add project details if available
+        const projectId = task.getProjectId();
+        const project = projectId ? projectMap.get(projectId) : null;
+
         return {
           ...serialized,
           assignments: assignmentsWithDetails,
+          project: project || null,
           canEdit: true,
         };
       });
