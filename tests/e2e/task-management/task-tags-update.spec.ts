@@ -246,7 +246,9 @@ test.describe('Task Tags Update - Isolated E2E Tests', () => {
     });
 
     // Verify tag appears (longer timeout for CI/CD)
-    await expect(page.getByText('e2e-test-tag-urgent')).toBeVisible({
+    await expect(
+      page.locator('span:has-text("e2e-test-tag-urgent×")')
+    ).toBeVisible({
       timeout: 65000,
     });
 
@@ -260,7 +262,9 @@ test.describe('Task Tags Update - Isolated E2E Tests', () => {
     await expect(page.getByText(/tag added/i)).toBeVisible({
       timeout: 65000,
     });
-    await expect(page.getByText('e2e-test-tag-frontend')).toBeVisible({
+    await expect(
+      page.locator('span:has-text("e2e-test-tag-frontend×")')
+    ).toBeVisible({
       timeout: 65000,
     });
 

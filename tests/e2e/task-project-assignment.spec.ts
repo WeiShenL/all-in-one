@@ -3,7 +3,7 @@ import { Client } from 'pg';
 import { createClient } from '@supabase/supabase-js';
 
 /**
- * E2E Test for Task-Project Assignment Feature - SCRUM-31
+ * E2E Tests for Task-Project Assignment Feature - SCRUM-31
  *
  * User Story: As a staff, I want to add tasks and subtasks to projects so that
  * I can organise my work and not get confused between multiple projects.
@@ -20,6 +20,11 @@ import { createClient } from '@supabase/supabase-js';
  * - Creates task and verifies project assignment in UI
  * - Verifies task appears in project view
  * - Verifies project cannot be changed
+ *
+ * Isolated test for task-project assignment functionality
+ * - Independent namespace and cleanup
+ * - No shared state with other test files
+ * - Optimized for parallel execution
  */
 
 test.describe('Task-Project Assignment - E2E Happy Path', () => {
@@ -31,6 +36,7 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
   let testUserId: string;
   let testProjectId: string;
   let testProjectName: string;
+  let testNamespace: string;
 
   test.beforeAll(async () => {
     // Setup DB connection
@@ -42,16 +48,22 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
       process.env.NEXT_PUBLIC_ANON_KEY!
     );
 
-    // Create unique credentials
-    const unique = Date.now();
-    testEmail = `e2e.task.project.${unique}@example.com`;
+    // Create robust worker-specific namespace for test data isolation
+    const workerId = process.env.PLAYWRIGHT_WORKER_INDEX || '0';
+    const timestamp = Date.now();
+    const processId = process.pid;
+    const randomSuffix = crypto.randomUUID().slice(0, 8);
+    testNamespace = `task-proj-w${workerId}_${timestamp}_${processId}_${randomSuffix}`;
+
+    // Create unique credentials with worker-specific namespace
+    testEmail = `e2e.task.project.${testNamespace}@example.com`;
     testPassword = 'Test123!@#';
-    testProjectName = `E2E Project ${unique}`;
+    testProjectName = `E2E Project ${testNamespace}`;
 
     // Create department
     const deptResult = await pgClient.query(
       'INSERT INTO "department" (id, name, "isActive", "createdAt", "updatedAt") VALUES (gen_random_uuid(), $1, true, NOW(), NOW()) RETURNING id',
-      [`E2E Task-Project Dept ${unique}`]
+      [`E2E Task-Project Dept ${testNamespace}`]
     );
     testDepartmentId = deptResult.rows[0].id;
 
@@ -86,7 +98,12 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
     // Update department and role
     await pgClient.query(
       'UPDATE "user_profile" SET "departmentId" = $1, role = $2, name = $3 WHERE id = $4',
-      [testDepartmentId, 'STAFF', 'E2E Test User', authData.user.id]
+      [
+        testDepartmentId,
+        'STAFF',
+        `E2E Test User ${testNamespace}`,
+        authData.user.id,
+      ]
     );
     testUserId = authData.user.id;
 
@@ -116,16 +133,27 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
   test.afterAll(async () => {
     try {
       // Cleanup - order matters due to foreign keys
+      let taskIds: string[] = [];
 
       // 1. Get all task IDs created by test user
-      const taskResult = await pgClient.query(
-        'SELECT id FROM "task" WHERE "ownerId" = $1',
-        [testUserId]
+      if (testUserId) {
+        const taskIdsResult = await pgClient.query(
+          'SELECT id FROM "task" WHERE "ownerId" = $1',
+          [testUserId]
+        );
+        taskIds = taskIdsResult.rows.map(row => row.id);
+      }
+
+      // Also clean up any tasks with our namespace in title (fallback cleanup)
+      const namespaceTaskResult = await pgClient.query(
+        'SELECT id FROM "task" WHERE title LIKE $1',
+        [`%${testNamespace}%`]
       );
-      const taskIds = taskResult.rows.map(row => row.id);
+      const namespaceTaskIds = namespaceTaskResult.rows.map(row => row.id);
+      taskIds = [...new Set([...taskIds, ...namespaceTaskIds])]; // Remove duplicates
 
       if (taskIds.length > 0) {
-        // Delete task-related data
+        // 2. Delete task-related data
         await pgClient.query(
           'DELETE FROM "task_assignment" WHERE "taskId" = ANY($1)',
           [taskIds]
@@ -146,31 +174,43 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
         ]);
       }
 
-      // 2. Delete project
+      // 3. Delete project
       if (testProjectId) {
         await pgClient.query('DELETE FROM "project" WHERE id = $1', [
           testProjectId,
         ]);
       }
 
-      // 3. Delete user
+      // 4. Delete user profile
       if (testUserId) {
-        await supabaseClient.auth.admin.deleteUser(testUserId);
         await pgClient.query('DELETE FROM "user_profile" WHERE id = $1', [
           testUserId,
         ]);
       }
 
-      // 4. Delete department
+      // 5. Delete auth user
+      await supabaseClient.auth.signOut();
+      if (testUserId) {
+        await pgClient.query('DELETE FROM auth.users WHERE id = $1', [
+          testUserId,
+        ]);
+      }
+
+      // 6. Delete department
       if (testDepartmentId) {
         await pgClient.query('DELETE FROM "department" WHERE id = $1', [
           testDepartmentId,
         ]);
       }
     } catch (error) {
-      console.error('Cleanup error:', error);
+      console.error(
+        `❌ Error during task-proj cleanup for namespace ${testNamespace}:`,
+        error
+      );
     } finally {
-      await pgClient.end();
+      if (pgClient) {
+        await pgClient.end();
+      }
     }
   });
 
