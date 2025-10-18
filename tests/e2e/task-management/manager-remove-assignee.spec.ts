@@ -47,7 +47,10 @@ test.describe('E2E - Manager removes assignee (happy path)', () => {
 
     // 2) Create worker-specific namespace for test data isolation
     const workerId = process.env.PLAYWRIGHT_WORKER_INDEX || '0';
-    testNamespace = `w${workerId}_${crypto.randomUUID().slice(0, 8)}`;
+    const timestamp = Date.now();
+    const processId = process.pid;
+    const randomSuffix = crypto.randomUUID().slice(0, 8);
+    testNamespace = `manager-remove-w${workerId}_${timestamp}_${processId}_${randomSuffix}`;
 
     // 3) Unique suffix to avoid collisions
     managerEmail = `e2e.manager.${testNamespace}@example.com`;

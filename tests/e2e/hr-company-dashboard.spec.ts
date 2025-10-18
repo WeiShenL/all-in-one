@@ -93,7 +93,6 @@ test.describe('HR/Admin Company Dashboard - Happy Path', () => {
     }
 
     // Success: HR/Admin can access and view the company dashboard
-    console.warn('✓ HR/Admin successfully accessed company dashboard');
   });
 });
 
@@ -167,8 +166,6 @@ async function createAndLoginUser(
       }
       throw urlError;
     }
-
-    console.warn(`✓ User ${user.email} created and logged in successfully`);
   } catch (error) {
     console.error(`Error in createAndLoginUser for ${user.email}:`, error);
 
