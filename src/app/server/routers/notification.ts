@@ -95,4 +95,18 @@ export const notificationRouter = router({
       payload,
     };
   }),
+
+  getNotifications: publicProcedure
+    .input(z.object({ userId: z.string() }))
+    .query(async ({ input, ctx }) => {
+      const { userId } = input;
+      const { prisma } = ctx;
+
+      const notifications = await prisma.notification.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      return notifications;
+    }),
 });

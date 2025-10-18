@@ -81,6 +81,13 @@ export class CommentService extends BaseService {
       // Validate task exists
       const task = await this.prisma.task.findUnique({
         where: { id: data.taskId },
+        include: {
+          assignments: {
+            include: {
+              user: true,
+            },
+          },
+        },
       });
 
       if (!task) {
@@ -100,7 +107,7 @@ export class CommentService extends BaseService {
         throw new Error('Comment content cannot be empty');
       }
 
-      return await this.prisma.comment.create({
+      const newComment = await this.prisma.comment.create({
         data: {
           content: data.content,
           taskId: data.taskId,
@@ -116,6 +123,11 @@ export class CommentService extends BaseService {
           },
         },
       });
+
+      // TODO [NSY003 - NEXT USER STORY]: Add comment notification logic here
+      // When implementing comment notifications
+
+      return newComment;
     } catch (error) {
       this.handleError(error, 'create');
     }

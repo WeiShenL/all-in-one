@@ -19,6 +19,22 @@ jest.mock('@/lib/supabase/auth-context', () => ({
   useAuth: jest.fn(),
 }));
 
+jest.mock('@/lib/context/NotificationContext', () => ({
+  useNotifications: jest.fn(() => ({
+    notifications: [],
+    unreadCount: 0,
+    markAsRead: jest.fn(),
+    markAllAsRead: jest.fn(),
+  })),
+}));
+
+jest.mock('@/lib/hooks/useUnreadNotificationCount', () => ({
+  useUnreadNotificationCount: jest.fn(() => ({
+    count: 0,
+    resetCount: jest.fn(),
+  })),
+}));
+
 describe('Logout Functionality', () => {
   const mockPush = jest.fn();
   const mockSignOut = jest.fn();

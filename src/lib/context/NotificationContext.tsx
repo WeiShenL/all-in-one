@@ -10,14 +10,15 @@ import React, {
 import { useRealtimeNotifications } from '@/lib/hooks/useRealtimeNotifications';
 import type {
   Notification,
-  NotificationType,
+  NotificationSeverity,
   RealtimeNotification,
 } from '@/types/notification';
+import { toFrontendNotificationType } from '@/lib/notificationTypeMapping';
 
 interface NotificationContextType {
   notifications: Notification[];
   addNotification: (
-    type: NotificationType,
+    type: NotificationSeverity,
     title: string,
     message: string
   ) => void;
@@ -78,7 +79,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
   );
 
   const addNotification = useCallback(
-    (type: NotificationType, title: string, message: string) => {
+    (type: NotificationSeverity, title: string, message: string) => {
       const id = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
       const notification: Notification = {
         id,
@@ -111,11 +112,8 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
   // Handle incoming realtime notifications
   const handleRealtimeNotification = useCallback(
     (notification: RealtimeNotification) => {
-      addNotification(
-        notification.type,
-        notification.title,
-        notification.message
-      );
+      const frontendType = toFrontendNotificationType(notification.type);
+      addNotification(frontendType, notification.title, notification.message);
     },
     [addNotification]
   );
