@@ -29,6 +29,7 @@ test.describe('Overdue Task Highlighting', () => {
   let overdueTaskId: string;
   let testEmail: string;
   let testPassword: string;
+  let testNamespace: string;
 
   // Helper function to login and navigate to task edit view
   async function loginAndNavigateToOverdueTask(page: any) {
@@ -82,15 +83,21 @@ test.describe('Overdue Task Highlighting', () => {
       process.env.NEXT_PUBLIC_ANON_KEY!
     );
 
-    // Create unique credentials
-    const unique = Date.now();
-    testEmail = `e2e.overdue.test.${unique}@example.com`;
+    // Create worker-specific namespace for test data isolation
+    const workerId = process.env.PLAYWRIGHT_WORKER_INDEX || '0';
+    const timestamp = Date.now();
+    const processId = process.pid;
+    const randomSuffix = crypto.randomUUID().slice(0, 8);
+    testNamespace = `overdue-w${workerId}_${timestamp}_${processId}_${randomSuffix}`;
+
+    // Create unique credentials with worker-specific namespace
+    testEmail = `e2e.overdue.test.${testNamespace}@example.com`;
     testPassword = 'Test123!@#';
 
     // 1. Create department
     const deptResult = await pgClient.query(
       'INSERT INTO "department" (id, name, "isActive", "createdAt", "updatedAt") VALUES (gen_random_uuid(), $1, true, NOW(), NOW()) RETURNING id',
-      [`E2E Overdue Test Dept ${unique}`]
+      [`E2E Overdue Test Dept ${testNamespace}`]
     );
     testDepartmentId = deptResult.rows[0].id;
 
@@ -127,7 +134,12 @@ test.describe('Overdue Task Highlighting', () => {
     // Update the department, role, and name
     await pgClient.query(
       'UPDATE "user_profile" SET "departmentId" = $1, role = $2, name = $3 WHERE id = $4',
-      [testDepartmentId, 'STAFF', 'E2E Overdue Test User', authData.user.id]
+      [
+        testDepartmentId,
+        'STAFF',
+        `E2E Overdue Test User ${testNamespace}`,
+        authData.user.id,
+      ]
     );
     testUserId = authData.user.id;
 
@@ -136,7 +148,7 @@ test.describe('Overdue Task Highlighting', () => {
     const taskResult = await pgClient.query(
       'INSERT INTO "task" (id, title, description, priority, "dueDate", "ownerId", "departmentId", status, "createdAt", "updatedAt") VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, NOW(), NOW()) RETURNING id',
       [
-        'E2E Overdue Task',
+        `E2E Overdue Task ${testNamespace}`,
         'This task is overdue for testing highlighting',
         5,
         pastDate,
@@ -190,7 +202,7 @@ test.describe('Overdue Task Highlighting', () => {
   test('AC2: should display red highlighting for overdue task in task modal', async ({
     page,
   }) => {
-    test.setTimeout(120000); // 2 minute timeout for CI/CD
+    test.setTimeout(180000); // 3 minute timeout for CI/CD
 
     // Login and open the overdue task modal
     await loginAndNavigateToOverdueTask(page);
@@ -220,7 +232,7 @@ test.describe('Overdue Task Highlighting', () => {
   test('AC3: should turn gray when overdue task is marked as COMPLETED (in same modal)', async ({
     page,
   }) => {
-    test.setTimeout(120000); // 2 minute timeout for CI/CD
+    test.setTimeout(180000); // 3 minute timeout for CI/CD
 
     // Login and open the same overdue task modal
     await loginAndNavigateToOverdueTask(page);

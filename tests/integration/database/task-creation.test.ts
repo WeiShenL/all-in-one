@@ -35,6 +35,9 @@ describe('Integration Tests - Task Creation (SCRUM-12)', () => {
   const createdTaskIds: string[] = [];
   const createdTagIds: string[] = [];
 
+  // Generate unique test run ID to avoid conflicts
+  const testRunId = Date.now();
+
   beforeAll(async () => {
     // Explicit pg connection like auth-api.test.ts
     pgClient = new Client({ connectionString: process.env.DATABASE_URL });
@@ -105,7 +108,7 @@ describe('Integration Tests - Task Creation (SCRUM-12)', () => {
        VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, NOW(), NOW())
        RETURNING id`,
       [
-        'Test Project',
+        `Task Creation Test Project-${testRunId}`,
         'Integration test project',
         5,
         testDepartmentId,
