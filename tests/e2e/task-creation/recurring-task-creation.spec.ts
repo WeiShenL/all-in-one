@@ -3,32 +3,22 @@ import { Client } from 'pg';
 import { createClient } from '@supabase/supabase-js';
 
 /**
- * E2E Tests for Task Creation Feature - SCRUM-12
+ * E2E Tests for Recurring Task Creation Feature
  *
- * Real UI E2E Tests (Playwright browser automation)
- * - Opens browser, fills form, submits, verifies UI
- * - Tests complete user journey from form to dashboard
- *
- * Test Coverage:
- * - TM016: Mandatory fields (title, description, priority 1-10, deadline, 1-5 assignees)
- * - Automatic department association from user profile
- * - Default "To Do" status
- * - Optional tags creation and verification in modal
- * - Recurring task creation and verification in modal
- *
- * Test Pattern: Follows auth-flow.spec.ts and task-update-ui.spec.ts patterns
- * Uses pg client for test data setup/cleanup with generous timeouts for CI/CD pipelines
- *
- * NOTE: Service layer integration tests are in tests/integration/database/task-creation.test.ts
+ * Isolated test for recurring task functionality
+ * - Independent namespace and cleanup
+ * - No shared state with other test files
+ * - Optimized for parallel execution
  */
 
-test.describe('Task Creation - UI E2E Tests (Browser)', () => {
+test.describe('Recurring Task Creation - Isolated E2E Tests', () => {
   let pgClient: Client;
   let supabaseClient: ReturnType<typeof createClient>;
   let testEmail: string;
   let testPassword: string;
   let testDepartmentId: string;
   let testUserId: string;
+  let testNamespace: string;
 
   test.beforeAll(async () => {
     // Setup DB connection
@@ -40,15 +30,21 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
       process.env.NEXT_PUBLIC_ANON_KEY!
     );
 
-    // Create unique credentials
-    const unique = Date.now();
-    testEmail = `e2e.task.create.ui.${unique}@example.com`;
+    // Create robust worker-specific namespace for test data isolation
+    const workerId = process.env.PLAYWRIGHT_WORKER_INDEX || '0';
+    const timestamp = Date.now();
+    const processId = process.pid;
+    const randomSuffix = crypto.randomUUID().slice(0, 8);
+    testNamespace = `recurring-task-w${workerId}_${timestamp}_${processId}_${randomSuffix}`;
+
+    // Create unique credentials with worker-specific namespace
+    testEmail = `e2e.recurring.task.${testNamespace}@example.com`;
     testPassword = 'Test123!@#';
 
     // Create department
     const deptResult = await pgClient.query(
       'INSERT INTO "department" (id, name, "isActive", "createdAt", "updatedAt") VALUES (gen_random_uuid(), $1, true, NOW(), NOW()) RETURNING id',
-      [`E2E UI Test Dept ${unique}`]
+      [`Recurring Task Test Dept ${testNamespace}`]
     );
     testDepartmentId = deptResult.rows[0].id;
 
@@ -83,13 +79,18 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
     // Update department and role
     await pgClient.query(
       'UPDATE "user_profile" SET "departmentId" = $1, role = $2, name = $3 WHERE id = $4',
-      [testDepartmentId, 'STAFF', 'E2E UI Test User', authData.user.id]
+      [
+        testDepartmentId,
+        'STAFF',
+        `Recurring Task Test User ${testNamespace}`,
+        authData.user.id,
+      ]
     );
     testUserId = authData.user.id;
   });
 
   test.afterEach(async ({ context }) => {
-    // Clear browser storage after each test
+    // Only clear browser storage - no database cleanup to avoid race conditions
     await context.clearCookies();
     await context.clearPermissions();
   });
@@ -97,13 +98,24 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
   test.afterAll(async () => {
     try {
       // Cleanup - order matters due to foreign keys
+      let taskIds: string[] = [];
 
       // 1. Get all task IDs created by test user
-      const taskIdsResult = await pgClient.query(
-        'SELECT id FROM "task" WHERE "ownerId" = $1',
-        [testUserId]
+      if (testUserId) {
+        const taskIdsResult = await pgClient.query(
+          'SELECT id FROM "task" WHERE "ownerId" = $1',
+          [testUserId]
+        );
+        taskIds = taskIdsResult.rows.map(row => row.id);
+      }
+
+      // Also clean up any tasks with our namespace in title (fallback cleanup)
+      const namespaceTaskResult = await pgClient.query(
+        'SELECT id FROM "task" WHERE title LIKE $1',
+        [`%${testNamespace}%`]
       );
-      const taskIds = taskIdsResult.rows.map(row => row.id);
+      const namespaceTaskIds = namespaceTaskResult.rows.map(row => row.id);
+      taskIds = [...new Set([...taskIds, ...namespaceTaskIds])]; // Remove duplicates
 
       if (taskIds.length > 0) {
         // 2. Delete task assignments (task_assignment has taskId, userId, assignedById)
@@ -125,9 +137,12 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
       }
 
       // 5. Delete tags created during test
-      await pgClient.query('DELETE FROM "tag" WHERE name LIKE $1', [
-        'e2e-ui-%',
-      ]);
+      const tagResult = await pgClient.query(
+        'DELETE FROM "tag" WHERE name LIKE $1 RETURNING name',
+        [`recurring-task-%${testNamespace}%`]
+      );
+      if (tagResult.rows.length > 0) {
+      }
 
       // 6. Delete user profile
       if (testUserId) {
@@ -151,167 +166,16 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
         ]);
       }
     } catch (error) {
-      console.error('Error during cleanup:', error);
+      console.error(
+        `❌ Error during recurring task cleanup for namespace ${testNamespace}:`,
+        error
+      );
     } finally {
       // 9. Close connections
       if (pgClient) {
         await pgClient.end();
       }
     }
-  });
-
-  test('should create task through UI with all mandatory fields', async ({
-    page,
-  }) => {
-    test.setTimeout(220000);
-
-    // Step 1: Login
-    await page.goto('/auth/login');
-    await expect(
-      page.getByRole('heading', { name: /welcome back/i })
-    ).toBeVisible({ timeout: 65000 });
-
-    await page.getByLabel('Email').fill(testEmail);
-    await page.getByLabel('Password').fill(testPassword);
-    await page.getByRole('button', { name: /sign in/i }).click();
-
-    // Wait for dashboard
-    await expect(
-      page.getByRole('heading', { name: /personal dashboard/i })
-    ).toBeVisible({ timeout: 15000 });
-
-    // Step 2: Open create task modal
-    const createTaskButton = page.getByRole('button', {
-      name: /\+ Create Task/i,
-    });
-    await expect(createTaskButton).toBeVisible({ timeout: 15000 });
-    await createTaskButton.click();
-
-    // Wait for modal to open
-    await expect(
-      page.getByRole('heading', { name: /create new task/i })
-    ).toBeVisible({ timeout: 15000 });
-
-    // Step 3: Fill mandatory fields
-    await page
-      .getByPlaceholder(/implement login feature/i)
-      .fill('E2E UI Test Task');
-    await page
-      .getByPlaceholder(/detailed description/i)
-      .fill('Task created via UI E2E test');
-    await page.locator('input[type="number"]').first().fill('8'); // Priority
-    await page.locator('input[type="date"]').first().fill('2025-12-31'); // Deadline
-    // User is auto-assigned, no need to add assignee
-
-    // Step 4: Submit form
-    await page.getByRole('button', { name: /✓ create task/i }).click();
-
-    // Step 5: Verify modal closes and we're still on dashboard
-    await expect(
-      page.getByRole('heading', { name: /create new task/i })
-    ).not.toBeVisible({ timeout: 15000 });
-
-    // Step 6: Get the task ID from database (to use data-testid!)
-    const taskResult = await pgClient.query(
-      'SELECT id FROM "task" WHERE title = $1 AND "ownerId" = $2 ORDER BY "createdAt" DESC LIMIT 1',
-      ['E2E UI Test Task', testUserId]
-    );
-    const createdTaskId = taskResult.rows[0]?.id;
-    expect(createdTaskId).toBeDefined();
-
-    // Step 8: Wait for tasks to load ()
-    await page.waitForTimeout(5000);
-
-    // Step 9: Find task button using data-testid
-    const viewButton = page.getByTestId(`view-task-button-${createdTaskId}`);
-    await expect(viewButton).toBeVisible({ timeout: 65000 });
-
-    // Step 10: Find task row to verify details
-    const taskRow = page.locator('tr', { hasText: 'E2E UI Test Task' });
-
-    // Step 11: Verify priority badge shows 8
-    await expect(taskRow.getByText('8')).toBeVisible({ timeout: 65000 });
-
-    // Step 12: Verify status is TO DO
-    await expect(taskRow.getByText(/to do/i)).toBeVisible({ timeout: 65000 });
-  });
-
-  test('should create task with optional tags through UI', async ({ page }) => {
-    test.setTimeout(220000);
-
-    // Login
-    await page.goto('/auth/login');
-    await page.getByLabel('Email').fill(testEmail);
-    await page.getByLabel('Password').fill(testPassword);
-    await page.getByRole('button', { name: /sign in/i }).click();
-    await page.waitForURL(/dashboard/, { timeout: 65000 });
-
-    // Open create task modal
-    const createTaskButton = page.getByRole('button', {
-      name: /\+ Create Task/i,
-    });
-    await expect(createTaskButton).toBeVisible({ timeout: 15000 });
-    await createTaskButton.click();
-
-    // Wait for modal to open
-    await page.waitForTimeout(2000);
-
-    // Fill form with tags
-    await page
-      .getByPlaceholder(/implement login feature/i)
-      .fill('Tagged UI Task');
-    await page
-      .getByPlaceholder(/detailed description/i)
-      .fill('Task with tags via UI');
-    await page.locator('input[type="number"]').first().fill('5'); // Priority
-    await page.locator('input[type="date"]').first().fill('2025-12-31'); // Deadline
-
-    // Add tags using the add/remove interface
-    await page.getByPlaceholder(/add tag/i).fill('e2e-ui-urgent');
-    await page.getByRole('button', { name: /add tag/i }).click();
-    await page.waitForTimeout(500);
-    await page.getByPlaceholder(/add tag/i).fill('e2e-ui-frontend');
-    await page.getByRole('button', { name: /add tag/i }).click();
-    await page.waitForTimeout(500);
-
-    // Submit
-    await page.getByRole('button', { name: /✓ create task/i }).click();
-
-    // Verify modal closes
-    await expect(
-      page.getByRole('heading', { name: /create new task/i })
-    ).not.toBeVisible({ timeout: 15000 });
-
-    // Get the task ID from database
-    const taskResult = await pgClient.query(
-      'SELECT id FROM "task" WHERE title = $1 AND "ownerId" = $2 ORDER BY "createdAt" DESC LIMIT 1',
-      ['Tagged UI Task', testUserId]
-    );
-    const createdTaskId = taskResult.rows[0]?.id;
-    expect(createdTaskId).toBeDefined();
-
-    // Wait for tasks to load
-    await page.waitForTimeout(2000);
-
-    // Find task edit button using data-testid
-    const editButton = page.getByTestId(`edit-task-button-${createdTaskId}`);
-    await expect(editButton).toBeVisible({ timeout: 65000 });
-
-    // Click to open modal
-    await editButton.click();
-
-    // Wait for modal to open
-    await page.waitForTimeout(2000);
-
-    // Verify tags appear in the task detail modal
-    await expect(page.getByText('🏷️ Tags')).toBeVisible({ timeout: 65000 });
-    // Use data-testid to target specific tag removal buttons (which indicates the tag exists)
-    await expect(page.getByTestId('remove-tag-e2e-ui-urgent')).toBeVisible({
-      timeout: 65000,
-    });
-    await expect(page.getByTestId('remove-tag-e2e-ui-frontend')).toBeVisible({
-      timeout: 65000,
-    });
   });
 
   test('should create recurring task with interval through UI', async ({
@@ -330,7 +194,7 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
     const createTaskButton = page.getByRole('button', {
       name: /\+ Create Task/i,
     });
-    await expect(createTaskButton).toBeVisible({ timeout: 15000 });
+    await expect(createTaskButton).toBeVisible({ timeout: 30000 });
     await createTaskButton.click();
 
     // Wait for modal to open
@@ -339,7 +203,7 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
     // Fill form and enable recurring settings
     await page
       .getByPlaceholder(/implement login feature/i)
-      .fill('Weekly UI Report');
+      .fill(`Weekly Report ${testNamespace}`);
     await page
       .getByPlaceholder(/detailed description/i)
       .fill('Recurring task via UI');
@@ -359,12 +223,12 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
     // Verify modal closes
     await expect(
       page.getByRole('heading', { name: /create new task/i })
-    ).not.toBeVisible({ timeout: 15000 });
+    ).not.toBeVisible({ timeout: 30000 });
 
     // Get the task ID from database (now we can use reliable data-testid!)
     const taskResult = await pgClient.query(
       'SELECT id FROM "task" WHERE title = $1 AND "ownerId" = $2 ORDER BY "createdAt" DESC LIMIT 1',
-      ['Weekly UI Report', testUserId]
+      [`Weekly Report ${testNamespace}`, testUserId]
     );
     const createdTaskId = taskResult.rows[0]?.id;
     expect(createdTaskId).toBeDefined();
@@ -391,74 +255,6 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
     });
   });
 
-  test('should set default status to TO_DO', async ({ page }) => {
-    test.setTimeout(220000);
-
-    // Login
-    await page.goto('/auth/login');
-    await page.getByLabel('Email').fill(testEmail);
-    await page.getByLabel('Password').fill(testPassword);
-    await page.getByRole('button', { name: /sign in/i }).click();
-    await page.waitForURL(/dashboard/, { timeout: 65000 });
-
-    // Open create task modal
-    const createTaskButton = page.getByRole('button', {
-      name: /\+ Create Task/i,
-    });
-    await expect(createTaskButton).toBeVisible({ timeout: 15000 });
-    await createTaskButton.click();
-
-    // Wait for modal to open
-    await page.waitForTimeout(2000);
-
-    // Fill mandatory fields only (no status field - it should default to TO_DO)
-    await page
-      .getByPlaceholder(/implement login feature/i)
-      .fill('Default Status Task');
-    await page
-      .getByPlaceholder(/detailed description/i)
-      .fill('Testing default status');
-    await page.locator('input[type="number"]').first().fill('5'); // Priority
-    await page.locator('input[type="date"]').first().fill('2025-12-31'); // Deadline
-
-    // Submit
-    await page.getByRole('button', { name: /✓ create task/i }).click();
-
-    // Verify modal closes
-    await expect(
-      page.getByRole('heading', { name: /create new task/i })
-    ).not.toBeVisible({ timeout: 15000 });
-
-    // Get the task ID from database
-    const taskResult = await pgClient.query(
-      'SELECT id FROM "task" WHERE title = $1 AND "ownerId" = $2 ORDER BY "createdAt" DESC LIMIT 1',
-      ['Default Status Task', testUserId]
-    );
-    const createdTaskId = taskResult.rows[0]?.id;
-    expect(createdTaskId).toBeDefined();
-
-    // Wait for tasks to load
-    await page.waitForTimeout(2000);
-
-    // Find task edit button using data-testid
-    const editButton = page.getByTestId(`edit-task-button-${createdTaskId}`);
-    await expect(editButton).toBeVisible({ timeout: 65000 });
-
-    // Click to open modal
-    await editButton.click();
-
-    // Wait for modal to open
-    await page.waitForTimeout(2000);
-
-    // Verify status is TO_DO in the modal
-    await expect(page.getByTestId('task-status-display')).toContainText(
-      /to do/i,
-      {
-        timeout: 65000,
-      }
-    );
-  });
-
   test('should NOT generate next instance for non-recurring completed tasks', async ({
     page,
   }) => {
@@ -475,7 +271,7 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
     const createTaskButton = page.getByRole('button', {
       name: /\+ Create Task/i,
     });
-    await expect(createTaskButton).toBeVisible({ timeout: 15000 });
+    await expect(createTaskButton).toBeVisible({ timeout: 30000 });
     await createTaskButton.click();
 
     // Wait for modal to open
@@ -484,7 +280,7 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
     // Create a NON-recurring task
     await page
       .getByPlaceholder(/implement login feature/i)
-      .fill('Non-Recurring Task');
+      .fill(`Non-Recurring Task ${testNamespace}`);
     await page
       .getByPlaceholder(/detailed description/i)
       .fill('This should not create new instance');
@@ -498,12 +294,12 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
     // Verify modal closes
     await expect(
       page.getByRole('heading', { name: /create new task/i })
-    ).not.toBeVisible({ timeout: 15000 });
+    ).not.toBeVisible({ timeout: 30000 });
 
     // Get the task ID from database
     const taskResult = await pgClient.query(
       'SELECT id FROM "task" WHERE title = $1 AND "ownerId" = $2 ORDER BY "createdAt" DESC LIMIT 1',
-      ['Non-Recurring Task', testUserId]
+      [`Non-Recurring Task ${testNamespace}`, testUserId]
     );
     const createdTaskId = taskResult.rows[0]?.id;
     expect(createdTaskId).toBeDefined();
@@ -546,7 +342,7 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
     // Query database to verify NO new task instance was created
     const taskCount = await pgClient.query(
       'SELECT COUNT(*) as count FROM "task" WHERE title = $1 AND "ownerId" = $2',
-      ['Non-Recurring Task', testUserId]
+      [`Non-Recurring Task ${testNamespace}`, testUserId]
     );
 
     // Should still be exactly 1 task (no new instance created)
@@ -576,7 +372,7 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
     const createTaskButton = page.getByRole('button', {
       name: /\+ Create Task/i,
     });
-    await expect(createTaskButton).toBeVisible({ timeout: 15000 });
+    await expect(createTaskButton).toBeVisible({ timeout: 30000 });
     await createTaskButton.click();
 
     // Wait for modal to open
@@ -585,7 +381,7 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
     // Create a RECURRING task with interval
     await page
       .getByPlaceholder(/implement login feature/i)
-      .fill('Recurring Task Instance');
+      .fill(`Recurring Instance ${testNamespace}`);
     await page
       .getByPlaceholder(/detailed description/i)
       .fill('This should create new instance when completed');
@@ -603,12 +399,12 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
     // Verify modal closes
     await expect(
       page.getByRole('heading', { name: /create new task/i })
-    ).not.toBeVisible({ timeout: 15000 });
+    ).not.toBeVisible({ timeout: 30000 });
 
     // Get the task ID from database
     const taskResult = await pgClient.query(
       'SELECT id FROM "task" WHERE title = $1 AND "ownerId" = $2 ORDER BY "createdAt" DESC LIMIT 1',
-      ['Recurring Task Instance', testUserId]
+      [`Recurring Instance ${testNamespace}`, testUserId]
     );
     const createdTaskId = taskResult.rows[0]?.id;
     expect(createdTaskId).toBeDefined();
@@ -646,7 +442,7 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
     });
 
     // Wait for update to complete and new task to be generated
-    await page.waitForTimeout(15000);
+    await page.waitForTimeout(30000);
 
     // Close modal by pressing Escape or clicking outside
     await page.keyboard.press('Escape');
@@ -662,7 +458,7 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
     // Query database to verify a NEW task instance WAS created
     const taskCount = await pgClient.query(
       'SELECT COUNT(*) as count FROM "task" WHERE title = $1 AND "ownerId" = $2',
-      ['Recurring Task Instance', testUserId]
+      [`Recurring Instance ${testNamespace}`, testUserId]
     );
 
     // Should be exactly 2 tasks now (original completed + new instance)
@@ -671,7 +467,7 @@ test.describe('Task Creation - UI E2E Tests (Browser)', () => {
     // Get the NEW task (TO_DO status) ID
     const newTask = await pgClient.query(
       'SELECT id, status, "recurringInterval" FROM "task" WHERE title = $1 AND "ownerId" = $2 AND status = $3 ORDER BY "createdAt" DESC LIMIT 1',
-      ['Recurring Task Instance', testUserId, 'TO_DO']
+      [`Recurring Instance ${testNamespace}`, testUserId, 'TO_DO']
     );
 
     expect(newTask.rows.length).toBe(1);

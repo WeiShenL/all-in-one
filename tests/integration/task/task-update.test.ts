@@ -42,53 +42,59 @@ let testProjectId: string;
 const createdTaskIds: string[] = [];
 const createdTagIds: string[] = [];
 
-/**
- * Helper to create a task with assignment for testing
- */
-async function createTaskWithAssignment(taskData: {
-  id: string;
-  title: string;
-  description?: string;
-  priority?: number;
-  dueDate?: Date;
-  status?: 'TO_DO' | 'IN_PROGRESS' | 'COMPLETED';
-  recurringInterval?: number | null;
-  parentTaskId?: string | null;
-}) {
-  const taskResult = await pgClient.query(
-    `INSERT INTO "task" (id, title, description, priority, "dueDate", "ownerId", "departmentId", "projectId", status, "recurringInterval", "parentTaskId", "createdAt", "updatedAt")
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
-     RETURNING *`,
-    [
-      taskData.id,
-      taskData.title,
-      taskData.description || 'Test description',
-      taskData.priority || 5,
-      taskData.dueDate || new Date('2025-12-31'),
-      testUserId,
-      testDepartmentId,
-      testProjectId,
-      taskData.status || 'TO_DO',
-      taskData.recurringInterval !== undefined
-        ? taskData.recurringInterval
-        : null,
-      taskData.parentTaskId !== undefined ? taskData.parentTaskId : null,
-    ]
-  );
-  const task = taskResult.rows[0];
-  createdTaskIds.push(task.id);
-
-  // Assign user to task for authorization
-  await pgClient.query(
-    `INSERT INTO "task_assignment" ("taskId", "userId", "assignedById", "assignedAt")
-     VALUES ($1, $2, $3, NOW())`,
-    [task.id, testUserId, testUserId]
-  );
-
-  return task;
-}
-
 describe('Task Update Integration Tests', () => {
+  // Unique namespace for this test run
+  const testNamespace = `test-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+  /**
+   * Helper to create a task with assignment for testing
+   */
+  async function createTaskWithAssignment(taskData: {
+    id: string;
+    title: string;
+    description?: string;
+    priority?: number;
+    dueDate?: Date;
+    status?: 'TO_DO' | 'IN_PROGRESS' | 'COMPLETED';
+    recurringInterval?: number | null;
+    parentTaskId?: string | null;
+  }) {
+    // Generate unique task ID based on original ID and test namespace
+    const uniqueTaskId = `${taskData.id}-${testNamespace}`;
+
+    const taskResult = await pgClient.query(
+      `INSERT INTO "task" (id, title, description, priority, "dueDate", "ownerId", "departmentId", "projectId", status, "recurringInterval", "parentTaskId", "createdAt", "updatedAt")
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
+       RETURNING *`,
+      [
+        uniqueTaskId,
+        taskData.title,
+        taskData.description || 'Test description',
+        taskData.priority || 5,
+        taskData.dueDate || new Date('2025-12-31'),
+        testUserId,
+        testDepartmentId,
+        testProjectId,
+        taskData.status || 'TO_DO',
+        taskData.recurringInterval !== undefined
+          ? taskData.recurringInterval
+          : null,
+        taskData.parentTaskId !== undefined ? taskData.parentTaskId : null,
+      ]
+    );
+    const task = taskResult.rows[0];
+    createdTaskIds.push(task.id);
+
+    // Assign user to task for authorization
+    await pgClient.query(
+      `INSERT INTO "task_assignment" ("taskId", "userId", "assignedById", "assignedAt")
+       VALUES ($1, $2, $3, NOW())`,
+      [task.id, testUserId, testUserId]
+    );
+
+    return task;
+  }
+
   // Setup before all tests
   beforeAll(async () => {
     // Initialize pg client
@@ -103,7 +109,7 @@ describe('Task Update Integration Tests', () => {
       `INSERT INTO "department" (id, name, "isActive", "createdAt", "updatedAt")
        VALUES (gen_random_uuid(), $1, true, NOW(), NOW())
        RETURNING id`,
-      ['Test Engineering Dept']
+      [`Test Engineering Dept-${testNamespace}`]
     );
     testDepartmentId = deptResult.rows[0].id;
 
@@ -113,7 +119,7 @@ describe('Task Update Integration Tests', () => {
        VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
        RETURNING id`,
       [
-        'task-update-owner@test.com',
+        `task-update-owner@${testNamespace}.com`,
         'Task Update Owner',
         'STAFF',
         testDepartmentId,
@@ -126,7 +132,12 @@ describe('Task Update Integration Tests', () => {
       `INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt")
        VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
        RETURNING id`,
-      ['update-assignee2@test.com', 'Assignee 2', 'STAFF', testDepartmentId]
+      [
+        `update-assignee2@${testNamespace}.com`,
+        'Assignee 2',
+        'STAFF',
+        testDepartmentId,
+      ]
     );
     testAssignee2Id = assignee2Result.rows[0].id;
 
@@ -134,7 +145,12 @@ describe('Task Update Integration Tests', () => {
       `INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt")
        VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
        RETURNING id`,
-      ['update-assignee3@test.com', 'Assignee 3', 'STAFF', testDepartmentId]
+      [
+        `update-assignee3@${testNamespace}.com`,
+        'Assignee 3',
+        'STAFF',
+        testDepartmentId,
+      ]
     );
     testAssignee3Id = assignee3Result.rows[0].id;
 
@@ -142,7 +158,12 @@ describe('Task Update Integration Tests', () => {
       `INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt")
        VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
        RETURNING id`,
-      ['update-assignee4@test.com', 'Assignee 4', 'STAFF', testDepartmentId]
+      [
+        `update-assignee4@${testNamespace}.com`,
+        'Assignee 4',
+        'STAFF',
+        testDepartmentId,
+      ]
     );
     testAssignee4Id = assignee4Result.rows[0].id;
 
@@ -150,7 +171,12 @@ describe('Task Update Integration Tests', () => {
       `INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt")
        VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
        RETURNING id`,
-      ['update-assignee5@test.com', 'Assignee 5', 'STAFF', testDepartmentId]
+      [
+        `update-assignee5@${testNamespace}.com`,
+        'Assignee 5',
+        'STAFF',
+        testDepartmentId,
+      ]
     );
     testAssignee5Id = assignee5Result.rows[0].id;
 
@@ -160,7 +186,7 @@ describe('Task Update Integration Tests', () => {
        VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, NOW(), NOW())
        RETURNING id`,
       [
-        'Test Project',
+        `Update Test Project-${testNamespace}`,
         'Integration test project',
         5,
         testDepartmentId,

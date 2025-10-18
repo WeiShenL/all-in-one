@@ -29,6 +29,7 @@ test.describe('E2E - Manager removes assignee (happy path)', () => {
   let staffAId: string; // Sales (kept to grant manager access)
   let staffBId: string; // Engineering (to be removed)
   let taskId: string;
+  let testNamespace: string;
 
   // Manager UI login credentials
   let managerEmail: string;
@@ -44,22 +45,28 @@ test.describe('E2E - Manager removes assignee (happy path)', () => {
       process.env.NEXT_PUBLIC_ANON_KEY!
     );
 
-    // 2) Unique suffix to avoid collisions
-    const unique = Date.now();
-    managerEmail = `e2e.manager.${unique}@example.com`;
+    // 2) Create worker-specific namespace for test data isolation
+    const workerId = process.env.PLAYWRIGHT_WORKER_INDEX || '0';
+    const timestamp = Date.now();
+    const processId = process.pid;
+    const randomSuffix = crypto.randomUUID().slice(0, 8);
+    testNamespace = `manager-remove-w${workerId}_${timestamp}_${processId}_${randomSuffix}`;
+
+    // 3) Unique suffix to avoid collisions
+    managerEmail = `e2e.manager.${testNamespace}@example.com`;
 
     // 3) Departments: Sales (manager), Engineering (peer)
     {
       const res = await pgClient.query(
         'INSERT INTO "department" (id, name, "isActive", "createdAt", "updatedAt") VALUES (gen_random_uuid(), $1, true, NOW(), NOW()) RETURNING id',
-        [`E2E Sales ${unique}`]
+        [`E2E Sales ${testNamespace}`]
       );
       salesDeptId = res.rows[0].id;
     }
     {
       const res = await pgClient.query(
         'INSERT INTO "department" (id, name, "isActive", "createdAt", "updatedAt") VALUES (gen_random_uuid(), $1, true, NOW(), NOW()) RETURNING id',
-        [`E2E Engineering ${unique}`]
+        [`E2E Engineering ${testNamespace}`]
       );
       engineeringDeptId = res.rows[0].id;
     }
@@ -86,7 +93,7 @@ test.describe('E2E - Manager removes assignee (happy path)', () => {
     }
     await pgClient.query(
       'UPDATE "user_profile" SET role = $1, "departmentId" = $2, name = $3 WHERE id = $4',
-      ['MANAGER', salesDeptId, 'E2E Manager', auth.user.id]
+      ['MANAGER', salesDeptId, `E2E Manager ${testNamespace}`, auth.user.id]
     );
     managerId = auth.user.id;
 
@@ -94,7 +101,12 @@ test.describe('E2E - Manager removes assignee (happy path)', () => {
     {
       const r = await pgClient.query(
         'INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt") VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW()) RETURNING id',
-        [`e2e.staffA.${unique}@example.com`, 'Staff A', 'STAFF', salesDeptId]
+        [
+          `e2e.staffA.${testNamespace}@example.com`,
+          `Staff A ${testNamespace}`,
+          'STAFF',
+          salesDeptId,
+        ]
       );
       staffAId = r.rows[0].id;
     }
@@ -102,8 +114,8 @@ test.describe('E2E - Manager removes assignee (happy path)', () => {
       const r = await pgClient.query(
         'INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt") VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW()) RETURNING id',
         [
-          `e2e.staffB.${unique}@example.com`,
-          'Staff B',
+          `e2e.staffB.${testNamespace}@example.com`,
+          `Staff B ${testNamespace}`,
           'STAFF',
           engineeringDeptId,
         ]
@@ -116,7 +128,7 @@ test.describe('E2E - Manager removes assignee (happy path)', () => {
       const rTask = await pgClient.query(
         'INSERT INTO "task" (id, title, description, priority, "dueDate", status, "ownerId", "departmentId", "projectId", "parentTaskId", "recurringInterval", "isArchived", "createdAt", "updatedAt") VALUES (gen_random_uuid(), $1, $2, 5, NOW() + interval \'7 days\', $3, $4, $5, NULL, NULL, NULL, false, NOW(), NOW()) RETURNING id',
         [
-          'E2E Manager Remove Assignee Task',
+          `E2E Manager Remove Assignee Task ${testNamespace}`,
           'Task for manager e2e removal',
           'TO_DO',
           staffAId,
@@ -192,13 +204,15 @@ test.describe('E2E - Manager removes assignee (happy path)', () => {
       timeout: 40000,
     });
     await expect(
-      page.getByText('E2E Manager Remove Assignee Task')
+      page.getByText(`E2E Manager Remove Assignee Task ${testNamespace}`)
     ).toBeVisible({ timeout: 40000 });
 
     // 3) Open the task editor/details view where assignee controls are rendered
     // ManagerDashboard renders a table with an "Edit" button per row; scope to the row with our task title
     const taskRow = page
-      .locator('tr', { hasText: 'E2E Manager Remove Assignee Task' })
+      .locator('tr', {
+        hasText: `E2E Manager Remove Assignee Task ${testNamespace}`,
+      })
       .first();
     await expect(taskRow).toBeVisible({ timeout: 40000 });
     const editButton = taskRow.getByRole('button', { name: /^Edit$/i });

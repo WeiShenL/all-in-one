@@ -1,4 +1,14 @@
 // import 'whatwg-fetch';
+
+// Silence GoTrueClient multiple instances warning
+const originalWarn = console.warn;
+console.warn = (...args) => {
+  if (args[0] && args[0].includes('Multiple GoTrueClient instances detected')) {
+    return; // Suppress this specific warning
+  }
+  originalWarn.apply(console, args);
+};
+
 // Mock Supabase with a pass-through that works for both unit and integration tests
 jest.mock('@supabase/supabase-js', () => {
   const actual = jest.requireActual('@supabase/supabase-js');
