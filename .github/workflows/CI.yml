@@ -164,7 +164,7 @@ jobs:
       - name: Run database migrations
         env:
           DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
-        run: npx prisma migrate deploy
+        run: npm run db:reset
 
   integration-tests:
     name: Integration Tests (Shard ${{ matrix.shard }}/${{ matrix.shards }})
