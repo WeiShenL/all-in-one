@@ -58,12 +58,10 @@ function formatDescription(resource: CalendarEvent['resource']): string {
   }
 
   // Status (always show in description)
-  desc += `Status: ${resource.status.replace('_', ' ')}\n`;
+  desc += `Status: ${resource.status}\n`;
 
   // Priority
-  const priorityLabel =
-    resource.priority >= 8 ? 'High' : resource.priority >= 5 ? 'Medium' : 'Low';
-  desc += `Priority: ${priorityLabel} (${resource.priority}/10)\n`;
+  desc += `Priority: ${resource.priority}\n`;
 
   return desc.trim();
 }
@@ -103,17 +101,13 @@ export function exportToICal(
       summary: event.title,
       description: formatDescription(event.resource),
       uid: event.resource.taskId,
-      due: event.end, // Due date for task
+      start: event.start || event.resource.createdAt || event.end, // Fallback: startDate → createdAt → dueDate
+      end: event.end,
       location: event.resource.departmentName,
       url: 'https://all-in-one-wheat-omega.vercel.app/',
       priority: mapPriorityToICal(event.resource.priority),
       allDay: true, // Use DATE format instead of DATE-TIME
     };
-
-    // Add start date if task has been started
-    if (event.resource.isStarted) {
-      eventData.start = event.start;
-    }
 
     // Add organizer if owner email exists
     if (event.resource.ownerEmail) {
