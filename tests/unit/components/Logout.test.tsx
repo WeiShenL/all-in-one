@@ -28,6 +28,13 @@ jest.mock('@/lib/context/NotificationContext', () => ({
   })),
 }));
 
+jest.mock('@/lib/hooks/useUnreadNotificationCount', () => ({
+  useUnreadNotificationCount: jest.fn(() => ({
+    count: 0,
+    resetCount: jest.fn(),
+  })),
+}));
+
 describe('Logout Functionality', () => {
   const mockPush = jest.fn();
   const mockSignOut = jest.fn();

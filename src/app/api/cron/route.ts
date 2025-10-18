@@ -15,7 +15,6 @@ export async function GET(request: NextRequest) {
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
       console.warn('🚨 Unauthorized cron attempt:', {
         timestamp: new Date().toISOString(),
-        ip: request.ip,
         userAgent: request.headers.get('user-agent'),
       });
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
