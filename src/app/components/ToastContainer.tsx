@@ -62,12 +62,9 @@ export const ToastContainer: React.FC = () => {
         style={{
           position: 'fixed',
           top: getTopPosition(),
-          left: '50%',
-          transform: 'translateX(-50%)',
-          maxWidth: '1200px',
+          right: 'clamp(1rem, 3vw, 2rem)',
+          maxWidth: 'min(90vw, 400px)',
           width: '100%',
-          paddingLeft: '2rem',
-          paddingRight: '2rem',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'flex-end',
@@ -79,7 +76,7 @@ export const ToastContainer: React.FC = () => {
       >
         <div
           style={{
-            maxWidth: '320px',
+            width: '100%',
             pointerEvents: 'auto',
             display: 'flex',
             flexDirection: 'column',

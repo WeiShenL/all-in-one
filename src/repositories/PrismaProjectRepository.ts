@@ -8,7 +8,7 @@
  * SCRUM-30: Create New Project - Prisma Repository Implementation
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, ProjectStatus } from '@prisma/client';
 import { Project } from '../domain/project/Project';
 import { IProjectRepository } from './IProjectRepository';
 
@@ -180,5 +180,52 @@ export class PrismaProjectRepository implements IProjectRepository {
         updatedAt: new Date(),
       },
     });
+  }
+
+  /**
+   * Get all projects with optional filters
+   */
+  async getAllProjects(filters?: {
+    departmentId?: string;
+    creatorId?: string;
+    status?: string;
+    isArchived?: boolean;
+  }): Promise<
+    Array<{
+      id: string;
+      name: string;
+      description: string | null;
+      priority: number;
+      status: string;
+      departmentId: string;
+      creatorId: string;
+      isArchived: boolean;
+      createdAt: Date;
+      updatedAt: Date;
+    }>
+  > {
+    const projects = await this.prisma.project.findMany({
+      where: {
+        departmentId: filters?.departmentId,
+        creatorId: filters?.creatorId,
+        status: filters?.status as ProjectStatus | undefined,
+        isArchived: filters?.isArchived ?? false,
+      },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        priority: true,
+        status: true,
+        departmentId: true,
+        creatorId: true,
+        isArchived: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }],
+    });
+
+    return projects;
   }
 }
