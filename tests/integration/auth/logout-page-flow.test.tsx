@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/supabase/auth-context';
 import PersonalDashboard from '@/app/dashboard/personal/page';
 import DepartmentDashboard from '@/app/dashboard/department/page';
@@ -15,6 +15,7 @@ const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 // Mock dependencies
 jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
+  usePathname: jest.fn(),
 }));
 
 jest.mock('@/lib/supabase/auth-context', () => ({
@@ -48,6 +49,21 @@ jest.mock('@/app/lib/trpc', () => {
           useQuery: jest.fn(),
         },
       },
+      notification: {
+        getUnreadNotifications: {
+          useQuery: jest.fn(),
+        },
+        getUnreadCount: {
+          useQuery: jest.fn(),
+        },
+        getNotifications: {
+          useQuery: jest.fn(),
+        },
+        markAsRead: {
+          useMutation: jest.fn(),
+        },
+      },
+      useUtils: jest.fn(),
     },
   };
 });
@@ -70,6 +86,7 @@ describe('Logout Page Flow', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (useRouter as jest.Mock).mockReturnValue({ push: mockPush });
+    (usePathname as jest.Mock).mockReturnValue('/dashboard/personal');
     (useAuth as jest.Mock).mockReturnValue(mockAuthenticatedUser);
 
     // Mock useSecureLogout hook
@@ -121,6 +138,50 @@ describe('Logout Page Flow', () => {
       ],
       isLoading: false,
       error: null,
+    });
+
+    // Mock tRPC notification.getUnreadNotifications query
+    (
+      trpc.notification.getUnreadNotifications.useQuery as jest.Mock
+    ).mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+    });
+
+    // Mock tRPC notification.getUnreadCount query
+    (trpc.notification.getUnreadCount.useQuery as jest.Mock).mockReturnValue({
+      data: { count: 0 },
+      isLoading: false,
+      error: null,
+      refetch: jest.fn(),
+    });
+
+    // Mock tRPC notification.getNotifications query (used by NotificationModal)
+    (trpc.notification.getNotifications.useQuery as jest.Mock).mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+      refetch: jest.fn(),
+    });
+
+    // Mock tRPC notification.markAsRead mutation (used by NotificationModal)
+    (trpc.notification.markAsRead.useMutation as jest.Mock).mockReturnValue({
+      mutate: jest.fn(),
+      isLoading: false,
+      error: null,
+    });
+
+    // Mock tRPC useUtils for notification invalidation
+    (trpc.useUtils as jest.Mock).mockReturnValue({
+      notification: {
+        getUnreadNotifications: {
+          invalidate: jest.fn(),
+        },
+        getUnreadCount: {
+          invalidate: jest.fn(),
+        },
+      },
     });
   });
 
