@@ -34,6 +34,7 @@ describe('Task.create() - Domain Factory Method', () => {
     parentTaskId: null,
     recurringInterval: null,
     isArchived: false,
+    startDate: null,
     assignments: new Set<string>(['assignee-1']),
     tags: new Set<string>(),
   };

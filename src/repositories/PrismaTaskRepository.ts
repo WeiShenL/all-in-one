@@ -470,6 +470,7 @@ export class PrismaTaskRepository implements ITaskRepository {
     recurringInterval: number | null;
     isArchived: boolean;
     createdAt: Date;
+    startDate: Date | null;
     updatedAt: Date;
     assignments: Array<{ userId: string }>;
     tags: Array<{ tag: { name: string } }>;

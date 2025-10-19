@@ -22,6 +22,7 @@ export interface CalendarEvent {
     priority: number;
     isCompleted: boolean;
     isStarted: boolean; // True when work has begun (startDate exists)
+    isOverdue: boolean; // True when task started after its due date (startDate > dueDate)
     description: string;
     createdAt: Date;
     departmentName: string;

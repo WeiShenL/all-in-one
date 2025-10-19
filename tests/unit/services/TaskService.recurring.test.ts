@@ -83,6 +83,7 @@ describe('TaskService - Recurring Tasks', () => {
         parentTaskId: null,
         recurringInterval,
         isArchived: false,
+        startDate: null,
         createdAt: new Date(),
         updatedAt: new Date(),
         assignments: [
@@ -185,6 +186,7 @@ describe('TaskService - Recurring Tasks', () => {
         parentTaskId: null,
         recurringInterval: null, // No recurrence
         isArchived: false,
+        startDate: null,
         createdAt: new Date(),
         updatedAt: new Date(),
         assignments: [],
@@ -221,6 +223,7 @@ describe('TaskService - Recurring Tasks', () => {
         parentTaskId: null,
         recurringInterval: 7,
         isArchived: false,
+        startDate: null,
         createdAt: new Date(),
         updatedAt: new Date(),
         assignments: [],
@@ -259,6 +262,7 @@ describe('TaskService - Recurring Tasks', () => {
         parentTaskId: null,
         recurringInterval,
         isArchived: false,
+        startDate: null,
         createdAt: new Date(),
         updatedAt: new Date(),
         assignments: [{ userId: 'user-001', taskId: taskId }],
@@ -304,6 +308,7 @@ describe('TaskService - Recurring Tasks', () => {
         parentTaskId, // This is a subtask
         recurringInterval: 7,
         isArchived: false,
+        startDate: null,
         createdAt: new Date(),
         updatedAt: new Date(),
         assignments: [{ userId: 'user-001', taskId: taskId }],
@@ -354,6 +359,7 @@ describe('TaskService - Recurring Tasks', () => {
         parentTaskId: null,
         recurringInterval: 7,
         isArchived: false,
+        startDate: null,
         createdAt: new Date(),
         updatedAt: new Date(),
         assignments: [{ userId: 'user-001', taskId: taskId }],
@@ -400,6 +406,7 @@ describe('TaskService - Recurring Tasks', () => {
         parentTaskId: null,
         recurringInterval: 1, // Daily
         isArchived: false,
+        startDate: null,
         createdAt: new Date(),
         updatedAt: new Date(),
         assignments: [
@@ -456,6 +463,7 @@ describe('TaskService - Recurring Tasks', () => {
         parentTaskId: null,
         recurringInterval: 7,
         isArchived: false,
+        startDate: null,
         createdAt: new Date(),
         updatedAt: new Date(),
         assignments: [{ userId: 'user-001', taskId: taskId }],
@@ -505,6 +513,7 @@ describe('TaskService - Recurring Tasks', () => {
         parentTaskId: null,
         recurringInterval: 1, // Daily
         isArchived: false,
+        startDate: null,
         createdAt: new Date(),
         updatedAt: new Date(),
         assignments: [{ userId: 'user-001', taskId: taskId }],
@@ -549,6 +558,7 @@ describe('TaskService - Recurring Tasks', () => {
         parentTaskId: null,
         recurringInterval: 365, // Yearly
         isArchived: false,
+        startDate: null,
         createdAt: new Date(),
         updatedAt: new Date(),
         assignments: [{ userId: 'user-001', taskId: taskId }],

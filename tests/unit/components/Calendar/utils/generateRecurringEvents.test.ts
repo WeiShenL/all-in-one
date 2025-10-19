@@ -20,8 +20,17 @@ describe('generateRecurringEvents', () => {
       status: 'TO_DO',
       priority: 5,
       isCompleted: false,
-      departmentId: 'dept-1',
-      assignees: ['user-1'],
+      isStarted: false,
+      isOverdue: false,
+      description: 'Weekly standup meeting',
+      createdAt: new Date('2025-10-15T00:00:00.000Z'),
+      departmentName: 'Engineering',
+      ownerName: 'John Doe',
+      ownerEmail: 'john@example.com',
+      assigneeDetails: [{ name: 'User 1', email: 'user1@example.com' }],
+      tags: [],
+      recurringInterval: null,
+      parentTaskId: null,
     },
   };
 
@@ -103,8 +112,10 @@ describe('generateRecurringEvents', () => {
         expect(event.resource.status).toBe('TO_DO');
         expect(event.resource.priority).toBe(5);
         expect(event.resource.isCompleted).toBe(false);
-        expect(event.resource.departmentId).toBe('dept-1');
-        expect(event.resource.assignees).toEqual(['user-1']);
+        expect(event.resource.departmentName).toBe('Engineering');
+        expect(event.resource.assigneeDetails).toEqual([
+          { name: 'User 1', email: 'user1@example.com' },
+        ]);
       });
     });
   });

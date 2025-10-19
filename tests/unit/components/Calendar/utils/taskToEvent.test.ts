@@ -41,6 +41,7 @@ describe('taskToEvent', () => {
         ],
         tags: ['urgent', 'frontend'],
         recurringInterval: null,
+        parentTaskId: null,
       };
 
       const event: CalendarEvent = taskToEvent(mockTask);
@@ -96,6 +97,7 @@ describe('taskToEvent', () => {
         ],
         tags: [],
         recurringInterval: null,
+        parentTaskId: null,
       };
 
       const event = taskToEvent(mockTask);
@@ -127,6 +129,7 @@ describe('taskToEvent', () => {
         assignments: [],
         tags: [],
         recurringInterval: null,
+        parentTaskId: null,
       };
 
       const event = taskToEvent(mockTask);
@@ -163,6 +166,7 @@ describe('taskToEvent', () => {
         ],
         tags: [],
         recurringInterval: null,
+        parentTaskId: null,
       };
 
       const event = taskToEvent(mockTask);
@@ -199,6 +203,7 @@ describe('taskToEvent', () => {
         ],
         tags: [],
         recurringInterval: null,
+        parentTaskId: null,
       };
 
       const event = taskToEvent(mockTask);
@@ -235,6 +240,7 @@ describe('taskToEvent', () => {
         ],
         tags: [],
         recurringInterval: null,
+        parentTaskId: null,
       };
 
       const event = taskToEvent(mockTask);
@@ -271,6 +277,7 @@ describe('taskToEvent', () => {
         ],
         tags: [],
         recurringInterval: null,
+        parentTaskId: null,
       };
 
       const event = taskToEvent(mockTask);
@@ -308,6 +315,7 @@ describe('taskToEvent', () => {
         ],
         tags: [],
         recurringInterval: null,
+        parentTaskId: null,
       };
 
       const event = taskToEvent(mockTask);
@@ -343,6 +351,7 @@ describe('taskToEvent', () => {
         ],
         tags: [],
         recurringInterval: null,
+        parentTaskId: null,
       };
 
       const event = taskToEvent(mockTask);
@@ -377,6 +386,7 @@ describe('taskToEvent', () => {
         ],
         tags: [],
         recurringInterval: null,
+        parentTaskId: null,
       };
 
       const event = taskToEvent(mockTask);
@@ -411,6 +421,7 @@ describe('taskToEvent', () => {
         ],
         tags: [],
         recurringInterval: null,
+        parentTaskId: null,
       };
 
       const event = taskToEvent(mockTask);
@@ -447,6 +458,7 @@ describe('taskToEvent', () => {
         ],
         tags: [],
         recurringInterval: null,
+        parentTaskId: null,
       };
 
       const event = taskToEvent(mockTask);
@@ -484,6 +496,7 @@ describe('taskToEvent', () => {
         ],
         tags: [],
         recurringInterval: null,
+        parentTaskId: null,
       };
 
       const event = taskToEvent(mockTask);
@@ -518,6 +531,7 @@ describe('taskToEvent', () => {
         ],
         tags: [],
         recurringInterval: null,
+        parentTaskId: null,
       };
 
       const event = taskToEvent(mockTask);
@@ -552,6 +566,7 @@ describe('taskToEvent', () => {
         ],
         tags: [],
         recurringInterval: null,
+        parentTaskId: null,
       };
 
       const event = taskToEvent(mockTask);
@@ -590,6 +605,7 @@ describe('taskToEvent', () => {
         ],
         tags: ['recurring'],
         recurringInterval: 7,
+        parentTaskId: null,
       };
 
       const event = taskToEvent(mockTask);
@@ -637,6 +653,7 @@ describe('taskToEvent', () => {
         ],
         tags: ['backend', 'api'],
         recurringInterval: null,
+        parentTaskId: null,
       };
 
       const event = taskToEvent(mockTask);

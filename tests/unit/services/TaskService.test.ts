@@ -44,6 +44,7 @@ describe('TaskService - READ and UPDATE Operations', () => {
     parentTaskId: null,
     recurringInterval: null,
     isArchived: false,
+    startDate: null,
     createdAt: new Date('2025-01-01'),
     updatedAt: new Date('2025-01-01'),
     assignments: [{ userId: 'user-123' }],

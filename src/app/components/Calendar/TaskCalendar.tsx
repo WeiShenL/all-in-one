@@ -51,18 +51,30 @@ interface TaskCalendarProps {
  */
 function eventStyleGetter(event: CalendarEvent) {
   const isStarted = event.resource.isStarted;
+  const isOverdue = event.resource.isOverdue;
   const isRecurring =
     event.resource.recurringInterval && event.resource.recurringInterval > 0;
   const isForecastedRecurrence = event.id.includes('-recur-'); // Forecasted occurrences have "-recur-" in ID
 
   let backgroundColor: string;
+  let borderColor: string;
+  let borderWidth: string;
 
   // Forecasted recurring occurrences (not yet created) use gray
   if (isForecastedRecurrence) {
     backgroundColor = '#cbd5e0'; // Light gray for forecasted recurring
+    borderColor = getPriorityColor(event.resource.priority);
+    borderWidth = '0 0 0 3px';
+  } else if (isOverdue) {
+    // Overdue tasks (started after deadline) use orange with red border
+    backgroundColor = '#fb923c'; // Orange for overdue
+    borderColor = '#dc2626'; // Red border for emphasis
+    borderWidth = '2px'; // Thicker border all around
   } else {
     // Always use actual task status for color
     backgroundColor = getStatusColor(event.resource.status);
+    borderColor = getPriorityColor(event.resource.priority);
+    borderWidth = '0 0 0 3px';
   }
 
   // Get original task ID (without -recur- suffix)
@@ -73,9 +85,9 @@ function eventStyleGetter(event: CalendarEvent) {
       backgroundColor,
       opacity: isStarted ? 1.0 : 0.6, // TO_DO tasks lighter
       borderRadius: '4px',
-      borderWidth: '0 0 0 3px',
+      borderWidth,
       borderStyle: isRecurring ? 'dashed' : 'solid', // Dashed border for recurring
-      borderColor: getPriorityColor(event.resource.priority), // Priority indicator
+      borderColor,
       color: '#ffffff',
       fontSize: '0.875rem',
       padding: '2px 5px',
@@ -706,6 +718,16 @@ export function TaskCalendar({
               }}
             ></span>
             <span>BLOCKED</span>
+          </div>
+          <div style={styles.legendItem}>
+            <span
+              style={{
+                ...styles.legendColor,
+                backgroundColor: '#fb923c',
+                border: '2px solid #dc2626',
+              }}
+            ></span>
+            <span>⚠️ OVERDUE (started late)</span>
           </div>
           <div style={styles.legendItem}>
             <span

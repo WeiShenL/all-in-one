@@ -207,6 +207,7 @@ export class Task {
       recurringInterval: data.recurringInterval,
       isArchived: false,
       createdAt: now,
+      startDate: null, // New tasks have no start date until moved to IN_PROGRESS
       updatedAt: now,
       assignments: data.assignments,
       tags: data.tags,
