@@ -63,7 +63,7 @@ export const ToastContainer: React.FC = () => {
           position: 'fixed',
           top: getTopPosition(),
           right: 'clamp(1rem, 3vw, 2rem)',
-          maxWidth: 'min(90vw, 400px)',
+          maxWidth: 'min(90vw, 320px)',
           width: '100%',
           display: 'flex',
           flexDirection: 'column',
