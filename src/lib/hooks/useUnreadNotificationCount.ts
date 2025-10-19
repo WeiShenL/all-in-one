@@ -1,22 +1,20 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRealtimeNotifications } from './useRealtimeNotifications';
+import { useNotifications } from '@/lib/context/NotificationContext';
 
 const STORAGE_KEY = 'unreadNotificationCount';
 
 export function useUnreadNotificationCount() {
   const [count, setCount] = useState(0);
+  const { notifications } = useNotifications();
 
-  // Initialize from localStorage on mount
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
     setCount(stored ? parseInt(stored, 10) : 0);
   }, []);
 
-  // Increment count when new realtime notification arrives
-  const handleNewNotification = useCallback(() => {
-    // Don't increment if user is on notifications page
+  useEffect(() => {
     if (
       typeof window !== 'undefined' &&
       window.location.pathname === '/notifications'
@@ -24,27 +22,20 @@ export function useUnreadNotificationCount() {
       return;
     }
 
-    setCount(prev => {
-      const newCount = prev + 1;
-      localStorage.setItem(STORAGE_KEY, String(newCount));
-      return newCount;
-    });
-  }, []);
+    if (notifications.length > 0) {
+      setCount(prev => {
+        const newCount = prev + 1;
+        localStorage.setItem(STORAGE_KEY, String(newCount));
+        return newCount;
+      });
+    }
+  }, [notifications.length]);
 
-  // Reset count (called when user opens notifications page)
   const resetCount = useCallback(() => {
     setCount(0);
     localStorage.setItem(STORAGE_KEY, '0');
   }, []);
 
-  // Listen to realtime notifications
-  useRealtimeNotifications({
-    channel: 'notifications',
-    onNotification: handleNewNotification,
-    autoReconnect: true,
-  });
-
-  // Sync across tabs (when another tab resets count)
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY && e.newValue !== null) {

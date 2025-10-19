@@ -10,7 +10,6 @@ export const ToastContainer: React.FC = () => {
 
   return (
     <>
-      {/* Connection status indicator (optional - remove if not needed) */}
       {process.env.NODE_ENV === 'development' && (
         <div className='fixed top-4 left-4 z-[9999]'>
           <div
@@ -24,7 +23,6 @@ export const ToastContainer: React.FC = () => {
         </div>
       )}
 
-      {/* Toast notifications */}
       <div
         className='flex flex-col gap-2'
         style={{

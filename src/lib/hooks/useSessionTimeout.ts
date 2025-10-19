@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
-import { useNotifications } from '@/lib/context/NotificationContext';
+import { useNotificationsOptional } from '@/lib/context/NotificationContext';
 
 const INACTIVITY_TIMEOUT = 15 * 60 * 1000; // 15 minutes in milliseconds
 const WARNING_TIMEOUT = 14 * 60 * 1000; // 14 minutes - show warning 1 min before
@@ -20,8 +20,14 @@ export function useSessionTimeout({
   enabled,
 }: UseSessionTimeoutOptions) {
   const pathname = usePathname();
+  const notificationContext = useNotificationsOptional();
+
   const { addNotification, notifications, dismissNotification } =
-    useNotifications();
+    notificationContext || {
+      addNotification: () => {},
+      notifications: [],
+      dismissNotification: () => {},
+    };
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const warningRef = useRef<NodeJS.Timeout | null>(null);
   const warningShownRef = useRef<boolean>(false);

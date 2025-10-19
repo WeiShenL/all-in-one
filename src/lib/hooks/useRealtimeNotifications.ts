@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { getRealtimeClient } from '@/lib/supabase/client';
 import type {
   RealtimeChannel,
   RealtimeChannelSendResponse,
@@ -30,28 +30,30 @@ export const useRealtimeNotifications = ({
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
-  const supabaseRef = useRef(createClient());
+  const onNotificationRef = useRef(onNotification);
 
   useEffect(() => {
-    const supabase = supabaseRef.current;
+    onNotificationRef.current = onNotification;
+  }, [onNotification]);
 
-    // Create channel and subscribe
+  useEffect(() => {
+    const supabase = getRealtimeClient();
+
     const realtimeChannel = supabase.channel(channel, {
       config: {
         broadcast: {
-          self: true, // Receive own broadcasts for testing
+          self: true,
         },
       },
     });
 
-    // Subscribe to broadcast events
     realtimeChannel
       .on(
         'broadcast',
         { event: 'notification' },
         (payload: { payload: RealtimeNotification }) => {
-          if (onNotification) {
-            onNotification(payload.payload);
+          if (onNotificationRef.current) {
+            onNotificationRef.current(payload.payload);
           }
         }
       )
@@ -72,7 +74,6 @@ export const useRealtimeNotifications = ({
 
     channelRef.current = realtimeChannel;
 
-    // Cleanup on unmount
     return () => {
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
@@ -80,7 +81,7 @@ export const useRealtimeNotifications = ({
       }
       setIsConnected(false);
     };
-  }, [channel, onNotification, autoReconnect]);
+  }, [channel, autoReconnect]);
 
   const sendBroadcast = async (
     notification: Omit<RealtimeNotification, 'broadcast_at'>

@@ -8,6 +8,7 @@ import React, {
   ReactNode,
 } from 'react';
 import { useRealtimeNotifications } from '@/lib/hooks/useRealtimeNotifications';
+import { useAuth } from '@/lib/supabase/auth-context';
 import type {
   Notification,
   NotificationSeverity,
@@ -43,6 +44,14 @@ export const useNotifications = () => {
   return context;
 };
 
+/**
+ * Optional version of useNotifications that returns null if provider is not available
+ * Use this for components that can work without notifications (e.g., in AuthProvider)
+ */
+export const useNotificationsOptional = () => {
+  return useContext(NotificationContext);
+};
+
 interface NotificationProviderProps {
   children: ReactNode;
   autoRemoveDelay?: number;
@@ -56,6 +65,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
 }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [dismissingIds, setDismissingIds] = useState<Set<string>>(new Set());
+  const { user } = useAuth();
 
   const removeNotification = useCallback((id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
@@ -68,9 +78,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
 
   const dismissNotification = useCallback(
     (id: string) => {
-      // Mark as dismissing to trigger exit animation
       setDismissingIds(prev => new Set(prev).add(id));
-      // Remove after animation completes
       setTimeout(() => {
         removeNotification(id);
       }, 300);
@@ -91,11 +99,9 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
 
       setNotifications(prev => {
         const updated = [notification, ...prev];
-        // Keep only the most recent notifications
         return updated.slice(0, maxNotifications);
       });
 
-      // Auto-remove after delay
       if (autoRemoveDelay > 0) {
         setTimeout(() => {
           removeNotification(id);
@@ -109,13 +115,17 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
     setNotifications([]);
   }, []);
 
-  // Handle incoming realtime notifications
   const handleRealtimeNotification = useCallback(
     (notification: RealtimeNotification) => {
+      // Only show notification if it's meant for this user
+      if (notification.userId && user?.id && notification.userId !== user.id) {
+        return;
+      }
+
       const frontendType = toFrontendNotificationType(notification.type);
       addNotification(frontendType, notification.title, notification.message);
     },
-    [addNotification]
+    [addNotification, user?.id]
   );
 
   const { isConnected, error } = useRealtimeNotifications({

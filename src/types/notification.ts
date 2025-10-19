@@ -16,4 +16,5 @@ export interface RealtimeNotification {
   title: string;
   message: string;
   broadcast_at: string;
+  userId: string; // The user this notification is intended for
 }

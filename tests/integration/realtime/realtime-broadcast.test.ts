@@ -142,6 +142,7 @@ describeIfSupabase('Realtime Notifications - Multiple Clients', () => {
         title: 'Test Broadcast',
         message: 'Testing multiple client reception',
         broadcast_at: new Date().toISOString(),
+        userId: 'test-user-id',
       };
 
       await channel1.send({
@@ -237,6 +238,7 @@ describeIfSupabase('Realtime Notifications - Multiple Clients', () => {
         title: 'Broadcast 1',
         message: 'From client 1',
         broadcast_at: new Date().toISOString(),
+        userId: 'test-user-id',
       };
 
       const notification2: RealtimeNotification = {
@@ -244,6 +246,7 @@ describeIfSupabase('Realtime Notifications - Multiple Clients', () => {
         title: 'Broadcast 2',
         message: 'From client 2',
         broadcast_at: new Date().toISOString(),
+        userId: 'test-user-id',
       };
 
       const notification3: RealtimeNotification = {
@@ -251,6 +254,7 @@ describeIfSupabase('Realtime Notifications - Multiple Clients', () => {
         title: 'Broadcast 3',
         message: 'From client 3',
         broadcast_at: new Date().toISOString(),
+        userId: 'test-user-id',
       };
 
       await channel1.send({
@@ -339,6 +343,7 @@ describeIfSupabase('Realtime Notifications - Multiple Clients', () => {
         title: 'Before Unsubscribe',
         message: 'Both clients subscribed',
         broadcast_at: new Date().toISOString(),
+        userId: 'test-user-id',
       };
 
       await channel1.send({
@@ -363,6 +368,7 @@ describeIfSupabase('Realtime Notifications - Multiple Clients', () => {
         title: 'After Unsubscribe',
         message: 'Only client1 subscribed',
         broadcast_at: new Date().toISOString(),
+        userId: 'test-user-id',
       };
 
       await channel1.send({

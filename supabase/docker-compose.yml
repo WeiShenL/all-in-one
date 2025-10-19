@@ -11,7 +11,7 @@ services:
   studio:
     container_name: supabase-studio
     image: supabase/studio:2025.06.30-sha-6f5982d
-    restart: unless-stopped
+    restart: no
     healthcheck:
       test:
         [
@@ -48,7 +48,7 @@ services:
   kong:
     container_name: supabase-kong
     image: kong:2.8.1
-    restart: unless-stopped
+    restart: no
     ports:
       - ${KONG_HTTP_PORT}:8000/tcp
       - ${KONG_HTTPS_PORT}:8443/tcp
@@ -73,7 +73,7 @@ services:
   auth:
     container_name: supabase-auth
     image: supabase/gotrue:v2.177.0
-    restart: unless-stopped
+    restart: no
     healthcheck:
       test:
         [
@@ -154,7 +154,7 @@ services:
   rest:
     container_name: supabase-rest
     image: postgrest/postgrest:v12.2.12
-    restart: unless-stopped
+    restart: no
     depends_on:
       db:
         # Disable this if you are using an external Postgres database
@@ -173,7 +173,7 @@ services:
     # This container name looks inconsistent but is correct because realtime constructs tenant id by parsing the subdomain
     container_name: realtime-dev.supabase-realtime
     image: supabase/realtime:v2.34.47
-    restart: unless-stopped
+    restart: no
     depends_on:
       db:
         # Disable this if you are using an external Postgres database
@@ -216,7 +216,7 @@ services:
   storage:
     container_name: supabase-storage
     image: supabase/storage-api:v1.25.7
-    restart: unless-stopped
+    restart: no
     # volumes:
     #   - ./volumes/storage:/var/lib/storage:z  # Commented out for ephemeral storage
     healthcheck:
@@ -259,7 +259,7 @@ services:
   imgproxy:
     container_name: supabase-imgproxy
     image: darthsim/imgproxy:v3.8.0
-    restart: unless-stopped
+    restart: no
     # volumes:
     #   - ./volumes/storage:/var/lib/storage:z  # Commented out for ephemeral storage
     healthcheck:
@@ -276,7 +276,7 @@ services:
   meta:
     container_name: supabase-meta
     image: supabase/postgres-meta:v0.91.0
-    restart: unless-stopped
+    restart: no
     depends_on:
       db:
         # Disable this if you are using an external Postgres database
@@ -292,7 +292,7 @@ services:
   functions:
     container_name: supabase-edge-functions
     image: supabase/edge-runtime:v1.69.6
-    restart: unless-stopped
+    restart: no
     volumes:
       - ./volumes/functions:/home/deno/functions:Z
     environment:
@@ -309,7 +309,7 @@ services:
   db:
     container_name: supabase-db
     image: supabase/postgres:15.8.1.060
-    restart: unless-stopped
+    restart: no
     volumes:
       - ./volumes/db/realtime.sql:/docker-entrypoint-initdb.d/migrations/99-realtime.sql:Z
       # Must be superuser to create event trigger

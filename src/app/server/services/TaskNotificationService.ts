@@ -98,7 +98,8 @@ export class TaskNotificationService {
         type: type,
         title: title,
         message: message,
-        broadcast_at: new Date().toISOString(), // Add broadcast_at
+        broadcast_at: new Date().toISOString(),
+        userId: user.id, // Add userId so client can filter
       });
 
       // 3. Send email notification using the new EmailService.sendEmail
