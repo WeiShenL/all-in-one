@@ -37,6 +37,12 @@ describe('TaskNotificationService', () => {
     mockRealtimeService = new RealtimeService() as jest.Mocked<RealtimeService>;
     mockEmailService = new EmailService() as jest.Mocked<EmailService>;
 
+    // Mock sendNotification to return a resolved promise
+    mockRealtimeService.sendNotification = jest
+      .fn()
+      .mockResolvedValue(undefined);
+    mockEmailService.sendEmail = jest.fn().mockResolvedValue(undefined);
+
     taskNotificationService = new TaskNotificationService(
       mockPrisma, // Pass mockPrisma here
       mockNotificationService,
@@ -236,6 +242,9 @@ describe('TaskNotificationService', () => {
       (mockPrisma.task.findMany as jest.Mock).mockResolvedValue(mockTasks);
 
       await taskNotificationService.sendDeadlineReminders(now);
+
+      // Wait for setTimeout to execute (first email is at index 0 * 200 = 0ms, but we add buffer)
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       expect(mockEmailService.sendEmail).toHaveBeenCalledWith(
         expect.objectContaining({

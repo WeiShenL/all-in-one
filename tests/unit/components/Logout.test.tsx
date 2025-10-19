@@ -25,6 +25,13 @@ jest.mock('@/lib/context/NotificationContext', () => ({
     unreadCount: 0,
     markAsRead: jest.fn(),
     markAllAsRead: jest.fn(),
+    dismissAll: jest.fn(),
+    lastNotificationTime: 0,
+    dismissNotification: jest.fn(),
+    removeNotification: jest.fn(),
+    clearAll: jest.fn(),
+    isConnected: true,
+    error: null,
   })),
 }));
 
@@ -33,6 +40,34 @@ jest.mock('@/lib/hooks/useUnreadNotificationCount', () => ({
     count: 0,
     resetCount: jest.fn(),
   })),
+}));
+
+// Mock tRPC
+jest.mock('@/app/lib/trpc', () => ({
+  trpc: {
+    useUtils: jest.fn(() => ({
+      notification: {
+        getUnreadCount: {
+          invalidate: jest.fn(),
+        },
+      },
+    })),
+    notification: {
+      getNotifications: {
+        useQuery: jest.fn(() => ({
+          data: [],
+          isLoading: false,
+          error: null,
+          refetch: jest.fn(),
+        })),
+      },
+      markAsRead: {
+        useMutation: jest.fn(() => ({
+          mutate: jest.fn(),
+        })),
+      },
+    },
+  },
 }));
 
 describe('Logout Functionality', () => {
