@@ -24,12 +24,12 @@ export default function RootLayout({
     <html lang='en'>
       <body className={inter.className}>
         <AuthProvider>
-          <NotificationProvider autoRemoveDelay={60000}>
-            <TRPCProvider>
+          <TRPCProvider>
+            <NotificationProvider autoRemoveDelay={60000}>
               {children}
               <ToastContainer />
-            </TRPCProvider>
-          </NotificationProvider>
+            </NotificationProvider>
+          </TRPCProvider>
         </AuthProvider>
       </body>
     </html>

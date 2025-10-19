@@ -15,7 +15,11 @@ export default function NotificationsPage() {
     error,
   } = trpc.notification.getNotifications.useQuery(
     { userId: user?.id || '' },
-    { enabled: !!user?.id }
+    {
+      enabled: !!user?.id,
+      refetchInterval: 10000, // Refetch every 10 seconds
+      refetchOnWindowFocus: true,
+    }
   );
 
   // Reset unread count when user opens this page

@@ -6,9 +6,13 @@ import React, {
   useState,
   useCallback,
   ReactNode,
+  useEffect,
+  useRef,
 } from 'react';
+import { usePathname } from 'next/navigation';
 import { useRealtimeNotifications } from '@/lib/hooks/useRealtimeNotifications';
 import { useAuth } from '@/lib/supabase/auth-context';
+import { trpc } from '@/app/lib/trpc';
 import type {
   Notification,
   NotificationSeverity,
@@ -66,6 +70,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [dismissingIds, setDismissingIds] = useState<Set<string>>(new Set());
   const { user } = useAuth();
+  const pathname = usePathname();
 
   const removeNotification = useCallback((id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
@@ -115,8 +120,16 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
     setNotifications([]);
   }, []);
 
+  // Check if we're on an auth page (do this early, before realtime setup)
+  const isAuthPage = pathname?.startsWith('/auth') ?? false;
+
   const handleRealtimeNotification = useCallback(
     (notification: RealtimeNotification) => {
+      // Don't show notifications on auth pages
+      if (isAuthPage) {
+        return;
+      }
+
       // Only show notification if it's meant for this user
       if (notification.userId && user?.id && notification.userId !== user.id) {
         return;
@@ -125,7 +138,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
       const frontendType = toFrontendNotificationType(notification.type);
       addNotification(frontendType, notification.title, notification.message);
     },
-    [addNotification, user?.id]
+    [addNotification, user?.id, isAuthPage]
   );
 
   const { isConnected, error } = useRealtimeNotifications({
@@ -133,6 +146,84 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
     onNotification: handleRealtimeNotification,
     autoReconnect: true,
   });
+
+  // Track if we've already fetched unread notifications for this user session
+  const hasLoadedUnreadRef = useRef(false);
+  const displayedNotificationIdsRef = useRef<Set<string>>(new Set());
+  const previousUserIdRef = useRef<string | null>(null);
+
+  // Fetch unread notifications - NEVER on auth pages
+  const { data: unreadNotifications } =
+    trpc.notification.getUnreadNotifications.useQuery(
+      { userId: user?.id ?? '' },
+      {
+        enabled: !!user?.id && !isAuthPage && !hasLoadedUnreadRef.current,
+        refetchOnWindowFocus: false,
+        refetchOnMount: false,
+      }
+    );
+
+  const markAsReadMutation = trpc.notification.markAsRead.useMutation();
+
+  // Display unread notifications as toasts when they're fetched
+  useEffect(() => {
+    // Guard conditions
+    if (!unreadNotifications || unreadNotifications.length === 0) {
+      return;
+    }
+    if (!user?.id || isAuthPage || hasLoadedUnreadRef.current) {
+      return;
+    }
+
+    // Mark that we've loaded unread notifications for this session
+    hasLoadedUnreadRef.current = true;
+
+    // Display each unread notification as a toast (skip duplicates)
+    const notificationIds: string[] = [];
+    unreadNotifications.forEach(dbNotification => {
+      // Skip if already displayed
+      if (displayedNotificationIdsRef.current.has(dbNotification.id)) {
+        return;
+      }
+
+      const frontendType = toFrontendNotificationType(dbNotification.type);
+      addNotification(
+        frontendType,
+        dbNotification.title,
+        dbNotification.message
+      );
+      notificationIds.push(dbNotification.id);
+      displayedNotificationIdsRef.current.add(dbNotification.id);
+    });
+
+    // Mark notifications as read after displaying them
+    if (notificationIds.length > 0) {
+      // Delay marking as read to ensure toasts are visible first
+      setTimeout(() => {
+        markAsReadMutation.mutate({ notificationIds });
+      }, 1000);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unreadNotifications, user?.id, isAuthPage]);
+
+  // Reset the loaded flag when user logs out or changes
+  useEffect(() => {
+    if (!user?.id) {
+      hasLoadedUnreadRef.current = false;
+      displayedNotificationIdsRef.current.clear();
+      previousUserIdRef.current = null;
+    } else if (
+      previousUserIdRef.current &&
+      previousUserIdRef.current !== user.id
+    ) {
+      // New user logged in, reset the flag
+      hasLoadedUnreadRef.current = false;
+      displayedNotificationIdsRef.current.clear();
+      previousUserIdRef.current = user.id;
+    } else if (!previousUserIdRef.current) {
+      previousUserIdRef.current = user.id;
+    }
+  }, [user?.id]);
 
   const value: NotificationContextType = {
     notifications: notifications.map(n => ({
