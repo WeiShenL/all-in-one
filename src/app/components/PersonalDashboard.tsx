@@ -32,12 +32,20 @@ export function PersonalDashboard() {
       }
     : undefined;
 
+  const handleTaskUpdated = utils
+    ? () => {
+        // Invalidate the query to trigger a refetch
+        utils.task.getUserTasks.invalidate();
+      }
+    : undefined;
+
   return (
     <TaskTable
       tasks={data || []}
       title='All Tasks'
       showCreateButton={true}
       onTaskCreated={handleTaskCreated}
+      onTaskUpdated={handleTaskUpdated}
       emptyStateConfig={{
         icon: '📝',
         title: 'No tasks assigned to you yet',
