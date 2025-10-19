@@ -1,16 +1,16 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useNotifications } from '@/lib/context/NotificationContext';
 import { useAuth } from '@/lib/supabase/auth-context';
+import { useNotifications } from '@/lib/context/NotificationContext';
 import { trpc } from '@/app/lib/trpc';
 
 const STORAGE_KEY = 'unreadNotificationCount';
 
 export function useUnreadNotificationCount() {
   const [count, setCount] = useState(0);
-  const { notifications } = useNotifications();
   const { user } = useAuth();
+  const { lastNotificationTime } = useNotifications();
 
   // Fetch actual unread count from database (just the count, not the full notifications)
   const { data: unreadCountData, refetch } =
@@ -23,7 +23,7 @@ export function useUnreadNotificationCount() {
       }
     );
 
-  // Update count when database count changes
+  // Update count when database count changes - this is the source of truth
   useEffect(() => {
     if (unreadCountData) {
       setCount(unreadCountData.count);
@@ -31,23 +31,12 @@ export function useUnreadNotificationCount() {
     }
   }, [unreadCountData]);
 
-  // Also increment count when new toast notifications appear (for immediate feedback)
+  // Refetch count when new realtime notification arrives
   useEffect(() => {
-    if (
-      typeof window !== 'undefined' &&
-      window.location.pathname === '/notifications'
-    ) {
-      return;
+    if (lastNotificationTime > 0) {
+      refetch();
     }
-
-    if (notifications.length > 0) {
-      setCount(prev => {
-        const newCount = prev + 1;
-        localStorage.setItem(STORAGE_KEY, String(newCount));
-        return newCount;
-      });
-    }
-  }, [notifications.length]);
+  }, [lastNotificationTime, refetch]);
 
   const resetCount = useCallback(() => {
     setCount(0);

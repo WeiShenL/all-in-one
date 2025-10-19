@@ -320,6 +320,7 @@ model Notification {
   @@index([createdAt])
   @@index([type])
   @@index([taskId])
+  @@index([userId, isRead, createdAt])
   @@map("notification")
 }
 

@@ -1,12 +1,46 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNotifications } from '@/lib/context/NotificationContext';
 import { Toast } from './Toast';
 
 export const ToastContainer: React.FC = () => {
   const { notifications, dismissNotification, isConnected } =
     useNotifications();
+  const [scrollY, setScrollY] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrollY(window.scrollY);
+    };
+
+    // Set initial scroll position
+    handleScroll();
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Calculate dynamic top position
+  // Original position: calc(1rem + 56px + 0.75rem) ≈ 72.75px
+  // Sticky position: 1rem = 16px
+  // Transition starts at 0px scroll, fully transitioned at 100px scroll
+  const originalTop = 72.75; // in pixels
+  const stickyTop = 16; // 1rem in pixels
+  const transitionDistance = 100; // pixels of scroll to complete transition
+
+  const getTopPosition = () => {
+    if (scrollY === 0) {
+      return `${originalTop}px`;
+    }
+    if (scrollY >= transitionDistance) {
+      return `${stickyTop}px`;
+    }
+    // Linear interpolation between original and sticky position
+    const progress = scrollY / transitionDistance;
+    const currentTop = originalTop - (originalTop - stickyTop) * progress;
+    return `${currentTop}px`;
+  };
 
   return (
     <>
@@ -27,7 +61,7 @@ export const ToastContainer: React.FC = () => {
         className='flex flex-col gap-2'
         style={{
           position: 'fixed',
-          top: 'calc(1rem + 56px + 0.75rem)',
+          top: getTopPosition(),
           left: '50%',
           transform: 'translateX(-50%)',
           maxWidth: '1200px',

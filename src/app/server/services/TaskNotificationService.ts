@@ -81,48 +81,59 @@ export class TaskNotificationService {
     title: string,
     message: string
   ) {
-    for (const assignment of task.assignments) {
-      const user = assignment.user;
+    // Process all assignments in parallel for faster execution
+    const promises = task.assignments.map(
+      async (assignment: any, index: number) => {
+        const user = assignment.user;
 
-      // 1. Create in-app notification in the database using the new NotificationService
-      await this.notificationService.create({
-        userId: user.id,
-        taskId: task.id,
-        type: type, // Use the determined type
-        title: title, // Use the determined title
-        message: message,
-      });
-
-      // 2. Send real-time notification
-      await this.realtimeService.sendNotification(user.id, {
-        type: type,
-        title: title,
-        message: message,
-        broadcast_at: new Date().toISOString(),
-        userId: user.id, // Add userId so client can filter
-      });
-
-      // 3. Send email notification using the new EmailService.sendEmail
-      if (user.email) {
-        let emailMessage = `<p>Dear ${user.name || 'User'},</p><p>${message}</p>`;
-        if (user.isHrAdmin) {
-          emailMessage += `<p><b>This is a notification for the HR department.</b></p>`;
-        }
-        emailMessage += `<p>You can view the task here: <a href="${process.env.NEXT_PUBLIC_BASE_URL}/tasks/${task.id}">${task.title}</a></p><p>Regards,<br>Your Application Team</p>`;
-
-        // Determine recipient based on environment configuration
-        // For Resend free tier: Use TEST_EMAIL_RECIPIENT (must be verified in Resend Dashboard)
-        const recipient = process.env.TEST_EMAIL_RECIPIENT || user.email;
-
-        await this.emailService.sendEmail({
-          to: recipient,
-          subject: title,
-          text: message,
-          html: emailMessage,
+        // 1. Create in-app notification in the database
+        await this.notificationService.create({
+          userId: user.id,
+          taskId: task.id,
+          type: type,
+          title: title,
+          message: message,
         });
-        // Add a delay to avoid hitting the rate limit
-        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // 2. Send real-time notification (don't wait for it)
+        this.realtimeService
+          .sendNotification(user.id, {
+            type: type,
+            title: title,
+            message: message,
+            broadcast_at: new Date().toISOString(),
+            userId: user.id,
+          })
+          .catch(err =>
+            console.error('Failed to send realtime notification:', err)
+          );
+
+        // 3. Send email notification asynchronously with staggered delays
+        if (user.email) {
+          let emailMessage = `<p>Dear ${user.name || 'User'},</p><p>${message}</p>`;
+          if (user.isHrAdmin) {
+            emailMessage += `<p><b>This is a notification for the HR department.</b></p>`;
+          }
+          emailMessage += `<p>You can view the task here: <a href="${process.env.NEXT_PUBLIC_BASE_URL}/tasks/${task.id}">${task.title}</a></p><p>Regards,<br>Your Application Team</p>`;
+
+          const recipient = process.env.TEST_EMAIL_RECIPIENT || user.email;
+
+          // Stagger emails by 200ms each to avoid rate limiting, but don't block the cron job
+          setTimeout(() => {
+            this.emailService
+              .sendEmail({
+                to: recipient,
+                subject: title,
+                text: message,
+                html: emailMessage,
+              })
+              .catch(err => console.error('Failed to send email:', err));
+          }, index * 200); // 200ms delay between each email
+        }
       }
-    }
+    );
+
+    // Wait for all database notifications to be created
+    await Promise.all(promises);
   }
 }

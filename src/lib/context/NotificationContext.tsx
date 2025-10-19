@@ -30,8 +30,10 @@ interface NotificationContextType {
   removeNotification: (id: string) => void;
   dismissNotification: (id: string) => void;
   clearAll: () => void;
+  dismissAll: () => void; // Dismiss all with animation
   isConnected: boolean;
   error: Error | null;
+  lastNotificationTime: number; // Timestamp of last notification received
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(
@@ -69,6 +71,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
 }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [dismissingIds, setDismissingIds] = useState<Set<string>>(new Set());
+  const [lastNotificationTime, setLastNotificationTime] = useState<number>(0);
   const { user } = useAuth();
   const pathname = usePathname();
 
@@ -120,6 +123,13 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
     setNotifications([]);
   }, []);
 
+  const dismissAll = useCallback(() => {
+    // Dismiss all notifications with animation
+    notifications.forEach(notification => {
+      dismissNotification(notification.id);
+    });
+  }, [notifications, dismissNotification]);
+
   // Check if we're on an auth page (do this early, before realtime setup)
   const isAuthPage = pathname?.startsWith('/auth') ?? false;
 
@@ -137,6 +147,9 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
 
       const frontendType = toFrontendNotificationType(notification.type);
       addNotification(frontendType, notification.title, notification.message);
+
+      // Update timestamp to trigger refetch in other components
+      setLastNotificationTime(Date.now());
     },
     [addNotification, user?.id, isAuthPage]
   );
@@ -162,8 +175,6 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
         refetchOnMount: false,
       }
     );
-
-  const markAsReadMutation = trpc.notification.markAsRead.useMutation();
 
   // Display unread notifications as toasts when they're fetched
   useEffect(() => {
@@ -196,19 +207,24 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
       displayedNotificationIdsRef.current.add(dbNotification.id);
     });
 
-    // Mark notifications as read after displaying them
-    if (notificationIds.length > 0) {
-      // Delay marking as read to ensure toasts are visible first
-      setTimeout(() => {
-        markAsReadMutation.mutate({ notificationIds });
-      }, 1000);
-    }
+    // Don't automatically mark as read here - let the user open the modal to mark as read
+    // This way the count stays accurate until the user actually views them
+    // if (notificationIds.length > 0) {
+    //   setTimeout(() => {
+    //     markAsReadMutation.mutate({ notificationIds });
+    //   }, 1000);
+    // }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unreadNotifications, user?.id, isAuthPage]);
 
   // Reset the loaded flag when user logs out or changes
   useEffect(() => {
     if (!user?.id) {
+      // User logged out - dismiss all notifications with animation
+      notifications.forEach(notification => {
+        dismissNotification(notification.id);
+      });
+
       hasLoadedUnreadRef.current = false;
       displayedNotificationIdsRef.current.clear();
       previousUserIdRef.current = null;
@@ -223,7 +239,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
     } else if (!previousUserIdRef.current) {
       previousUserIdRef.current = user.id;
     }
-  }, [user?.id]);
+  }, [user?.id, notifications, dismissNotification]);
 
   const value: NotificationContextType = {
     notifications: notifications.map(n => ({
@@ -234,8 +250,10 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
     removeNotification,
     dismissNotification,
     clearAll,
+    dismissAll,
     isConnected,
     error,
+    lastNotificationTime,
   };
 
   return (

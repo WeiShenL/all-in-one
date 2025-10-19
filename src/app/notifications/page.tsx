@@ -5,14 +5,17 @@ import Navbar from '@/app/components/Navbar';
 import { trpc } from '@/app/lib/trpc';
 import { useAuth } from '@/lib/supabase/auth-context';
 import { useUnreadNotificationCount } from '@/lib/hooks/useUnreadNotificationCount';
+import { useNotifications } from '@/lib/context/NotificationContext';
 
 export default function NotificationsPage() {
   const { user } = useAuth();
   const { resetCount } = useUnreadNotificationCount();
+  const { lastNotificationTime } = useNotifications();
   const {
     data: notifications,
     isLoading,
     error,
+    refetch,
   } = trpc.notification.getNotifications.useQuery(
     { userId: user?.id || '' },
     {
@@ -26,6 +29,13 @@ export default function NotificationsPage() {
   useEffect(() => {
     resetCount();
   }, [resetCount]);
+
+  // Refetch when new real-time notification arrives
+  useEffect(() => {
+    if (lastNotificationTime > 0) {
+      refetch();
+    }
+  }, [lastNotificationTime, refetch]);
 
   if (isLoading) {
     return (

@@ -1,15 +1,18 @@
 'use client';
 
+import { useState } from 'react';
 import { useAuth } from '@/lib/supabase/auth-context';
 import { useSecureLogout } from '@/lib/hooks/useSecureLogout';
 import { useUnreadNotificationCount } from '@/lib/hooks/useUnreadNotificationCount';
-import { useRouter } from 'next/navigation';
+import { useNotifications } from '@/lib/context/NotificationContext';
+import { NotificationModal } from './NotificationModal';
 
 export default function Navbar() {
   const { user, userProfile } = useAuth();
   const { handleSecureLogout, isLoggingOut } = useSecureLogout();
   const { count: unreadCount } = useUnreadNotificationCount();
-  const router = useRouter();
+  const { dismissAll } = useNotifications();
+  const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
 
   // Get dashboard route - all users go to personal dashboard by default
   const getDashboardRoute = () => {
@@ -142,7 +145,10 @@ export default function Navbar() {
               color: '#495057',
               fontSize: '1.25rem',
             }}
-            onClick={() => router.push('/notifications')}
+            onClick={() => {
+              setIsNotificationModalOpen(true);
+              dismissAll(); // Dismiss all toast notifications
+            }}
           >
             🔔
             {unreadCount > 0 && (
@@ -192,6 +198,12 @@ export default function Navbar() {
           </button>
         </div>
       </div>
+
+      {/* Notification Modal */}
+      <NotificationModal
+        isOpen={isNotificationModalOpen}
+        onClose={() => setIsNotificationModalOpen(false)}
+      />
     </nav>
   );
 }
