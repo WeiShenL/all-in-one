@@ -12,7 +12,7 @@ export const Toast: React.FC<ToastProps> = ({ notification, onClose }) => {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    setTimeout(() => setIsVisible(true), 10);
+    const visibilityTimer = setTimeout(() => setIsVisible(true), 10);
 
     // Pre-animate exit before removal
     const exitDelay = 59000; // Start exit animation 1 second before removal (at 59s)
@@ -20,7 +20,10 @@ export const Toast: React.FC<ToastProps> = ({ notification, onClose }) => {
       onClose(notification.id);
     }, exitDelay);
 
-    return () => clearTimeout(exitTimer);
+    return () => {
+      clearTimeout(visibilityTimer);
+      clearTimeout(exitTimer);
+    };
   }, [notification.id, onClose]);
 
   const handleClose = () => {

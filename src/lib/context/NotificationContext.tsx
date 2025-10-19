@@ -6,27 +6,34 @@ import React, {
   useState,
   useCallback,
   ReactNode,
+  useEffect,
+  useRef,
 } from 'react';
+import { usePathname } from 'next/navigation';
 import { useRealtimeNotifications } from '@/lib/hooks/useRealtimeNotifications';
+import { useAuth } from '@/lib/supabase/auth-context';
+import { trpc } from '@/app/lib/trpc';
 import type {
   Notification,
-  NotificationType,
+  NotificationSeverity,
   RealtimeNotification,
 } from '@/types/notification';
+import { toFrontendNotificationType } from '@/lib/notificationTypeMapping';
 
 interface NotificationContextType {
   notifications: Notification[];
   addNotification: (
-    type: NotificationType,
+    type: NotificationSeverity,
     title: string,
-    message: string,
-    customTimeout?: number
+    message: string
   ) => void;
   removeNotification: (id: string) => void;
   dismissNotification: (id: string) => void;
   clearAll: () => void;
+  dismissAll: () => void; // Dismiss all with animation
   isConnected: boolean;
   error: Error | null;
+  lastNotificationTime: number; // Timestamp of last notification received
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(
@@ -43,6 +50,14 @@ export const useNotifications = () => {
   return context;
 };
 
+/**
+ * Optional version of useNotifications that returns null if provider is not available
+ * Use this for components that can work without notifications (e.g., in AuthProvider)
+ */
+export const useNotificationsOptional = () => {
+  return useContext(NotificationContext);
+};
+
 interface NotificationProviderProps {
   children: ReactNode;
   autoRemoveDelay?: number;
@@ -56,6 +71,9 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
 }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [dismissingIds, setDismissingIds] = useState<Set<string>>(new Set());
+  const [lastNotificationTime, setLastNotificationTime] = useState<number>(0);
+  const { user } = useAuth();
+  const pathname = usePathname();
 
   const removeNotification = useCallback((id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
@@ -68,9 +86,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
 
   const dismissNotification = useCallback(
     (id: string) => {
-      // Mark as dismissing to trigger exit animation
       setDismissingIds(prev => new Set(prev).add(id));
-      // Remove after animation completes
       setTimeout(() => {
         removeNotification(id);
       }, 300);
@@ -79,12 +95,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
   );
 
   const addNotification = useCallback(
-    (
-      type: NotificationType,
-      title: string,
-      message: string,
-      customTimeout?: number
-    ) => {
+    (type: NotificationSeverity, title: string, message: string) => {
       const id = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
       const notification: Notification = {
         id,
@@ -96,36 +107,51 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
 
       setNotifications(prev => {
         const updated = [notification, ...prev];
-        // Keep only the most recent notifications
         return updated.slice(0, maxNotifications);
       });
 
-      // Auto-remove after delay (use customTimeout if provided, otherwise use default)
-      const timeoutDuration =
-        customTimeout !== undefined ? customTimeout : autoRemoveDelay;
-      if (timeoutDuration > 0) {
+      if (autoRemoveDelay > 0) {
         setTimeout(() => {
-          dismissNotification(id); // Use dismissNotification to trigger exit animation
-        }, timeoutDuration);
+          removeNotification(id);
+        }, autoRemoveDelay);
       }
     },
-    [autoRemoveDelay, maxNotifications, dismissNotification]
+    [autoRemoveDelay, maxNotifications, removeNotification]
   );
 
   const clearAll = useCallback(() => {
     setNotifications([]);
   }, []);
 
-  // Handle incoming realtime notifications
+  const dismissAll = useCallback(() => {
+    // Dismiss all notifications with animation
+    notifications.forEach(notification => {
+      dismissNotification(notification.id);
+    });
+  }, [notifications, dismissNotification]);
+
+  // Check if we're on an auth page (do this early, before realtime setup)
+  const isAuthPage = pathname?.startsWith('/auth') ?? false;
+
   const handleRealtimeNotification = useCallback(
     (notification: RealtimeNotification) => {
-      addNotification(
-        notification.type,
-        notification.title,
-        notification.message
-      );
+      // Don't show notifications on auth pages
+      if (isAuthPage) {
+        return;
+      }
+
+      // Only show notification if it's meant for this user
+      if (notification.userId && user?.id && notification.userId !== user.id) {
+        return;
+      }
+
+      const frontendType = toFrontendNotificationType(notification.type);
+      addNotification(frontendType, notification.title, notification.message);
+
+      // Update timestamp to trigger refetch in other components
+      setLastNotificationTime(Date.now());
     },
-    [addNotification]
+    [addNotification, user?.id, isAuthPage]
   );
 
   const { isConnected, error } = useRealtimeNotifications({
@@ -133,6 +159,87 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
     onNotification: handleRealtimeNotification,
     autoReconnect: true,
   });
+
+  // Track if we've already fetched unread notifications for this user session
+  const hasLoadedUnreadRef = useRef(false);
+  const displayedNotificationIdsRef = useRef<Set<string>>(new Set());
+  const previousUserIdRef = useRef<string | null>(null);
+
+  // Fetch unread notifications - NEVER on auth pages
+  const { data: unreadNotifications } =
+    trpc.notification.getUnreadNotifications.useQuery(
+      { userId: user?.id ?? '' },
+      {
+        enabled: !!user?.id && !isAuthPage && !hasLoadedUnreadRef.current,
+        refetchOnWindowFocus: false,
+        refetchOnMount: false,
+      }
+    );
+
+  // Display unread notifications as toasts when they're fetched
+  useEffect(() => {
+    // Guard conditions
+    if (!unreadNotifications || unreadNotifications.length === 0) {
+      return;
+    }
+    if (!user?.id || isAuthPage || hasLoadedUnreadRef.current) {
+      return;
+    }
+
+    // Mark that we've loaded unread notifications for this session
+    hasLoadedUnreadRef.current = true;
+
+    // Display each unread notification as a toast (skip duplicates)
+    const notificationIds: string[] = [];
+    unreadNotifications.forEach(dbNotification => {
+      // Skip if already displayed
+      if (displayedNotificationIdsRef.current.has(dbNotification.id)) {
+        return;
+      }
+
+      const frontendType = toFrontendNotificationType(dbNotification.type);
+      addNotification(
+        frontendType,
+        dbNotification.title,
+        dbNotification.message
+      );
+      notificationIds.push(dbNotification.id);
+      displayedNotificationIdsRef.current.add(dbNotification.id);
+    });
+
+    // Don't automatically mark as read here - let the user open the modal to mark as read
+    // This way the count stays accurate until the user actually views them
+    // if (notificationIds.length > 0) {
+    //   setTimeout(() => {
+    //     markAsReadMutation.mutate({ notificationIds });
+    //   }, 1000);
+    // }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unreadNotifications, user?.id, isAuthPage]);
+
+  // Reset the loaded flag when user logs out or changes
+  useEffect(() => {
+    if (!user?.id) {
+      // User logged out - dismiss all notifications with animation
+      notifications.forEach(notification => {
+        dismissNotification(notification.id);
+      });
+
+      hasLoadedUnreadRef.current = false;
+      displayedNotificationIdsRef.current.clear();
+      previousUserIdRef.current = null;
+    } else if (
+      previousUserIdRef.current &&
+      previousUserIdRef.current !== user.id
+    ) {
+      // New user logged in, reset the flag
+      hasLoadedUnreadRef.current = false;
+      displayedNotificationIdsRef.current.clear();
+      previousUserIdRef.current = user.id;
+    } else if (!previousUserIdRef.current) {
+      previousUserIdRef.current = user.id;
+    }
+  }, [user?.id, notifications, dismissNotification]);
 
   const value: NotificationContextType = {
     notifications: notifications.map(n => ({
@@ -143,8 +250,10 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
     removeNotification,
     dismissNotification,
     clearAll,
+    dismissAll,
     isConnected,
     error,
+    lastNotificationTime,
   };
 
   return (

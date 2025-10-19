@@ -1,12 +1,18 @@
 'use client';
 
+import { useState } from 'react';
 import { useAuth } from '@/lib/supabase/auth-context';
 import { useSecureLogout } from '@/lib/hooks/useSecureLogout';
-import { useState } from 'react';
+import { useUnreadNotificationCount } from '@/lib/hooks/useUnreadNotificationCount';
+import { useNotifications } from '@/lib/context/NotificationContext';
+import { NotificationModal } from './NotificationModal';
 
 export default function Navbar() {
   const { user, userProfile } = useAuth();
   const { handleSecureLogout, isLoggingOut } = useSecureLogout();
+  const { count: unreadCount } = useUnreadNotificationCount();
+  const { dismissAll } = useNotifications();
+  const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Get dashboard route - all users go to personal dashboard by default
@@ -187,6 +193,43 @@ export default function Navbar() {
               gap: '1rem',
             }}
           >
+            {/* Notification Button */}
+            <button
+              style={{
+                position: 'relative',
+                backgroundColor: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '0.5rem',
+                color: '#495057',
+                fontSize: '1.25rem',
+              }}
+              onClick={() => {
+                setIsNotificationModalOpen(true);
+                dismissAll(); // Dismiss all toast notifications
+              }}
+            >
+              🔔
+              {unreadCount > 0 && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '0',
+                    right: '0',
+                    backgroundColor: '#dc3545',
+                    color: 'white',
+                    borderRadius: '50%',
+                    padding: '0.2em 0.5em',
+                    fontSize: '0.75rem',
+                    lineHeight: '1',
+                    transform: 'translate(50%, -50%)',
+                  }}
+                >
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+
             <span
               style={{
                 color: '#6c757d',
@@ -321,6 +364,48 @@ export default function Navbar() {
             >
               Profile
             </a>
+
+            {/* Notification Button in Mobile Menu */}
+            <button
+              style={{
+                position: 'relative',
+                backgroundColor: '#fff',
+                border: '1px solid #dee2e6',
+                cursor: 'pointer',
+                padding: '0.75rem',
+                borderRadius: '4px',
+                color: '#495057',
+                fontSize: '1rem',
+                fontWeight: '500',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+              }}
+              onClick={() => {
+                setIsNotificationModalOpen(true);
+                dismissAll();
+                setIsMobileMenuOpen(false); // Close mobile menu
+              }}
+            >
+              <span style={{ fontSize: '1.25rem' }}>🔔</span>
+              <span>Notifications</span>
+              {unreadCount > 0 && (
+                <span
+                  style={{
+                    backgroundColor: '#dc3545',
+                    color: 'white',
+                    borderRadius: '50%',
+                    padding: '0.2em 0.6em',
+                    fontSize: '0.75rem',
+                    lineHeight: '1',
+                    marginLeft: 'auto',
+                  }}
+                >
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+
             <div
               style={{
                 display: 'flex',
@@ -355,6 +440,12 @@ export default function Navbar() {
           </div>
         )}
       </div>
+
+      {/* Notification Modal */}
+      <NotificationModal
+        isOpen={isNotificationModalOpen}
+        onClose={() => setIsNotificationModalOpen(false)}
+      />
 
       {/* CSS for responsive behavior */}
       <style jsx>{`

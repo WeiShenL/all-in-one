@@ -20,8 +20,21 @@ jest.mock('@/lib/context/NotificationContext', () => ({
     dismissNotification: mockDismissNotification,
     removeNotification: jest.fn(),
     clearAll: jest.fn(),
+    dismissAll: jest.fn(),
     isConnected: true,
     error: null,
+    lastNotificationTime: 0,
+  }),
+  useNotificationsOptional: () => ({
+    notifications: mockNotifications,
+    addNotification: mockAddNotification,
+    dismissNotification: mockDismissNotification,
+    removeNotification: jest.fn(),
+    clearAll: jest.fn(),
+    dismissAll: jest.fn(),
+    isConnected: true,
+    error: null,
+    lastNotificationTime: 0,
   }),
 }));
 

@@ -465,12 +465,11 @@ export function TaskCreateModal({
       setSuccess('✅ Task created successfully!');
       setError(null);
 
-      // Show notification (SCRUM-31) - 5 second timeout
+      // Show notification (SCRUM-31) - uses default 60 second timeout
       addNotification(
         'success',
         'Task Created Successfully',
-        `Task "${title}" has been created`,
-        5000
+        `Task "${title}" has been created`
       );
 
       if (onSuccess && createdTask?.id) {

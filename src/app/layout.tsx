@@ -42,14 +42,14 @@ export default function RootLayout({
         />
       </head>
       <body className={inter.className} style={{ margin: 0, padding: 0 }}>
-        <NotificationProvider autoRemoveDelay={60000}>
-          <AuthProvider>
-            <TRPCProvider>
+        <AuthProvider>
+          <TRPCProvider>
+            <NotificationProvider autoRemoveDelay={60000}>
               {children}
               <ToastContainer />
-            </TRPCProvider>
-          </AuthProvider>
-        </NotificationProvider>
+            </NotificationProvider>
+          </TRPCProvider>
+        </AuthProvider>
       </body>
     </html>
   );

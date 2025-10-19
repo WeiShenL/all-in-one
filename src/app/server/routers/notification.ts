@@ -95,4 +95,73 @@ export const notificationRouter = router({
       payload,
     };
   }),
+
+  getNotifications: publicProcedure
+    .input(z.object({ userId: z.string() }))
+    .query(async ({ input, ctx }) => {
+      const { userId } = input;
+      const { prisma } = ctx;
+
+      const notifications = await prisma.notification.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      return notifications;
+    }),
+
+  // Fetch unread notifications for display on login
+  getUnreadNotifications: publicProcedure
+    .input(z.object({ userId: z.string() }))
+    .query(async ({ input, ctx }) => {
+      const { userId } = input;
+      const { prisma } = ctx;
+
+      const notifications = await prisma.notification.findMany({
+        where: {
+          userId,
+          isRead: false,
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 10, // Limit to most recent 10 unread notifications
+      });
+
+      return notifications;
+    }),
+
+  // Mark notifications as read
+  markAsRead: publicProcedure
+    .input(z.object({ notificationIds: z.array(z.string()) }))
+    .mutation(async ({ input, ctx }) => {
+      const { notificationIds } = input;
+      const { prisma } = ctx;
+
+      await prisma.notification.updateMany({
+        where: {
+          id: { in: notificationIds },
+        },
+        data: {
+          isRead: true,
+        },
+      });
+
+      return { success: true, count: notificationIds.length };
+    }),
+
+  // Get count of unread notifications (lightweight, just count)
+  getUnreadCount: publicProcedure
+    .input(z.object({ userId: z.string() }))
+    .query(async ({ input, ctx }) => {
+      const { userId } = input;
+      const { prisma } = ctx;
+
+      const count = await prisma.notification.count({
+        where: {
+          userId,
+          isRead: false,
+        },
+      });
+
+      return { count };
+    }),
 });
