@@ -9,6 +9,15 @@ import { useUnreadNotificationCount } from '@/lib/hooks/useUnreadNotificationCou
 import { useNotifications } from '@/lib/context/NotificationContext';
 import { NotificationModal } from './NotificationModal';
 import { UserDetailsModal } from './UserDetailsModal';
+import {
+  Bell,
+  Home,
+  Users,
+  Building2,
+  Shield,
+  FolderKanban,
+  User,
+} from 'lucide-react';
 
 export default function Navbar() {
   const { user, userProfile } = useAuth();
@@ -114,60 +123,97 @@ export default function Navbar() {
               Task Manager
             </h1>
 
-            {/* Notification Button */}
-            <button
+            <div
               style={{
-                position: 'relative',
-                backgroundColor: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                padding: '0.5rem',
-                color: '#495057',
-                fontSize: '1.25rem',
-                borderRadius: '6px',
-                transition: 'all 0.2s ease',
-              }}
-              onClick={() => {
-                setIsNotificationModalOpen(true);
-                dismissAll();
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.backgroundColor = '#e3f2fd';
-                e.currentTarget.style.color = '#1976d2';
-                e.currentTarget.style.transform = 'scale(1.1)';
-                e.currentTarget.style.boxShadow =
-                  '0 2px 8px rgba(25, 118, 210, 0.15)';
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.color = '#495057';
-                e.currentTarget.style.transform = 'scale(1)';
-                e.currentTarget.style.boxShadow = 'none';
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
               }}
             >
-              🔔
-              {unreadCount > 0 && (
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: '0.25rem',
-                    right: '0.25rem',
-                    backgroundColor: '#dc3545',
-                    color: 'white',
-                    borderRadius: '50%',
-                    width: '1.25rem',
-                    height: '1.25rem',
-                    fontSize: '0.75rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 'bold',
-                  }}
-                >
-                  {unreadCount > 99 ? '99+' : unreadCount}
-                </span>
-              )}
-            </button>
+              {/* Profile Button */}
+              <button
+                style={{
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '0.5rem',
+                  color: '#495057',
+                  borderRadius: '6px',
+                  transition: 'all 0.2s ease',
+                }}
+                onClick={() => setIsUserModalOpen(true)}
+                onMouseEnter={e => {
+                  e.currentTarget.style.backgroundColor = '#e3f2fd';
+                  e.currentTarget.style.color = '#1976d2';
+                  e.currentTarget.style.transform = 'scale(1.1)';
+                  e.currentTarget.style.boxShadow =
+                    '0 2px 8px rgba(25, 118, 210, 0.15)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = '#495057';
+                  e.currentTarget.style.transform = 'scale(1)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+              >
+                <User size={20} />
+              </button>
+
+              {/* Notification Button */}
+              <button
+                style={{
+                  position: 'relative',
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '0.5rem',
+                  color: '#495057',
+                  fontSize: '1.25rem',
+                  borderRadius: '6px',
+                  transition: 'all 0.2s ease',
+                }}
+                onClick={() => {
+                  setIsNotificationModalOpen(true);
+                  dismissAll();
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.backgroundColor = '#e3f2fd';
+                  e.currentTarget.style.color = '#1976d2';
+                  e.currentTarget.style.transform = 'scale(1.1)';
+                  e.currentTarget.style.boxShadow =
+                    '0 2px 8px rgba(25, 118, 210, 0.15)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = '#495057';
+                  e.currentTarget.style.transform = 'scale(1)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+              >
+                <Bell size={20} />
+                {unreadCount > 0 && (
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: '0.25rem',
+                      right: '0.25rem',
+                      backgroundColor: '#dc3545',
+                      color: 'white',
+                      borderRadius: '50%',
+                      width: '1.25rem',
+                      height: '1.25rem',
+                      fontSize: '0.75rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 'bold',
+                    }}
+                  >
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -202,7 +248,12 @@ export default function Navbar() {
               }
             }}
           >
-            Personal
+            <span
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+            >
+              <Home size={18} />
+              <span>Personal</span>
+            </span>
           </Link>
 
           <Link
@@ -226,7 +277,12 @@ export default function Navbar() {
               }
             }}
           >
-            Department
+            <span
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+            >
+              <Users size={18} />
+              <span>Department</span>
+            </span>
           </Link>
 
           {/* Company link - visible only to HR/Admin users */}
@@ -253,7 +309,16 @@ export default function Navbar() {
                   }
                 }}
               >
-                Company
+                <span
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                  }}
+                >
+                  <Building2 size={18} />
+                  <span>Company</span>
+                </span>
               </Link>
             )}
 
@@ -281,7 +346,16 @@ export default function Navbar() {
                   }
                 }}
               >
-                Admin
+                <span
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                  }}
+                >
+                  <Shield size={18} />
+                  <span>Admin</span>
+                </span>
               </Link>
             )}
 
@@ -306,11 +380,16 @@ export default function Navbar() {
               }
             }}
           >
-            Projects
+            <span
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+            >
+              <FolderKanban size={18} />
+              <span>Projects</span>
+            </span>
           </Link>
         </nav>
 
-        {/* Bottom Section - User Info and Actions */}
+        {/* Bottom Section - Sign Out Button */}
         <div
           style={{
             padding: '1rem',
@@ -318,43 +397,6 @@ export default function Navbar() {
             marginTop: 'auto',
           }}
         >
-          {/* User Info (click to open details modal) */}
-          <div
-            style={{
-              marginBottom: '1rem',
-              padding: '0.75rem',
-              backgroundColor: '#fff',
-              borderRadius: '6px',
-              border: '1px solid #dee2e6',
-            }}
-            onClick={() => setIsUserModalOpen(true)}
-            role='button'
-            aria-label='Open user details'
-          >
-            <div
-              style={{
-                color: '#6c757d',
-                fontSize: '0.875rem',
-                marginBottom: '0.25rem',
-                fontWeight: '500',
-              }}
-            >
-              {userProfile?.role?.toLowerCase() || 'staff'}
-            </div>
-            <div
-              style={{
-                color: '#495057',
-                fontSize: '0.875rem',
-                fontWeight: '600',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
-            >
-              {userProfile?.name || user?.email}
-            </div>
-          </div>
-
           {/* Sign Out Button */}
           <button
             onClick={handleSecureLogout}
@@ -431,60 +473,97 @@ export default function Navbar() {
               Task Manager
             </h1>
 
-            {/* Mobile Notification Button */}
-            <button
+            <div
               style={{
-                position: 'relative',
-                backgroundColor: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                padding: '0.5rem',
-                color: '#495057',
-                fontSize: '1.25rem',
-                borderRadius: '6px',
-                transition: 'all 0.2s ease',
-              }}
-              onClick={() => {
-                setIsNotificationModalOpen(true);
-                dismissAll();
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.backgroundColor = '#e3f2fd';
-                e.currentTarget.style.color = '#1976d2';
-                e.currentTarget.style.transform = 'scale(1.1)';
-                e.currentTarget.style.boxShadow =
-                  '0 2px 8px rgba(25, 118, 210, 0.15)';
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.color = '#495057';
-                e.currentTarget.style.transform = 'scale(1)';
-                e.currentTarget.style.boxShadow = 'none';
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
               }}
             >
-              🔔
-              {unreadCount > 0 && (
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: '0.25rem',
-                    right: '0.25rem',
-                    backgroundColor: '#dc3545',
-                    color: 'white',
-                    borderRadius: '50%',
-                    width: '1.25rem',
-                    height: '1.25rem',
-                    fontSize: '0.75rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 'bold',
-                  }}
-                >
-                  {unreadCount > 99 ? '99+' : unreadCount}
-                </span>
-              )}
-            </button>
+              {/* Mobile Profile Button */}
+              <button
+                style={{
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '0.5rem',
+                  color: '#495057',
+                  borderRadius: '6px',
+                  transition: 'all 0.2s ease',
+                }}
+                onClick={() => setIsUserModalOpen(true)}
+                onMouseEnter={e => {
+                  e.currentTarget.style.backgroundColor = '#e3f2fd';
+                  e.currentTarget.style.color = '#1976d2';
+                  e.currentTarget.style.transform = 'scale(1.1)';
+                  e.currentTarget.style.boxShadow =
+                    '0 2px 8px rgba(25, 118, 210, 0.15)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = '#495057';
+                  e.currentTarget.style.transform = 'scale(1)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+              >
+                <User size={20} />
+              </button>
+
+              {/* Mobile Notification Button */}
+              <button
+                style={{
+                  position: 'relative',
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '0.5rem',
+                  color: '#495057',
+                  fontSize: '1.25rem',
+                  borderRadius: '6px',
+                  transition: 'all 0.2s ease',
+                }}
+                onClick={() => {
+                  setIsNotificationModalOpen(true);
+                  dismissAll();
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.backgroundColor = '#e3f2fd';
+                  e.currentTarget.style.color = '#1976d2';
+                  e.currentTarget.style.transform = 'scale(1.1)';
+                  e.currentTarget.style.boxShadow =
+                    '0 2px 8px rgba(25, 118, 210, 0.15)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = '#495057';
+                  e.currentTarget.style.transform = 'scale(1)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+              >
+                <Bell size={20} />
+                {unreadCount > 0 && (
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: '0.25rem',
+                      right: '0.25rem',
+                      backgroundColor: '#dc3545',
+                      color: 'white',
+                      borderRadius: '50%',
+                      width: '1.25rem',
+                      height: '1.25rem',
+                      fontSize: '0.75rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 'bold',
+                    }}
+                  >
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
 
           <button
@@ -547,13 +626,23 @@ export default function Navbar() {
               href={getDashboardRoute()}
               style={getMobileLinkStyles(getDashboardRoute())}
             >
-              Personal
+              <span
+                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+              >
+                <Home size={18} />
+                <span>Personal</span>
+              </span>
             </Link>
             <Link
               href='/dashboard/department'
               style={getMobileLinkStyles('/dashboard/department')}
             >
-              Department
+              <span
+                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+              >
+                <Users size={18} />
+                <span>Department</span>
+              </span>
             </Link>
             {userProfile &&
               (userProfile.isHrAdmin || userProfile.role === 'HR_ADMIN') && (
@@ -562,18 +651,41 @@ export default function Navbar() {
                     href='/dashboard/company'
                     style={getMobileLinkStyles('/dashboard/company')}
                   >
-                    Company
+                    <span
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                      }}
+                    >
+                      <Building2 size={18} />
+                      <span>Company</span>
+                    </span>
                   </Link>
                   <Link
                     href='/dashboard/hr'
                     style={getMobileLinkStyles('/dashboard/hr')}
                   >
-                    Admin
+                    <span
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                      }}
+                    >
+                      <Shield size={18} />
+                      <span>Admin</span>
+                    </span>
                   </Link>
                 </>
               )}
             <Link href='/projects' style={getMobileLinkStyles('/projects')}>
-              Projects
+              <span
+                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+              >
+                <FolderKanban size={18} />
+                <span>Projects</span>
+              </span>
             </Link>
 
             <div
