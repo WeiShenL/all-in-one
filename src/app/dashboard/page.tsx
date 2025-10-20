@@ -37,7 +37,13 @@ export default function DashboardPage() {
   return (
     <div>
       <Navbar />
-      <main style={{ padding: '2rem' }}>
+      <main
+        style={{
+          padding: '2rem',
+          marginLeft: '280px', // Account for sidebar width
+        }}
+        className='main-content'
+      >
         <h1
           style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '1rem' }}
         >
@@ -47,6 +53,15 @@ export default function DashboardPage() {
           Dashboard will be implemented here. Welcome, {user.email}!
         </p>
       </main>
+
+      {/* CSS for responsive behavior */}
+      <style jsx>{`
+        @media (max-width: 768px) {
+          .main-content {
+            margin-left: 0 !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

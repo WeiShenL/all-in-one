@@ -22,253 +22,373 @@ export default function Navbar() {
   };
 
   return (
-    <nav
-      style={{
-        backgroundColor: '#f8f9fa',
-        borderBottom: '1px solid #dee2e6',
-        padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 2rem)',
-        position: 'sticky',
-        top: 0,
-        zIndex: 1000,
-      }}
-    >
-      <div
+    <>
+      {/* Desktop Sidebar */}
+      <aside
+        className='desktop-sidebar'
         style={{
+          position: 'fixed',
+          left: 0,
+          top: 0,
+          height: '100vh',
+          width: '280px',
+          backgroundColor: '#f8f9fa',
+          borderRight: '1px solid #dee2e6',
+          zIndex: 1000,
           display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          maxWidth: 'min(100%, 1600px)',
-          margin: '0 auto',
+          flexDirection: 'column',
+          padding: '1.5rem 0',
         }}
       >
-        {/* Left side - App name */}
+        {/* App Title */}
         <div
           style={{
-            fontSize: 'clamp(1rem, 3vw, 1.25rem)',
-            fontWeight: 'bold',
-            color: '#007bff',
+            padding: '0 1.5rem 2rem 1.5rem',
+            borderBottom: '1px solid #dee2e6',
+            marginBottom: '1.5rem',
           }}
         >
-          Task Manager
+          <h1
+            style={{
+              fontSize: '1.5rem',
+              fontWeight: 'bold',
+              color: '#007bff',
+              margin: 0,
+            }}
+          >
+            Task Manager
+          </h1>
         </div>
 
-        {/* Hamburger menu button for mobile */}
-        <button
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        {/* Navigation Links */}
+        <nav
           style={{
-            display: 'none',
-            flexDirection: 'column',
-            gap: '4px',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            padding: '8px',
-          }}
-          className='mobile-menu-toggle'
-        >
-          <span
-            style={{
-              width: '24px',
-              height: '3px',
-              backgroundColor: '#495057',
-              borderRadius: '2px',
-            }}
-          ></span>
-          <span
-            style={{
-              width: '24px',
-              height: '3px',
-              backgroundColor: '#495057',
-              borderRadius: '2px',
-            }}
-          ></span>
-          <span
-            style={{
-              width: '24px',
-              height: '3px',
-              backgroundColor: '#495057',
-              borderRadius: '2px',
-            }}
-          ></span>
-        </button>
-
-        {/* Desktop Navigation */}
-        <div
-          className='desktop-nav'
-          style={{
+            flex: 1,
             display: 'flex',
-            gap: 'clamp(1rem, 2vw, 2rem)',
-            alignItems: 'center',
+            flexDirection: 'column',
+            gap: '0.5rem',
+            padding: '0 1rem',
           }}
         >
-          {/* Center - Navigation links */}
-          <div
+          <a
+            href={getDashboardRoute()}
             style={{
-              display: 'flex',
-              gap: 'clamp(1rem, 2vw, 2rem)',
-            }}
-          >
-            <a
-              href={getDashboardRoute()}
-              style={{
-                color: '#495057',
-                textDecoration: 'none',
-                fontWeight: '500',
-                fontSize: 'clamp(0.875rem, 2vw, 1rem)',
-              }}
-            >
-              Personal
-            </a>
-            {/* Department Dashboard link - visible to all authenticated users */}
-            <a
-              href='/dashboard/department'
-              style={{
-                color: '#495057',
-                textDecoration: 'none',
-                fontWeight: '500',
-                fontSize: 'clamp(0.875rem, 2vw, 1rem)',
-              }}
-            >
-              Department
-            </a>
-            {/* Company link - visible only to HR/Admin users */}
-            {userProfile &&
-              (userProfile.isHrAdmin || userProfile.role === 'HR_ADMIN') && (
-                <a
-                  href='/dashboard/company'
-                  style={{
-                    color: '#495057',
-                    textDecoration: 'none',
-                    fontWeight: '500',
-                    fontSize: 'clamp(0.875rem, 2vw, 1rem)',
-                  }}
-                >
-                  Company
-                </a>
-              )}
-            {/* Admin Dashboard link - visible only to HR/Admin users */}
-            {userProfile &&
-              (userProfile.isHrAdmin || userProfile.role === 'HR_ADMIN') && (
-                <a
-                  href='/dashboard/hr'
-                  style={{
-                    color: '#495057',
-                    textDecoration: 'none',
-                    fontWeight: '500',
-                    fontSize: 'clamp(0.875rem, 2vw, 1rem)',
-                  }}
-                >
-                  Admin
-                </a>
-              )}
-            <a
-              href='/projects'
-              style={{
-                color: '#495057',
-                textDecoration: 'none',
-                fontWeight: '500',
-                fontSize: 'clamp(0.875rem, 2vw, 1rem)',
-              }}
-            >
-              Projects
-            </a>
-            <a
-              href='/profile'
-              style={{
-                color: '#495057',
-                textDecoration: 'none',
-                fontWeight: '500',
-                fontSize: 'clamp(0.875rem, 2vw, 1rem)',
-              }}
-            >
-              Profile
-            </a>
-          </div>
-
-          {/* Right side - User info and logout */}
-          <div
-            style={{
+              color: '#495057',
+              textDecoration: 'none',
+              fontWeight: '500',
+              fontSize: '1rem',
+              padding: '0.75rem 1rem',
+              borderRadius: '6px',
+              transition: 'all 0.2s ease',
               display: 'flex',
               alignItems: 'center',
-              gap: '1rem',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.backgroundColor = '#e9ecef';
+              e.currentTarget.style.color = '#007bff';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.color = '#495057';
             }}
           >
-            {/* Notification Button */}
-            <button
-              style={{
-                position: 'relative',
-                backgroundColor: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                padding: '0.5rem',
-                color: '#495057',
-                fontSize: '1.25rem',
-              }}
-              onClick={() => {
-                setIsNotificationModalOpen(true);
-                dismissAll(); // Dismiss all toast notifications
-              }}
-            >
-              🔔
-              {unreadCount > 0 && (
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: '0',
-                    right: '0',
-                    backgroundColor: '#dc3545',
-                    color: 'white',
-                    borderRadius: '50%',
-                    padding: '0.2em 0.5em',
-                    fontSize: '0.75rem',
-                    lineHeight: '1',
-                    transform: 'translate(50%, -50%)',
-                  }}
-                >
-                  {unreadCount}
-                </span>
-              )}
-            </button>
+            Personal
+          </a>
 
-            <span
+          <a
+            href='/dashboard/department'
+            style={{
+              color: '#495057',
+              textDecoration: 'none',
+              fontWeight: '500',
+              fontSize: '1rem',
+              padding: '0.75rem 1rem',
+              borderRadius: '6px',
+              transition: 'all 0.2s ease',
+              display: 'flex',
+              alignItems: 'center',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.backgroundColor = '#e9ecef';
+              e.currentTarget.style.color = '#007bff';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.color = '#495057';
+            }}
+          >
+            Department
+          </a>
+
+          {/* Company link - visible only to HR/Admin users */}
+          {userProfile &&
+            (userProfile.isHrAdmin || userProfile.role === 'HR_ADMIN') && (
+              <a
+                href='/dashboard/company'
+                style={{
+                  color: '#495057',
+                  textDecoration: 'none',
+                  fontWeight: '500',
+                  fontSize: '1rem',
+                  padding: '0.75rem 1rem',
+                  borderRadius: '6px',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.backgroundColor = '#e9ecef';
+                  e.currentTarget.style.color = '#007bff';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = '#495057';
+                }}
+              >
+                Company
+              </a>
+            )}
+
+          {/* Admin Dashboard link - visible only to HR/Admin users */}
+          {userProfile &&
+            (userProfile.isHrAdmin || userProfile.role === 'HR_ADMIN') && (
+              <a
+                href='/dashboard/hr'
+                style={{
+                  color: '#495057',
+                  textDecoration: 'none',
+                  fontWeight: '500',
+                  fontSize: '1rem',
+                  padding: '0.75rem 1rem',
+                  borderRadius: '6px',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.backgroundColor = '#e9ecef';
+                  e.currentTarget.style.color = '#007bff';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = '#495057';
+                }}
+              >
+                Admin
+              </a>
+            )}
+
+          <a
+            href='/projects'
+            style={{
+              color: '#495057',
+              textDecoration: 'none',
+              fontWeight: '500',
+              fontSize: '1rem',
+              padding: '0.75rem 1rem',
+              borderRadius: '6px',
+              transition: 'all 0.2s ease',
+              display: 'flex',
+              alignItems: 'center',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.backgroundColor = '#e9ecef';
+              e.currentTarget.style.color = '#007bff';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.color = '#495057';
+            }}
+          >
+            Projects
+          </a>
+        </nav>
+
+        {/* Bottom Section - User Info and Actions */}
+        <div
+          style={{
+            padding: '1rem',
+            borderTop: '1px solid #dee2e6',
+            marginTop: 'auto',
+          }}
+        >
+          {/* Notification Button */}
+          <button
+            style={{
+              position: 'relative',
+              backgroundColor: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '0.75rem',
+              color: '#495057',
+              fontSize: '1.25rem',
+              width: '100%',
+              borderRadius: '6px',
+              marginBottom: '1rem',
+              transition: 'all 0.2s ease',
+            }}
+            onClick={() => {
+              setIsNotificationModalOpen(true);
+              dismissAll();
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.backgroundColor = '#e9ecef';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }}
+          >
+            🔔 Notifications
+            {unreadCount > 0 && (
+              <span
+                style={{
+                  position: 'absolute',
+                  top: '0.5rem',
+                  right: '0.5rem',
+                  backgroundColor: '#dc3545',
+                  color: 'white',
+                  borderRadius: '50%',
+                  padding: '0.2em 0.5em',
+                  fontSize: '0.75rem',
+                  lineHeight: '1',
+                }}
+              >
+                {unreadCount}
+              </span>
+            )}
+          </button>
+
+          {/* User Info */}
+          <div
+            style={{
+              marginBottom: '1rem',
+              padding: '0.75rem',
+              backgroundColor: '#fff',
+              borderRadius: '6px',
+              border: '1px solid #dee2e6',
+            }}
+          >
+            <div
               style={{
                 color: '#6c757d',
-                fontSize: 'clamp(0.75rem, 1.5vw, 0.875rem)',
+                fontSize: '0.875rem',
+                marginBottom: '0.25rem',
+                fontWeight: '500',
+              }}
+            >
+              {userProfile?.role?.toLowerCase() || 'staff'}
+            </div>
+            <div
+              style={{
+                color: '#495057',
+                fontSize: '0.875rem',
+                fontWeight: '600',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
-                maxWidth: '150px',
               }}
             >
               {userProfile?.name || user?.email}
-            </span>
-            <button
-              onClick={handleSecureLogout}
-              disabled={isLoggingOut}
-              style={{
-                backgroundColor: isLoggingOut ? '#6c757d' : '#dc3545',
-                color: 'white',
-                border: 'none',
-                padding: 'clamp(0.4rem, 1vw, 0.5rem) clamp(0.75rem, 2vw, 1rem)',
-                borderRadius: '4px',
-                cursor: isLoggingOut ? 'not-allowed' : 'pointer',
-                fontSize: 'clamp(0.75rem, 1.5vw, 0.875rem)',
-                fontWeight: '500',
-                opacity: isLoggingOut ? 0.7 : 1,
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {isLoggingOut ? 'Signing Out...' : 'Sign Out'}
-            </button>
+            </div>
           </div>
+
+          {/* Sign Out Button */}
+          <button
+            onClick={handleSecureLogout}
+            disabled={isLoggingOut}
+            style={{
+              backgroundColor: isLoggingOut ? '#6c757d' : '#dc3545',
+              color: 'white',
+              border: 'none',
+              padding: '0.75rem 1rem',
+              borderRadius: '6px',
+              cursor: isLoggingOut ? 'not-allowed' : 'pointer',
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              opacity: isLoggingOut ? 0.7 : 1,
+              width: '100%',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            {isLoggingOut ? 'Signing Out...' : 'Sign Out'}
+          </button>
+        </div>
+      </aside>
+
+      {/* Mobile Header */}
+      <nav
+        className='mobile-header'
+        style={{
+          display: 'none',
+          backgroundColor: '#f8f9fa',
+          borderBottom: '1px solid #dee2e6',
+          padding: '1rem',
+          position: 'sticky',
+          top: 0,
+          zIndex: 1000,
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <h1
+            style={{
+              fontSize: '1.25rem',
+              fontWeight: 'bold',
+              color: '#007bff',
+              margin: 0,
+            }}
+          >
+            Task Manager
+          </h1>
+
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '8px',
+            }}
+          >
+            <span
+              style={{
+                width: '24px',
+                height: '3px',
+                backgroundColor: '#495057',
+                borderRadius: '2px',
+              }}
+            ></span>
+            <span
+              style={{
+                width: '24px',
+                height: '3px',
+                backgroundColor: '#495057',
+                borderRadius: '2px',
+              }}
+            ></span>
+            <span
+              style={{
+                width: '24px',
+                height: '3px',
+                backgroundColor: '#495057',
+                borderRadius: '2px',
+              }}
+            ></span>
+          </button>
         </div>
 
         {/* Mobile Navigation Menu */}
         {isMobileMenuOpen && (
           <div
-            className='mobile-nav'
             style={{
-              display: 'none',
               position: 'absolute',
               top: '100%',
               left: 0,
@@ -277,8 +397,9 @@ export default function Navbar() {
               borderTop: '1px solid #dee2e6',
               boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
               padding: '1rem',
+              display: 'flex',
               flexDirection: 'column',
-              gap: '1rem',
+              gap: '0.5rem',
             }}
           >
             <a
@@ -290,6 +411,7 @@ export default function Navbar() {
                 padding: '0.75rem',
                 borderRadius: '4px',
                 backgroundColor: '#fff',
+                border: '1px solid #dee2e6',
               }}
             >
               Personal
@@ -303,6 +425,7 @@ export default function Navbar() {
                 padding: '0.75rem',
                 borderRadius: '4px',
                 backgroundColor: '#fff',
+                border: '1px solid #dee2e6',
               }}
             >
               Department
@@ -319,6 +442,7 @@ export default function Navbar() {
                       padding: '0.75rem',
                       borderRadius: '4px',
                       backgroundColor: '#fff',
+                      border: '1px solid #dee2e6',
                     }}
                   >
                     Company
@@ -332,6 +456,7 @@ export default function Navbar() {
                       padding: '0.75rem',
                       borderRadius: '4px',
                       backgroundColor: '#fff',
+                      border: '1px solid #dee2e6',
                     }}
                   >
                     Admin
@@ -347,22 +472,10 @@ export default function Navbar() {
                 padding: '0.75rem',
                 borderRadius: '4px',
                 backgroundColor: '#fff',
+                border: '1px solid #dee2e6',
               }}
             >
               Projects
-            </a>
-            <a
-              href='/profile'
-              style={{
-                color: '#495057',
-                textDecoration: 'none',
-                fontWeight: '500',
-                padding: '0.75rem',
-                borderRadius: '4px',
-                backgroundColor: '#fff',
-              }}
-            >
-              Profile
             </a>
 
             {/* Notification Button in Mobile Menu */}
@@ -384,7 +497,7 @@ export default function Navbar() {
               onClick={() => {
                 setIsNotificationModalOpen(true);
                 dismissAll();
-                setIsMobileMenuOpen(false); // Close mobile menu
+                setIsMobileMenuOpen(false);
               }}
             >
               <span style={{ fontSize: '1.25rem' }}>🔔</span>
@@ -414,6 +527,7 @@ export default function Navbar() {
                 padding: '0.75rem',
                 backgroundColor: '#fff',
                 borderRadius: '4px',
+                border: '1px solid #dee2e6',
               }}
             >
               <span style={{ color: '#6c757d', fontSize: '0.875rem' }}>
@@ -439,7 +553,7 @@ export default function Navbar() {
             </div>
           </div>
         )}
-      </div>
+      </nav>
 
       {/* Notification Modal */}
       <NotificationModal
@@ -450,17 +564,22 @@ export default function Navbar() {
       {/* CSS for responsive behavior */}
       <style jsx>{`
         @media (max-width: 768px) {
-          .mobile-menu-toggle {
-            display: flex !important;
-          }
-          .desktop-nav {
+          .desktop-sidebar {
             display: none !important;
           }
-          .mobile-nav {
+          .mobile-header {
+            display: block !important;
+          }
+        }
+        @media (min-width: 769px) {
+          .desktop-sidebar {
             display: flex !important;
+          }
+          .mobile-header {
+            display: none !important;
           }
         }
       `}</style>
-    </nav>
+    </>
   );
 }

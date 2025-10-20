@@ -88,7 +88,9 @@ export default function CompanyPage() {
         style={{
           padding: 'clamp(1rem, 3vw, 2rem)',
           maxWidth: '100%',
+          marginLeft: '280px', // Account for sidebar width
         }}
+        className='main-content'
       >
         <div
           style={{
@@ -131,6 +133,15 @@ export default function CompanyPage() {
           </div>
         </div>
       </div>
+
+      {/* CSS for responsive behavior */}
+      <style jsx>{`
+        @media (max-width: 768px) {
+          .main-content {
+            margin-left: 0 !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

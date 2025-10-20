@@ -43,7 +43,13 @@ export default function HRDashboard() {
       }}
     >
       <Navbar />
-      <div style={{ padding: '2rem' }}>
+      <div
+        style={{
+          padding: '2rem',
+          marginLeft: '280px', // Account for sidebar width
+        }}
+        className='main-content'
+      >
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <header
             style={{
@@ -267,6 +273,15 @@ export default function HRDashboard() {
           </div>
         </div>
       </div>
+
+      {/* CSS for responsive behavior */}
+      <style jsx>{`
+        @media (max-width: 768px) {
+          .main-content {
+            margin-left: 0 !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }
