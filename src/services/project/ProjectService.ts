@@ -29,7 +29,7 @@ export interface CreateProjectInput {
 export interface UserContext {
   userId: string;
   departmentId: string;
-  role: 'STAFF' | 'MANAGER' | 'ADMIN';
+  role: 'STAFF' | 'MANAGER' | 'HR_ADMIN';
 }
 
 /**
