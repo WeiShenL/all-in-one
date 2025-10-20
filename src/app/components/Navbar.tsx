@@ -87,7 +87,7 @@ export default function Navbar() {
           padding: '1.5rem 0',
         }}
       >
-        {/* App Title */}
+        {/* App Title and Notifications */}
         <div
           style={{
             padding: '0 1.5rem 2rem 1.5rem',
@@ -95,16 +95,80 @@ export default function Navbar() {
             marginBottom: '1.5rem',
           }}
         >
-          <h1
+          <div
             style={{
-              fontSize: '1.5rem',
-              fontWeight: 'bold',
-              color: '#007bff',
-              margin: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '1rem',
             }}
           >
-            Task Manager
-          </h1>
+            <h1
+              style={{
+                fontSize: '1.5rem',
+                fontWeight: 'bold',
+                color: '#007bff',
+                margin: 0,
+              }}
+            >
+              Task Manager
+            </h1>
+
+            {/* Notification Button */}
+            <button
+              style={{
+                position: 'relative',
+                backgroundColor: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '0.5rem',
+                color: '#495057',
+                fontSize: '1.25rem',
+                borderRadius: '6px',
+                transition: 'all 0.2s ease',
+              }}
+              onClick={() => {
+                setIsNotificationModalOpen(true);
+                dismissAll();
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.backgroundColor = '#e3f2fd';
+                e.currentTarget.style.color = '#1976d2';
+                e.currentTarget.style.transform = 'scale(1.1)';
+                e.currentTarget.style.boxShadow =
+                  '0 2px 8px rgba(25, 118, 210, 0.15)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = '#495057';
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            >
+              🔔
+              {unreadCount > 0 && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '0.25rem',
+                    right: '0.25rem',
+                    backgroundColor: '#dc3545',
+                    color: 'white',
+                    borderRadius: '50%',
+                    width: '1.25rem',
+                    height: '1.25rem',
+                    fontSize: '0.75rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 'bold',
+                  }}
+                >
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Navigation Links */}
@@ -254,59 +318,6 @@ export default function Navbar() {
             marginTop: 'auto',
           }}
         >
-          {/* Notification Button */}
-          <button
-            style={{
-              position: 'relative',
-              backgroundColor: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '0.75rem',
-              color: '#495057',
-              fontSize: '1.25rem',
-              width: '100%',
-              borderRadius: '6px',
-              marginBottom: '1rem',
-              transition: 'all 0.2s ease',
-            }}
-            onClick={() => {
-              setIsNotificationModalOpen(true);
-              dismissAll();
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.backgroundColor = '#e3f2fd';
-              e.currentTarget.style.color = '#1976d2';
-              e.currentTarget.style.transform = 'translateX(4px)';
-              e.currentTarget.style.boxShadow =
-                '0 2px 8px rgba(25, 118, 210, 0.15)';
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.color = '#495057';
-              e.currentTarget.style.transform = 'translateX(0)';
-              e.currentTarget.style.boxShadow = 'none';
-            }}
-          >
-            🔔 Notifications
-            {unreadCount > 0 && (
-              <span
-                style={{
-                  position: 'absolute',
-                  top: '0.5rem',
-                  right: '0.5rem',
-                  backgroundColor: '#dc3545',
-                  color: 'white',
-                  borderRadius: '50%',
-                  padding: '0.2em 0.5em',
-                  fontSize: '0.75rem',
-                  lineHeight: '1',
-                }}
-              >
-                {unreadCount}
-              </span>
-            )}
-          </button>
-
           {/* User Info (click to open details modal) */}
           <div
             style={{
@@ -402,16 +413,79 @@ export default function Navbar() {
             alignItems: 'center',
           }}
         >
-          <h1
+          <div
             style={{
-              fontSize: '1.25rem',
-              fontWeight: 'bold',
-              color: '#007bff',
-              margin: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1rem',
             }}
           >
-            Task Manager
-          </h1>
+            <h1
+              style={{
+                fontSize: '1.25rem',
+                fontWeight: 'bold',
+                color: '#007bff',
+                margin: 0,
+              }}
+            >
+              Task Manager
+            </h1>
+
+            {/* Mobile Notification Button */}
+            <button
+              style={{
+                position: 'relative',
+                backgroundColor: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '0.5rem',
+                color: '#495057',
+                fontSize: '1.25rem',
+                borderRadius: '6px',
+                transition: 'all 0.2s ease',
+              }}
+              onClick={() => {
+                setIsNotificationModalOpen(true);
+                dismissAll();
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.backgroundColor = '#e3f2fd';
+                e.currentTarget.style.color = '#1976d2';
+                e.currentTarget.style.transform = 'scale(1.1)';
+                e.currentTarget.style.boxShadow =
+                  '0 2px 8px rgba(25, 118, 210, 0.15)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = '#495057';
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            >
+              🔔
+              {unreadCount > 0 && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '0.25rem',
+                    right: '0.25rem',
+                    backgroundColor: '#dc3545',
+                    color: 'white',
+                    borderRadius: '50%',
+                    width: '1.25rem',
+                    height: '1.25rem',
+                    fontSize: '0.75rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 'bold',
+                  }}
+                >
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </button>
+          </div>
 
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -501,47 +575,6 @@ export default function Navbar() {
             <Link href='/projects' style={getMobileLinkStyles('/projects')}>
               Projects
             </Link>
-
-            {/* Notification Button in Mobile Menu */}
-            <button
-              style={{
-                position: 'relative',
-                backgroundColor: '#fff',
-                border: '1px solid #dee2e6',
-                cursor: 'pointer',
-                padding: '0.75rem',
-                borderRadius: '4px',
-                color: '#495057',
-                fontSize: '1rem',
-                fontWeight: '500',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-              }}
-              onClick={() => {
-                setIsNotificationModalOpen(true);
-                dismissAll();
-                setIsMobileMenuOpen(false);
-              }}
-            >
-              <span style={{ fontSize: '1.25rem' }}>🔔</span>
-              <span>Notifications</span>
-              {unreadCount > 0 && (
-                <span
-                  style={{
-                    backgroundColor: '#dc3545',
-                    color: 'white',
-                    borderRadius: '50%',
-                    padding: '0.2em 0.6em',
-                    fontSize: '0.75rem',
-                    lineHeight: '1',
-                    marginLeft: 'auto',
-                  }}
-                >
-                  {unreadCount}
-                </span>
-              )}
-            </button>
 
             <div
               style={{
