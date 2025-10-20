@@ -8,6 +8,7 @@ import { useSecureLogout } from '@/lib/hooks/useSecureLogout';
 import { useUnreadNotificationCount } from '@/lib/hooks/useUnreadNotificationCount';
 import { useNotifications } from '@/lib/context/NotificationContext';
 import { NotificationModal } from './NotificationModal';
+import { UserDetailsModal } from './UserDetailsModal';
 
 export default function Navbar() {
   const { user, userProfile } = useAuth();
@@ -15,6 +16,7 @@ export default function Navbar() {
   const { count: unreadCount } = useUnreadNotificationCount();
   const { dismissAll } = useNotifications();
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
 
@@ -305,7 +307,7 @@ export default function Navbar() {
             )}
           </button>
 
-          {/* User Info */}
+          {/* User Info (click to open details modal) */}
           <div
             style={{
               marginBottom: '1rem',
@@ -314,6 +316,9 @@ export default function Navbar() {
               borderRadius: '6px',
               border: '1px solid #dee2e6',
             }}
+            onClick={() => setIsUserModalOpen(true)}
+            role='button'
+            aria-label='Open user details'
           >
             <div
               style={{
@@ -548,6 +553,9 @@ export default function Navbar() {
                 borderRadius: '4px',
                 border: '1px solid #dee2e6',
               }}
+              onClick={() => setIsUserModalOpen(true)}
+              role='button'
+              aria-label='Open user details'
             >
               <span style={{ color: '#6c757d', fontSize: '0.875rem' }}>
                 {userProfile?.name || user?.email}
@@ -573,6 +581,12 @@ export default function Navbar() {
           </div>
         )}
       </nav>
+
+      {/* User Details Modal */}
+      <UserDetailsModal
+        isOpen={isUserModalOpen}
+        onClose={() => setIsUserModalOpen(false)}
+      />
 
       {/* Notification Modal */}
       <NotificationModal

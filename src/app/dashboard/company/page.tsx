@@ -116,15 +116,7 @@ export default function CompanyPage() {
             >
               Company Dashboard
             </h1>
-            <p
-              style={{
-                color: '#718096',
-                margin: 0,
-                fontSize: 'clamp(0.75rem, 2vw, 0.875rem)',
-              }}
-            >
-              Welcome, {userProfile.name || user.email}
-            </p>
+            {/* Removed inline welcome that duplicates user info */}
           </header>
 
           {/* Company-Wide Task Dashboard - Shows all tasks with canEdit based on role */}

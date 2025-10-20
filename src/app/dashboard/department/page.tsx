@@ -7,7 +7,7 @@ import Navbar from '@/app/components/Navbar';
 import { DepartmentDashboard } from '@/app/components/DepartmentDashboard';
 
 export default function DepartmentDashboardPage() {
-  const { user, userProfile, loading } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -84,63 +84,11 @@ export default function DepartmentDashboardPage() {
                 fontSize: 'clamp(0.75rem, 2vw, 0.875rem)',
               }}
             >
-              Welcome, {userProfile?.name || user.email}
+              Welcome, {user.email}
             </p>
           </header>
 
-          <div style={{ marginBottom: 'clamp(1rem, 2vw, 2rem)' }}>
-            <div
-              style={{
-                backgroundColor: '#ffffff',
-                padding: 'clamp(1rem, 2vw, 1.5rem)',
-                borderRadius: '12px',
-                marginBottom: '1rem',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-              }}
-            >
-              <h2
-                style={{
-                  color: '#2d3748',
-                  fontSize: 'clamp(1rem, 3vw, 1.25rem)',
-                  fontWeight: '600',
-                  marginBottom: '1rem',
-                }}
-              >
-                User Information
-              </h2>
-              <div style={{ display: 'grid', gap: '0.75rem' }}>
-                <p
-                  style={{
-                    color: '#4a5568',
-                    margin: 0,
-                    fontSize: 'clamp(0.875rem, 2vw, 1rem)',
-                    wordBreak: 'break-word',
-                  }}
-                >
-                  <strong>Email:</strong> {user.email}
-                </p>
-                <p
-                  style={{
-                    color: '#4a5568',
-                    margin: 0,
-                    fontSize: 'clamp(0.875rem, 2vw, 1rem)',
-                  }}
-                >
-                  <strong>Role:</strong> {userProfile?.role || 'N/A'}
-                </p>
-                <p
-                  style={{
-                    color: '#4a5568',
-                    margin: 0,
-                    fontSize: 'clamp(0.875rem, 2vw, 1rem)',
-                    wordBreak: 'break-all',
-                  }}
-                >
-                  <strong>User ID:</strong> {user.id}
-                </p>
-              </div>
-            </div>
-          </div>
+          {/* Removed in-page User Information panel (now shown in Navbar modal) */}
 
           {/* Department Task Dashboard - Shows hierarchy tasks with conditional Edit */}
           <div>
