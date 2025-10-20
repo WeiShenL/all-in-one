@@ -18,6 +18,13 @@ jest.mock('@/app/lib/trpc', () => ({
         useQuery: jest.fn(),
       },
     },
+    useUtils: jest.fn(() => ({
+      project: {
+        getAll: {
+          invalidate: jest.fn(),
+        },
+      },
+    })),
   },
 }));
 
@@ -81,6 +88,19 @@ describe('ProjectSelection', () => {
       updatedAt: new Date(),
     },
   ];
+
+  const sixProjects = Array.from({ length: 6 }).map((_, i) => ({
+    id: `p-${i + 1}`,
+    name: `Project ${i + 1}`,
+    description: '',
+    priority: 1,
+    status: 'ACTIVE',
+    departmentId: 'dept-1',
+    creatorId: 'user-123',
+    isArchived: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  }));
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -179,6 +199,37 @@ describe('ProjectSelection', () => {
       });
       render(<ProjectSelection />);
       expect(screen.getByText('Create your first project')).toBeInTheDocument();
+    });
+
+    it('shows only four visible items and enables scroll when more than 4 projects', () => {
+      mockUseQuery.mockReturnValue({
+        data: sixProjects,
+        isLoading: false,
+        error: null,
+      });
+
+      render(<ProjectSelection />);
+      // Grab container by going to a known child and stepping to parent container
+      const firstItem = screen.getByText('Project 1');
+      const listContainer = firstItem.closest('div')!
+        .parentElement as HTMLDivElement;
+
+      expect(listContainer).toHaveStyle({
+        maxHeight: '200px',
+        overflowY: 'auto',
+      });
+
+      // Items exist in DOM; visibility is governed by CSS scroll
+      [
+        'Project 1',
+        'Project 2',
+        'Project 3',
+        'Project 4',
+        'Project 5',
+        'Project 6',
+      ].forEach(name => {
+        expect(screen.getByText(name)).toBeInTheDocument();
+      });
     });
   });
 
