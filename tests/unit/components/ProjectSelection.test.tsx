@@ -343,28 +343,56 @@ describe('ProjectSelection', () => {
   });
 
   describe('Active State', () => {
-    it('should show active state when on projects page', () => {
+    it('applies active styling only to the clicked item when on /projects', () => {
       mockUsePathname.mockReturnValue('/projects');
 
       render(<ProjectSelection />);
-      const projectItem = screen.getByText('Customer Portal').closest('div');
-      expect(projectItem).toHaveStyle({
+
+      // Click second item to select it
+      fireEvent.click(screen.getByText('Mobile App'));
+
+      const firstItem = screen.getByText('Customer Portal').closest('div');
+      const secondItem = screen.getByText('Mobile App').closest('div');
+
+      expect(firstItem).toHaveStyle({
+        color: '#495057',
+        backgroundColor: 'transparent',
+        borderLeft: '3px solid transparent',
+      });
+      expect(secondItem).toHaveStyle({
         color: '#1976d2',
         backgroundColor: '#e3f2fd',
         borderLeft: '3px solid #1976d2',
       });
     });
 
-    it('should show inactive state when not on projects page', () => {
+    it('does not apply active styling when not on /projects route', () => {
       mockUsePathname.mockReturnValue('/dashboard/personal');
 
       render(<ProjectSelection />);
-      const projectItem = screen.getByText('Customer Portal').closest('div');
-      expect(projectItem).toHaveStyle({
+      fireEvent.click(screen.getByText('Customer Portal'));
+
+      const clicked = screen.getByText('Customer Portal').closest('div');
+      expect(clicked).toHaveStyle({
         color: '#495057',
         backgroundColor: 'transparent',
         borderLeft: '3px solid transparent',
       });
+    });
+
+    it('restores active item from sessionStorage on /projects', () => {
+      // Persist selection
+      sessionStorage.setItem('activeProjectId', 'project-2');
+      mockUsePathname.mockReturnValue('/projects');
+
+      render(<ProjectSelection />);
+      const restored = screen.getByText('Mobile App').closest('div');
+      expect(restored).toHaveStyle({
+        color: '#1976d2',
+        backgroundColor: '#e3f2fd',
+        borderLeft: '3px solid #1976d2',
+      });
+      sessionStorage.removeItem('activeProjectId');
     });
   });
 
@@ -390,15 +418,16 @@ describe('ProjectSelection', () => {
       });
     });
 
-    it('should not apply hover effects when active', () => {
+    it('should not apply hover effects when item is active', () => {
       mockUsePathname.mockReturnValue('/projects');
 
       render(<ProjectSelection />);
-      const projectItem = screen.getByText('Customer Portal').closest('div');
+      // Activate first item
+      fireEvent.click(screen.getByText('Customer Portal'));
+      const activeItem = screen.getByText('Customer Portal').closest('div');
 
-      fireEvent.mouseEnter(projectItem!);
-      // Should maintain active state styling
-      expect(projectItem).toHaveStyle({
+      fireEvent.mouseEnter(activeItem!);
+      expect(activeItem).toHaveStyle({
         backgroundColor: '#e3f2fd',
         color: '#1976d2',
       });
