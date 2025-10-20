@@ -2,9 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import Navbar from '../../components/Navbar';
+import { ProjectDashboard } from '../../components/ProjectDashboard';
 
 export default function ProjectsPage() {
   const [selectedTitle, setSelectedTitle] = useState<string | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
     try {
@@ -12,8 +16,15 @@ export default function ProjectsPage() {
         typeof window !== 'undefined'
           ? sessionStorage.getItem('activeProjectName')
           : null;
+      const id =
+        typeof window !== 'undefined'
+          ? sessionStorage.getItem('activeProjectId')
+          : null;
       if (name) {
         setSelectedTitle(name);
+      }
+      if (id) {
+        setSelectedProjectId(id);
       }
     } catch {}
   }, []);
@@ -32,6 +43,14 @@ export default function ProjectsPage() {
         const name = sessionStorage.getItem('activeProjectName');
         if (name) {
           setSelectedTitle(name);
+        }
+      }
+      if (detail && 'id' in detail && detail.id) {
+        setSelectedProjectId(detail.id);
+      } else {
+        const id = sessionStorage.getItem('activeProjectId');
+        if (id) {
+          setSelectedProjectId(id);
         }
       }
     };
@@ -94,7 +113,12 @@ export default function ProjectsPage() {
             </div>
           </header>
 
-          {/* Content intentionally minimized per request */}
+          {selectedProjectId && (
+            <ProjectDashboard
+              projectId={selectedProjectId}
+              title={selectedTitle || 'Project Tasks'}
+            />
+          )}
         </div>
       </div>
 

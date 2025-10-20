@@ -1462,6 +1462,232 @@ export class TaskService extends BaseService {
   }
 
   /**
+   * Get project-scoped tasks for any user (Staff or Manager)
+   * Applies the same visibility rules as the department dashboard but
+   * additionally filters by the provided projectId.
+   */
+  async getProjectTasksForUser(userId: string, projectId: string) {
+    try {
+      this.validateId(userId, 'User ID');
+
+      // Get user's profile
+      const user = await this.prisma.userProfile.findUnique({
+        where: { id: userId, isActive: true },
+        select: { id: true, departmentId: true, role: true },
+      });
+
+      if (!user) {
+        throw new Error('User not found or inactive');
+      }
+
+      // Get all subordinate departments (including user's own department)
+      const departmentIds = await this.getSubordinateDepartments(
+        user.departmentId
+      );
+
+      // Fetch all parent tasks for this project within the user's hierarchy
+      const parentTasks = await this.prisma.task.findMany({
+        where: {
+          isArchived: false,
+          parentTaskId: null,
+          projectId,
+          OR: [
+            { departmentId: { in: departmentIds } },
+            {
+              assignments: {
+                some: {
+                  user: { departmentId: { in: departmentIds }, isActive: true },
+                },
+              },
+            },
+          ],
+        },
+        include: {
+          assignments: {
+            select: {
+              userId: true,
+              user: { select: { id: true, name: true, email: true } },
+            },
+          },
+          department: { select: { id: true, name: true } },
+          project: { select: { id: true, name: true } },
+          tags: { include: { tag: { select: { name: true } } } },
+          comments: {
+            select: {
+              id: true,
+              content: true,
+              userId: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          },
+          subtasks: {
+            where: { isArchived: false },
+            include: {
+              assignments: {
+                select: {
+                  userId: true,
+                  user: { select: { id: true, name: true, email: true } },
+                },
+              },
+              department: { select: { id: true, name: true } },
+              project: { select: { id: true, name: true } },
+              tags: { include: { tag: { select: { name: true } } } },
+              comments: {
+                select: {
+                  id: true,
+                  content: true,
+                  userId: true,
+                  createdAt: true,
+                  updatedAt: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: { dueDate: 'asc' },
+      });
+
+      // Calculate canEdit using AuthorizationService (same as department)
+      const authService = new AuthorizationService();
+
+      const tasksWithCanEdit = parentTasks.map(task => {
+        const taskCanEdit = authService.canEditTask(
+          {
+            departmentId: task.departmentId,
+            assignments: task.assignments.map(a => ({ userId: a.userId })),
+          },
+          {
+            userId: user.id,
+            role: user.role as 'STAFF' | 'MANAGER' | 'HR_ADMIN',
+            departmentId: user.departmentId,
+          },
+          departmentIds
+        );
+
+        const subtasksWithCanEdit = task.subtasks?.map(subtask => {
+          const subtaskCanEdit = authService.canEditTask(
+            {
+              departmentId: subtask.departmentId,
+              assignments: subtask.assignments.map(a => ({ userId: a.userId })),
+            },
+            {
+              userId: user.id,
+              role: user.role as 'STAFF' | 'MANAGER' | 'HR_ADMIN',
+              departmentId: user.departmentId,
+            },
+            departmentIds
+          );
+
+          return {
+            ...subtask,
+            tags: subtask.tags.map(t => t.tag.name),
+            comments: subtask.comments.map(c => ({
+              id: c.id,
+              content: c.content,
+              authorId: c.userId,
+              createdAt: c.createdAt,
+              updatedAt: c.updatedAt,
+            })),
+            priorityBucket: subtask.priority,
+            isRecurring: subtask.recurringInterval !== null,
+            canEdit: subtaskCanEdit,
+          };
+        });
+
+        return {
+          ...task,
+          tags: task.tags.map(t => t.tag.name),
+          comments: task.comments.map(c => ({
+            id: c.id,
+            content: c.content,
+            authorId: c.userId,
+            createdAt: c.createdAt,
+            updatedAt: c.updatedAt,
+          })),
+          priorityBucket: task.priority,
+          isRecurring: task.recurringInterval !== null,
+          canEdit: taskCanEdit,
+          subtasks: subtasksWithCanEdit,
+        };
+      });
+
+      return tasksWithCanEdit;
+    } catch (error) {
+      this.handleError(error, 'getProjectTasksForUser');
+      throw error;
+    }
+  }
+
+  /**
+   * Manager project-scoped view
+   * Mirrors getManagerDashboardTasks, with an additional projectId filter.
+   */
+  async getManagerProjectTasks(
+    managerId: string,
+    projectId: string
+  ): Promise<DashboardData> {
+    try {
+      this.validateId(managerId, 'Manager ID');
+
+      const manager = await this.prisma.userProfile.findUnique({
+        where: { id: managerId, isActive: true },
+        select: { departmentId: true, role: true },
+      });
+
+      if (!manager) {
+        throw new Error('Manager not found or inactive');
+      }
+
+      const departmentIds = await this.getSubordinateDepartments(
+        manager.departmentId
+      );
+
+      const tasks = await this.prisma.task.findMany({
+        where: {
+          isArchived: false,
+          projectId,
+          OR: [
+            { departmentId: { in: departmentIds } },
+            {
+              assignments: {
+                some: {
+                  user: { departmentId: { in: departmentIds }, isActive: true },
+                },
+              },
+            },
+          ],
+        },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          priority: true,
+          dueDate: true,
+          status: true,
+          ownerId: true,
+          departmentId: true,
+          assignments: {
+            select: {
+              user: { select: { id: true, name: true, email: true } },
+            },
+          },
+          department: { select: { id: true, name: true } },
+          project: { select: { id: true, name: true } },
+        },
+        orderBy: { dueDate: 'asc' },
+      });
+
+      const tasksWithCanEdit = tasks.map(t => ({ ...t, canEdit: true }));
+      const metrics = this.calculateMetrics(tasks);
+      return { tasks: tasksWithCanEdit, metrics };
+    } catch (error) {
+      this.handleError(error, 'getManagerProjectTasks');
+      throw error;
+    }
+  }
+
+  /**
    * Get company-wide tasks for HR/Admin users
    * Returns all tasks across the organization with canEdit field
    *
