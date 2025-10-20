@@ -1,12 +1,47 @@
 'use client';
 
-import { useState } from 'react';
-import { ProjectCreateModal } from '../../components/ProjectCreateModal';
+import { useEffect, useState } from 'react';
 import Navbar from '../../components/Navbar';
 
 export default function ProjectsPage() {
-  const [open, setOpen] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [selectedTitle, setSelectedTitle] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const name =
+        typeof window !== 'undefined'
+          ? sessionStorage.getItem('activeProjectName')
+          : null;
+      if (name) {
+        setSelectedTitle(name);
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as
+        | { id?: string; name?: string }
+        | undefined;
+      if (detail?.name) {
+        setSelectedTitle(detail.name);
+      } else {
+        const name = sessionStorage.getItem('activeProjectName');
+        if (name) {
+          setSelectedTitle(name);
+        }
+      }
+    };
+    window.addEventListener('activeProjectChanged', handler as EventListener);
+    return () =>
+      window.removeEventListener(
+        'activeProjectChanged',
+        handler as EventListener
+      );
+  }, []);
 
   return (
     <div
@@ -54,54 +89,12 @@ export default function ProjectsPage() {
                   fontWeight: '700',
                 }}
               >
-                Projects
+                {selectedTitle || 'Projects'}
               </h1>
-              <button
-                onClick={() => setOpen(true)}
-                style={{
-                  backgroundColor: '#3182ce',
-                  color: 'white',
-                  padding: '0.5rem 1rem',
-                  borderRadius: '8px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                }}
-                data-testid='open-project-modal'
-              >
-                + Create Project
-              </button>
             </div>
           </header>
 
-          <div
-            style={{
-              backgroundColor: '#ffffff',
-              padding: 'clamp(1rem, 2vw, 1.5rem)',
-              borderRadius: '12px',
-              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-            }}
-          >
-            {notice && (
-              <div
-                style={{
-                  padding: '12px',
-                  backgroundColor: '#efe',
-                  color: '#070',
-                  borderRadius: '8px',
-                  marginBottom: '1rem',
-                }}
-                data-testid='project-success-banner'
-              >
-                {notice}
-              </div>
-            )}
-
-            {/* Minimal page per user story; listing is out of scope */}
-            <p style={{ color: '#6b7280', margin: 0 }}>
-              Use the button above to create a project.
-            </p>
-          </div>
+          {/* Content intentionally minimized per request */}
         </div>
       </div>
 
@@ -113,16 +106,6 @@ export default function ProjectsPage() {
           }
         }
       `}</style>
-
-      <ProjectCreateModal
-        isOpen={open}
-        onClose={() => setOpen(false)}
-        onCreated={p => {
-          setNotice(`Project "${p.name}" created`);
-          setOpen(false);
-          setTimeout(() => setNotice(null), 3000);
-        }}
-      />
     </div>
   );
 }

@@ -14,6 +14,7 @@ export function ProjectSelection() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const utils = trpc.useUtils();
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
+  const [hoveredProjectId, setHoveredProjectId] = useState<string | null>(null);
 
   // Persist/restore active selection between navigations
   useEffect(() => {
@@ -79,10 +80,27 @@ export function ProjectSelection() {
 
   const getProjectItemStyles = (projectId?: string) => {
     const isActive = projectId ? isItemActive(projectId) : false;
+    const isHovered = projectId ? hoveredProjectId === projectId : false;
+    const hoverColor = '#1976d2';
+    const hoverBg = '#e3f2fd';
     return {
-      color: isActive ? '#1976d2' : '#495057',
-      backgroundColor: isActive ? '#e3f2fd' : 'transparent',
+      color: isActive ? '#1976d2' : isHovered ? hoverColor : '#495057',
+      backgroundColor: isActive
+        ? '#e3f2fd'
+        : isHovered
+          ? hoverBg
+          : 'transparent',
       borderLeft: isActive ? '3px solid #1976d2' : '3px solid transparent',
+      transform: isActive
+        ? 'translateX(0)'
+        : isHovered
+          ? 'translateX(4px)'
+          : 'translateX(0)',
+      boxShadow: isActive
+        ? 'none'
+        : isHovered
+          ? '0 2px 8px rgba(25, 118, 210, 0.15)'
+          : 'none',
     } as React.CSSProperties;
   };
 
@@ -220,29 +238,21 @@ export function ProjectSelection() {
                 height: '56px',
                 ...getProjectItemStyles(project.id),
               }}
-              onMouseEnter={e => {
-                if (!isItemActive(project.id)) {
-                  e.currentTarget.style.backgroundColor = '#e3f2fd';
-                  e.currentTarget.style.color = '#1976d2';
-                  e.currentTarget.style.transform = 'translateX(4px)';
-                  e.currentTarget.style.boxShadow =
-                    '0 2px 8px rgba(25, 118, 210, 0.15)';
-                }
-              }}
-              onMouseLeave={e => {
-                if (!isItemActive(project.id)) {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                  e.currentTarget.style.color = '#495057';
-                  e.currentTarget.style.transform = 'translateX(0)';
-                  e.currentTarget.style.boxShadow = 'none';
-                }
-              }}
+              onMouseEnter={() => setHoveredProjectId(project.id)}
+              onMouseLeave={() => setHoveredProjectId(null)}
               onClick={() => {
                 // Navigate to projects page
                 setActiveProjectId(project.id);
                 try {
                   if (typeof window !== 'undefined') {
                     sessionStorage.setItem('activeProjectId', project.id);
+                    sessionStorage.setItem('activeProjectName', project.name);
+                    // Notify listeners (e.g., projects page header) within this tab
+                    window.dispatchEvent(
+                      new CustomEvent('activeProjectChanged', {
+                        detail: { id: project.id, name: project.name },
+                      })
+                    );
                   }
                 } catch {}
                 router.push('/dashboard/projects');
