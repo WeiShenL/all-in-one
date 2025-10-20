@@ -12,6 +12,7 @@ export function ProjectSelection() {
   const router = useRouter();
   const pathname = usePathname();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const utils = trpc.useUtils();
 
   // Fetch projects using tRPC
   const {
@@ -31,7 +32,8 @@ export function ProjectSelection() {
   };
 
   const handleProjectCreated = () => {
-    // TODO: Refresh project list or update UI
+    // Refresh the projects list so the new project appears immediately
+    void utils.project.getAll.invalidate({ isArchived: false });
     setIsCreateModalOpen(false);
   };
 
@@ -124,35 +126,37 @@ export function ProjectSelection() {
           Projects
         </h3>
 
-        {/* Add Button - Only show for MANAGER and HR_ADMIN */}
-        {shouldShowAddButton() && (
-          <button
-            style={{
-              backgroundColor: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '0.25rem',
-              color: '#6c757d',
-              borderRadius: '4px',
-              transition: 'all 0.2s ease',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-            onClick={handleAddProject}
-            onMouseEnter={e => {
-              e.currentTarget.style.backgroundColor = '#e9ecef';
-              e.currentTarget.style.color = '#495057';
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.color = '#6c757d';
-            }}
-            title='Add Project'
-          >
-            <Plus size={16} />
-          </button>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          {/* Add Button - Only show for MANAGER and HR_ADMIN */}
+          {shouldShowAddButton() && (
+            <button
+              style={{
+                backgroundColor: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '0.25rem',
+                color: '#6c757d',
+                borderRadius: '4px',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              onClick={handleAddProject}
+              onMouseEnter={e => {
+                e.currentTarget.style.backgroundColor = '#e9ecef';
+                e.currentTarget.style.color = '#495057';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = '#6c757d';
+              }}
+              title='Add Project'
+            >
+              <Plus size={16} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Project List or Message */}
@@ -184,9 +188,12 @@ export function ProjectSelection() {
             display: 'flex',
             flexDirection: 'column',
             gap: '0.5rem',
+            maxHeight: (projects?.length ?? 0) > 4 ? '200px' : 'none',
+            overflowY: (projects?.length ?? 0) > 4 ? 'auto' : 'visible',
+            paddingRight: (projects?.length ?? 0) > 4 ? '0.25rem' : 0,
           }}
         >
-          {projects.map(project => (
+          {(projects || []).map(project => (
             <div
               key={project.id}
               style={{
@@ -197,6 +204,7 @@ export function ProjectSelection() {
                 cursor: 'pointer',
                 borderRadius: '6px',
                 transition: 'all 0.2s ease',
+                height: '56px',
                 ...getProjectItemStyles(),
               }}
               onMouseEnter={e => {
