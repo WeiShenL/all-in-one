@@ -74,7 +74,7 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
           position: 'fixed',
           inset: 0,
           backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          zIndex: 999,
+          zIndex: 2000,
         }}
         onClick={onClose}
       />
@@ -93,7 +93,7 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
           width: '90%',
           maxHeight: '80vh',
           overflow: 'hidden',
-          zIndex: 1000,
+          zIndex: 2100,
           display: 'flex',
           flexDirection: 'column',
         }}
