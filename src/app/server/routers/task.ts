@@ -2,6 +2,7 @@ import { router, publicProcedure, protectedProcedure, Context } from '../trpc';
 import { TaskService } from '../../../services/task/TaskService';
 import { SubtaskService } from '../services/SubtaskService';
 import { PrismaTaskRepository } from '../../../repositories/PrismaTaskRepository';
+import { RealtimeService } from '../services/RealtimeService';
 import { z } from 'zod';
 import { TaskStatus, Task } from '../../../domain/task/Task';
 import { UserContext } from '../../../services/task/TaskService';
@@ -384,7 +385,11 @@ export const taskRouter = router({
     .input(addAssigneeSchema)
     .mutation(async ({ ctx, input }) => {
       const repository = new PrismaTaskRepository(ctx.prisma);
-      const service = new TaskService(repository);
+      const service = new TaskService(
+        repository,
+        ctx.prisma,
+        new RealtimeService()
+      ); // Inject PrismaClient + RealtimeService for notifications
 
       const user = await getUserContext(ctx);
 
@@ -414,7 +419,11 @@ export const taskRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const repository = new PrismaTaskRepository(ctx.prisma);
-      const service = new TaskService(repository);
+      const service = new TaskService(
+        repository,
+        ctx.prisma,
+        new RealtimeService()
+      ); // Inject PrismaClient + RealtimeService for notifications
 
       const user = await getUserContext(ctx);
 
@@ -433,7 +442,11 @@ export const taskRouter = router({
     .input(addCommentSchema)
     .mutation(async ({ ctx, input }) => {
       const repository = new PrismaTaskRepository(ctx.prisma);
-      const service = new TaskService(repository);
+      const service = new TaskService(
+        repository,
+        ctx.prisma,
+        new RealtimeService()
+      ); // Inject PrismaClient + RealtimeService for notifications
 
       const user = await getUserContext(ctx);
 
@@ -452,7 +465,11 @@ export const taskRouter = router({
     .input(updateCommentSchema)
     .mutation(async ({ ctx, input }) => {
       const repository = new PrismaTaskRepository(ctx.prisma);
-      const service = new TaskService(repository);
+      const service = new TaskService(
+        repository,
+        ctx.prisma,
+        new RealtimeService()
+      ); // Inject PrismaClient + RealtimeService for notifications
 
       const user = await getUserContext(ctx);
 
