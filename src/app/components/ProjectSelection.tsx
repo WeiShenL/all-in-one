@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/supabase/auth-context';
@@ -13,6 +13,20 @@ export function ProjectSelection() {
   const pathname = usePathname();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const utils = trpc.useUtils();
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
+
+  // Persist/restore active selection between navigations
+  useEffect(() => {
+    try {
+      const saved =
+        typeof window !== 'undefined'
+          ? sessionStorage.getItem('activeProjectId')
+          : null;
+      if (saved) {
+        setActiveProjectId(saved);
+      }
+    } catch {}
+  }, []);
 
   // Fetch projects using tRPC
   const {
@@ -58,19 +72,18 @@ export function ProjectSelection() {
     return colors[index];
   };
 
-  // Check if projects page is active
-  const isProjectsPageActive = () => {
-    return pathname === '/projects';
-  };
+  // Active state per item (only show when on /projects route)
+  const isOnProjectsPage = pathname === '/projects';
+  const isItemActive = (projectId: string) =>
+    isOnProjectsPage && activeProjectId === projectId;
 
-  // Get project item styles based on active state
-  const getProjectItemStyles = () => {
-    const isActive = isProjectsPageActive();
+  const getProjectItemStyles = (projectId?: string) => {
+    const isActive = projectId ? isItemActive(projectId) : false;
     return {
       color: isActive ? '#1976d2' : '#495057',
       backgroundColor: isActive ? '#e3f2fd' : 'transparent',
       borderLeft: isActive ? '3px solid #1976d2' : '3px solid transparent',
-    };
+    } as React.CSSProperties;
   };
 
   const getProjectMessage = () => {
@@ -205,10 +218,10 @@ export function ProjectSelection() {
                 borderRadius: '6px',
                 transition: 'all 0.2s ease',
                 height: '56px',
-                ...getProjectItemStyles(),
+                ...getProjectItemStyles(project.id),
               }}
               onMouseEnter={e => {
-                if (!isProjectsPageActive()) {
+                if (!isItemActive(project.id)) {
                   e.currentTarget.style.backgroundColor = '#e3f2fd';
                   e.currentTarget.style.color = '#1976d2';
                   e.currentTarget.style.transform = 'translateX(4px)';
@@ -217,7 +230,7 @@ export function ProjectSelection() {
                 }
               }}
               onMouseLeave={e => {
-                if (!isProjectsPageActive()) {
+                if (!isItemActive(project.id)) {
                   e.currentTarget.style.backgroundColor = 'transparent';
                   e.currentTarget.style.color = '#495057';
                   e.currentTarget.style.transform = 'translateX(0)';
@@ -226,6 +239,12 @@ export function ProjectSelection() {
               }}
               onClick={() => {
                 // Navigate to projects page
+                setActiveProjectId(project.id);
+                try {
+                  if (typeof window !== 'undefined') {
+                    sessionStorage.setItem('activeProjectId', project.id);
+                  }
+                } catch {}
                 router.push('/projects');
               }}
             >
