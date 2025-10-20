@@ -481,5 +481,12 @@ describe('Logout Page Flow', () => {
       const personalLink = screen.getByText('Personal').closest('a');
       expect(personalLink).toHaveAttribute('href', '/dashboard/personal');
     });
+
+    it('should have Projects link in navbar', () => {
+      render(<PersonalDashboard />, { wrapper: TestWrapper });
+
+      const projectsLink = screen.getByText('Projects').closest('a');
+      expect(projectsLink).toHaveAttribute('href', '/projects');
+    });
   });
 });
