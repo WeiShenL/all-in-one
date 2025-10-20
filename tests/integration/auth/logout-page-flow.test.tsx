@@ -213,24 +213,8 @@ describe('Logout Page Flow', () => {
       expect(screen.getByText('Sign Out')).toBeInTheDocument();
     });
 
-    it('should display user info in navbar before logout', () => {
-      render(<PersonalDashboard />, { wrapper: TestWrapper });
-
-      expect(screen.getByText('Test User')).toBeInTheDocument();
-    });
-
-    it('should display user email when name is not available', () => {
-      (useAuth as jest.Mock).mockReturnValue({
-        ...mockAuthenticatedUser,
-        userProfile: { role: 'STAFF', name: null },
-      });
-
-      render(<PersonalDashboard />, { wrapper: TestWrapper });
-
-      // Use getAllByText since email appears in both navbar and dashboard content
-      const emailElements = screen.getAllByText('test@example.com');
-      expect(emailElements.length).toBeGreaterThan(0);
-    });
+    // User name/email are no longer displayed persistently in the navbar.
+    // The profile icon opens a modal with user details, so these assertions were removed.
   });
 
   describe('Logout Flow', () => {
