@@ -24,6 +24,21 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaTaskRepository } from '@/repositories/PrismaTaskRepository';
 import { TaskStatus } from '@/domain/task/Task';
 
+// ============================================
+// MOCK RESEND TO PREVENT ACTUAL EMAIL SENDING
+// ============================================
+// Manager operations call addAssigneeToTask/removeAssigneeToTask/addCommentToTask which trigger notifications
+// Mock Resend to prevent hitting rate limits
+jest.mock('resend', () => ({
+  Resend: jest.fn().mockImplementation(() => ({
+    emails: {
+      send: jest
+        .fn()
+        .mockResolvedValue({ data: { id: 'mock-email-id' }, error: null }),
+    },
+  })),
+}));
+
 describe('Integration Tests - Manager Operations (SCRUM-15)', () => {
   let pgClient: Client;
   let prisma: PrismaClient;
