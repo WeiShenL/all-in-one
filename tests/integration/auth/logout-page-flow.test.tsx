@@ -43,6 +43,15 @@ jest.mock('@/app/lib/trpc', () => {
           useQuery: jest.fn(),
         },
       },
+      project: {
+        getAll: {
+          useQuery: jest.fn(() => ({
+            data: [],
+            isLoading: false,
+            error: null,
+          })),
+        },
+      },
       userProfile: {
         getAll: {
           useQuery: jest.fn(),
@@ -466,11 +475,11 @@ describe('Logout Page Flow', () => {
       expect(personalLink).toHaveAttribute('href', '/dashboard/personal');
     });
 
-    it('should have Projects link in navbar', () => {
+    it('should have Projects section in navbar', () => {
       render(<PersonalDashboard />, { wrapper: TestWrapper });
 
-      const projectsLink = screen.getByText('Projects').closest('a');
-      expect(projectsLink).toHaveAttribute('href', '/projects');
+      // Look for the Projects section header (not a navigation link)
+      expect(screen.getByText('Projects')).toBeInTheDocument();
     });
   });
 });

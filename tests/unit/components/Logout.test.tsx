@@ -53,6 +53,15 @@ jest.mock('@/app/lib/trpc', () => ({
         },
       },
     })),
+    project: {
+      getAll: {
+        useQuery: jest.fn(() => ({
+          data: [],
+          isLoading: false,
+          error: null,
+        })),
+      },
+    },
     notification: {
       getNotifications: {
         useQuery: jest.fn(() => ({
