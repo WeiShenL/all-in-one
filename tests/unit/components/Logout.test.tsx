@@ -13,6 +13,7 @@ import { useAuth } from '@/lib/supabase/auth-context';
 // Mock external dependencies
 jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
+  usePathname: jest.fn(() => '/dashboard/personal'),
 }));
 
 jest.mock('@/lib/supabase/auth-context', () => ({
