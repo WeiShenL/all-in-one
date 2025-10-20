@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/supabase/auth-context';
 import { useSecureLogout } from '@/lib/hooks/useSecureLogout';
 import { useUnreadNotificationCount } from '@/lib/hooks/useUnreadNotificationCount';
@@ -15,11 +16,54 @@ export default function Navbar() {
   const { dismissAll } = useNotifications();
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const pathname = usePathname();
 
   // Get dashboard route - all users go to personal dashboard by default
   const getDashboardRoute = () => {
     // All users (including HR/Admin) use personal dashboard
     return '/dashboard/personal';
+  };
+
+  // Helper function to determine if a link is active
+  const isActive = (href: string) => {
+    if (href === '/dashboard/personal') {
+      return pathname === '/dashboard/personal' || pathname === '/dashboard';
+    }
+    return pathname === href;
+  };
+
+  // Helper function to get link styles based on active state
+  const getLinkStyles = (href: string) => {
+    const isLinkActive = isActive(href);
+    return {
+      color: isLinkActive ? '#1976d2' : '#495057',
+      backgroundColor: isLinkActive ? '#e3f2fd' : 'transparent',
+      textDecoration: 'none',
+      fontWeight: isLinkActive ? '600' : '500',
+      fontSize: '1rem',
+      padding: '0.75rem 1rem',
+      borderRadius: '6px',
+      transition: 'all 0.2s ease',
+      display: 'flex',
+      alignItems: 'center',
+      cursor: 'pointer',
+      borderLeft: isLinkActive ? '3px solid #1976d2' : '3px solid transparent',
+    };
+  };
+
+  // Helper function to get mobile link styles based on active state
+  const getMobileLinkStyles = (href: string) => {
+    const isLinkActive = isActive(href);
+    return {
+      color: isLinkActive ? '#1976d2' : '#495057',
+      textDecoration: 'none',
+      fontWeight: isLinkActive ? '600' : '500',
+      padding: '0.75rem',
+      borderRadius: '4px',
+      backgroundColor: isLinkActive ? '#e3f2fd' : '#fff',
+      border: isLinkActive ? '1px solid #1976d2' : '1px solid #dee2e6',
+      transition: 'all 0.2s ease',
+    };
   };
 
   return (
@@ -73,30 +117,23 @@ export default function Navbar() {
         >
           <Link
             href={getDashboardRoute()}
-            style={{
-              color: '#495057',
-              textDecoration: 'none',
-              fontWeight: '500',
-              fontSize: '1rem',
-              padding: '0.75rem 1rem',
-              borderRadius: '6px',
-              transition: 'all 0.2s ease',
-              display: 'flex',
-              alignItems: 'center',
-              cursor: 'pointer',
-            }}
+            style={getLinkStyles(getDashboardRoute())}
             onMouseEnter={e => {
-              e.currentTarget.style.backgroundColor = '#e3f2fd';
-              e.currentTarget.style.color = '#1976d2';
-              e.currentTarget.style.transform = 'translateX(4px)';
-              e.currentTarget.style.boxShadow =
-                '0 2px 8px rgba(25, 118, 210, 0.15)';
+              if (!isActive(getDashboardRoute())) {
+                e.currentTarget.style.backgroundColor = '#e3f2fd';
+                e.currentTarget.style.color = '#1976d2';
+                e.currentTarget.style.transform = 'translateX(4px)';
+                e.currentTarget.style.boxShadow =
+                  '0 2px 8px rgba(25, 118, 210, 0.15)';
+              }
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.color = '#495057';
-              e.currentTarget.style.transform = 'translateX(0)';
-              e.currentTarget.style.boxShadow = 'none';
+              if (!isActive(getDashboardRoute())) {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = '#495057';
+                e.currentTarget.style.transform = 'translateX(0)';
+                e.currentTarget.style.boxShadow = 'none';
+              }
             }}
           >
             Personal
@@ -104,30 +141,23 @@ export default function Navbar() {
 
           <Link
             href='/dashboard/department'
-            style={{
-              color: '#495057',
-              textDecoration: 'none',
-              fontWeight: '500',
-              fontSize: '1rem',
-              padding: '0.75rem 1rem',
-              borderRadius: '6px',
-              transition: 'all 0.2s ease',
-              display: 'flex',
-              alignItems: 'center',
-              cursor: 'pointer',
-            }}
+            style={getLinkStyles('/dashboard/department')}
             onMouseEnter={e => {
-              e.currentTarget.style.backgroundColor = '#e3f2fd';
-              e.currentTarget.style.color = '#1976d2';
-              e.currentTarget.style.transform = 'translateX(4px)';
-              e.currentTarget.style.boxShadow =
-                '0 2px 8px rgba(25, 118, 210, 0.15)';
+              if (!isActive('/dashboard/department')) {
+                e.currentTarget.style.backgroundColor = '#e3f2fd';
+                e.currentTarget.style.color = '#1976d2';
+                e.currentTarget.style.transform = 'translateX(4px)';
+                e.currentTarget.style.boxShadow =
+                  '0 2px 8px rgba(25, 118, 210, 0.15)';
+              }
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.color = '#495057';
-              e.currentTarget.style.transform = 'translateX(0)';
-              e.currentTarget.style.boxShadow = 'none';
+              if (!isActive('/dashboard/department')) {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = '#495057';
+                e.currentTarget.style.transform = 'translateX(0)';
+                e.currentTarget.style.boxShadow = 'none';
+              }
             }}
           >
             Department
@@ -138,30 +168,23 @@ export default function Navbar() {
             (userProfile.isHrAdmin || userProfile.role === 'HR_ADMIN') && (
               <Link
                 href='/dashboard/company'
-                style={{
-                  color: '#495057',
-                  textDecoration: 'none',
-                  fontWeight: '500',
-                  fontSize: '1rem',
-                  padding: '0.75rem 1rem',
-                  borderRadius: '6px',
-                  transition: 'all 0.2s ease',
-                  display: 'flex',
-                  alignItems: 'center',
-                  cursor: 'pointer',
-                }}
+                style={getLinkStyles('/dashboard/company')}
                 onMouseEnter={e => {
-                  e.currentTarget.style.backgroundColor = '#e3f2fd';
-                  e.currentTarget.style.color = '#1976d2';
-                  e.currentTarget.style.transform = 'translateX(4px)';
-                  e.currentTarget.style.boxShadow =
-                    '0 2px 8px rgba(25, 118, 210, 0.15)';
+                  if (!isActive('/dashboard/company')) {
+                    e.currentTarget.style.backgroundColor = '#e3f2fd';
+                    e.currentTarget.style.color = '#1976d2';
+                    e.currentTarget.style.transform = 'translateX(4px)';
+                    e.currentTarget.style.boxShadow =
+                      '0 2px 8px rgba(25, 118, 210, 0.15)';
+                  }
                 }}
                 onMouseLeave={e => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                  e.currentTarget.style.color = '#495057';
-                  e.currentTarget.style.transform = 'translateX(0)';
-                  e.currentTarget.style.boxShadow = 'none';
+                  if (!isActive('/dashboard/company')) {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.color = '#495057';
+                    e.currentTarget.style.transform = 'translateX(0)';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }
                 }}
               >
                 Company
@@ -173,30 +196,23 @@ export default function Navbar() {
             (userProfile.isHrAdmin || userProfile.role === 'HR_ADMIN') && (
               <Link
                 href='/dashboard/hr'
-                style={{
-                  color: '#495057',
-                  textDecoration: 'none',
-                  fontWeight: '500',
-                  fontSize: '1rem',
-                  padding: '0.75rem 1rem',
-                  borderRadius: '6px',
-                  transition: 'all 0.2s ease',
-                  display: 'flex',
-                  alignItems: 'center',
-                  cursor: 'pointer',
-                }}
+                style={getLinkStyles('/dashboard/hr')}
                 onMouseEnter={e => {
-                  e.currentTarget.style.backgroundColor = '#e3f2fd';
-                  e.currentTarget.style.color = '#1976d2';
-                  e.currentTarget.style.transform = 'translateX(4px)';
-                  e.currentTarget.style.boxShadow =
-                    '0 2px 8px rgba(25, 118, 210, 0.15)';
+                  if (!isActive('/dashboard/hr')) {
+                    e.currentTarget.style.backgroundColor = '#e3f2fd';
+                    e.currentTarget.style.color = '#1976d2';
+                    e.currentTarget.style.transform = 'translateX(4px)';
+                    e.currentTarget.style.boxShadow =
+                      '0 2px 8px rgba(25, 118, 210, 0.15)';
+                  }
                 }}
                 onMouseLeave={e => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                  e.currentTarget.style.color = '#495057';
-                  e.currentTarget.style.transform = 'translateX(0)';
-                  e.currentTarget.style.boxShadow = 'none';
+                  if (!isActive('/dashboard/hr')) {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.color = '#495057';
+                    e.currentTarget.style.transform = 'translateX(0)';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }
                 }}
               >
                 Admin
@@ -205,30 +221,23 @@ export default function Navbar() {
 
           <Link
             href='/projects'
-            style={{
-              color: '#495057',
-              textDecoration: 'none',
-              fontWeight: '500',
-              fontSize: '1rem',
-              padding: '0.75rem 1rem',
-              borderRadius: '6px',
-              transition: 'all 0.2s ease',
-              display: 'flex',
-              alignItems: 'center',
-              cursor: 'pointer',
-            }}
+            style={getLinkStyles('/projects')}
             onMouseEnter={e => {
-              e.currentTarget.style.backgroundColor = '#e3f2fd';
-              e.currentTarget.style.color = '#1976d2';
-              e.currentTarget.style.transform = 'translateX(4px)';
-              e.currentTarget.style.boxShadow =
-                '0 2px 8px rgba(25, 118, 210, 0.15)';
+              if (!isActive('/projects')) {
+                e.currentTarget.style.backgroundColor = '#e3f2fd';
+                e.currentTarget.style.color = '#1976d2';
+                e.currentTarget.style.transform = 'translateX(4px)';
+                e.currentTarget.style.boxShadow =
+                  '0 2px 8px rgba(25, 118, 210, 0.15)';
+              }
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.color = '#495057';
-              e.currentTarget.style.transform = 'translateX(0)';
-              e.currentTarget.style.boxShadow = 'none';
+              if (!isActive('/projects')) {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = '#495057';
+                e.currentTarget.style.transform = 'translateX(0)';
+                e.currentTarget.style.boxShadow = 'none';
+              }
             }}
           >
             Projects
@@ -457,29 +466,13 @@ export default function Navbar() {
           >
             <Link
               href={getDashboardRoute()}
-              style={{
-                color: '#495057',
-                textDecoration: 'none',
-                fontWeight: '500',
-                padding: '0.75rem',
-                borderRadius: '4px',
-                backgroundColor: '#fff',
-                border: '1px solid #dee2e6',
-              }}
+              style={getMobileLinkStyles(getDashboardRoute())}
             >
               Personal
             </Link>
             <Link
               href='/dashboard/department'
-              style={{
-                color: '#495057',
-                textDecoration: 'none',
-                fontWeight: '500',
-                padding: '0.75rem',
-                borderRadius: '4px',
-                backgroundColor: '#fff',
-                border: '1px solid #dee2e6',
-              }}
+              style={getMobileLinkStyles('/dashboard/department')}
             >
               Department
             </Link>
@@ -488,46 +481,19 @@ export default function Navbar() {
                 <>
                   <Link
                     href='/dashboard/company'
-                    style={{
-                      color: '#495057',
-                      textDecoration: 'none',
-                      fontWeight: '500',
-                      padding: '0.75rem',
-                      borderRadius: '4px',
-                      backgroundColor: '#fff',
-                      border: '1px solid #dee2e6',
-                    }}
+                    style={getMobileLinkStyles('/dashboard/company')}
                   >
                     Company
                   </Link>
                   <Link
                     href='/dashboard/hr'
-                    style={{
-                      color: '#495057',
-                      textDecoration: 'none',
-                      fontWeight: '500',
-                      padding: '0.75rem',
-                      borderRadius: '4px',
-                      backgroundColor: '#fff',
-                      border: '1px solid #dee2e6',
-                    }}
+                    style={getMobileLinkStyles('/dashboard/hr')}
                   >
                     Admin
                   </Link>
                 </>
               )}
-            <Link
-              href='/projects'
-              style={{
-                color: '#495057',
-                textDecoration: 'none',
-                fontWeight: '500',
-                padding: '0.75rem',
-                borderRadius: '4px',
-                backgroundColor: '#fff',
-                border: '1px solid #dee2e6',
-              }}
-            >
+            <Link href='/projects' style={getMobileLinkStyles('/projects')}>
               Projects
             </Link>
 
