@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/lib/supabase/auth-context';
 import { useSecureLogout } from '@/lib/hooks/useSecureLogout';
 import { useUnreadNotificationCount } from '@/lib/hooks/useUnreadNotificationCount';
@@ -70,7 +71,7 @@ export default function Navbar() {
             padding: '0 1rem',
           }}
         >
-          <a
+          <Link
             href={getDashboardRoute()}
             style={{
               color: '#495057',
@@ -93,9 +94,9 @@ export default function Navbar() {
             }}
           >
             Personal
-          </a>
+          </Link>
 
-          <a
+          <Link
             href='/dashboard/department'
             style={{
               color: '#495057',
@@ -118,12 +119,12 @@ export default function Navbar() {
             }}
           >
             Department
-          </a>
+          </Link>
 
           {/* Company link - visible only to HR/Admin users */}
           {userProfile &&
             (userProfile.isHrAdmin || userProfile.role === 'HR_ADMIN') && (
-              <a
+              <Link
                 href='/dashboard/company'
                 style={{
                   color: '#495057',
@@ -146,13 +147,13 @@ export default function Navbar() {
                 }}
               >
                 Company
-              </a>
+              </Link>
             )}
 
           {/* Admin Dashboard link - visible only to HR/Admin users */}
           {userProfile &&
             (userProfile.isHrAdmin || userProfile.role === 'HR_ADMIN') && (
-              <a
+              <Link
                 href='/dashboard/hr'
                 style={{
                   color: '#495057',
@@ -175,10 +176,10 @@ export default function Navbar() {
                 }}
               >
                 Admin
-              </a>
+              </Link>
             )}
 
-          <a
+          <Link
             href='/projects'
             style={{
               color: '#495057',
@@ -201,7 +202,7 @@ export default function Navbar() {
             }}
           >
             Projects
-          </a>
+          </Link>
         </nav>
 
         {/* Bottom Section - User Info and Actions */}
@@ -402,7 +403,7 @@ export default function Navbar() {
               gap: '0.5rem',
             }}
           >
-            <a
+            <Link
               href={getDashboardRoute()}
               style={{
                 color: '#495057',
@@ -415,8 +416,8 @@ export default function Navbar() {
               }}
             >
               Personal
-            </a>
-            <a
+            </Link>
+            <Link
               href='/dashboard/department'
               style={{
                 color: '#495057',
@@ -429,11 +430,11 @@ export default function Navbar() {
               }}
             >
               Department
-            </a>
+            </Link>
             {userProfile &&
               (userProfile.isHrAdmin || userProfile.role === 'HR_ADMIN') && (
                 <>
-                  <a
+                  <Link
                     href='/dashboard/company'
                     style={{
                       color: '#495057',
@@ -446,8 +447,8 @@ export default function Navbar() {
                     }}
                   >
                     Company
-                  </a>
-                  <a
+                  </Link>
+                  <Link
                     href='/dashboard/hr'
                     style={{
                       color: '#495057',
@@ -460,10 +461,10 @@ export default function Navbar() {
                     }}
                   >
                     Admin
-                  </a>
+                  </Link>
                 </>
               )}
-            <a
+            <Link
               href='/projects'
               style={{
                 color: '#495057',
@@ -476,7 +477,7 @@ export default function Navbar() {
               }}
             >
               Projects
-            </a>
+            </Link>
 
             {/* Notification Button in Mobile Menu */}
             <button
