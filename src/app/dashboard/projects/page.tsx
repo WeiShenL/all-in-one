@@ -1,14 +1,24 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useAuth } from '@/lib/supabase/auth-context';
+import { useRouter } from 'next/navigation';
 import Navbar from '../../components/Navbar';
 import { ProjectDashboard } from '../../components/ProjectDashboard';
 
 export default function ProjectsPage() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
   const [selectedTitle, setSelectedTitle] = useState<string | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
     null
   );
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/auth/login');
+    }
+  }, [user, loading, router]);
 
   useEffect(() => {
     try {
@@ -62,6 +72,26 @@ export default function ProjectsPage() {
       );
   }, []);
 
+  if (loading) {
+    return (
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+          backgroundColor: '#f7fafc',
+        }}
+      >
+        <p style={{ color: '#718096' }}>Loading...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
+
   return (
     <div
       style={{
@@ -100,16 +130,27 @@ export default function ProjectsPage() {
                 marginBottom: '1rem',
               }}
             >
-              <h1
-                style={{
-                  margin: 0,
-                  color: '#1a202c',
-                  fontSize: 'clamp(1.5rem, 4vw, 2rem)',
-                  fontWeight: '700',
-                }}
-              >
-                {selectedTitle || 'Projects'}
-              </h1>
+              <div>
+                <h1
+                  style={{
+                    marginBottom: '0.5rem',
+                    color: '#1a202c',
+                    fontSize: 'clamp(1.5rem, 4vw, 2rem)',
+                    fontWeight: '700',
+                  }}
+                >
+                  {selectedTitle || 'Projects'}
+                </h1>
+                <p
+                  style={{
+                    color: '#718096',
+                    margin: 0,
+                    fontSize: 'clamp(0.75rem, 2vw, 0.875rem)',
+                  }}
+                >
+                  Welcome, {user.email}
+                </p>
+              </div>
             </div>
           </header>
 
