@@ -17,7 +17,7 @@ async function getUserContext(ctx: Context) {
   return {
     userId: ctx.userId,
     departmentId: user.departmentId,
-    role: user.role as 'STAFF' | 'MANAGER' | 'ADMIN',
+    role: user.role as 'STAFF' | 'MANAGER' | 'HR_ADMIN',
   };
 }
 

@@ -2,6 +2,21 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import ProjectsPage from '@/app/dashboard/projects/page';
 
+// Mock useAuth to avoid AuthProvider requirement
+jest.mock('@/lib/supabase/auth-context', () => ({
+  useAuth: jest.fn(() => ({
+    user: { email: 'test@example.com' },
+    loading: false,
+  })),
+}));
+
+// Mock useRouter to avoid Next.js router requirement
+jest.mock('next/navigation', () => ({
+  useRouter: jest.fn(() => ({
+    push: jest.fn(),
+  })),
+}));
+
 // Mock trpc to avoid provider requirement inside ProjectsPage -> ProjectDashboard
 jest.mock('@/app/lib/trpc', () => ({
   trpc: {
@@ -44,6 +59,7 @@ describe('Projects Dashboard Page', () => {
     expect(
       screen.getByRole('heading', { name: 'Projects' })
     ).toBeInTheDocument();
+    expect(screen.getByText('Welcome, test@example.com')).toBeInTheDocument();
   });
 
   it('selected project title is shown using sessionStorage activeProjectName if present', () => {
@@ -56,6 +72,7 @@ describe('Projects Dashboard Page', () => {
     expect(
       screen.getByRole('heading', { name: 'Customer Portal Redesign' })
     ).toBeInTheDocument();
+    expect(screen.getByText('Welcome, test@example.com')).toBeInTheDocument();
   });
 
   it('updates selected projecttitle when activeProjectChanged event is dispatched', async () => {
@@ -63,6 +80,7 @@ describe('Projects Dashboard Page', () => {
     expect(
       screen.getByRole('heading', { name: 'Projects' })
     ).toBeInTheDocument();
+    expect(screen.getByText('Welcome, test@example.com')).toBeInTheDocument();
 
     window.dispatchEvent(
       new CustomEvent('activeProjectChanged', {
