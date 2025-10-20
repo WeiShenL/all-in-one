@@ -54,7 +54,7 @@ jest.mock('@/app/lib/trpc', () => ({
       },
     })),
     project: {
-      getAll: {
+      getVisible: {
         useQuery: jest.fn(() => ({
           data: [],
           isLoading: false,

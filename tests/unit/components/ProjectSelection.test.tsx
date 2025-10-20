@@ -14,13 +14,13 @@ jest.mock('@/lib/supabase/auth-context', () => ({
 jest.mock('@/app/lib/trpc', () => ({
   trpc: {
     project: {
-      getAll: {
+      getVisible: {
         useQuery: jest.fn(),
       },
     },
     useUtils: jest.fn(() => ({
       project: {
-        getAll: {
+        getVisible: {
           invalidate: jest.fn(),
         },
       },
@@ -51,7 +51,7 @@ jest.mock('@/app/components/ProjectCreateModal', () => ({
 
 describe('ProjectSelection', () => {
   const mockUseAuth = useAuth as jest.Mock;
-  const mockUseQuery = trpc.project.getAll.useQuery as jest.Mock;
+  const mockUseQuery = trpc.project.getVisible.useQuery as jest.Mock;
   const mockPush = jest.fn();
   const mockUsePathname = jest.fn(() => '/dashboard/personal');
 
@@ -457,6 +457,104 @@ describe('ProjectSelection', () => {
     });
   });
 
+  describe('SessionStorage Integration', () => {
+    beforeEach(() => {
+      // Clear sessionStorage before each test
+      sessionStorage.clear();
+    });
+
+    it('should persist active project selection to sessionStorage', () => {
+      render(<ProjectSelection />);
+      const projectItem = screen.getByText('Customer Portal');
+      fireEvent.click(projectItem);
+
+      expect(sessionStorage.getItem('activeProjectId')).toBe('project-1');
+      expect(sessionStorage.getItem('activeProjectName')).toBe(
+        'Customer Portal'
+      );
+    });
+
+    it('should restore active project from sessionStorage on mount', () => {
+      sessionStorage.setItem('activeProjectId', 'project-2');
+      sessionStorage.setItem('activeProjectName', 'Mobile App');
+      mockUsePathname.mockReturnValue('/dashboard/projects');
+
+      render(<ProjectSelection />);
+
+      const restoredItem = screen.getByText('Mobile App').closest('div');
+      expect(restoredItem).toHaveStyle({
+        color: '#1976d2',
+        backgroundColor: '#e3f2fd',
+        borderLeft: '3px solid #1976d2',
+      });
+    });
+
+    it('should dispatch custom event when project is selected', () => {
+      const mockDispatchEvent = jest.spyOn(window, 'dispatchEvent');
+      render(<ProjectSelection />);
+
+      const projectItem = screen.getByText('Customer Portal');
+      fireEvent.click(projectItem);
+
+      expect(mockDispatchEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'activeProjectChanged',
+          detail: { id: 'project-1', name: 'Customer Portal' },
+        })
+      );
+    });
+
+    it('should handle sessionStorage errors gracefully', () => {
+      // Mock sessionStorage to throw error
+      const originalSetItem = sessionStorage.setItem;
+      sessionStorage.setItem = jest.fn(() => {
+        throw new Error('Storage quota exceeded');
+      });
+
+      render(<ProjectSelection />);
+      const projectItem = screen.getByText('Customer Portal');
+
+      // Should not crash when sessionStorage fails
+      expect(() => fireEvent.click(projectItem)).not.toThrow();
+
+      // Restore original method
+      sessionStorage.setItem = originalSetItem;
+    });
+  });
+
+  describe('Project Visibility Query', () => {
+    it('should call getVisible query with correct parameters', () => {
+      render(<ProjectSelection />);
+
+      expect(mockUseQuery).toHaveBeenCalledWith({
+        isArchived: false,
+      });
+    });
+
+    it('should invalidate getVisible query when project is created', async () => {
+      const mockInvalidate = jest.fn();
+      const mockUtils = {
+        project: {
+          getVisible: {
+            invalidate: mockInvalidate,
+          },
+        },
+      };
+      (trpc.useUtils as jest.Mock).mockReturnValue(mockUtils);
+
+      render(<ProjectSelection />);
+      const addButton = screen.getByTitle('Add Project');
+      fireEvent.click(addButton);
+
+      const createButton = screen.getByText('Create Project');
+      fireEvent.click(createButton);
+
+      await waitFor(() => {
+        expect(mockInvalidate).toHaveBeenCalledWith({ isArchived: false });
+      });
+    });
+  });
+
   describe('Edge Cases', () => {
     it('should handle empty project name', () => {
       mockUseQuery.mockReturnValue({
@@ -496,6 +594,16 @@ describe('ProjectSelection', () => {
         textOverflow: 'ellipsis',
         whiteSpace: 'nowrap',
       });
+    });
+
+    it('should handle null project data gracefully', () => {
+      mockUseQuery.mockReturnValue({
+        data: null,
+        isLoading: false,
+        error: null,
+      });
+      render(<ProjectSelection />);
+      expect(screen.getByText('Create your first project')).toBeInTheDocument();
     });
   });
 });
