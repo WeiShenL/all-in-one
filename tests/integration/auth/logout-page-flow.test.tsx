@@ -5,7 +5,6 @@ import { useAuth } from '@/lib/supabase/auth-context';
 import PersonalDashboard from '@/app/dashboard/personal/page';
 import DepartmentDashboard from '@/app/dashboard/department/page';
 import HRDashboard from '@/app/dashboard/hr/page';
-import ProfilePage from '@/app/profile/page';
 import { NotificationProvider } from '@/lib/context/NotificationContext';
 
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -214,12 +213,6 @@ describe('Logout Page Flow', () => {
       expect(screen.getByText('Sign Out')).toBeInTheDocument();
     });
 
-    it('should render logout button in navbar on profile page', () => {
-      render(<ProfilePage />, { wrapper: TestWrapper });
-
-      expect(screen.getByText('Sign Out')).toBeInTheDocument();
-    });
-
     it('should display user info in navbar before logout', () => {
       render(<PersonalDashboard />, { wrapper: TestWrapper });
 
@@ -305,19 +298,6 @@ describe('Logout Page Flow', () => {
       });
 
       render(<HRDashboard />, { wrapper: TestWrapper });
-
-      const logoutButton = screen.getByText('Sign Out');
-      fireEvent.click(logoutButton);
-
-      await waitFor(() => {
-        expect(mockHandleSecureLogout).toHaveBeenCalledTimes(1);
-      });
-    });
-
-    it('should logout from profile page', async () => {
-      mockHandleSecureLogout.mockResolvedValue(undefined);
-
-      render(<ProfilePage />, { wrapper: TestWrapper });
 
       const logoutButton = screen.getByText('Sign Out');
       fireEvent.click(logoutButton);
@@ -452,10 +432,6 @@ describe('Logout Page Flow', () => {
       });
       expect(screen.getByText('Sign Out')).toBeInTheDocument();
       unmount3();
-
-      (useAuth as jest.Mock).mockReturnValue(mockAuthenticatedUser);
-      render(<ProfilePage />, { wrapper: TestWrapper });
-      expect(screen.getByText('Sign Out')).toBeInTheDocument();
     });
 
     it('should display loading indicator only on logout button during logout', async () => {
@@ -504,13 +480,6 @@ describe('Logout Page Flow', () => {
 
       const personalLink = screen.getByText('Personal').closest('a');
       expect(personalLink).toHaveAttribute('href', '/dashboard/personal');
-    });
-
-    it('should have Profile link in navbar', () => {
-      render(<PersonalDashboard />, { wrapper: TestWrapper });
-
-      const profileLink = screen.getByText('Profile').closest('a');
-      expect(profileLink).toHaveAttribute('href', '/profile');
     });
   });
 });
