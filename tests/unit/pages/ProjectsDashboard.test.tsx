@@ -2,6 +2,29 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import ProjectsPage from '@/app/dashboard/projects/page';
 
+// Mock trpc to avoid provider requirement inside ProjectsPage -> ProjectDashboard
+jest.mock('@/app/lib/trpc', () => ({
+  trpc: {
+    task: {
+      getProjectTasksForUser: {
+        useQuery: jest.fn(() => ({ data: [], isLoading: false, error: null })),
+      },
+    },
+    userProfile: {
+      getAll: {
+        useQuery: jest.fn(() => ({ data: [], isLoading: false, error: null })),
+      },
+    },
+    useUtils: jest.fn(() => ({
+      task: {
+        getProjectTasksForUser: {
+          invalidate: jest.fn(),
+        },
+      },
+    })),
+  },
+}));
+
 // Mock Navbar to avoid pulling in app-level dependencies
 jest.mock('@/app/components/Navbar', () => {
   return {
@@ -25,6 +48,10 @@ describe('Projects Dashboard Page', () => {
 
   it('selected project title is shown using sessionStorage activeProjectName if present', () => {
     sessionStorage.setItem('activeProjectName', 'Customer Portal Redesign');
+    sessionStorage.setItem(
+      'activeProjectId',
+      '11111111-1111-4111-8111-111111111111'
+    );
     render(<ProjectsPage />);
     expect(
       screen.getByRole('heading', { name: 'Customer Portal Redesign' })
