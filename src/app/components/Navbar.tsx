@@ -83,14 +83,20 @@ export default function Navbar() {
               transition: 'all 0.2s ease',
               display: 'flex',
               alignItems: 'center',
+              cursor: 'pointer',
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.backgroundColor = '#e9ecef';
-              e.currentTarget.style.color = '#007bff';
+              e.currentTarget.style.backgroundColor = '#e3f2fd';
+              e.currentTarget.style.color = '#1976d2';
+              e.currentTarget.style.transform = 'translateX(4px)';
+              e.currentTarget.style.boxShadow =
+                '0 2px 8px rgba(25, 118, 210, 0.15)';
             }}
             onMouseLeave={e => {
               e.currentTarget.style.backgroundColor = 'transparent';
               e.currentTarget.style.color = '#495057';
+              e.currentTarget.style.transform = 'translateX(0)';
+              e.currentTarget.style.boxShadow = 'none';
             }}
           >
             Personal
@@ -108,14 +114,20 @@ export default function Navbar() {
               transition: 'all 0.2s ease',
               display: 'flex',
               alignItems: 'center',
+              cursor: 'pointer',
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.backgroundColor = '#e9ecef';
-              e.currentTarget.style.color = '#007bff';
+              e.currentTarget.style.backgroundColor = '#e3f2fd';
+              e.currentTarget.style.color = '#1976d2';
+              e.currentTarget.style.transform = 'translateX(4px)';
+              e.currentTarget.style.boxShadow =
+                '0 2px 8px rgba(25, 118, 210, 0.15)';
             }}
             onMouseLeave={e => {
               e.currentTarget.style.backgroundColor = 'transparent';
               e.currentTarget.style.color = '#495057';
+              e.currentTarget.style.transform = 'translateX(0)';
+              e.currentTarget.style.boxShadow = 'none';
             }}
           >
             Department
@@ -136,14 +148,20 @@ export default function Navbar() {
                   transition: 'all 0.2s ease',
                   display: 'flex',
                   alignItems: 'center',
+                  cursor: 'pointer',
                 }}
                 onMouseEnter={e => {
-                  e.currentTarget.style.backgroundColor = '#e9ecef';
-                  e.currentTarget.style.color = '#007bff';
+                  e.currentTarget.style.backgroundColor = '#e3f2fd';
+                  e.currentTarget.style.color = '#1976d2';
+                  e.currentTarget.style.transform = 'translateX(4px)';
+                  e.currentTarget.style.boxShadow =
+                    '0 2px 8px rgba(25, 118, 210, 0.15)';
                 }}
                 onMouseLeave={e => {
                   e.currentTarget.style.backgroundColor = 'transparent';
                   e.currentTarget.style.color = '#495057';
+                  e.currentTarget.style.transform = 'translateX(0)';
+                  e.currentTarget.style.boxShadow = 'none';
                 }}
               >
                 Company
@@ -165,14 +183,20 @@ export default function Navbar() {
                   transition: 'all 0.2s ease',
                   display: 'flex',
                   alignItems: 'center',
+                  cursor: 'pointer',
                 }}
                 onMouseEnter={e => {
-                  e.currentTarget.style.backgroundColor = '#e9ecef';
-                  e.currentTarget.style.color = '#007bff';
+                  e.currentTarget.style.backgroundColor = '#e3f2fd';
+                  e.currentTarget.style.color = '#1976d2';
+                  e.currentTarget.style.transform = 'translateX(4px)';
+                  e.currentTarget.style.boxShadow =
+                    '0 2px 8px rgba(25, 118, 210, 0.15)';
                 }}
                 onMouseLeave={e => {
                   e.currentTarget.style.backgroundColor = 'transparent';
                   e.currentTarget.style.color = '#495057';
+                  e.currentTarget.style.transform = 'translateX(0)';
+                  e.currentTarget.style.boxShadow = 'none';
                 }}
               >
                 Admin
@@ -191,14 +215,20 @@ export default function Navbar() {
               transition: 'all 0.2s ease',
               display: 'flex',
               alignItems: 'center',
+              cursor: 'pointer',
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.backgroundColor = '#e9ecef';
-              e.currentTarget.style.color = '#007bff';
+              e.currentTarget.style.backgroundColor = '#e3f2fd';
+              e.currentTarget.style.color = '#1976d2';
+              e.currentTarget.style.transform = 'translateX(4px)';
+              e.currentTarget.style.boxShadow =
+                '0 2px 8px rgba(25, 118, 210, 0.15)';
             }}
             onMouseLeave={e => {
               e.currentTarget.style.backgroundColor = 'transparent';
               e.currentTarget.style.color = '#495057';
+              e.currentTarget.style.transform = 'translateX(0)';
+              e.currentTarget.style.boxShadow = 'none';
             }}
           >
             Projects
@@ -233,10 +263,17 @@ export default function Navbar() {
               dismissAll();
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.backgroundColor = '#e9ecef';
+              e.currentTarget.style.backgroundColor = '#e3f2fd';
+              e.currentTarget.style.color = '#1976d2';
+              e.currentTarget.style.transform = 'translateX(4px)';
+              e.currentTarget.style.boxShadow =
+                '0 2px 8px rgba(25, 118, 210, 0.15)';
             }}
             onMouseLeave={e => {
               e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.color = '#495057';
+              e.currentTarget.style.transform = 'translateX(0)';
+              e.currentTarget.style.boxShadow = 'none';
             }}
           >
             🔔 Notifications
@@ -309,6 +346,21 @@ export default function Navbar() {
               opacity: isLoggingOut ? 0.7 : 1,
               width: '100%',
               transition: 'all 0.2s ease',
+            }}
+            onMouseEnter={e => {
+              if (!isLoggingOut) {
+                e.currentTarget.style.backgroundColor = '#c82333';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow =
+                  '0 4px 12px rgba(220, 53, 69, 0.3)';
+              }
+            }}
+            onMouseLeave={e => {
+              if (!isLoggingOut) {
+                e.currentTarget.style.backgroundColor = '#dc3545';
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = 'none';
+              }
             }}
           >
             {isLoggingOut ? 'Signing Out...' : 'Sign Out'}
