@@ -338,13 +338,13 @@ describe('ProjectSelection', () => {
       const projectItem = screen.getByText('Customer Portal');
       fireEvent.click(projectItem);
 
-      expect(mockPush).toHaveBeenCalledWith('/projects');
+      expect(mockPush).toHaveBeenCalledWith('/dashboard/projects');
     });
   });
 
   describe('Active State', () => {
-    it('applies active styling only to the clicked item when on /projects', () => {
-      mockUsePathname.mockReturnValue('/projects');
+    it('applies active styling only to the clicked item when on /dashboard/projects', () => {
+      mockUsePathname.mockReturnValue('/dashboard/projects');
 
       render(<ProjectSelection />);
 
@@ -380,10 +380,10 @@ describe('ProjectSelection', () => {
       });
     });
 
-    it('restores active item from sessionStorage on /projects', () => {
+    it('restores active item from sessionStorage on /dashboard/projects', () => {
       // Persist selection
       sessionStorage.setItem('activeProjectId', 'project-2');
-      mockUsePathname.mockReturnValue('/projects');
+      mockUsePathname.mockReturnValue('/dashboard/projects');
 
       render(<ProjectSelection />);
       const restored = screen.getByText('Mobile App').closest('div');
@@ -419,7 +419,7 @@ describe('ProjectSelection', () => {
     });
 
     it('should not apply hover effects when item is active', () => {
-      mockUsePathname.mockReturnValue('/projects');
+      mockUsePathname.mockReturnValue('/dashboard/projects');
 
       render(<ProjectSelection />);
       // Activate first item

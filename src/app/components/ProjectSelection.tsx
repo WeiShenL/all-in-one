@@ -73,7 +73,7 @@ export function ProjectSelection() {
   };
 
   // Active state per item (only show when on /projects route)
-  const isOnProjectsPage = pathname === '/projects';
+  const isOnProjectsPage = pathname === '/dashboard/projects';
   const isItemActive = (projectId: string) =>
     isOnProjectsPage && activeProjectId === projectId;
 
@@ -245,7 +245,7 @@ export function ProjectSelection() {
                     sessionStorage.setItem('activeProjectId', project.id);
                   }
                 } catch {}
-                router.push('/projects');
+                router.push('/dashboard/projects');
               }}
             >
               {/* Project Icon */}
