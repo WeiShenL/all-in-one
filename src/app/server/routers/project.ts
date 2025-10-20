@@ -1,4 +1,4 @@
-import { router, publicProcedure, Context } from '../trpc';
+import { router, publicProcedure, protectedProcedure, Context } from '../trpc';
 import { z } from 'zod';
 import { PrismaProjectRepository } from '@/repositories/PrismaProjectRepository';
 import { ProjectService } from '@/services/project/ProjectService';
@@ -96,6 +96,36 @@ export const projectRouter = router({
       const repo = new PrismaProjectRepository(ctx.prisma);
       const service = new ProjectService(repo);
       return service.getProjectsByStatus(input.status);
+    }),
+
+  /**
+   * Get projects visible to the authenticated user
+   */
+  getVisible: protectedProcedure
+    .input(
+      z
+        .object({
+          isArchived: z.boolean().optional(),
+        })
+        .optional()
+    )
+    .query(async ({ ctx, input }) => {
+      const repo = new PrismaProjectRepository(ctx.prisma);
+      const service = new ProjectService(repo);
+      const user = await getUserContext(ctx);
+
+      // Reuse department hierarchy logic from TaskService via ctx-bound helper
+      const { TaskService } = await import('../services/TaskService');
+      const taskService = new TaskService(ctx.prisma);
+
+      return service.getVisibleProjectsForUser(
+        user,
+        {
+          getSubordinateDepartments: (id: string) =>
+            taskService.getSubordinateDepartments(id),
+        },
+        { isArchived: input?.isArchived }
+      );
     }),
 
   // ============================================

@@ -291,6 +291,39 @@ export class ProjectService {
   }
 
   /**
+   * Get projects visible to a user based on department hierarchy
+   * STAFF: own department; MANAGER: own + child departments; HR_ADMIN: all departments
+   */
+  async getVisibleProjectsForUser(
+    user: {
+      userId: string;
+      departmentId: string;
+      role: 'STAFF' | 'MANAGER' | 'HR_ADMIN';
+    },
+    deps: {
+      /** Returns own + child departmentIds for a root department */
+      getSubordinateDepartments: (departmentId: string) => Promise<string[]>;
+    },
+    options?: { isArchived?: boolean }
+  ) {
+    if (user.role === 'HR_ADMIN') {
+      return this.projectRepository.getAllProjects({
+        isArchived: options?.isArchived,
+      });
+    }
+
+    const visibleDepartmentIds =
+      user.role === 'MANAGER'
+        ? await deps.getSubordinateDepartments(user.departmentId)
+        : [user.departmentId];
+
+    return this.projectRepository.getProjectsVisibleToDepartments(
+      visibleDepartmentIds,
+      { isArchived: options?.isArchived }
+    );
+  }
+
+  /**
    * Get projects by creator
    */
   async getProjectsByCreator(creatorId: string): Promise<

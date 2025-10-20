@@ -34,7 +34,7 @@ export function ProjectSelection() {
     data: projects,
     isLoading,
     error,
-  } = trpc.project.getAll.useQuery({
+  } = trpc.project.getVisible.useQuery({
     isArchived: false,
   });
 
@@ -48,7 +48,7 @@ export function ProjectSelection() {
 
   const handleProjectCreated = () => {
     // Refresh the projects list so the new project appears immediately
-    void utils.project.getAll.invalidate({ isArchived: false });
+    void utils.project.getVisible.invalidate({ isArchived: false });
     setIsCreateModalOpen(false);
   };
 
