@@ -9,15 +9,8 @@ import { useUnreadNotificationCount } from '@/lib/hooks/useUnreadNotificationCou
 import { useNotifications } from '@/lib/context/NotificationContext';
 import { NotificationModal } from './NotificationModal';
 import { UserDetailsModal } from './UserDetailsModal';
-import {
-  Bell,
-  Home,
-  Users,
-  Building2,
-  Shield,
-  FolderKanban,
-  User,
-} from 'lucide-react';
+import { ProjectSelection } from './ProjectSelection';
+import { Bell, Home, Users, Building2, Shield, User } from 'lucide-react';
 
 export default function Navbar() {
   const { user, userProfile } = useAuth();
@@ -99,9 +92,9 @@ export default function Navbar() {
         {/* App Title and Notifications */}
         <div
           style={{
-            padding: '0 1.5rem 2rem 1.5rem',
+            padding: '0 1.5rem 0.5rem 1.5rem',
             borderBottom: '1px solid #dee2e6',
-            marginBottom: '1.5rem',
+            marginBottom: '0.25rem',
           }}
         >
           <div
@@ -220,11 +213,10 @@ export default function Navbar() {
         {/* Navigation Links */}
         <nav
           style={{
-            flex: 1,
             display: 'flex',
             flexDirection: 'column',
             gap: '0.5rem',
-            padding: '0 1rem',
+            padding: '0.25rem 1rem 1rem 1rem',
           }}
         >
           <Link
@@ -358,36 +350,10 @@ export default function Navbar() {
                 </span>
               </Link>
             )}
-
-          <Link
-            href='/projects'
-            style={getLinkStyles('/projects')}
-            onMouseEnter={e => {
-              if (!isActive('/projects')) {
-                e.currentTarget.style.backgroundColor = '#e3f2fd';
-                e.currentTarget.style.color = '#1976d2';
-                e.currentTarget.style.transform = 'translateX(4px)';
-                e.currentTarget.style.boxShadow =
-                  '0 2px 8px rgba(25, 118, 210, 0.15)';
-              }
-            }}
-            onMouseLeave={e => {
-              if (!isActive('/projects')) {
-                e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.color = '#495057';
-                e.currentTarget.style.transform = 'translateX(0)';
-                e.currentTarget.style.boxShadow = 'none';
-              }
-            }}
-          >
-            <span
-              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-            >
-              <FolderKanban size={18} />
-              <span>Projects</span>
-            </span>
-          </Link>
         </nav>
+
+        {/* Project Selection */}
+        <ProjectSelection />
 
         {/* Bottom Section - Sign Out Button */}
         <div
@@ -679,15 +645,6 @@ export default function Navbar() {
                   </Link>
                 </>
               )}
-            <Link href='/projects' style={getMobileLinkStyles('/projects')}>
-              <span
-                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-              >
-                <FolderKanban size={18} />
-                <span>Projects</span>
-              </span>
-            </Link>
-
             <div
               style={{
                 display: 'flex',
