@@ -1314,6 +1314,12 @@ export class TaskService extends BaseService {
               name: true,
             },
           },
+          project: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
           tags: {
             include: {
               tag: {
@@ -1536,6 +1542,13 @@ export class TaskService extends BaseService {
           },
           department: { select: { id: true, name: true } },
           project: { select: { id: true, name: true } },
+          owner: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
           tags: { include: { tag: { select: { name: true } } } },
           comments: {
             select: {
@@ -1557,6 +1570,13 @@ export class TaskService extends BaseService {
               },
               department: { select: { id: true, name: true } },
               project: { select: { id: true, name: true } },
+              owner: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
               tags: { include: { tag: { select: { name: true } } } },
               comments: {
                 select: {
