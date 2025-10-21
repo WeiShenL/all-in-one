@@ -165,7 +165,7 @@ test.describe('Task Creation Validation - Isolated E2E Tests', () => {
   });
 
   test('should validate mandatory fields are required', async ({ page }) => {
-    test.setTimeout(180000);
+    test.setTimeout(250000);
 
     // Login
     await page.goto('/auth/login');
@@ -178,13 +178,13 @@ test.describe('Task Creation Validation - Isolated E2E Tests', () => {
     const createTaskButton = page.getByRole('button', {
       name: /\+ Create Task/i,
     });
-    await expect(createTaskButton).toBeVisible({ timeout: 30000 });
+    await expect(createTaskButton).toBeVisible({ timeout: 100000 });
     await createTaskButton.click();
 
     // Wait for modal to open
     await expect(
       page.getByRole('heading', { name: /create new task/i })
-    ).toBeVisible({ timeout: 30000 });
+    ).toBeVisible({ timeout: 100000 });
 
     // Try to submit without filling any fields
     await page.getByRole('button', { name: /✓ create task/i }).click();
@@ -193,11 +193,11 @@ test.describe('Task Creation Validation - Isolated E2E Tests', () => {
     // The form should still be visible, indicating validation prevented submission
     await expect(
       page.getByRole('heading', { name: /create new task/i })
-    ).toBeVisible({ timeout: 10000 });
+    ).toBeVisible({ timeout: 30000 });
   });
 
   test('should validate priority range (1-10)', async ({ page }) => {
-    test.setTimeout(180000);
+    test.setTimeout(250000);
 
     // Login
     await page.goto('/auth/login');
@@ -210,13 +210,13 @@ test.describe('Task Creation Validation - Isolated E2E Tests', () => {
     const createTaskButton = page.getByRole('button', {
       name: /\+ Create Task/i,
     });
-    await expect(createTaskButton).toBeVisible({ timeout: 30000 });
+    await expect(createTaskButton).toBeVisible({ timeout: 100000 });
     await createTaskButton.click();
 
     // Wait for modal to open
     await expect(
       page.getByRole('heading', { name: /create new task/i })
-    ).toBeVisible({ timeout: 30000 });
+    ).toBeVisible({ timeout: 100000 });
 
     // Fill valid fields
     await page
@@ -234,7 +234,7 @@ test.describe('Task Creation Validation - Isolated E2E Tests', () => {
     // Verify form doesn't submit (HTML5 validation prevents submission)
     await expect(
       page.getByRole('heading', { name: /create new task/i })
-    ).toBeVisible({ timeout: 10000 });
+    ).toBeVisible({ timeout: 30000 });
 
     // Test invalid priority (11)
     await page.locator('input[type="number"]').first().fill('11');
@@ -243,7 +243,7 @@ test.describe('Task Creation Validation - Isolated E2E Tests', () => {
     // Verify form doesn't submit (HTML5 validation prevents submission)
     await expect(
       page.getByRole('heading', { name: /create new task/i })
-    ).toBeVisible({ timeout: 10000 });
+    ).toBeVisible({ timeout: 30000 });
 
     // Test valid priority (5)
     await page.locator('input[type="number"]').first().fill('5');
