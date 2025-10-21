@@ -59,6 +59,16 @@ describe('TaskService.createTask() - Service Orchestration', () => {
       deleteFile: jest.fn(),
       getTaskFiles: jest.fn(),
       checkFileSizeLimit: jest.fn(),
+      getUserProfile: jest.fn().mockResolvedValue({
+        id: 'user-123',
+        departmentId: 'dept-456',
+        role: 'STAFF',
+        isActive: true,
+      }),
+      isUserProjectCollaborator: jest.fn().mockResolvedValue(false),
+      createProjectCollaborator: jest.fn(),
+      removeProjectCollaboratorIfNoTasks: jest.fn(),
+      removeTaskAssignment: jest.fn(),
     } as any;
 
     service = new TaskService(mockRepository);
