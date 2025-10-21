@@ -20,7 +20,7 @@ const mockPrisma = {
     update: jest.fn(),
     delete: jest.fn(),
   },
-  projectDepartmentAccess: {
+  projectCollaborator: {
     findMany: jest.fn(),
   },
 } as unknown as PrismaClient;
@@ -61,18 +61,19 @@ describe('PrismaProjectRepository - Visibility Features', () => {
       },
     ];
 
+    // Mock collaborator rows - may have duplicates for same (projectId, departmentId)
+    // because multiple users from same department can collaborate on same project
     const mockAccessRows = [
-      { projectId: 'project-3' },
-      { projectId: 'project-4' },
+      { projectId: 'project-3', departmentId: 'dept-2' },
+      { projectId: 'project-3', departmentId: 'dept-2' }, // Duplicate dept - different user
+      { projectId: 'project-4', departmentId: 'dept-3' },
     ];
 
     it('should return empty array when no department IDs provided', async () => {
       const result = await repository.getProjectsVisibleToDepartments([]);
 
       expect(result).toEqual([]);
-      expect(
-        mockPrisma.projectDepartmentAccess.findMany
-      ).not.toHaveBeenCalled();
+      expect(mockPrisma.projectCollaborator.findMany).not.toHaveBeenCalled();
       expect(mockPrisma.project.findMany).not.toHaveBeenCalled();
     });
 
@@ -82,16 +83,14 @@ describe('PrismaProjectRepository - Visibility Features', () => {
       );
 
       expect(result).toEqual([]);
-      expect(
-        mockPrisma.projectDepartmentAccess.findMany
-      ).not.toHaveBeenCalled();
+      expect(mockPrisma.projectCollaborator.findMany).not.toHaveBeenCalled();
       expect(mockPrisma.project.findMany).not.toHaveBeenCalled();
     });
 
     it('should return projects from primary departments only when no access rows', async () => {
-      (
-        mockPrisma.projectDepartmentAccess.findMany as jest.Mock
-      ).mockResolvedValue([]);
+      (mockPrisma.projectCollaborator.findMany as jest.Mock).mockResolvedValue(
+        []
+      );
       (mockPrisma.project.findMany as jest.Mock).mockResolvedValue([
         mockProjects[0],
       ]);
@@ -100,7 +99,7 @@ describe('PrismaProjectRepository - Visibility Features', () => {
         'dept-1',
       ]);
 
-      expect(mockPrisma.projectDepartmentAccess.findMany).toHaveBeenCalledWith({
+      expect(mockPrisma.projectCollaborator.findMany).toHaveBeenCalledWith({
         where: { departmentId: { in: ['dept-1'] } },
         select: { projectId: true },
       });
@@ -129,9 +128,9 @@ describe('PrismaProjectRepository - Visibility Features', () => {
     });
 
     it('should return projects from both primary departments and access rows', async () => {
-      (
-        mockPrisma.projectDepartmentAccess.findMany as jest.Mock
-      ).mockResolvedValue(mockAccessRows);
+      (mockPrisma.projectCollaborator.findMany as jest.Mock).mockResolvedValue(
+        mockAccessRows
+      );
       (mockPrisma.project.findMany as jest.Mock).mockResolvedValue(
         mockProjects
       );
@@ -141,7 +140,7 @@ describe('PrismaProjectRepository - Visibility Features', () => {
         'dept-2',
       ]);
 
-      expect(mockPrisma.projectDepartmentAccess.findMany).toHaveBeenCalledWith({
+      expect(mockPrisma.projectCollaborator.findMany).toHaveBeenCalledWith({
         where: { departmentId: { in: ['dept-1', 'dept-2'] } },
         select: { projectId: true },
       });
@@ -173,9 +172,9 @@ describe('PrismaProjectRepository - Visibility Features', () => {
     });
 
     it('should handle archived projects option', async () => {
-      (
-        mockPrisma.projectDepartmentAccess.findMany as jest.Mock
-      ).mockResolvedValue([]);
+      (mockPrisma.projectCollaborator.findMany as jest.Mock).mockResolvedValue(
+        []
+      );
       (mockPrisma.project.findMany as jest.Mock).mockResolvedValue(
         mockProjects
       );
@@ -211,9 +210,9 @@ describe('PrismaProjectRepository - Visibility Features', () => {
     });
 
     it('should handle undefined isArchived option (default to false)', async () => {
-      (
-        mockPrisma.projectDepartmentAccess.findMany as jest.Mock
-      ).mockResolvedValue([]);
+      (mockPrisma.projectCollaborator.findMany as jest.Mock).mockResolvedValue(
+        []
+      );
       (mockPrisma.project.findMany as jest.Mock).mockResolvedValue(
         mockProjects
       );
@@ -249,9 +248,9 @@ describe('PrismaProjectRepository - Visibility Features', () => {
     });
 
     it('should handle empty access rows correctly', async () => {
-      (
-        mockPrisma.projectDepartmentAccess.findMany as jest.Mock
-      ).mockResolvedValue([]);
+      (mockPrisma.projectCollaborator.findMany as jest.Mock).mockResolvedValue(
+        []
+      );
       (mockPrisma.project.findMany as jest.Mock).mockResolvedValue(
         mockProjects
       );
@@ -284,9 +283,9 @@ describe('PrismaProjectRepository - Visibility Features', () => {
     });
 
     it('should handle database errors gracefully', async () => {
-      (
-        mockPrisma.projectDepartmentAccess.findMany as jest.Mock
-      ).mockRejectedValue(new Error('Database connection failed'));
+      (mockPrisma.projectCollaborator.findMany as jest.Mock).mockRejectedValue(
+        new Error('Database connection failed')
+      );
 
       await expect(
         repository.getProjectsVisibleToDepartments(['dept-1'])
@@ -294,9 +293,9 @@ describe('PrismaProjectRepository - Visibility Features', () => {
     });
 
     it('should handle project query errors gracefully', async () => {
-      (
-        mockPrisma.projectDepartmentAccess.findMany as jest.Mock
-      ).mockResolvedValue([]);
+      (mockPrisma.projectCollaborator.findMany as jest.Mock).mockResolvedValue(
+        []
+      );
       (mockPrisma.project.findMany as jest.Mock).mockRejectedValue(
         new Error('Project query failed')
       );
@@ -308,15 +307,15 @@ describe('PrismaProjectRepository - Visibility Features', () => {
 
     it('should deduplicate project IDs from access rows', async () => {
       const duplicateAccessRows = [
-        { projectId: 'project-3' },
-        { projectId: 'project-4' },
-        { projectId: 'project-3' }, // Duplicate
-        { projectId: 'project-5' },
+        { projectId: 'project-3', departmentId: 'dept-2' },
+        { projectId: 'project-4', departmentId: 'dept-3' },
+        { projectId: 'project-3', departmentId: 'dept-2' }, // Duplicate (same dept, different user)
+        { projectId: 'project-5', departmentId: 'dept-4' },
       ];
 
-      (
-        mockPrisma.projectDepartmentAccess.findMany as jest.Mock
-      ).mockResolvedValue(duplicateAccessRows);
+      (mockPrisma.projectCollaborator.findMany as jest.Mock).mockResolvedValue(
+        duplicateAccessRows
+      );
       (mockPrisma.project.findMany as jest.Mock).mockResolvedValue(
         mockProjects
       );
