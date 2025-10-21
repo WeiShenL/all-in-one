@@ -65,7 +65,6 @@ export function TaskTable({
   },
   isLoading = false,
   error = null,
-  onTaskUpdated,
 }: TaskTableProps) {
   const [filters, setFilters] = useState<Filters>({
     title: '',
