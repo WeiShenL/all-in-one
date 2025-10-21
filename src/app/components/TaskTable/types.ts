@@ -87,5 +87,4 @@ export interface TaskTableProps {
   };
   isLoading?: boolean;
   error?: Error | null;
-  onTaskUpdated?: () => void;
 }
