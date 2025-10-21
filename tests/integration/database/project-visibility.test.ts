@@ -28,6 +28,9 @@ describe('Integration Tests - Project Visibility and Department Access', () => {
   let projectService: ProjectService;
   let taskService: TaskService;
 
+  // Unique namespace for this test run to prevent parallel conflicts
+  const testNamespace = `visibility-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
   // Test data IDs
   let rootDeptId: string;
   let childDept1Id: string;
@@ -63,20 +66,20 @@ describe('Integration Tests - Project Visibility and Department Access', () => {
     await pgClient.query(
       `DELETE FROM "project_department_access" WHERE "projectId" IN (
         SELECT id FROM "project" WHERE "creatorId" IN (
-          SELECT id FROM "user_profile" WHERE email LIKE '%@visibility-test.com'
+          SELECT id FROM "user_profile" WHERE email LIKE '%@${testNamespace}.com'
         )
       )`
     );
     await pgClient.query(
       `DELETE FROM "project" WHERE "creatorId" IN (
-        SELECT id FROM "user_profile" WHERE email LIKE '%@visibility-test.com'
+        SELECT id FROM "user_profile" WHERE email LIKE '%@${testNamespace}.com'
       )`
     );
     await pgClient.query(
-      `DELETE FROM "user_profile" WHERE email LIKE '%@visibility-test.com'`
+      `DELETE FROM "user_profile" WHERE email LIKE '%@${testNamespace}.com'`
     );
     await pgClient.query(
-      `DELETE FROM "department" WHERE name LIKE '%Visibility-Test%'`
+      `DELETE FROM "department" WHERE name LIKE '%${testNamespace}%'`
     );
 
     // Create department hierarchy
@@ -85,7 +88,7 @@ describe('Integration Tests - Project Visibility and Department Access', () => {
       `INSERT INTO "department" (id, name, "parentId", "isActive", "createdAt", "updatedAt")
        VALUES (gen_random_uuid(), $1, NULL, true, NOW(), NOW())
        RETURNING id`,
-      ['Root-Visibility-Test']
+      [`Root-${testNamespace}`]
     );
     rootDeptId = rootDeptResult.rows[0].id;
 
@@ -94,7 +97,7 @@ describe('Integration Tests - Project Visibility and Department Access', () => {
       `INSERT INTO "department" (id, name, "parentId", "isActive", "createdAt", "updatedAt")
        VALUES (gen_random_uuid(), $1, $2, true, NOW(), NOW())
        RETURNING id`,
-      ['Child1-Visibility-Test', rootDeptId]
+      [`Child1-${testNamespace}`, rootDeptId]
     );
     childDept1Id = childDept1Result.rows[0].id;
 
@@ -103,7 +106,7 @@ describe('Integration Tests - Project Visibility and Department Access', () => {
       `INSERT INTO "department" (id, name, "parentId", "isActive", "createdAt", "updatedAt")
        VALUES (gen_random_uuid(), $1, $2, true, NOW(), NOW())
        RETURNING id`,
-      ['Child2-Visibility-Test', rootDeptId]
+      [`Child2-${testNamespace}`, rootDeptId]
     );
     childDept2Id = childDept2Result.rows[0].id;
 
@@ -112,7 +115,7 @@ describe('Integration Tests - Project Visibility and Department Access', () => {
       `INSERT INTO "department" (id, name, "parentId", "isActive", "createdAt", "updatedAt")
        VALUES (gen_random_uuid(), $1, $2, true, NOW(), NOW())
        RETURNING id`,
-      ['Grandchild-Visibility-Test', childDept1Id]
+      [`Grandchild-${testNamespace}`, childDept1Id]
     );
     grandchildDeptId = grandchildDeptResult.rows[0].id;
 
@@ -121,7 +124,7 @@ describe('Integration Tests - Project Visibility and Department Access', () => {
       `INSERT INTO "department" (id, name, "parentId", "isActive", "createdAt", "updatedAt")
        VALUES (gen_random_uuid(), $1, NULL, true, NOW(), NOW())
        RETURNING id`,
-      ['Unrelated-Visibility-Test']
+      [`Unrelated-${testNamespace}`]
     );
     unrelatedDeptId = unrelatedDeptResult.rows[0].id;
 
@@ -131,7 +134,7 @@ describe('Integration Tests - Project Visibility and Department Access', () => {
        VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
        RETURNING id`,
       [
-        'root-manager@visibility-test.com',
+        `root-manager@${testNamespace}.com`,
         'Root Manager',
         'MANAGER',
         rootDeptId,
@@ -144,7 +147,7 @@ describe('Integration Tests - Project Visibility and Department Access', () => {
        VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
        RETURNING id`,
       [
-        'child-manager@visibility-test.com',
+        `child-manager@${testNamespace}.com`,
         'Child Manager',
         'MANAGER',
         childDept1Id,
@@ -157,7 +160,7 @@ describe('Integration Tests - Project Visibility and Department Access', () => {
        VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
        RETURNING id`,
       [
-        'staff-child1@visibility-test.com',
+        `staff-child1@${testNamespace}.com`,
         'Staff Child1',
         'STAFF',
         childDept1Id,
@@ -170,7 +173,7 @@ describe('Integration Tests - Project Visibility and Department Access', () => {
        VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
        RETURNING id`,
       [
-        'staff-child2@visibility-test.com',
+        `staff-child2@${testNamespace}.com`,
         'Staff Child2',
         'STAFF',
         childDept2Id,
@@ -183,7 +186,7 @@ describe('Integration Tests - Project Visibility and Department Access', () => {
        VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
        RETURNING id`,
       [
-        'staff-grandchild@visibility-test.com',
+        `staff-grandchild@${testNamespace}.com`,
         'Staff Grandchild',
         'STAFF',
         grandchildDeptId,
@@ -196,7 +199,7 @@ describe('Integration Tests - Project Visibility and Department Access', () => {
        VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
        RETURNING id`,
       [
-        'staff-unrelated@visibility-test.com',
+        `staff-unrelated@${testNamespace}.com`,
         'Staff Unrelated',
         'STAFF',
         unrelatedDeptId,
@@ -208,51 +211,61 @@ describe('Integration Tests - Project Visibility and Department Access', () => {
       `INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt")
        VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
        RETURNING id`,
-      ['admin@visibility-test.com', 'Admin User', 'HR_ADMIN', rootDeptId]
+      [`admin@${testNamespace}.com`, 'Admin User', 'HR_ADMIN', rootDeptId]
     );
     adminId = adminResult.rows[0].id;
   });
 
   afterAll(async () => {
-    // Cleanup access rows
-    for (const accessRow of createdAccessRows) {
+    try {
+      // Clean up in correct order to avoid foreign key constraint violations
+
+      // 1. Clean up project department access rows first
+      for (const accessRow of createdAccessRows) {
+        await pgClient.query(
+          `DELETE FROM "project_department_access" WHERE "projectId" = $1 AND "departmentId" = $2`,
+          [accessRow.projectId, accessRow.departmentId]
+        );
+      }
+
+      // 2. Clean up all project department access related to test users
       await pgClient.query(
-        `DELETE FROM "project_department_access" WHERE "projectId" = $1 AND "departmentId" = $2`,
-        [accessRow.projectId, accessRow.departmentId]
+        `DELETE FROM "project_department_access" WHERE "projectId" IN (
+          SELECT id FROM "project" WHERE "creatorId" IN (
+            SELECT id FROM "user_profile" WHERE email LIKE '%@${testNamespace}.com'
+          )
+        )`
       );
+
+      // 3. Clean up created projects
+      for (const projectId of createdProjectIds) {
+        await pgClient.query(`DELETE FROM "project" WHERE id = $1`, [
+          projectId,
+        ]);
+      }
+
+      // 4. Clean up all projects created by test users
+      await pgClient.query(
+        `DELETE FROM "project" WHERE "creatorId" IN (
+          SELECT id FROM "user_profile" WHERE email LIKE '%@${testNamespace}.com'
+        )`
+      );
+
+      // 5. Clean up test users (FK to departments)
+      await pgClient.query(
+        `DELETE FROM "user_profile" WHERE email LIKE '%@${testNamespace}.com'`
+      );
+
+      // 6. Clean up test departments (last, no dependencies)
+      await pgClient.query(
+        `DELETE FROM "department" WHERE name LIKE '%${testNamespace}%'`
+      );
+    } catch (error) {
+      console.error('Cleanup failed:', error);
+    } finally {
+      await pgClient.end();
+      await prisma.$disconnect();
     }
-
-    // Cleanup projects
-    for (const projectId of createdProjectIds) {
-      await pgClient.query(`DELETE FROM "project" WHERE id = $1`, [projectId]);
-    }
-
-    // Cleanup test data
-    await pgClient.query(
-      `DELETE FROM "project_department_access" WHERE "projectId" IN (
-        SELECT id FROM "project" WHERE "creatorId" IN (
-          SELECT id FROM "user_profile" WHERE email LIKE '%@visibility-test.com'
-        )
-      )`
-    );
-    await pgClient.query(
-      `DELETE FROM "project" WHERE "creatorId" IN (
-        SELECT id FROM "user_profile" WHERE email LIKE '%@visibility-test.com'
-      )`
-    );
-    // Temporarily disable foreign key constraint for cleanup
-    await pgClient.query('SET session_replication_role = replica');
-    await pgClient.query(
-      `DELETE FROM "user_profile" WHERE email LIKE '%@visibility-test.com'`
-    );
-    await pgClient.query(
-      `DELETE FROM "department" WHERE name LIKE '%Visibility-Test%'`
-    );
-    // Re-enable foreign key constraint
-    await pgClient.query('SET session_replication_role = DEFAULT');
-
-    await pgClient.end();
-    await prisma.$disconnect();
   });
 
   afterEach(async () => {
@@ -709,7 +722,7 @@ describe('Integration Tests - Project Visibility and Department Access', () => {
         `INSERT INTO "department" (id, name, "parentId", "isActive", "createdAt", "updatedAt")
          VALUES (gen_random_uuid(), $1, NULL, true, NOW(), NOW())
          RETURNING id`,
-        ['Isolated-Visibility-Test']
+        [`Isolated-${testNamespace}`]
       );
       const isolatedDeptId = isolatedDeptResult.rows[0].id;
 
@@ -718,7 +731,7 @@ describe('Integration Tests - Project Visibility and Department Access', () => {
          VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
          RETURNING id`,
         [
-          'isolated-staff@visibility-test.com',
+          `isolated-staff@${testNamespace}.com`,
           'Isolated Staff',
           'STAFF',
           isolatedDeptId,
