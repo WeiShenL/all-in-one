@@ -519,6 +519,100 @@ describe('Task API Permissions', () => {
     }, 25000);
   });
 
+  describe('Project-scoped queries', () => {
+    it('getProjectTasksForUser returns only tasks in selected project within user hierarchy', async () => {
+      const ctx = createInnerTRPCContext({
+        session: {
+          user: { id: TEST_IDS.USER_STAFF_DEV1 },
+          expires: new Date(Date.now() + 86400000).toISOString(),
+        },
+      });
+      const caller = appRouter.createCaller(ctx);
+
+      // Create a project and attach an existing task within user's hierarchy
+      const projectId = '11111111-1111-4111-8111-111111111111';
+      await prisma.project.create({
+        data: {
+          id: projectId,
+          name: 'Integration Test Project',
+          description: 'Test project',
+          creatorId: TEST_IDS.USER_MANAGER,
+          departmentId: TEST_IDS.DEPT_ENGINEERING,
+          isArchived: false,
+        },
+      });
+      // Attach dev1 assigned task to this project
+      await prisma.task.update({
+        where: { id: TEST_IDS.TASK_DEV1_ASSIGNED },
+        data: { projectId },
+      });
+
+      const result = await caller.task.getProjectTasksForUser({ projectId });
+
+      expect(Array.isArray(result)).toBe(true);
+      result.forEach((t: any) => {
+        expect(t.project?.id || t.projectId).toBe(projectId);
+      });
+
+      // Cleanup
+      await prisma.task.update({
+        where: { id: TEST_IDS.TASK_DEV1_ASSIGNED },
+        data: { projectId: null },
+      });
+      await prisma.project.delete({ where: { id: projectId } });
+    }, 25000);
+
+    it('getManagerProjectTasks returns manager-hierarchy tasks for the project with canEdit=true', async () => {
+      const ctx = createInnerTRPCContext({
+        session: {
+          user: { id: TEST_IDS.USER_MANAGER },
+          expires: new Date(Date.now() + 86400000).toISOString(),
+        },
+      });
+      const caller = appRouter.createCaller(ctx);
+      const projectId = '22222222-2222-4222-8222-222222222222';
+
+      // Create project and attach two tasks in manager hierarchy
+      await prisma.project.create({
+        data: {
+          id: projectId,
+          name: 'Manager Scope Project',
+          description: 'Manager project',
+          creatorId: TEST_IDS.USER_MANAGER,
+          departmentId: TEST_IDS.DEPT_ENGINEERING,
+          isArchived: false,
+        },
+      });
+      await prisma.task.update({
+        where: { id: TEST_IDS.TASK_DEV1_ASSIGNED },
+        data: { projectId },
+      });
+      await prisma.task.update({
+        where: { id: TEST_IDS.TASK_SUPPORT1_ASSIGNED },
+        data: { projectId },
+      });
+
+      const result = await caller.task.getManagerProjectTasks({ projectId });
+      expect(result).toBeDefined();
+      expect(result.tasks).toBeDefined();
+      result.tasks.forEach((t: any) => {
+        expect(t.canEdit).toBe(true);
+        expect(t.project?.id || t.projectId).toBe(projectId);
+      });
+
+      // Cleanup
+      await prisma.task.update({
+        where: { id: TEST_IDS.TASK_DEV1_ASSIGNED },
+        data: { projectId: null },
+      });
+      await prisma.task.update({
+        where: { id: TEST_IDS.TASK_SUPPORT1_ASSIGNED },
+        data: { projectId: null },
+      });
+      await prisma.project.delete({ where: { id: projectId } });
+    }, 25000);
+  });
+
   describe('getDashboardTasks (Manager)', () => {
     it('should return canEdit=true for all tasks (backward compatibility)', async () => {
       const ctx = createInnerTRPCContext({

@@ -88,7 +88,9 @@ export default function CompanyPage() {
         style={{
           padding: 'clamp(1rem, 3vw, 2rem)',
           maxWidth: '100%',
+          marginLeft: '280px', // Account for sidebar width
         }}
+        className='main-content'
       >
         <div
           style={{
@@ -114,15 +116,7 @@ export default function CompanyPage() {
             >
               Company Dashboard
             </h1>
-            <p
-              style={{
-                color: '#718096',
-                margin: 0,
-                fontSize: 'clamp(0.75rem, 2vw, 0.875rem)',
-              }}
-            >
-              Welcome, {userProfile.name || user.email}
-            </p>
+            {/* Removed inline welcome that duplicates user info */}
           </header>
 
           {/* Company-Wide Task Dashboard - Shows all tasks with canEdit based on role */}
@@ -131,6 +125,15 @@ export default function CompanyPage() {
           </div>
         </div>
       </div>
+
+      {/* CSS for responsive behavior */}
+      <style jsx>{`
+        @media (max-width: 768px) {
+          .main-content {
+            margin-left: 0 !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

@@ -1047,6 +1047,31 @@ export const taskRouter = router({
   }),
 
   /**
+   * Get project-scoped tasks for any user (Staff or Manager)
+   */
+  getProjectTasksForUser: protectedProcedure
+    .input(z.object({ projectId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
+      const taskService = new DashboardTaskService(ctx.prisma);
+      return await taskService.getProjectTasksForUser(userId, input.projectId);
+    }),
+
+  /**
+   * Manager project-scoped tasks (dashboard)
+   */
+  getManagerProjectTasks: protectedProcedure
+    .input(z.object({ projectId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const managerId = ctx.session.user.id;
+      const taskService = new DashboardTaskService(ctx.prisma);
+      return await taskService.getManagerProjectTasks(
+        managerId,
+        input.projectId
+      );
+    }),
+
+  /**
    * Get company-wide tasks (HR/Admin only)
    * Used by Company Overview Dashboard
    *

@@ -5,7 +5,6 @@ import { useAuth } from '@/lib/supabase/auth-context';
 import PersonalDashboard from '@/app/dashboard/personal/page';
 import DepartmentDashboard from '@/app/dashboard/department/page';
 import HRDashboard from '@/app/dashboard/hr/page';
-import ProfilePage from '@/app/profile/page';
 import { NotificationProvider } from '@/lib/context/NotificationContext';
 
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -42,6 +41,15 @@ jest.mock('@/app/lib/trpc', () => {
         },
         getDepartmentTasksForUser: {
           useQuery: jest.fn(),
+        },
+      },
+      project: {
+        getVisible: {
+          useQuery: jest.fn(() => ({
+            data: [],
+            isLoading: false,
+            error: null,
+          })),
         },
       },
       userProfile: {
@@ -214,30 +222,8 @@ describe('Logout Page Flow', () => {
       expect(screen.getByText('Sign Out')).toBeInTheDocument();
     });
 
-    it('should render logout button in navbar on profile page', () => {
-      render(<ProfilePage />, { wrapper: TestWrapper });
-
-      expect(screen.getByText('Sign Out')).toBeInTheDocument();
-    });
-
-    it('should display user info in navbar before logout', () => {
-      render(<PersonalDashboard />, { wrapper: TestWrapper });
-
-      expect(screen.getByText('Test User')).toBeInTheDocument();
-    });
-
-    it('should display user email when name is not available', () => {
-      (useAuth as jest.Mock).mockReturnValue({
-        ...mockAuthenticatedUser,
-        userProfile: { role: 'STAFF', name: null },
-      });
-
-      render(<PersonalDashboard />, { wrapper: TestWrapper });
-
-      // Use getAllByText since email appears in both navbar and dashboard content
-      const emailElements = screen.getAllByText('test@example.com');
-      expect(emailElements.length).toBeGreaterThan(0);
-    });
+    // User name/email are no longer displayed persistently in the navbar.
+    // The profile icon opens a modal with user details, so these assertions were removed.
   });
 
   describe('Logout Flow', () => {
@@ -305,19 +291,6 @@ describe('Logout Page Flow', () => {
       });
 
       render(<HRDashboard />, { wrapper: TestWrapper });
-
-      const logoutButton = screen.getByText('Sign Out');
-      fireEvent.click(logoutButton);
-
-      await waitFor(() => {
-        expect(mockHandleSecureLogout).toHaveBeenCalledTimes(1);
-      });
-    });
-
-    it('should logout from profile page', async () => {
-      mockHandleSecureLogout.mockResolvedValue(undefined);
-
-      render(<ProfilePage />, { wrapper: TestWrapper });
 
       const logoutButton = screen.getByText('Sign Out');
       fireEvent.click(logoutButton);
@@ -452,10 +425,6 @@ describe('Logout Page Flow', () => {
       });
       expect(screen.getByText('Sign Out')).toBeInTheDocument();
       unmount3();
-
-      (useAuth as jest.Mock).mockReturnValue(mockAuthenticatedUser);
-      render(<ProfilePage />, { wrapper: TestWrapper });
-      expect(screen.getByText('Sign Out')).toBeInTheDocument();
     });
 
     it('should display loading indicator only on logout button during logout', async () => {
@@ -506,11 +475,11 @@ describe('Logout Page Flow', () => {
       expect(personalLink).toHaveAttribute('href', '/dashboard/personal');
     });
 
-    it('should have Profile link in navbar', () => {
+    it('should have Projects section in navbar', () => {
       render(<PersonalDashboard />, { wrapper: TestWrapper });
 
-      const profileLink = screen.getByText('Profile').closest('a');
-      expect(profileLink).toHaveAttribute('href', '/profile');
+      // Look for the Projects section header (not a navigation link)
+      expect(screen.getByText('Projects')).toBeInTheDocument();
     });
   });
 });
