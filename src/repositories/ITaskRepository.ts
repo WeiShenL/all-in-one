@@ -479,4 +479,64 @@ export interface ITaskRepository {
   getUserDepartments(
     userIds: string[]
   ): Promise<Array<{ userId: string; departmentId: string | null }>>;
+
+  // ============================================
+  // PROJECT COLLABORATOR OPERATIONS
+  // SCRUM-XX: Invite Collaborators to Project
+  // ============================================
+
+  /**
+   * Get user profile with department information
+   * Used for retrieving departmentId when creating ProjectCollaborator entries
+   *
+   * @param userId - User ID
+   * @returns User profile with departmentId, or null if not found
+   */
+  getUserProfile(userId: string): Promise<{
+    id: string;
+    departmentId: string;
+    role: 'STAFF' | 'MANAGER' | 'HR_ADMIN';
+    isActive: boolean;
+  } | null>;
+
+  /**
+   * Check if a user is already a collaborator on a project
+   * Used to prevent duplicate ProjectCollaborator entries
+   *
+   * @param projectId - Project ID
+   * @param userId - User ID
+   * @returns True if user is already a collaborator
+   */
+  isUserProjectCollaborator(
+    projectId: string,
+    userId: string
+  ): Promise<boolean>;
+
+  /**
+   * Create a ProjectCollaborator entry
+   * Links a user to a project with their department
+   * Uses upsert to handle race conditions gracefully
+   *
+   * @param projectId - Project ID
+   * @param userId - User ID
+   * @param departmentId - User's department ID
+   */
+  createProjectCollaborator(
+    projectId: string,
+    userId: string,
+    departmentId: string
+  ): Promise<void>;
+
+  /**
+   * Remove ProjectCollaborator entry if user has no other active tasks in the project
+   * Business logic: Only removes if user has ZERO active (non-archived) task assignments
+   * in this project after the current removal
+   *
+   * @param projectId - Project ID
+   * @param userId - User ID
+   */
+  removeProjectCollaboratorIfNoTasks(
+    projectId: string,
+    userId: string
+  ): Promise<void>;
 }

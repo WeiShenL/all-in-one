@@ -1418,4 +1418,134 @@ export class PrismaTaskRepository implements ITaskRepository {
       departmentId: user.departmentId,
     }));
   }
+
+  // ============================================
+  // PROJECT COLLABORATOR OPERATIONS
+  // SCRUM-XX: Invite Collaborators to Project
+  // ============================================
+
+  /**
+   * Get user profile with department information
+   * Used for retrieving departmentId when creating ProjectCollaborator entries
+   */
+  async getUserProfile(userId: string): Promise<{
+    id: string;
+    departmentId: string;
+    role: 'STAFF' | 'MANAGER' | 'HR_ADMIN';
+    isActive: boolean;
+  } | null> {
+    const user = await this.prisma.userProfile.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        departmentId: true,
+        role: true,
+        isActive: true,
+      },
+    });
+
+    if (!user) {
+      return null;
+    }
+
+    return {
+      id: user.id,
+      departmentId: user.departmentId,
+      role: user.role as 'STAFF' | 'MANAGER' | 'HR_ADMIN',
+      isActive: user.isActive,
+    };
+  }
+
+  /**
+   * Check if user is already a collaborator on a project
+   * Used to prevent duplicate ProjectCollaborator entries
+   */
+  async isUserProjectCollaborator(
+    projectId: string,
+    userId: string
+  ): Promise<boolean> {
+    const collaborator = await this.prisma.projectCollaborator.findUnique({
+      where: {
+        projectId_userId: {
+          projectId,
+          userId,
+        },
+      },
+    });
+
+    return collaborator !== null;
+  }
+
+  /**
+   * Create ProjectCollaborator entry
+   * Uses upsert to handle race conditions gracefully
+   * If entry already exists, it will be updated (no-op in this case)
+   */
+  async createProjectCollaborator(
+    projectId: string,
+    userId: string,
+    departmentId: string
+  ): Promise<void> {
+    await this.prisma.projectCollaborator.upsert({
+      where: {
+        projectId_userId: {
+          projectId,
+          userId,
+        },
+      },
+      create: {
+        projectId,
+        userId,
+        departmentId,
+        addedAt: new Date(),
+      },
+      update: {
+        // If already exists, do nothing (keep existing entry)
+        // This handles race conditions where multiple tasks are assigned simultaneously
+      },
+    });
+  }
+
+  /**
+   * Remove ProjectCollaborator if user has no other active tasks in project
+   *
+   * Business Logic:
+   * 1. Count how many active (non-archived) tasks the user is assigned to in this project
+   * 2. If count === 0, delete the ProjectCollaborator entry
+   * 3. If count > 0, do nothing (user still has other tasks)
+   */
+  async removeProjectCollaboratorIfNoTasks(
+    projectId: string,
+    userId: string
+  ): Promise<void> {
+    // Step 1: Count user's remaining active task assignments in this project
+    const activeTaskCount = await this.prisma.taskAssignment.count({
+      where: {
+        userId: userId,
+        task: {
+          projectId: projectId,
+          isArchived: false, // Only count active tasks
+        },
+      },
+    });
+
+    // Step 2: Only remove collaborator if NO active tasks remain
+    if (activeTaskCount === 0) {
+      await this.prisma.projectCollaborator
+        .delete({
+          where: {
+            projectId_userId: {
+              projectId,
+              userId,
+            },
+          },
+        })
+        .catch(() => {
+          // Ignore if already deleted (race condition handling)
+          // This can happen if multiple removals happen simultaneously
+        });
+    }
+
+    // If activeTaskCount > 0, user still has tasks in this project, so do nothing
+  }
 }
