@@ -549,8 +549,9 @@ test.describe('Departmental Calendar - Manager Flow', () => {
     });
     await expect(modalHeading).toBeVisible({ timeout: 65000 });
 
-    // Verify assignee name appears (Alice Smith)
-    await expect(page.getByText(/Alice Smith/i)).toBeVisible({
+    // Verify assignee name appears in modal (not in dropdown)
+    // Use more specific selector to avoid matching the assignee filter dropdown
+    await expect(page.locator('text=/👤.*Alice Smith/i').first()).toBeVisible({
       timeout: 65000,
     });
 
@@ -789,6 +790,101 @@ test.describe('Departmental Calendar - Manager Flow', () => {
     expect(allCharlieTaskCount).toBeGreaterThan(0);
 
     // Peer dept task should NEVER be visible
+    const peerTaskCount = await page
+      .locator('[data-task-title="Peer Dept Task - Should Not Appear"]')
+      .count();
+    expect(peerTaskCount).toBe(0);
+  });
+
+  test('CIT008: should filter tasks by team member (assignee)', async ({
+    page,
+  }) => {
+    test.setTimeout(220000);
+
+    await loginManagerAndNavigateToCalendar(page);
+
+    // Wait for calendar to render
+    await page.waitForTimeout(3000);
+
+    // ============================================
+    // TEST 1: Verify assignee filter dropdown exists
+    // ============================================
+    const assigneeFilter = page.getByTestId('assignee-filter');
+    await expect(assigneeFilter).toBeVisible({ timeout: 65000 });
+
+    // ============================================
+    // TEST 2: Verify dropdown shows staff members
+    // ============================================
+    const options = await assigneeFilter.locator('option').allTextContents();
+    console.warn('Assignee filter options:', options);
+
+    expect(options).toContain('All Team Members');
+    expect(options).toContain('Alice Smith');
+    expect(options).toContain('Bob Johnson');
+    expect(options).toContain('Charlie Brown');
+
+    // Peer user should NOT be in the dropdown
+    const hasPeerUser = options.some(opt => opt.includes('Peer User'));
+    expect(hasPeerUser).toBe(false);
+
+    // ============================================
+    // TEST 3: Filter by Alice (staff member)
+    // ============================================
+    await assigneeFilter.selectOption({ label: 'Alice Smith' });
+    await page.waitForTimeout(2000);
+
+    // Alice's tasks should be visible
+    const aliceTask1Count = await page
+      .locator('[data-task-title="Alice Task - Frontend Update"]')
+      .count();
+    const aliceTask2Count = await page
+      .locator('[data-task-title="Alice Task 2 - UI Testing"]')
+      .count();
+
+    // Other staff tasks should NOT be visible
+    const bobTaskCount = await page
+      .locator('[data-task-title="Bob Task - Backend API"]')
+      .count();
+    const charlieTaskCount = await page
+      .locator('[data-task-title="Charlie Task - Database Migration"]')
+      .count();
+
+    console.warn(
+      `Filter by Alice - Alice1: ${aliceTask1Count}, Alice2: ${aliceTask2Count}, Bob: ${bobTaskCount}, Charlie: ${charlieTaskCount}`
+    );
+
+    // Alice's tasks should be visible
+    expect(aliceTask1Count + aliceTask2Count).toBeGreaterThan(0);
+    // Others should NOT be visible
+    expect(bobTaskCount).toBe(0);
+    expect(charlieTaskCount).toBe(0);
+
+    // ============================================
+    // TEST 4: Select "All Team Members" to show all
+    // ============================================
+    await assigneeFilter.selectOption({ label: 'All Team Members' });
+    await page.waitForTimeout(2000);
+
+    // All staff tasks should be visible again
+    const allAliceCount = await page
+      .locator('[data-task-title="Alice Task - Frontend Update"]')
+      .count();
+    const allBobCount = await page
+      .locator('[data-task-title="Bob Task - Backend API"]')
+      .count();
+    const allCharlieCount = await page
+      .locator('[data-task-title="Charlie Task - Database Migration"]')
+      .count();
+
+    console.warn(
+      `All Team Members - Alice: ${allAliceCount}, Bob: ${allBobCount}, Charlie: ${allCharlieCount}`
+    );
+
+    expect(allAliceCount).toBeGreaterThan(0);
+    expect(allBobCount).toBeGreaterThan(0);
+    expect(allCharlieCount).toBeGreaterThan(0);
+
+    // Peer dept task should NEVER appear
     const peerTaskCount = await page
       .locator('[data-task-title="Peer Dept Task - Should Not Appear"]')
       .count();

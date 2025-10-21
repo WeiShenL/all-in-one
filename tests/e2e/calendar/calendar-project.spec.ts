@@ -539,8 +539,13 @@ test.describe('Project Calendar - Manager Flow', () => {
     });
     await expect(modalHeading).toBeVisible({ timeout: 65000 });
 
-    // Verify assignee name appears
-    await expect(page.getByText(/Staff Parent/i)).toBeVisible({
+    // Verify assignee name appears in task card assignee list (not dropdown)
+    await expect(
+      page
+        .locator('[data-testid^="task-assignee-"]')
+        .getByText(/Staff Parent/i)
+        .first()
+    ).toBeVisible({
       timeout: 65000,
     });
 

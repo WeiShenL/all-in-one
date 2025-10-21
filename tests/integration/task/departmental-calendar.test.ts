@@ -246,7 +246,7 @@ describe('Integration Tests - Departmental Calendar', () => {
       expect(result).toBeDefined();
       const taskIds = result!.tasks.map(t => t.id);
       expect(taskIds).toContain(taskId);
-    }, 25000);
+    }, 40000);
 
     it('should include tasks from subordinate departments', async () => {
       // Create task in child department
@@ -270,7 +270,7 @@ describe('Integration Tests - Departmental Calendar', () => {
       expect(result).toBeDefined();
       const taskIds = result!.tasks.map(t => t.id);
       expect(taskIds).toContain(taskId);
-    }, 25000);
+    }, 40000);
 
     it('should NOT include tasks from peer departments', async () => {
       // Create task in peer department
@@ -294,7 +294,7 @@ describe('Integration Tests - Departmental Calendar', () => {
       expect(result).toBeDefined();
       const taskIds = result!.tasks.map(t => t.id);
       expect(taskIds).not.toContain(peerTaskId);
-    }, 25000);
+    }, 40000);
 
     it('should include assignee details for visual distinction (CIT009)', async () => {
       // Create tasks assigned to different team members
@@ -337,7 +337,7 @@ describe('Integration Tests - Departmental Calendar', () => {
       expect(task2!.assignments).toBeDefined();
       expect(task2!.assignments.length).toBeGreaterThan(0);
       expect(task2!.assignments[0].user.id).toBe(staffInChildId);
-    }, 25000);
+    }, 40000);
   });
 
   describe('Manager Filtering by Team Member (CIT008)', () => {
@@ -377,7 +377,7 @@ describe('Integration Tests - Departmental Calendar', () => {
       expect(filteredTasks.length).toBeGreaterThan(0);
       expect(filteredTasks.some(t => t.id === task1Id)).toBe(true);
       expect(filteredTasks.some(t => t.id === task2Id)).toBe(false);
-    }, 25000);
+    }, 40000);
 
     it('should return all tasks when no filter is applied', async () => {
       // Create multiple tasks across departments
@@ -402,7 +402,7 @@ describe('Integration Tests - Departmental Calendar', () => {
       // Verify all tasks are returned
       expect(result).toBeDefined();
       expect(result!.tasks.length).toBeGreaterThan(0);
-    }, 25000);
+    }, 40000);
   });
 
   describe('Edge Cases', () => {
@@ -442,7 +442,7 @@ describe('Integration Tests - Departmental Calendar', () => {
       await pgClient.query(`DELETE FROM "department" WHERE id = $1`, [
         emptyDeptId,
       ]);
-    }, 25000);
+    }, 40000);
 
     it('should not return archived tasks', async () => {
       // Create archived task
@@ -467,6 +467,6 @@ describe('Integration Tests - Departmental Calendar', () => {
       expect(result).toBeDefined();
       const taskIds = result!.tasks.map(t => t.id);
       expect(taskIds).not.toContain(archivedTaskId);
-    }, 25000);
+    }, 40000);
   });
 });

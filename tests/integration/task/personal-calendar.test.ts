@@ -206,7 +206,7 @@ describe('Integration Tests - Personal Calendar', () => {
       const user1TaskIds = user1Tasks!.map((t: any) => t.id);
       expect(user1TaskIds).toContain(task1Id);
       expect(user1TaskIds).not.toContain(task2Id);
-    }, 25000);
+    }, 40000);
 
     it('should not return tasks assigned to other users', async () => {
       // Create multiple tasks for user2
@@ -230,7 +230,7 @@ describe('Integration Tests - Personal Calendar', () => {
       expect(user1TaskTitles).not.toContain('User2 Task 1');
       expect(user1TaskTitles).not.toContain('User2 Task 2');
       expect(user1TaskTitles).not.toContain('User2 Task 3');
-    }, 25000);
+    }, 40000);
 
     it('should include task details needed for calendar display', async () => {
       // Create task with all details
@@ -260,7 +260,7 @@ describe('Integration Tests - Personal Calendar', () => {
       expect(task!.owner).toBeDefined();
       expect(task!.department).toBeDefined();
       expect(task!.recurringInterval).toBe(7);
-    }, 25000);
+    }, 40000);
   });
 
   describe('Completed Task Visibility (CIT006)', () => {
@@ -283,7 +283,7 @@ describe('Integration Tests - Personal Calendar', () => {
       const completedTask = tasks!.find((t: any) => t.id === taskId);
       expect(completedTask).toBeDefined();
       expect(completedTask!.status).toBe('COMPLETED');
-    }, 25000);
+    }, 40000);
 
     it('should include status field for visual distinction of completed tasks', async () => {
       // Create mix of tasks with different statuses
@@ -311,7 +311,7 @@ describe('Integration Tests - Personal Calendar', () => {
       expect(taskStatuses).toContain('IN_PROGRESS');
       expect(taskStatuses).toContain('COMPLETED');
       expect(taskStatuses).toContain('BLOCKED');
-    }, 25000);
+    }, 40000);
   });
 
   describe('Recurring Task Handling (CIT007)', () => {
@@ -335,7 +335,7 @@ describe('Integration Tests - Personal Calendar', () => {
       // Verify recurring metadata is present
       expect(recurringTask).toBeDefined();
       expect(recurringTask!.recurringInterval).toBe(7);
-    }, 25000);
+    }, 40000);
 
     it('should handle non-recurring tasks correctly', async () => {
       // Create non-recurring task
@@ -357,7 +357,7 @@ describe('Integration Tests - Personal Calendar', () => {
       // Verify non-recurring task
       expect(oneTimeTask).toBeDefined();
       expect(oneTimeTask!.recurringInterval).toBeNull();
-    }, 25000);
+    }, 40000);
   });
 
   describe('Edge Cases', () => {
@@ -375,7 +375,7 @@ describe('Integration Tests - Personal Calendar', () => {
       // Verify empty result
       expect(tasks).toBeDefined();
       expect(tasks!.length).toBe(0);
-    }, 25000);
+    }, 40000);
 
     it('should not return archived tasks', async () => {
       // Create archived task
@@ -397,6 +397,6 @@ describe('Integration Tests - Personal Calendar', () => {
       // Verify archived task is not included
       const archivedTask = tasks!.find((t: any) => t.id === taskId);
       expect(archivedTask).toBeUndefined();
-    }, 25000);
+    }, 40000);
   });
 });

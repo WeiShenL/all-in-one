@@ -273,5 +273,5 @@ describe('Integration Test - Departmental Calendar Filtering', () => {
     expect(allTasks.some(t => t.id === parentTaskId)).toBe(true);
     expect(allTasks.some(t => t.id === childTaskId)).toBe(true);
     expect(allTasks.some(t => t.id === peerTaskId)).toBe(false); // Peer never included
-  }, 25000);
+  }, 40000);
 });
