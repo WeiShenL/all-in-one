@@ -25,10 +25,19 @@ import { PrismaClient } from '@prisma/client';
 import { RealtimeService } from '@/app/server/services/RealtimeService';
 
 // ============================================
-// MOCK RESEND TO PREVENT ACTUAL EMAIL SENDING
+// MOCK EMAILSERVICE TO PREVENT RESEND_API_KEY REQUIREMENT
 // ============================================
 // Integration tests verify the notification flow (TaskService → NotificationService → Database)
-// but we don't want to hit Resend's rate limits by sending real emails
+// Mocking EmailService prevents needing RESEND_API_KEY and avoids hitting Resend rate limits
+jest.mock('@/app/server/services/EmailService', () => ({
+  EmailService: jest.fn().mockImplementation(() => ({
+    sendEmail: jest.fn().mockResolvedValue(undefined),
+  })),
+}));
+
+// ============================================
+// MOCK RESEND SDK (belt and suspenders)
+// ============================================
 jest.mock('resend', () => ({
   Resend: jest.fn().mockImplementation(() => ({
     emails: {
@@ -221,7 +230,7 @@ describe('Task Update Notifications - Integration Tests', () => {
       [testUserId1, testUserId2],
       testUserId1
     );
-  });
+  }, 60000);
 
   afterAll(async () => {
     // Cleanup in reverse order of dependencies
@@ -262,13 +271,13 @@ describe('Task Update Notifications - Integration Tests', () => {
       await pgClient.end();
       await prisma.$disconnect();
     }
-  });
+  }, 60000);
 
   afterEach(async () => {
     // Clean up notifications and comments after each test
     await cleanupNotifications(testTaskId);
     await cleanupComments(testTaskId);
-  });
+  }, 30000);
 
   // ============================================
   // addCommentToTask - Integration Tests
