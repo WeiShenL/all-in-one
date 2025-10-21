@@ -401,9 +401,8 @@ function AgendaView({ date: _date, events, onSelectTask }: AgendaViewProps) {
   }
 };
 
-(AgendaView as any).title = (date: Date) => {
-  const end = addDays(date, 30);
-  return `${format(date, 'MMM d')} - ${format(end, 'MMM d, yyyy')}`;
+(AgendaView as any).title = () => {
+  return 'Upcoming Tasks (Next 30 Days)';
 };
 
 (AgendaView as any).range = (date: Date) => {

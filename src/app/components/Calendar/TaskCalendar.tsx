@@ -155,28 +155,43 @@ function CustomToolbar({
   onView,
   view,
 }: CustomToolbarProps) {
+  // Disable navigation buttons for Agenda view (navigation doesn't make sense for chronological list)
+  const isAgendaView = view === 'agenda';
+
   return (
     <div style={toolbarStyles.container}>
       {/* Left: Navigation Controls */}
       <div style={toolbarStyles.buttonGroup}>
         <button
           onClick={() => onNavigate('TODAY')}
-          style={toolbarStyles.navButton}
+          style={{
+            ...toolbarStyles.navButton,
+            ...(isAgendaView ? toolbarStyles.navButtonDisabled : {}),
+          }}
           data-testid='nav-today'
+          disabled={isAgendaView}
         >
           Today
         </button>
         <button
           onClick={() => onNavigate('PREV')}
-          style={toolbarStyles.navButton}
+          style={{
+            ...toolbarStyles.navButton,
+            ...(isAgendaView ? toolbarStyles.navButtonDisabled : {}),
+          }}
           data-testid='nav-back'
+          disabled={isAgendaView}
         >
           ← Back
         </button>
         <button
           onClick={() => onNavigate('NEXT')}
-          style={toolbarStyles.navButton}
+          style={{
+            ...toolbarStyles.navButton,
+            ...(isAgendaView ? toolbarStyles.navButtonDisabled : {}),
+          }}
           data-testid='nav-next'
+          disabled={isAgendaView}
         >
           Next →
         </button>
@@ -273,6 +288,9 @@ export function TaskCalendar({
   // State for department filter (for managers)
   const [departmentFilter, setDepartmentFilter] = useState<string>('');
 
+  // State for team member (assignee) filter (for managers)
+  const [assigneeFilter, setAssigneeFilter] = useState<string>('');
+
   // Extract unique departments from tasks for the filter dropdown
   const departments = useMemo(() => {
     if (!tasks || tasks.length === 0) {
@@ -287,13 +305,47 @@ export function TaskCalendar({
     return Array.from(departmentSet).sort();
   }, [tasks]);
 
-  // Filter tasks by department if filter is active
-  const filteredTasks = useMemo(() => {
-    if (!departmentFilter || !showDepartmentFilter) {
-      return tasks;
+  // Extract unique team members (assignees) from tasks for the filter dropdown
+  const teamMembers = useMemo(() => {
+    if (!tasks || tasks.length === 0) {
+      return [];
     }
-    return tasks.filter(task => task.department?.name === departmentFilter);
-  }, [tasks, departmentFilter, showDepartmentFilter]);
+    const memberMap = new Map<string, { id: string; name: string }>();
+    tasks.forEach(task => {
+      task.assignments.forEach(assignment => {
+        if (assignment.user.id && assignment.user.name) {
+          memberMap.set(assignment.user.id, {
+            id: assignment.user.id,
+            name: assignment.user.name,
+          });
+        }
+      });
+    });
+    return Array.from(memberMap.values()).sort((a, b) =>
+      a.name.localeCompare(b.name)
+    );
+  }, [tasks]);
+
+  // Filter tasks by department and/or assignee if filters are active
+  const filteredTasks = useMemo(() => {
+    let result = tasks;
+
+    // Apply department filter if active
+    if (departmentFilter && showDepartmentFilter) {
+      result = result.filter(
+        task => task.department?.name === departmentFilter
+      );
+    }
+
+    // Apply assignee filter if active
+    if (assigneeFilter && showDepartmentFilter) {
+      result = result.filter(task =>
+        task.assignments.some(a => a.user.id === assigneeFilter)
+      );
+    }
+
+    return result;
+  }, [tasks, departmentFilter, assigneeFilter, showDepartmentFilter]);
 
   // Custom Day View Wrapper - Passes onSelectTask callback to DayView
   const DayViewWrapper = useMemo(() => {
@@ -604,6 +656,27 @@ export function TaskCalendar({
               </select>
             </div>
           )}
+          {showDepartmentFilter && teamMembers.length > 0 && (
+            <div style={styles.filterContainer}>
+              <label htmlFor='assignee-filter' style={styles.filterLabel}>
+                Team Member:
+              </label>
+              <select
+                id='assignee-filter'
+                value={assigneeFilter}
+                onChange={e => setAssigneeFilter(e.target.value)}
+                style={styles.filterSelect}
+                data-testid='assignee-filter'
+              >
+                <option value=''>All Team Members</option>
+                {teamMembers.map(member => (
+                  <option key={member.id} value={member.id}>
+                    {member.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <button onClick={handleExport} style={styles.exportButton}>
             📥 Export to iCal
           </button>
@@ -796,6 +869,13 @@ const toolbarStyles = {
     cursor: 'pointer',
     transition: 'all 0.2s',
   },
+  navButtonDisabled: {
+    backgroundColor: '#f7fafc',
+    color: '#cbd5e0',
+    borderColor: '#e2e8f0',
+    cursor: 'not-allowed',
+    opacity: 0.6,
+  },
   viewButton: {
     padding: '0.5rem 1rem',
     borderWidth: '1px',
@@ -832,7 +912,7 @@ const styles = {
     marginBottom: '1.5rem',
   },
   title: {
-    fontSize: '1.5rem',
+    fontSize: '1.25rem',
     fontWeight: 600,
     color: '#2d3748',
     margin: 0,
