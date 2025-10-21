@@ -199,17 +199,15 @@ describe('Integration Test - Departmental Calendar Filtering', () => {
     // 1. Delete task assignments first
     if (parentTaskId && childTaskId && peerTaskId) {
       await pgClient.query(
-        `DELETE FROM "task_assignment" WHERE "taskId" IN ($1, $2, $3)`,
-        [parentTaskId, childTaskId, peerTaskId]
+        `DELETE FROM "task_assignment" WHERE "taskId" = ANY($1)`,
+        [[parentTaskId, childTaskId, peerTaskId]]
       );
     }
 
     // 2. Delete tasks
     if (parentTaskId && childTaskId && peerTaskId) {
-      await pgClient.query(`DELETE FROM "task" WHERE id IN ($1, $2, $3)`, [
-        parentTaskId,
-        childTaskId,
-        peerTaskId,
+      await pgClient.query(`DELETE FROM "task" WHERE id = ANY($1)`, [
+        [parentTaskId, childTaskId, peerTaskId],
       ]);
     }
 

@@ -60,7 +60,7 @@ test.describe('Departmental Calendar - Manager Flow', () => {
     });
 
     // Wait for navbar to be fully rendered and interactive
-    await expect(page.getByText('Task Manager')).toBeVisible({
+    await expect(page.getByTestId('app-title')).toBeVisible({
       timeout: 65000,
     });
 
@@ -439,7 +439,7 @@ test.describe('Departmental Calendar - Manager Flow', () => {
     });
 
     // Wait for navbar to be fully rendered and interactive
-    await expect(page.getByText('Task Manager')).toBeVisible({
+    await expect(page.getByTestId('app-title')).toBeVisible({
       timeout: 65000,
     });
 

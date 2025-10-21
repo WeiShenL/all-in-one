@@ -106,6 +106,7 @@ export default function Navbar() {
             }}
           >
             <h1
+              data-testid='app-title'
               style={{
                 fontSize: '1.5rem',
                 fontWeight: 'bold',
@@ -430,6 +431,7 @@ export default function Navbar() {
             }}
           >
             <h1
+              data-testid='app-title-mobile'
               style={{
                 fontSize: '1.25rem',
                 fontWeight: 'bold',

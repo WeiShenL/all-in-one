@@ -55,7 +55,7 @@ test.describe('Personal Calendar - UI Flow', () => {
     ).toBeVisible({ timeout: 65000 });
 
     // Wait for navbar to be fully rendered and interactive
-    await expect(page.getByText('Task Manager')).toBeVisible({
+    await expect(page.getByTestId('app-title')).toBeVisible({
       timeout: 65000,
     });
 
@@ -397,7 +397,7 @@ test.describe('Personal Calendar - UI Flow', () => {
     ).toBeVisible({ timeout: 65000 });
 
     // Wait for navbar to be fully rendered and interactive
-    await expect(page.getByText('Task Manager')).toBeVisible({
+    await expect(page.getByTestId('app-title')).toBeVisible({
       timeout: 65000,
     });
 
