@@ -28,6 +28,13 @@ jest.mock('@supabase/supabase-js', () => ({
   })),
 }));
 
+// Mock EmailService to prevent RESEND_API_KEY error
+jest.mock('@/app/server/services/EmailService', () => ({
+  EmailService: jest.fn().mockImplementation(() => ({
+    sendEmail: jest.fn().mockResolvedValue(undefined),
+  })),
+}));
+
 // Mock Resend SDK
 jest.mock('resend', () => ({
   Resend: jest.fn().mockImplementation(() => ({
