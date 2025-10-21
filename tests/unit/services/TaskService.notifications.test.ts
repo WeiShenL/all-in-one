@@ -12,6 +12,22 @@ import { PrismaClient } from '@prisma/client';
  *
  */
 
+// Mock Supabase client to prevent "supabaseUrl is required" error
+jest.mock('@supabase/supabase-js', () => ({
+  createClient: jest.fn(() => ({
+    storage: {
+      from: jest.fn(() => ({
+        upload: jest.fn(),
+        createSignedUrl: jest.fn(),
+        remove: jest.fn(),
+      })),
+    },
+    channel: jest.fn(() => ({
+      send: jest.fn(),
+    })),
+  })),
+}));
+
 // Mock Resend SDK
 jest.mock('resend', () => ({
   Resend: jest.fn().mockImplementation(() => ({
