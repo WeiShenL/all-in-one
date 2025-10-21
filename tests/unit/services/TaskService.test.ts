@@ -75,6 +75,16 @@ describe('TaskService - READ and UPDATE Operations', () => {
       updateComment: jest.fn(),
       getDepartmentWithParent: jest.fn(),
       getUserDepartments: jest.fn(),
+      getUserProfile: jest.fn().mockResolvedValue({
+        id: 'user-123',
+        departmentId: 'dept-456',
+        role: 'STAFF',
+        isActive: true,
+      }),
+      isUserProjectCollaborator: jest.fn().mockResolvedValue(false),
+      createProjectCollaborator: jest.fn(),
+      removeProjectCollaboratorIfNoTasks: jest.fn(),
+      removeTaskAssignment: jest.fn(),
     } as any;
 
     service = new TaskService(mockRepository);
