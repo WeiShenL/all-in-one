@@ -13,6 +13,7 @@ import { useAuth } from '@/lib/supabase/auth-context';
 // Mock external dependencies
 jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
+  usePathname: jest.fn(() => '/dashboard/personal'),
 }));
 
 jest.mock('@/lib/supabase/auth-context', () => ({
@@ -52,6 +53,15 @@ jest.mock('@/app/lib/trpc', () => ({
         },
       },
     })),
+    project: {
+      getVisible: {
+        useQuery: jest.fn(() => ({
+          data: [],
+          isLoading: false,
+          error: null,
+        })),
+      },
+    },
     notification: {
       getNotifications: {
         useQuery: jest.fn(() => ({

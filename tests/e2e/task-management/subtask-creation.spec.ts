@@ -317,11 +317,12 @@ test.describe('Subtask Creation E2E - SCRUM-65', () => {
     await dropdownButton.click();
 
     // Now the subtask should be visible (indented under parent)
-    await expect(
-      page.getByText(`E2E Test Subtask ${testNamespace}`)
-    ).toBeVisible({
-      timeout: 40000,
-    });
+    // Be strict: scope to table rows to avoid matching modal text
+    const subtaskRow = page
+      .locator('tbody tr')
+      .filter({ hasText: `E2E Test Subtask ${testNamespace}` })
+      .first();
+    await expect(subtaskRow).toBeVisible({ timeout: 40000 });
 
     /**
      * STEP 8: Verify subtask data in database

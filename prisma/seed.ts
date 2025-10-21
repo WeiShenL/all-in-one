@@ -15,6 +15,7 @@ import tags from './data/6_tags.json' assert { type: 'json' };
 import taskTags from './data/7_task_tags.json' assert { type: 'json' };
 import comments from './data/8_comments.json' assert { type: 'json' };
 import taskLogs from './data/9_task_logs.json' assert { type: 'json' };
+import projectDepartmentAccess from './data/10_project_department_access.json' assert { type: 'json' };
 
 const prisma = new PrismaClient();
 
@@ -30,6 +31,7 @@ async function main() {
   await prisma.tag.deleteMany({});
   await prisma.taskAssignment.deleteMany({});
   await prisma.task.deleteMany({});
+  await prisma.projectDepartmentAccess.deleteMany({});
   await prisma.project.deleteMany({});
   await prisma.teamMember.deleteMany({});
   await prisma.team.deleteMany({});
@@ -55,6 +57,12 @@ async function main() {
   }));
 
   await prisma.project.createMany({ data: transformedProjects });
+
+  // 3b. Project Department Access
+  console.log('🔒 Seeding project department access...');
+  await prisma.projectDepartmentAccess.createMany({
+    data: projectDepartmentAccess,
+  });
 
   // 4. Tasks (cast enums)
   console.log('✓ Seeding tasks...');
