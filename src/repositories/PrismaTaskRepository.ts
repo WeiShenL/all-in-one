@@ -768,6 +768,12 @@ export class PrismaTaskRepository implements ITaskRepository {
                 userId: true,
               },
             },
+            project: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
             tags: {
               include: {
                 tag: {

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/supabase/auth-context';
+import { useNotifications } from '@/lib/context/NotificationContext';
 
 interface TaskCreateModalProps {
   isOpen: boolean;
@@ -10,11 +11,16 @@ interface TaskCreateModalProps {
 }
 
 /**
- * Task Creation Modal Component
+ * Task Creation Modal Component - SCRUM-31
  *
  * Reusable modal component for creating tasks with styling consistent with TaskCard modal.
  * Automatically assigns the current user as an assignee.
  * Matches TaskCard's UI patterns for inputs, assignees, tags, recurring settings, and file attachments.
+ *
+ * Features:
+ * - Project dropdown for assignment (can select none or 1 project)
+ * - Assignee dropdown showing user name and email
+ * - Real-time notification on successful creation
  */
 export function TaskCreateModal({
   isOpen,
@@ -22,14 +28,15 @@ export function TaskCreateModal({
   onSuccess,
 }: TaskCreateModalProps) {
   const { user, userProfile } = useAuth();
+  const { addNotification } = useNotifications();
 
   // Form state
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState(5);
   const [dueDate, setDueDate] = useState('');
-  const [assigneeEmails, setAssigneeEmails] = useState<string[]>([]);
-  const [newAssigneeEmail, setNewAssigneeEmail] = useState('');
+  const [assigneeIds, setAssigneeIds] = useState<string[]>([]); // Selected user IDs
+  const [assigneeEmails, setAssigneeEmails] = useState<string[]>([]); // For backward compatibility
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState('');
   const [projectId, setProjectId] = useState('');
@@ -53,6 +60,25 @@ export function TaskCreateModal({
   >([]);
   const [loadingTasks, setLoadingTasks] = useState(true);
 
+  // Available projects for dropdown (SCRUM-31)
+  const [availableProjects, setAvailableProjects] = useState<
+    Array<{
+      id: string;
+      name: string;
+    }>
+  >([]);
+  const [loadingProjects, setLoadingProjects] = useState(false);
+
+  // Available users for assignee dropdown (SCRUM-31)
+  const [availableUsers, setAvailableUsers] = useState<
+    Array<{
+      id: string;
+      name: string;
+      email: string;
+    }>
+  >([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+
   // File upload state
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -60,15 +86,65 @@ export function TaskCreateModal({
 
   // Auto-assign current user when modal opens
   useEffect(() => {
-    if (
-      isOpen &&
-      userProfile?.email &&
-      !assigneeEmails.includes(userProfile.email)
-    ) {
-      setAssigneeEmails([userProfile.email]);
+    if (isOpen && userProfile?.id && !assigneeIds.includes(userProfile.id)) {
+      setAssigneeIds([userProfile.id]);
+      // For backward compatibility
+      if (userProfile?.email && !assigneeEmails.includes(userProfile.email)) {
+        setAssigneeEmails([userProfile.email]);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, userProfile?.email]);
+  }, [isOpen, userProfile?.id]);
+
+  // Fetch available projects (SCRUM-31)
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    async function fetchProjects() {
+      setLoadingProjects(true);
+      try {
+        const response = await fetch('/api/trpc/project.getAll');
+        const data = await response.json();
+
+        if (data.result?.data) {
+          setAvailableProjects(data.result.data);
+        }
+      } catch (error) {
+        console.error('Error fetching projects:', error);
+      } finally {
+        setLoadingProjects(false);
+      }
+    }
+
+    fetchProjects();
+  }, [isOpen]);
+
+  // Fetch available users for assignee dropdown (SCRUM-31)
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    async function fetchUsers() {
+      setLoadingUsers(true);
+      try {
+        const response = await fetch('/api/trpc/userProfile.getAll');
+        const data = await response.json();
+
+        if (data.result?.data) {
+          setAvailableUsers(data.result.data);
+        }
+      } catch (error) {
+        console.error('Error fetching users:', error);
+      } finally {
+        setLoadingUsers(false);
+      }
+    }
+
+    fetchUsers();
+  }, [isOpen]);
 
   // Fetch user's tasks for parent task selector
   useEffect(() => {
@@ -115,79 +191,24 @@ export function TaskCreateModal({
     }
   }, [userProfile, isOpen]);
 
-  // Helper function to add assignee with validation
-  const handleAddAssignee = async () => {
-    const email = newAssigneeEmail.trim();
-    if (!email) {
-      return;
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setError('❌ Invalid email format');
-      setTimeout(() => setError(null), 3000);
-      return;
-    }
-
-    // Check if already added
-    if (assigneeEmails.includes(email)) {
-      setError('❌ Email already added');
-      setTimeout(() => setError(null), 3000);
-      return;
-    }
-
-    // Check max 5
-    if (assigneeEmails.length >= 5) {
-      setError('❌ Maximum 5 assignees allowed');
-      setTimeout(() => setError(null), 3000);
-      return;
-    }
-
-    // Verify the user exists in the database
-    try {
-      const response = await fetch('/api/trpc/userProfile.findByEmails', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ emails: [email] }),
-      });
-
-      if (!response.ok) {
-        setError('❌ Failed to verify user');
-        setTimeout(() => setError(null), 3000);
-        return;
-      }
-
-      const data = await response.json();
-      const users = data.result?.data || [];
-
-      if (users.length === 0) {
-        setError(`❌ User with email "${email}" not found in the system`);
-        setTimeout(() => setError(null), 5000);
-        return;
-      }
-
-      // User exists, add to list
-      setAssigneeEmails([...assigneeEmails, email]);
-      setNewAssigneeEmail('');
-      setError(null);
-      setSuccess(`✅ Added "${email}" to assignees`);
-      setTimeout(() => setSuccess(null), 2000);
-    } catch {
-      setError('❌ Failed to verify user exists');
-      setTimeout(() => setError(null), 3000);
-    }
-  };
-
   // Helper function to remove assignee
-  const handleRemoveAssignee = (email: string) => {
-    if (assigneeEmails.length <= 1) {
+  const handleRemoveAssignee = (userId: string) => {
+    if (assigneeIds.length <= 1) {
       setError('❌ At least 1 assignee is required');
       setTimeout(() => setError(null), 3000);
       return;
     }
-    setAssigneeEmails(assigneeEmails.filter(e => e !== email));
-    setSuccess(`✅ Removed "${email}" from assignees`);
+
+    // Remove from assignee IDs
+    setAssigneeIds(assigneeIds.filter(id => id !== userId));
+
+    // Update email list for backward compatibility
+    const user = availableUsers.find(u => u.id === userId);
+    if (user) {
+      setAssigneeEmails(assigneeEmails.filter(e => e !== user.email));
+    }
+
+    setSuccess(`✅ Removed assignee`);
     setTimeout(() => setSuccess(null), 2000);
   };
 
@@ -298,8 +319,8 @@ export function TaskCreateModal({
       setDescription('');
       setPriority(5);
       setDueDate('');
+      setAssigneeIds(userProfile?.id ? [userProfile.id] : []);
       setAssigneeEmails(userProfile?.email ? [userProfile.email] : []);
-      setNewAssigneeEmail('');
       setTags([]);
       setNewTag('');
       setProjectId('');
@@ -312,7 +333,7 @@ export function TaskCreateModal({
       setError(null);
       setSuccess(null);
     }
-  }, [isOpen, userProfile?.email]);
+  }, [isOpen, userProfile?.email, userProfile?.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -324,17 +345,13 @@ export function TaskCreateModal({
       return;
     }
 
-    // Validate assignees (1-5)
-    const assigneeList = assigneeEmails.filter(
-      email => email.trim().length > 0
-    );
-
-    if (assigneeList.length < 1) {
+    // Validate assignees (1-5) - using assigneeIds now
+    if (assigneeIds.length < 1) {
       setError('❌ At least 1 assignee is required');
       return;
     }
 
-    if (assigneeList.length > 5) {
+    if (assigneeIds.length > 5) {
       setError('❌ Maximum 5 assignees allowed');
       return;
     }
@@ -364,30 +381,8 @@ export function TaskCreateModal({
     setLoading(true);
 
     try {
-      // Step 1: Look up assignee user IDs from emails
-      const assigneeIdsResponse = await fetch(
-        '/api/trpc/userProfile.findByEmails',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ emails: assigneeList }),
-        }
-      );
-
-      if (!assigneeIdsResponse.ok) {
-        throw new Error('Failed to lookup assignee emails');
-      }
-
-      const assigneeData = await assigneeIdsResponse.json();
-      const assigneeIds = assigneeData.result?.data || [];
-
-      if (assigneeIds.length !== assigneeList.length) {
-        setError(
-          `❌ Some assignee emails not found. Found ${assigneeIds.length} out of ${assigneeList.length}`
-        );
-        setLoading(false);
-        return;
-      }
+      // Use assigneeIds directly from dropdown selection (SCRUM-31)
+      // No need to look up emails anymore since we already have user IDs
 
       // Step 2: Create task or subtask
       const tagList = tags.filter(t => t.trim().length > 0);
@@ -415,7 +410,7 @@ export function TaskCreateModal({
             ownerId: userProfile.id,
             assigneeIds,
             ...(tagList.length > 0 && { tags: tagList }),
-            ...(projectId && { projectId }),
+            ...(projectId && projectId.trim() !== '' && { projectId }), // Only include if not empty
             ...(recurringEnabled &&
               recurringInterval && {
                 recurringInterval: Number(recurringInterval),
@@ -469,6 +464,13 @@ export function TaskCreateModal({
 
       setSuccess('✅ Task created successfully!');
       setError(null);
+
+      // Show notification (SCRUM-31) - uses default 60 second timeout
+      addNotification(
+        'success',
+        'Task Created Successfully',
+        `Task "${title}" has been created`
+      );
 
       if (onSuccess && createdTask?.id) {
         onSuccess(createdTask.id);
@@ -752,13 +754,13 @@ export function TaskCreateModal({
                 marginBottom: '12px',
               }}
             >
-              👥 Assigned Staff ({assigneeEmails.length}/5){' '}
+              👥 Assigned Staff ({assigneeIds.length}/5){' '}
               <span style={{ color: 'red' }}>*</span>
             </h3>
 
             {/* Current Assignees Display */}
             <div style={{ marginBottom: '1rem' }}>
-              {assigneeEmails.length === 0 ? (
+              {assigneeIds.length === 0 ? (
                 <p style={{ fontSize: '0.875rem', color: '#666' }}>
                   No assignees yet.
                 </p>
@@ -771,11 +773,12 @@ export function TaskCreateModal({
                     marginBottom: '12px',
                   }}
                 >
-                  {assigneeEmails.map(email => {
-                    const isCurrentUser = email === userProfile?.email;
+                  {assigneeIds.map(userId => {
+                    const user = availableUsers.find(u => u.id === userId);
+                    const isCurrentUser = userId === userProfile?.id;
                     return (
                       <div
-                        key={email}
+                        key={userId}
                         style={{
                           padding: '6px 10px',
                           backgroundColor: isCurrentUser
@@ -791,7 +794,8 @@ export function TaskCreateModal({
                         }}
                       >
                         <span>
-                          {isCurrentUser ? '👑' : '👤'} {email}
+                          {isCurrentUser ? '👑' : '👤'}{' '}
+                          {user?.name || 'Unknown'} ({user?.email || 'Unknown'})
                           {isCurrentUser && (
                             <span
                               style={{
@@ -808,9 +812,9 @@ export function TaskCreateModal({
                             </span>
                           )}
                         </span>
-                        {assigneeEmails.length > 1 && (
+                        {assigneeIds.length > 1 && (
                           <button
-                            onClick={() => handleRemoveAssignee(email)}
+                            onClick={() => handleRemoveAssignee(userId)}
                             type='button'
                             style={{
                               padding: '4px 8px',
@@ -834,8 +838,8 @@ export function TaskCreateModal({
               )}
             </div>
 
-            {/* Add Assignee Interface */}
-            {assigneeEmails.length < 5 ? (
+            {/* Add Assignee Interface - Dropdown */}
+            {assigneeIds.length < 5 ? (
               <div>
                 <div
                   style={{
@@ -844,20 +848,27 @@ export function TaskCreateModal({
                     marginBottom: '8px',
                   }}
                 >
-                  💡 Add assignee by email • Max 5 total
+                  💡 Select user to add as assignee • Max 5 total
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <input
-                    type='email'
-                    value={newAssigneeEmail}
-                    onChange={e => setNewAssigneeEmail(e.target.value)}
-                    onKeyPress={e => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleAddAssignee();
+                  <select
+                    value=''
+                    onChange={e => {
+                      const userId = e.target.value;
+                      if (userId && !assigneeIds.includes(userId)) {
+                        if (assigneeIds.length >= 5) {
+                          alert('Maximum 5 assignees allowed per task');
+                          return;
+                        }
+                        setAssigneeIds([...assigneeIds, userId]);
+                        // Update email list for backward compatibility
+                        const user = availableUsers.find(u => u.id === userId);
+                        if (user) {
+                          setAssigneeEmails([...assigneeEmails, user.email]);
+                        }
                       }
                     }}
-                    placeholder='user@example.com'
+                    disabled={loadingUsers}
                     style={{
                       flex: 1,
                       padding: '6px',
@@ -865,28 +876,22 @@ export function TaskCreateModal({
                       borderRadius: '4px',
                       fontSize: '0.875rem',
                       boxSizing: 'border-box',
-                    }}
-                  />
-                  <button
-                    type='button'
-                    onClick={handleAddAssignee}
-                    disabled={!newAssigneeEmail.trim()}
-                    style={{
-                      padding: '6px 12px',
-                      backgroundColor: !newAssigneeEmail.trim()
-                        ? '#9ca3af'
-                        : '#dc2626',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '4px',
-                      cursor: !newAssigneeEmail.trim()
-                        ? 'not-allowed'
-                        : 'pointer',
-                      fontSize: '0.875rem',
+                      cursor: loadingUsers ? 'not-allowed' : 'pointer',
                     }}
                   >
-                    ➕ Add
-                  </button>
+                    <option value=''>
+                      {loadingUsers
+                        ? 'Loading users...'
+                        : '-- Select User to Add --'}
+                    </option>
+                    {availableUsers
+                      .filter(user => !assigneeIds.includes(user.id))
+                      .map(user => (
+                        <option key={user.id} value={user.id}>
+                          {user.name} ({user.email})
+                        </option>
+                      ))}
+                  </select>
                 </div>
               </div>
             ) : (
@@ -1002,7 +1007,7 @@ export function TaskCreateModal({
               marginBottom: '1.5rem',
             }}
           >
-            {/* Project - Optional */}
+            {/* Project - Optional (SCRUM-31) */}
             <div>
               <div
                 style={{
@@ -1011,21 +1016,33 @@ export function TaskCreateModal({
                   marginBottom: '8px',
                 }}
               >
-                Project (Optional)
+                🗂️ Project (Optional)
               </div>
-              <input
-                type='text'
+              <select
+                data-testid='project-select'
                 value={projectId}
                 onChange={e => setProjectId(e.target.value)}
+                disabled={loadingProjects}
                 style={{
                   width: '100%',
                   padding: '6px',
                   border: '2px solid #e5e7eb',
                   borderRadius: '4px',
                   boxSizing: 'border-box',
+                  cursor: loadingProjects ? 'not-allowed' : 'pointer',
                 }}
-                placeholder='Project ID'
-              />
+              >
+                <option value=''>
+                  {loadingProjects
+                    ? 'Loading projects...'
+                    : '-- No Project (Standalone Task) --'}
+                </option>
+                {availableProjects.map(project => (
+                  <option key={project.id} value={project.id}>
+                    {project.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Parent Task - Optional */}

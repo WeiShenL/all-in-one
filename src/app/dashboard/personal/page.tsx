@@ -7,14 +7,14 @@ import Navbar from '@/app/components/Navbar';
 import { PersonalDashboard } from '@/app/components/PersonalDashboard';
 
 export default function PersonalDashboardPage() {
-  const { user, userProfile, loading } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (!loading && !user) {
       router.push('/auth/login');
     }
-  }, [user, userProfile, loading, router]);
+  }, [user, loading, router]);
 
   if (loading) {
     return (
@@ -44,11 +44,24 @@ export default function PersonalDashboardPage() {
       }}
     >
       <Navbar />
-      <div style={{ padding: '2rem' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+      <div
+        style={{
+          padding: 'clamp(1rem, 3vw, 2rem)',
+          maxWidth: '100%',
+          marginLeft: '280px', // Account for sidebar width
+        }}
+        className='main-content'
+      >
+        <div
+          style={{
+            maxWidth: 'min(100%, 1600px)',
+            margin: '0 auto',
+            width: '100%',
+          }}
+        >
           <header
             style={{
-              marginBottom: '2rem',
+              marginBottom: 'clamp(1rem, 2vw, 2rem)',
               paddingBottom: '1rem',
               borderBottom: '2px solid #e2e8f0',
             }}
@@ -57,50 +70,24 @@ export default function PersonalDashboardPage() {
               style={{
                 marginBottom: '0.5rem',
                 color: '#1a202c',
-                fontSize: '2rem',
+                fontSize: 'clamp(1.5rem, 4vw, 2rem)',
                 fontWeight: '700',
               }}
             >
               Personal Dashboard
             </h1>
-            <p style={{ color: '#718096', margin: 0, fontSize: '0.875rem' }}>
-              Welcome, {userProfile?.name || user.email}
+            <p
+              style={{
+                color: '#718096',
+                margin: 0,
+                fontSize: 'clamp(0.75rem, 2vw, 0.875rem)',
+              }}
+            >
+              Welcome, {user.email}
             </p>
           </header>
 
-          <div style={{ marginBottom: '2rem' }}>
-            <div
-              style={{
-                backgroundColor: '#ffffff',
-                padding: '0 1.5rem 1.5rem',
-                borderRadius: '12px',
-                marginBottom: '1rem',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-              }}
-            >
-              <h2
-                style={{
-                  paddingTop: '1.5rem',
-                  color: '#2d3748',
-                  fontSize: '1.25rem',
-                  fontWeight: '600',
-                }}
-              >
-                User Information
-              </h2>
-              <div style={{ display: 'grid', gap: '0.75rem' }}>
-                <p style={{ color: '#4a5568', margin: 0 }}>
-                  <strong>Email:</strong> {user.email}
-                </p>
-                <p style={{ color: '#4a5568', margin: 0 }}>
-                  <strong>Role:</strong> {userProfile?.role || 'N/A'}
-                </p>
-                <p style={{ color: '#4a5568', margin: 0 }}>
-                  <strong>User ID:</strong> {user.id}
-                </p>
-              </div>
-            </div>
-          </div>
+          {/* Removed in-page User Information panel (now shown in Navbar modal) */}
 
           {/* Personal Task Dashboard - Shows only assigned tasks with Edit button */}
           <div>
@@ -108,6 +95,15 @@ export default function PersonalDashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* CSS for responsive behavior */}
+      <style jsx>{`
+        @media (max-width: 768px) {
+          .main-content {
+            margin-left: 0 !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

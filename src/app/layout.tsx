@@ -21,16 +21,35 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang='en'>
-      <body className={inter.className}>
-        <NotificationProvider autoRemoveDelay={60000}>
-          <AuthProvider>
-            <TRPCProvider>
+    <html lang='en' style={{ margin: 0, padding: 0 }}>
+      <head>
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+            }
+            html, body {
+              margin: 0 !important;
+              padding: 0 !important;
+              width: 100%;
+              height: 100%;
+            }
+          `,
+          }}
+        />
+      </head>
+      <body className={inter.className} style={{ margin: 0, padding: 0 }}>
+        <AuthProvider>
+          <TRPCProvider>
+            <NotificationProvider autoRemoveDelay={60000}>
               {children}
               <ToastContainer />
-            </TRPCProvider>
-          </AuthProvider>
-        </NotificationProvider>
+            </NotificationProvider>
+          </TRPCProvider>
+        </AuthProvider>
       </body>
     </html>
   );

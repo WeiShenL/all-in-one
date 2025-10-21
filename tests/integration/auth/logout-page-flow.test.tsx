@@ -1,15 +1,20 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/supabase/auth-context';
 import PersonalDashboard from '@/app/dashboard/personal/page';
 import DepartmentDashboard from '@/app/dashboard/department/page';
 import HRDashboard from '@/app/dashboard/hr/page';
-import ProfilePage from '@/app/profile/page';
+import { NotificationProvider } from '@/lib/context/NotificationContext';
+
+const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <NotificationProvider>{children}</NotificationProvider>
+);
 
 // Mock dependencies
 jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
+  usePathname: jest.fn(),
 }));
 
 jest.mock('@/lib/supabase/auth-context', () => ({
@@ -38,11 +43,35 @@ jest.mock('@/app/lib/trpc', () => {
           useQuery: jest.fn(),
         },
       },
+      project: {
+        getVisible: {
+          useQuery: jest.fn(() => ({
+            data: [],
+            isLoading: false,
+            error: null,
+          })),
+        },
+      },
       userProfile: {
         getAll: {
           useQuery: jest.fn(),
         },
       },
+      notification: {
+        getUnreadNotifications: {
+          useQuery: jest.fn(),
+        },
+        getUnreadCount: {
+          useQuery: jest.fn(),
+        },
+        getNotifications: {
+          useQuery: jest.fn(),
+        },
+        markAsRead: {
+          useMutation: jest.fn(),
+        },
+      },
+      useUtils: jest.fn(),
     },
   };
 });
@@ -65,6 +94,7 @@ describe('Logout Page Flow', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (useRouter as jest.Mock).mockReturnValue({ push: mockPush });
+    (usePathname as jest.Mock).mockReturnValue('/dashboard/personal');
     (useAuth as jest.Mock).mockReturnValue(mockAuthenticatedUser);
 
     // Mock useSecureLogout hook
@@ -117,11 +147,55 @@ describe('Logout Page Flow', () => {
       isLoading: false,
       error: null,
     });
+
+    // Mock tRPC notification.getUnreadNotifications query
+    (
+      trpc.notification.getUnreadNotifications.useQuery as jest.Mock
+    ).mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+    });
+
+    // Mock tRPC notification.getUnreadCount query
+    (trpc.notification.getUnreadCount.useQuery as jest.Mock).mockReturnValue({
+      data: { count: 0 },
+      isLoading: false,
+      error: null,
+      refetch: jest.fn(),
+    });
+
+    // Mock tRPC notification.getNotifications query (used by NotificationModal)
+    (trpc.notification.getNotifications.useQuery as jest.Mock).mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+      refetch: jest.fn(),
+    });
+
+    // Mock tRPC notification.markAsRead mutation (used by NotificationModal)
+    (trpc.notification.markAsRead.useMutation as jest.Mock).mockReturnValue({
+      mutate: jest.fn(),
+      isLoading: false,
+      error: null,
+    });
+
+    // Mock tRPC useUtils for notification invalidation
+    (trpc.useUtils as jest.Mock).mockReturnValue({
+      notification: {
+        getUnreadNotifications: {
+          invalidate: jest.fn(),
+        },
+        getUnreadCount: {
+          invalidate: jest.fn(),
+        },
+      },
+    });
   });
 
   describe('Rendering', () => {
     it('should render logout button in navbar on personal dashboard', () => {
-      render(<PersonalDashboard />);
+      render(<PersonalDashboard />, { wrapper: TestWrapper });
 
       expect(screen.getByText('Sign Out')).toBeInTheDocument();
     });
@@ -132,7 +206,7 @@ describe('Logout Page Flow', () => {
         userProfile: { name: 'Manager User', role: 'MANAGER' },
       });
 
-      render(<DepartmentDashboard />);
+      render(<DepartmentDashboard />, { wrapper: TestWrapper });
 
       expect(screen.getByText('Sign Out')).toBeInTheDocument();
     });
@@ -143,42 +217,20 @@ describe('Logout Page Flow', () => {
         userProfile: { name: 'HR User', role: 'HR_ADMIN' },
       });
 
-      render(<HRDashboard />);
+      render(<HRDashboard />, { wrapper: TestWrapper });
 
       expect(screen.getByText('Sign Out')).toBeInTheDocument();
     });
 
-    it('should render logout button in navbar on profile page', () => {
-      render(<ProfilePage />);
-
-      expect(screen.getByText('Sign Out')).toBeInTheDocument();
-    });
-
-    it('should display user info in navbar before logout', () => {
-      render(<PersonalDashboard />);
-
-      expect(screen.getByText('Test User')).toBeInTheDocument();
-    });
-
-    it('should display user email when name is not available', () => {
-      (useAuth as jest.Mock).mockReturnValue({
-        ...mockAuthenticatedUser,
-        userProfile: { role: 'STAFF', name: null },
-      });
-
-      render(<PersonalDashboard />);
-
-      // Use getAllByText since email appears in both navbar and dashboard content
-      const emailElements = screen.getAllByText('test@example.com');
-      expect(emailElements.length).toBeGreaterThan(0);
-    });
+    // User name/email are no longer displayed persistently in the navbar.
+    // The profile icon opens a modal with user details, so these assertions were removed.
   });
 
   describe('Logout Flow', () => {
     it('should call handleSecureLogout when logout button is clicked', async () => {
       mockHandleSecureLogout.mockResolvedValue(undefined);
 
-      render(<PersonalDashboard />);
+      render(<PersonalDashboard />, { wrapper: TestWrapper });
 
       const logoutButton = screen.getByText('Sign Out');
       fireEvent.click(logoutButton);
@@ -194,7 +246,7 @@ describe('Logout Page Flow', () => {
         isLoggingOut: true,
       });
 
-      render(<PersonalDashboard />);
+      render(<PersonalDashboard />, { wrapper: TestWrapper });
 
       expect(screen.getByText('Signing Out...')).toBeInTheDocument();
       const logoutButton = screen.getByText('Signing Out...');
@@ -204,7 +256,7 @@ describe('Logout Page Flow', () => {
     it('should logout from personal dashboard', async () => {
       mockHandleSecureLogout.mockResolvedValue(undefined);
 
-      render(<PersonalDashboard />);
+      render(<PersonalDashboard />, { wrapper: TestWrapper });
 
       const logoutButton = screen.getByText('Sign Out');
       fireEvent.click(logoutButton);
@@ -221,7 +273,7 @@ describe('Logout Page Flow', () => {
         userProfile: { name: 'Manager User', role: 'MANAGER' },
       });
 
-      render(<DepartmentDashboard />);
+      render(<DepartmentDashboard />, { wrapper: TestWrapper });
 
       const logoutButton = screen.getByText('Sign Out');
       fireEvent.click(logoutButton);
@@ -238,20 +290,7 @@ describe('Logout Page Flow', () => {
         userProfile: { name: 'HR User', role: 'HR_ADMIN' },
       });
 
-      render(<HRDashboard />);
-
-      const logoutButton = screen.getByText('Sign Out');
-      fireEvent.click(logoutButton);
-
-      await waitFor(() => {
-        expect(mockHandleSecureLogout).toHaveBeenCalledTimes(1);
-      });
-    });
-
-    it('should logout from profile page', async () => {
-      mockHandleSecureLogout.mockResolvedValue(undefined);
-
-      render(<ProfilePage />);
+      render(<HRDashboard />, { wrapper: TestWrapper });
 
       const logoutButton = screen.getByText('Sign Out');
       fireEvent.click(logoutButton);
@@ -268,7 +307,9 @@ describe('Logout Page Flow', () => {
         isLoggingOut: false,
       });
 
-      const { rerender } = render(<PersonalDashboard />);
+      const { rerender } = render(<PersonalDashboard />, {
+        wrapper: TestWrapper,
+      });
 
       const logoutButton = screen.getByText('Sign Out');
       fireEvent.click(logoutButton);
@@ -296,7 +337,7 @@ describe('Logout Page Flow', () => {
     it('should call logout even when button is clicked rapidly', async () => {
       mockHandleSecureLogout.mockResolvedValue(undefined);
 
-      render(<PersonalDashboard />);
+      render(<PersonalDashboard />, { wrapper: TestWrapper });
 
       const logoutButton = screen.getByText('Sign Out');
 
@@ -314,7 +355,7 @@ describe('Logout Page Flow', () => {
     it('should allow retry if logout hook is called again', async () => {
       mockHandleSecureLogout.mockResolvedValue(undefined);
 
-      render(<PersonalDashboard />);
+      render(<PersonalDashboard />, { wrapper: TestWrapper });
 
       const logoutButton = screen.getByText('Sign Out');
 
@@ -339,7 +380,7 @@ describe('Logout Page Flow', () => {
     it('should maintain UI consistency during logout attempts', async () => {
       mockHandleSecureLogout.mockResolvedValue(undefined);
 
-      render(<PersonalDashboard />);
+      render(<PersonalDashboard />, { wrapper: TestWrapper });
 
       // Dashboard content should be visible
       expect(screen.getByText('Personal Dashboard')).toBeInTheDocument();
@@ -359,7 +400,9 @@ describe('Logout Page Flow', () => {
 
   describe('User Experience', () => {
     it('should show consistent logout button across all pages', () => {
-      const { unmount: unmount1 } = render(<PersonalDashboard />);
+      const { unmount: unmount1 } = render(<PersonalDashboard />, {
+        wrapper: TestWrapper,
+      });
       expect(screen.getByText('Sign Out')).toBeInTheDocument();
       unmount1();
 
@@ -367,7 +410,9 @@ describe('Logout Page Flow', () => {
         ...mockAuthenticatedUser,
         userProfile: { name: 'Manager User', role: 'MANAGER' },
       });
-      const { unmount: unmount2 } = render(<DepartmentDashboard />);
+      const { unmount: unmount2 } = render(<DepartmentDashboard />, {
+        wrapper: TestWrapper,
+      });
       expect(screen.getByText('Sign Out')).toBeInTheDocument();
       unmount2();
 
@@ -375,13 +420,11 @@ describe('Logout Page Flow', () => {
         ...mockAuthenticatedUser,
         userProfile: { name: 'HR User', role: 'HR_ADMIN' },
       });
-      const { unmount: unmount3 } = render(<HRDashboard />);
+      const { unmount: unmount3 } = render(<HRDashboard />, {
+        wrapper: TestWrapper,
+      });
       expect(screen.getByText('Sign Out')).toBeInTheDocument();
       unmount3();
-
-      (useAuth as jest.Mock).mockReturnValue(mockAuthenticatedUser);
-      render(<ProfilePage />);
-      expect(screen.getByText('Sign Out')).toBeInTheDocument();
     });
 
     it('should display loading indicator only on logout button during logout', async () => {
@@ -390,7 +433,7 @@ describe('Logout Page Flow', () => {
         isLoggingOut: true,
       });
 
-      render(<PersonalDashboard />);
+      render(<PersonalDashboard />, { wrapper: TestWrapper });
 
       // Logout button shows loading
       expect(screen.getByText('Signing Out...')).toBeInTheDocument();
@@ -402,7 +445,7 @@ describe('Logout Page Flow', () => {
 
   describe('Navigation', () => {
     it('should have correct Personal link in navbar for STAFF', () => {
-      render(<PersonalDashboard />);
+      render(<PersonalDashboard />, { wrapper: TestWrapper });
 
       const personalLink = screen.getByText('Personal').closest('a');
       expect(personalLink).toHaveAttribute('href', '/dashboard/personal');
@@ -414,7 +457,7 @@ describe('Logout Page Flow', () => {
         userProfile: { name: 'Manager User', role: 'MANAGER' },
       });
 
-      render(<DepartmentDashboard />);
+      render(<DepartmentDashboard />, { wrapper: TestWrapper });
 
       const deptLink = screen.getByText('Department').closest('a');
       expect(deptLink).toHaveAttribute('href', '/dashboard/department');
@@ -426,17 +469,17 @@ describe('Logout Page Flow', () => {
         userProfile: { name: 'HR User', role: 'HR_ADMIN' },
       });
 
-      render(<HRDashboard />);
+      render(<HRDashboard />, { wrapper: TestWrapper });
 
       const personalLink = screen.getByText('Personal').closest('a');
       expect(personalLink).toHaveAttribute('href', '/dashboard/personal');
     });
 
-    it('should have Profile link in navbar', () => {
-      render(<PersonalDashboard />);
+    it('should have Projects section in navbar', () => {
+      render(<PersonalDashboard />, { wrapper: TestWrapper });
 
-      const profileLink = screen.getByText('Profile').closest('a');
-      expect(profileLink).toHaveAttribute('href', '/profile');
+      // Look for the Projects section header (not a navigation link)
+      expect(screen.getByText('Projects')).toBeInTheDocument();
     });
   });
 });

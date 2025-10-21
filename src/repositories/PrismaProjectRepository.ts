@@ -8,7 +8,7 @@
  * SCRUM-30: Create New Project - Prisma Repository Implementation
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, ProjectStatus } from '@prisma/client';
 import { Project } from '../domain/project/Project';
 import { IProjectRepository } from './IProjectRepository';
 
@@ -180,5 +180,119 @@ export class PrismaProjectRepository implements IProjectRepository {
         updatedAt: new Date(),
       },
     });
+  }
+
+  /**
+   * Get all projects with optional filters
+   */
+  async getAllProjects(filters?: {
+    departmentId?: string;
+    creatorId?: string;
+    status?: string;
+    isArchived?: boolean;
+  }): Promise<
+    Array<{
+      id: string;
+      name: string;
+      description: string | null;
+      priority: number;
+      status: string;
+      departmentId: string;
+      creatorId: string;
+      isArchived: boolean;
+      createdAt: Date;
+      updatedAt: Date;
+    }>
+  > {
+    const projects = await this.prisma.project.findMany({
+      where: {
+        departmentId: filters?.departmentId,
+        creatorId: filters?.creatorId,
+        status: filters?.status as ProjectStatus | undefined,
+        isArchived: filters?.isArchived ?? false,
+      },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        priority: true,
+        status: true,
+        departmentId: true,
+        creatorId: true,
+        isArchived: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }],
+    });
+
+    return projects;
+  }
+
+  /**
+   * Get projects visible to a set of departments.
+   * Visible if project.departmentId in departmentIds OR has access row.
+   */
+  async getProjectsVisibleToDepartments(
+    departmentIds: string[],
+    options?: { isArchived?: boolean }
+  ): Promise<
+    Array<{
+      id: string;
+      name: string;
+      description: string | null;
+      priority: number;
+      status: string;
+      departmentId: string;
+      creatorId: string;
+      isArchived: boolean;
+      createdAt: Date;
+      updatedAt: Date;
+    }>
+  > {
+    if (!departmentIds || departmentIds.length === 0) {
+      return [];
+    }
+
+    // Step 1: Find projectIds that have explicit access via bridge table
+    const accessRows = await (
+      this.prisma as any
+    ).projectDepartmentAccess.findMany({
+      where: { departmentId: { in: departmentIds } },
+      select: { projectId: true },
+    });
+    const accessProjectIds = Array.from(
+      new Set(accessRows.map((r: { projectId: string }) => r.projectId))
+    );
+
+    // Step 2: Fetch projects where either primary department matches or explicit access exists
+    const projects = await this.prisma.project.findMany({
+      where: {
+        OR: [
+          { departmentId: { in: departmentIds } },
+          accessProjectIds.length > 0
+            ? { id: { in: accessProjectIds } }
+            : undefined,
+        ].filter(Boolean) as any,
+        ...(options?.isArchived === undefined
+          ? { isArchived: false }
+          : { isArchived: options.isArchived }),
+      },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        priority: true,
+        status: true,
+        departmentId: true,
+        creatorId: true,
+        isArchived: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }],
+    });
+
+    return projects;
   }
 }

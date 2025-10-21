@@ -13,10 +13,71 @@ import { useAuth } from '@/lib/supabase/auth-context';
 // Mock external dependencies
 jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
+  usePathname: jest.fn(() => '/dashboard/personal'),
 }));
 
 jest.mock('@/lib/supabase/auth-context', () => ({
   useAuth: jest.fn(),
+}));
+
+jest.mock('@/lib/context/NotificationContext', () => ({
+  useNotifications: jest.fn(() => ({
+    notifications: [],
+    unreadCount: 0,
+    markAsRead: jest.fn(),
+    markAllAsRead: jest.fn(),
+    dismissAll: jest.fn(),
+    lastNotificationTime: 0,
+    dismissNotification: jest.fn(),
+    removeNotification: jest.fn(),
+    clearAll: jest.fn(),
+    isConnected: true,
+    error: null,
+  })),
+}));
+
+jest.mock('@/lib/hooks/useUnreadNotificationCount', () => ({
+  useUnreadNotificationCount: jest.fn(() => ({
+    count: 0,
+    resetCount: jest.fn(),
+  })),
+}));
+
+// Mock tRPC
+jest.mock('@/app/lib/trpc', () => ({
+  trpc: {
+    useUtils: jest.fn(() => ({
+      notification: {
+        getUnreadCount: {
+          invalidate: jest.fn(),
+        },
+      },
+    })),
+    project: {
+      getVisible: {
+        useQuery: jest.fn(() => ({
+          data: [],
+          isLoading: false,
+          error: null,
+        })),
+      },
+    },
+    notification: {
+      getNotifications: {
+        useQuery: jest.fn(() => ({
+          data: [],
+          isLoading: false,
+          error: null,
+          refetch: jest.fn(),
+        })),
+      },
+      markAsRead: {
+        useMutation: jest.fn(() => ({
+          mutate: jest.fn(),
+        })),
+      },
+    },
+  },
 }));
 
 describe('Logout Functionality', () => {

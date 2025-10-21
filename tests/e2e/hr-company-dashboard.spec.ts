@@ -68,8 +68,10 @@ test.describe('HR/Admin Company Dashboard - Happy Path', () => {
     // Should successfully load the page
     await expect(page).toHaveURL(/\/dashboard\/company/, { timeout: 30000 });
 
-    // Wait for the page heading
-    await expect(page.locator('h1')).toBeVisible({ timeout: 60000 });
+    // Wait for the specific page heading to avoid matching navbar title
+    await expect(
+      page.getByRole('heading', { name: /company dashboard/i })
+    ).toBeVisible({ timeout: 60000 });
 
     // Wait for tasks to load (if table exists)
     const taskTable = page.locator('[data-testid="task-table"]');

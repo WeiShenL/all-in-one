@@ -56,6 +56,7 @@ export function TaskTable({
   showCreateButton = true,
   onCreateTask,
   onTaskCreated,
+  onTaskUpdated,
   emptyStateConfig = {
     icon: '📝',
     title: 'No tasks assigned to you yet',
@@ -72,6 +73,7 @@ export function TaskTable({
     assignee: [],
     department: [],
     project: [],
+    tags: [],
   });
   const [userSort, setUserSort] = useState<SortCriterion[]>([]);
   const [userHasSorted, setUserHasSorted] = useState(false);
@@ -162,6 +164,24 @@ export function TaskTable({
     };
   }, [tasks]);
 
+  // Collect all unique tags from tasks
+  const allTags = useMemo(() => {
+    if (!tasks) {
+      return [];
+    }
+    const tagsSet = new Set<string>();
+    tasks.forEach((task: Task) => {
+      if (task.tags && Array.isArray(task.tags)) {
+        task.tags.forEach(tag => {
+          if (tag && tag.trim()) {
+            tagsSet.add(tag.trim());
+          }
+        });
+      }
+    });
+    return Array.from(tagsSet).sort();
+  }, [tasks]);
+
   const handleSortChange = (key: SortableColumn) => {
     if (!userHasSorted) {
       setUserHasSorted(true);
@@ -211,12 +231,17 @@ export function TaskTable({
         filters.project.length === 0 ||
         (task.project && filters.project.includes(task.project.id));
 
+      const tagsMatch =
+        filters.tags.length === 0 ||
+        (task.tags && task.tags.some(tag => filters.tags.includes(tag.trim())));
+
       return (
         titleMatch &&
         statusMatch &&
         departmentMatch &&
         assigneeMatch &&
-        projectMatch
+        projectMatch &&
+        tagsMatch
       );
     });
 
@@ -395,6 +420,7 @@ export function TaskTable({
                 } else if (key === 'project') {
                   displayValue = projects.find(p => p.id === v)?.name || v;
                 }
+                // tags display the value as-is
 
                 return (
                   <span key={`${key}-${v}`} style={styles.filterPill}>
@@ -558,6 +584,42 @@ export function TaskTable({
                           <option key={a.id} value={a.id}>
                             {filters.assignee.includes(a.id) ? '✓ ' : ''}
                             {a.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </th>
+                  <th style={styles.th}>
+                    <div style={styles.thContent}>
+                      <div
+                        style={styles.thTitle}
+                        onClick={() => handleSortChange('tags')}
+                      >
+                        <>Tags</>
+                        <SortIndicator sortKey='tags' />
+                      </div>
+                      <select
+                        value=''
+                        onChange={e => {
+                          if (e.target.value) {
+                            handleFilterChange('tags', e.target.value);
+                          }
+                        }}
+                        style={{
+                          ...styles.select,
+                          backgroundColor:
+                            filters.tags.length > 0 ? '#ebf8ff' : 'white',
+                        }}
+                      >
+                        <option value=''>
+                          {filters.tags.length > 0
+                            ? `${filters.tags.length} selected`
+                            : 'All'}
+                        </option>
+                        {allTags.map(tag => (
+                          <option key={tag} value={tag}>
+                            {filters.tags.includes(tag) ? '✓ ' : ''}
+                            {tag}
                           </option>
                         ))}
                       </select>

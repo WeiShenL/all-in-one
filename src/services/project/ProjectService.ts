@@ -10,7 +10,7 @@
  * SCRUM-30: Create New Project - Service Implementation
  */
 
-import { Project } from '../../domain/project/Project';
+import { Project, ProjectStatus } from '../../domain/project/Project';
 import { IProjectRepository } from '../../repositories/IProjectRepository';
 
 /**
@@ -29,7 +29,7 @@ export interface CreateProjectInput {
 export interface UserContext {
   userId: string;
   departmentId: string;
-  role: 'STAFF' | 'MANAGER' | 'ADMIN';
+  role: 'STAFF' | 'MANAGER' | 'HR_ADMIN';
 }
 
 /**
@@ -174,5 +174,190 @@ export class ProjectService {
     updatedAt: Date;
   } | null> {
     return this.projectRepository.getProjectById(projectId);
+  }
+
+  /**
+   * Update a project
+   * (For editing project details)
+   */
+  async updateProject(
+    projectId: string,
+    input: {
+      name?: string;
+      description?: string;
+      priority?: number;
+      status?: string;
+    },
+    _user: UserContext
+  ): Promise<void> {
+    // Get existing project
+    const existingProjectData =
+      await this.projectRepository.getProjectById(projectId);
+    if (!existingProjectData) {
+      throw new Error('Project not found');
+    }
+
+    // If name is being changed, check uniqueness
+    if (input.name && input.name.trim() !== existingProjectData.name) {
+      const isUnique = await this.projectRepository.isProjectNameUnique(
+        input.name.trim()
+      );
+      if (!isUnique) {
+        throw new Error(
+          `A project named "${input.name.trim()}" already exists. Please choose a different name.`
+        );
+      }
+    }
+
+    // Reconstruct domain entity with existing data
+    const project = Project.fromData({
+      ...existingProjectData,
+      status: existingProjectData.status as ProjectStatus,
+    });
+
+    // Update fields
+    if (input.name !== undefined) {
+      project.updateName(input.name);
+    }
+    if (input.description !== undefined) {
+      project.updateDescription(input.description);
+    }
+    if (input.priority !== undefined) {
+      project.updatePriority(input.priority);
+    }
+    if (input.status !== undefined) {
+      project.updateStatus(input.status as any);
+    }
+
+    // Persist changes
+    await this.projectRepository.updateProject(project);
+  }
+
+  /**
+   * Archive a project
+   */
+  async archiveProject(projectId: string): Promise<void> {
+    await this.projectRepository.archiveProject(projectId);
+  }
+
+  /**
+   * Unarchive a project
+   */
+  async unarchiveProject(projectId: string): Promise<void> {
+    const project = await this.projectRepository.getProjectById(projectId);
+    if (!project) {
+      throw new Error('Project not found');
+    }
+
+    const reconstructed = Project.fromData({
+      ...project,
+      status: project.status as ProjectStatus,
+      isArchived: false,
+    });
+
+    await this.projectRepository.updateProject(reconstructed);
+  }
+
+  /**
+   * Delete a project
+   */
+  async deleteProject(projectId: string): Promise<void> {
+    await this.projectRepository.deleteProject(projectId);
+  }
+
+  /**
+   * Get all projects with optional filters
+   */
+  async getAllProjects(filters?: {
+    departmentId?: string;
+    creatorId?: string;
+    status?: string;
+    isArchived?: boolean;
+  }): Promise<
+    Array<{
+      id: string;
+      name: string;
+      description: string | null;
+      priority: number;
+      status: string;
+      departmentId: string;
+      creatorId: string;
+      isArchived: boolean;
+      createdAt: Date;
+      updatedAt: Date;
+    }>
+  > {
+    return this.projectRepository.getAllProjects(filters);
+  }
+
+  /**
+   * Get projects visible to a user based on department hierarchy
+   * STAFF: own department; MANAGER: own + child departments; HR_ADMIN: all departments
+   */
+  async getVisibleProjectsForUser(
+    user: {
+      userId: string;
+      departmentId: string;
+      role: 'STAFF' | 'MANAGER' | 'HR_ADMIN';
+    },
+    deps: {
+      /** Returns own + child departmentIds for a root department */
+      getSubordinateDepartments: (departmentId: string) => Promise<string[]>;
+    },
+    options?: { isArchived?: boolean }
+  ) {
+    if (user.role === 'HR_ADMIN') {
+      return this.projectRepository.getAllProjects({
+        isArchived: options?.isArchived,
+      });
+    }
+
+    const visibleDepartmentIds =
+      user.role === 'MANAGER'
+        ? await deps.getSubordinateDepartments(user.departmentId)
+        : [user.departmentId];
+
+    return this.projectRepository.getProjectsVisibleToDepartments(
+      visibleDepartmentIds,
+      { isArchived: options?.isArchived }
+    );
+  }
+
+  /**
+   * Get projects by creator
+   */
+  async getProjectsByCreator(creatorId: string): Promise<
+    Array<{
+      id: string;
+      name: string;
+      description: string | null;
+      priority: number;
+      status: string;
+      creatorId: string;
+      isArchived: boolean;
+      createdAt: Date;
+      updatedAt: Date;
+    }>
+  > {
+    return this.projectRepository.getAllProjects({ creatorId });
+  }
+
+  /**
+   * Get projects by status
+   */
+  async getProjectsByStatus(status: string): Promise<
+    Array<{
+      id: string;
+      name: string;
+      description: string | null;
+      priority: number;
+      status: string;
+      creatorId: string;
+      isArchived: boolean;
+      createdAt: Date;
+      updatedAt: Date;
+    }>
+  > {
+    return this.projectRepository.getAllProjects({ status });
   }
 }

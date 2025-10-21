@@ -8,6 +8,7 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { RealtimeNotification } from '@/types/notification';
+import { NotificationType } from '@prisma/client';
 
 // Use actual Supabase instance for integration testing
 // Environment variables are loaded by jest.setup.js
@@ -136,19 +137,18 @@ describeIfSupabase('Realtime Notifications - Multiple Clients', () => {
       await new Promise(resolve => setTimeout(resolve, 500));
 
       // Act: Send broadcast from client1
-      const testNotification: Omit<RealtimeNotification, 'broadcast_at'> = {
-        type: 'info',
+      const testNotification: RealtimeNotification = {
+        type: NotificationType.TASK_ASSIGNED,
         title: 'Test Broadcast',
         message: 'Testing multiple client reception',
+        broadcast_at: new Date().toISOString(),
+        userId: 'test-user-id',
       };
 
       await channel1.send({
         type: 'broadcast',
         event: 'notification',
-        payload: {
-          ...testNotification,
-          broadcast_at: new Date().toISOString(),
-        },
+        payload: testNotification,
       });
 
       // Wait for broadcast to propagate
@@ -160,7 +160,9 @@ describeIfSupabase('Realtime Notifications - Multiple Clients', () => {
       expect(receivedMessages.client3).toHaveLength(1);
 
       // Verify payload content
-      expect(receivedMessages.client1[0].type).toBe('info');
+      expect(receivedMessages.client1[0].type).toBe(
+        NotificationType.TASK_ASSIGNED
+      );
       expect(receivedMessages.client1[0].title).toBe('Test Broadcast');
       expect(receivedMessages.client2[0].message).toBe(
         'Testing multiple client reception'
@@ -232,24 +234,27 @@ describeIfSupabase('Realtime Notifications - Multiple Clients', () => {
 
       // Act: Send multiple broadcasts from different clients
       const notification1: RealtimeNotification = {
-        type: 'success',
+        type: NotificationType.TASK_ASSIGNED,
         title: 'Broadcast 1',
         message: 'From client 1',
         broadcast_at: new Date().toISOString(),
+        userId: 'test-user-id',
       };
 
       const notification2: RealtimeNotification = {
-        type: 'warning',
+        type: NotificationType.TASK_UPDATED,
         title: 'Broadcast 2',
         message: 'From client 2',
         broadcast_at: new Date().toISOString(),
+        userId: 'test-user-id',
       };
 
       const notification3: RealtimeNotification = {
-        type: 'error',
+        type: NotificationType.TASK_OVERDUE,
         title: 'Broadcast 3',
         message: 'From client 3',
         broadcast_at: new Date().toISOString(),
+        userId: 'test-user-id',
       };
 
       await channel1.send({
@@ -334,10 +339,11 @@ describeIfSupabase('Realtime Notifications - Multiple Clients', () => {
 
       // Act: Send first broadcast
       const notification1: RealtimeNotification = {
-        type: 'info',
+        type: NotificationType.TASK_ASSIGNED,
         title: 'Before Unsubscribe',
         message: 'Both clients subscribed',
         broadcast_at: new Date().toISOString(),
+        userId: 'test-user-id',
       };
 
       await channel1.send({
@@ -358,10 +364,11 @@ describeIfSupabase('Realtime Notifications - Multiple Clients', () => {
 
       // Send second broadcast after client2 unsubscribed
       const notification2: RealtimeNotification = {
-        type: 'info',
+        type: NotificationType.TASK_ASSIGNED,
         title: 'After Unsubscribe',
         message: 'Only client1 subscribed',
         broadcast_at: new Date().toISOString(),
+        userId: 'test-user-id',
       };
 
       await channel1.send({

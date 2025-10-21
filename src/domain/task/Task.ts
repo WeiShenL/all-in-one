@@ -192,6 +192,11 @@ export class Task {
       throw new InvalidRecurrenceError();
     }
 
+    // Validate projectId - cannot be empty string (must be null or valid string)
+    if (data.projectId === '') {
+      throw new Error('ProjectId cannot be an empty string, use null instead');
+    }
+
     // Create task with validated data
     const task = new Task({
       id,
