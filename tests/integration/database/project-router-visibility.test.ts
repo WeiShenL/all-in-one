@@ -29,6 +29,9 @@ describe('Integration Tests - Project Router Visibility', () => {
   // Track created projects for cleanup
   const createdProjectIds: string[] = [];
 
+  // Unique namespace for project names to avoid collisions with seed data
+  const testRunId = Date.now();
+
   beforeAll(async () => {
     // Connect to database
     pgClient = new Client({ connectionString: process.env.DATABASE_URL });
@@ -151,7 +154,7 @@ describe('Integration Tests - Project Router Visibility', () => {
          VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, false, NOW(), NOW())
          RETURNING id`,
         [
-          'Child Project',
+          `Child Project ${testRunId}`,
           'Project in child department',
           5,
           'ACTIVE',
@@ -168,7 +171,7 @@ describe('Integration Tests - Project Router Visibility', () => {
          VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, false, NOW(), NOW())
          RETURNING id`,
         [
-          'Root Project',
+          `Root Project ${testRunId}`,
           'Project in root department',
           5,
           'ACTIVE',
@@ -185,7 +188,7 @@ describe('Integration Tests - Project Router Visibility', () => {
 
       // Should only see project from own department
       expect(result).toHaveLength(1);
-      expect(result[0].name).toBe('Child Project');
+      expect(result[0].name).toBe(`Child Project ${testRunId}`);
       expect(result[0].departmentId).toBe(childDeptId);
     }, 300000);
 
@@ -196,7 +199,7 @@ describe('Integration Tests - Project Router Visibility', () => {
          VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, false, NOW(), NOW())
          RETURNING id`,
         [
-          'Manager Root Project',
+          `Manager Root Project ${testRunId}`,
           'Project in root department',
           5,
           'ACTIVE',
@@ -212,7 +215,7 @@ describe('Integration Tests - Project Router Visibility', () => {
          VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, false, NOW(), NOW())
          RETURNING id`,
         [
-          'Manager Child Project',
+          `Manager Child Project ${testRunId}`,
           'Project in child department',
           5,
           'ACTIVE',
@@ -230,8 +233,8 @@ describe('Integration Tests - Project Router Visibility', () => {
       // Should see projects from root and child departments
       expect(result.length).toBeGreaterThanOrEqual(2);
       const projectNames = result.map(p => p.name);
-      expect(projectNames).toContain('Manager Root Project');
-      expect(projectNames).toContain('Manager Child Project');
+      expect(projectNames).toContain(`Manager Root Project ${testRunId}`);
+      expect(projectNames).toContain(`Manager Child Project ${testRunId}`);
     }, 300000);
 
     it('should return all projects for HR_ADMIN user', async () => {
@@ -241,7 +244,7 @@ describe('Integration Tests - Project Router Visibility', () => {
          VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, false, NOW(), NOW())
          RETURNING id`,
         [
-          'Admin Root Project',
+          `Admin Root Project ${testRunId}`,
           'Project in root department',
           5,
           'ACTIVE',
@@ -257,7 +260,7 @@ describe('Integration Tests - Project Router Visibility', () => {
          VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, false, NOW(), NOW())
          RETURNING id`,
         [
-          'Admin Child Project',
+          `Admin Child Project ${testRunId}`,
           'Project in child department',
           5,
           'ACTIVE',
@@ -275,8 +278,8 @@ describe('Integration Tests - Project Router Visibility', () => {
       // Should see all projects
       expect(result.length).toBeGreaterThanOrEqual(2);
       const projectNames = result.map(p => p.name);
-      expect(projectNames).toContain('Admin Root Project');
-      expect(projectNames).toContain('Admin Child Project');
+      expect(projectNames).toContain(`Admin Root Project ${testRunId}`);
+      expect(projectNames).toContain(`Admin Child Project ${testRunId}`);
     }, 300000);
 
     it('should handle archived projects option', async () => {
@@ -286,7 +289,7 @@ describe('Integration Tests - Project Router Visibility', () => {
          VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, true, NOW(), NOW())
          RETURNING id`,
         [
-          'Archived Project',
+          `Archived Project ${testRunId}`,
           'Archived project',
           5,
           'ACTIVE',
@@ -305,14 +308,14 @@ describe('Integration Tests - Project Router Visibility', () => {
 
       // Should not see archived project
       const projectNames = resultWithoutArchived.map(p => p.name);
-      expect(projectNames).not.toContain('Archived Project');
+      expect(projectNames).not.toContain(`Archived Project ${testRunId}`);
 
       // Call getVisible endpoint with archived
       const resultWithArchived = await caller.getVisible({ isArchived: true });
 
       // Should see archived project
       const archivedProjectNames = resultWithArchived.map(p => p.name);
-      expect(archivedProjectNames).toContain('Archived Project');
+      expect(archivedProjectNames).toContain(`Archived Project ${testRunId}`);
     }, 300000);
 
     it('should handle default options when no input provided', async () => {
@@ -322,7 +325,7 @@ describe('Integration Tests - Project Router Visibility', () => {
          VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, false, NOW(), NOW())
          RETURNING id`,
         [
-          'Default Options Project',
+          `Default Options Project ${testRunId}`,
           'Project for default options test',
           5,
           'ACTIVE',
@@ -339,7 +342,7 @@ describe('Integration Tests - Project Router Visibility', () => {
 
       // Should work with default options (isArchived: false)
       expect(result).toHaveLength(1);
-      expect(result[0].name).toBe('Default Options Project');
+      expect(result[0].name).toBe(`Default Options Project ${testRunId}`);
     }, 300000);
 
     it('should throw error when user not authenticated', async () => {
