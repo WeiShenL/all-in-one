@@ -14,7 +14,7 @@ describe('generateRecurringEvents', () => {
     id: 'task-123',
     title: 'Weekly team standup',
     start: new Date('2025-10-20T10:00:00.000Z'),
-    end: new Date('2025-10-20T10:00:00.000Z'),
+    end: new Date('2025-10-27T10:00:00.000Z'), // 7-day duration for duration-based forecast logic
     resource: {
       taskId: 'task-123',
       status: 'TO_DO',
@@ -65,10 +65,12 @@ describe('generateRecurringEvents', () => {
   });
 
   describe('Weekly recurring tasks (interval: 7 days)', () => {
-    it('should generate 12 occurrences by default for weekly task', () => {
+    it('should generate occurrences based on task duration', () => {
       const events = generateRecurringEvents(baseEvent, 7);
 
-      expect(events).toHaveLength(12);
+      // Duration-based: 7-day task with 7-day interval = 2 events
+      // Original: Oct 20-27, Forecast: Oct 27-Nov 3, stops when next starts Nov 3 > Oct 27 (end)
+      expect(events).toHaveLength(2);
     });
 
     it('should include base event as first occurrence', () => {
@@ -76,7 +78,7 @@ describe('generateRecurringEvents', () => {
 
       expect(events[0].id).toBe('task-123');
       expect(events[0].start).toEqual(new Date('2025-10-20T10:00:00.000Z'));
-      expect(events[0].end).toEqual(new Date('2025-10-20T10:00:00.000Z'));
+      expect(events[0].end).toEqual(new Date('2025-10-27T10:00:00.000Z'));
     });
 
     it('should generate subsequent events 7 days apart', () => {
@@ -84,13 +86,7 @@ describe('generateRecurringEvents', () => {
 
       // Second occurrence: +7 days
       expect(events[1].start).toEqual(new Date('2025-10-27T10:00:00.000Z'));
-      expect(events[1].end).toEqual(new Date('2025-10-27T10:00:00.000Z'));
-
-      // Third occurrence: +14 days
-      expect(events[2].start).toEqual(new Date('2025-11-03T10:00:00.000Z'));
-
-      // Fourth occurrence: +21 days
-      expect(events[3].start).toEqual(new Date('2025-11-10T10:00:00.000Z'));
+      expect(events[1].end).toEqual(new Date('2025-11-03T10:00:00.000Z'));
     });
 
     it('should give recurring events unique IDs', () => {
@@ -98,9 +94,6 @@ describe('generateRecurringEvents', () => {
 
       expect(events[0].id).toBe('task-123'); // Base event keeps original ID
       expect(events[1].id).toBe('task-123-recur-1');
-      expect(events[2].id).toBe('task-123-recur-2');
-      expect(events[3].id).toBe('task-123-recur-3');
-      expect(events[11].id).toBe('task-123-recur-11');
     });
 
     it('should preserve all resource metadata in recurring events', () => {
@@ -121,58 +114,59 @@ describe('generateRecurringEvents', () => {
   });
 
   describe('Bi-weekly recurring tasks (interval: 14 days)', () => {
-    it('should generate events 14 days apart', () => {
+    it('should generate events based on duration (only original)', () => {
       const events = generateRecurringEvents(baseEvent, 14);
 
-      expect(events).toHaveLength(12);
+      // 7-day duration, 14-day interval: next starts Nov 3 > Oct 27 (end) → only 1 event
+      expect(events).toHaveLength(1);
 
-      // Check spacing
+      // Check original
       expect(events[0].start).toEqual(new Date('2025-10-20T10:00:00.000Z'));
-      expect(events[1].start).toEqual(new Date('2025-11-03T10:00:00.000Z')); // +14 days
-      expect(events[2].start).toEqual(new Date('2025-11-17T10:00:00.000Z')); // +28 days
+      expect(events[0].end).toEqual(new Date('2025-10-27T10:00:00.000Z'));
     });
   });
 
   describe('Monthly recurring tasks (interval: 30 days)', () => {
-    it('should generate events 30 days apart', () => {
+    it('should generate events based on duration (only original)', () => {
       const events = generateRecurringEvents(baseEvent, 30);
 
-      expect(events).toHaveLength(12);
+      // 7-day duration, 30-day interval: next starts Nov 19 > Oct 27 (end) → only 1 event
+      expect(events).toHaveLength(1);
 
-      // Check spacing
+      // Check original
       expect(events[0].start).toEqual(new Date('2025-10-20T10:00:00.000Z'));
-      expect(events[1].start).toEqual(new Date('2025-11-19T10:00:00.000Z')); // +30 days
-      expect(events[2].start).toEqual(new Date('2025-12-19T10:00:00.000Z')); // +60 days
+      expect(events[0].end).toEqual(new Date('2025-10-27T10:00:00.000Z'));
     });
   });
 
   describe('Custom maxOccurrences parameter', () => {
-    it('should respect maxOccurrences of 3', () => {
+    it('should ignore maxOccurrences (deprecated - uses duration now)', () => {
       const events = generateRecurringEvents(baseEvent, 7, 3);
 
-      expect(events).toHaveLength(3);
+      // maxOccurrences is ignored, uses duration-based logic instead
+      expect(events).toHaveLength(2); // Based on 7-day duration, not maxOccurrences
       expect(events[0].id).toBe('task-123');
       expect(events[1].id).toBe('task-123-recur-1');
-      expect(events[2].id).toBe('task-123-recur-2');
     });
 
-    it('should respect maxOccurrences of 1 (single occurrence)', () => {
+    it('should ignore maxOccurrences of 1', () => {
       const events = generateRecurringEvents(baseEvent, 7, 1);
 
-      expect(events).toHaveLength(1);
-      expect(events[0]).toEqual(baseEvent);
+      // maxOccurrences ignored, returns based on duration
+      expect(events).toHaveLength(2);
     });
 
-    it('should respect maxOccurrences of 24', () => {
+    it('should ignore maxOccurrences of 24', () => {
       const events = generateRecurringEvents(baseEvent, 7, 24);
 
-      expect(events).toHaveLength(24);
-      expect(events[23].id).toBe('task-123-recur-23');
+      // maxOccurrences ignored, returns based on duration
+      expect(events).toHaveLength(2);
     });
 
     it('should handle maxOccurrences of 0 (return empty array)', () => {
       const events = generateRecurringEvents(baseEvent, 7, 0);
 
+      // maxOccurrences = 0 is special case, still returns empty
       expect(events).toHaveLength(0);
     });
   });
@@ -181,24 +175,28 @@ describe('generateRecurringEvents', () => {
     it('should handle daily recurrence (interval: 1)', () => {
       const events = generateRecurringEvents(baseEvent, 1, 5);
 
-      expect(events).toHaveLength(5);
+      // 7-day duration, 1-day interval: Oct 20, 21, 22, 23, 24, 25, 26, 27 = 8 events
+      expect(events).toHaveLength(8);
       expect(events[0].start).toEqual(new Date('2025-10-20T10:00:00.000Z'));
       expect(events[1].start).toEqual(new Date('2025-10-21T10:00:00.000Z'));
       expect(events[2].start).toEqual(new Date('2025-10-22T10:00:00.000Z'));
       expect(events[3].start).toEqual(new Date('2025-10-23T10:00:00.000Z'));
       expect(events[4].start).toEqual(new Date('2025-10-24T10:00:00.000Z'));
+      expect(events[5].start).toEqual(new Date('2025-10-25T10:00:00.000Z'));
+      expect(events[6].start).toEqual(new Date('2025-10-26T10:00:00.000Z'));
+      expect(events[7].start).toEqual(new Date('2025-10-27T10:00:00.000Z'));
     });
 
     it('should handle large intervals (interval: 90 days)', () => {
       const events = generateRecurringEvents(baseEvent, 90, 4);
 
-      expect(events).toHaveLength(4);
+      // 7-day duration, 90-day interval: only original (next starts day 90 >> day 27)
+      expect(events).toHaveLength(1);
       expect(events[0].start).toEqual(new Date('2025-10-20T10:00:00.000Z'));
-      expect(events[1].start).toEqual(new Date('2026-01-18T10:00:00.000Z')); // +90 days
-      expect(events[2].start).toEqual(new Date('2026-04-18T10:00:00.000Z')); // +180 days
+      expect(events[0].end).toEqual(new Date('2025-10-27T10:00:00.000Z'));
     });
 
-    it('should handle completed tasks (should still generate occurrences)', () => {
+    it('should NOT generate forecasts for completed tasks', () => {
       const completedEvent: CalendarEvent = {
         ...baseEvent,
         resource: {
@@ -210,10 +208,9 @@ describe('generateRecurringEvents', () => {
 
       const events = generateRecurringEvents(completedEvent, 7, 3);
 
-      expect(events).toHaveLength(3);
-      events.forEach(event => {
-        expect(event.resource.isCompleted).toBe(true);
-      });
+      // Completed tasks don't generate forecasts (prevents duplicates)
+      expect(events).toHaveLength(1);
+      expect(events[0].resource.isCompleted).toBe(true);
     });
 
     it('should not mutate the original base event', () => {
@@ -230,28 +227,34 @@ describe('generateRecurringEvents', () => {
       const endOfMonthEvent: CalendarEvent = {
         ...baseEvent,
         start: new Date('2025-10-31T10:00:00.000Z'),
-        end: new Date('2025-10-31T10:00:00.000Z'),
+        end: new Date('2025-11-07T10:00:00.000Z'), // 7-day duration
       };
 
       const events = generateRecurringEvents(endOfMonthEvent, 7, 5);
 
+      // 7-day duration, 7-day interval: 2 events
+      expect(events).toHaveLength(2);
       expect(events[0].start).toEqual(new Date('2025-10-31T10:00:00.000Z'));
+      expect(events[0].end).toEqual(new Date('2025-11-07T10:00:00.000Z'));
       expect(events[1].start).toEqual(new Date('2025-11-07T10:00:00.000Z')); // +7 days
-      expect(events[2].start).toEqual(new Date('2025-11-14T10:00:00.000Z')); // +14 days
+      expect(events[1].end).toEqual(new Date('2025-11-14T10:00:00.000Z'));
     });
 
     it('should correctly handle year boundaries', () => {
       const endOfYearEvent: CalendarEvent = {
         ...baseEvent,
         start: new Date('2025-12-31T10:00:00.000Z'),
-        end: new Date('2025-12-31T10:00:00.000Z'),
+        end: new Date('2026-01-07T10:00:00.000Z'), // 7-day duration, crosses year
       };
 
       const events = generateRecurringEvents(endOfYearEvent, 7, 3);
 
+      // 7-day duration, 7-day interval: 2 events
+      expect(events).toHaveLength(2);
       expect(events[0].start).toEqual(new Date('2025-12-31T10:00:00.000Z'));
+      expect(events[0].end).toEqual(new Date('2026-01-07T10:00:00.000Z'));
       expect(events[1].start).toEqual(new Date('2026-01-07T10:00:00.000Z')); // +7 days, crosses year
-      expect(events[2].start).toEqual(new Date('2026-01-14T10:00:00.000Z')); // +14 days
+      expect(events[1].end).toEqual(new Date('2026-01-14T10:00:00.000Z'));
     });
   });
 });
