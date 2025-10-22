@@ -9,6 +9,7 @@ This document covers development practices, guidelines, and advanced topics for 
 - [Code Quality & Standards](#-code-quality--standards)
 - [Authentication System](#-authentication-system)
 - [Real-time Notification System](#-real-time-notification-system)
+- [Email System](#-email-system)
 - [File Upload & Storage System](#-file-upload--storage-system)
 - [Reusable Components](#-reusable-components)
 - [Project Structure](#-project-structure)
@@ -932,6 +933,111 @@ await sendBroadcast({
   message: `${userName} commented on your task`,
 });
 ```
+
+## 📧 Email System for Task Updates ONLY
+
+### Overview
+
+The application uses **Resend** for sending email notifications (task updates, assignments, comments, etc.). Due to Resend's free tier limitations, the system includes a **test mode** that redirects all emails to a single verified address during development and testing.
+
+### How Email Sending Works
+
+#### Test Mode (Development/Testing)
+
+When `TEST_EMAIL_RECIPIENT` is set in your `.env` file:
+
+```bash
+# .env
+TEST_EMAIL_RECIPIENT=your-verified-email@gmail.com
+```
+
+**Behavior:**
+
+- ✅ All emails are redirected to the `TEST_EMAIL_RECIPIENT` address
+- ✅ Original recipient information is preserved in the email body for debugging
+- ✅ Console warnings show email override in action
+- ✅ Safe for development and testing without hitting rate limits
+
+**Why This Exists:**
+
+- Resend's free tier only allows sending to verified email addresses
+- Prevents hitting rate limits during development/testing
+- Allows testing email functionality without needing to verify every test user email
+
+#### Production Mode
+
+When `TEST_EMAIL_RECIPIENT` is **commented out or removed** from your `.env` file:
+
+```bash
+# .env
+# TEST_EMAIL_RECIPIENT=your-verified-email@gmail.com   # Commented out
+```
+
+**Behavior:**
+
+- ✅ Emails are sent to actual user email addresses
+- ✅ Each recipient must have a verified email in your Resend account (free tier)
+- ✅ OR upgrade to Resend paid plan for unrestricted sending
+- ❌ Will fail if sending to unverified addresses on free tier
+
+### Email Notification Types
+
+The system sends emails for the following events:
+
+- **Task Assignments**: When a user is assigned to a task
+- **New Comments**: When someone comments on an assigned task
+- **Comment Edits**: When a comment is edited on an assigned task
+- **Task Updates**: When task details change (status, priority, deadline, etc.)
+- **Assignment Changes**: When assignees are added/removed from a task
+
+### Testing Email Functionality
+
+#### Local Testing
+
+1. Set `TEST_EMAIL_RECIPIENT` in `.env`
+2. Trigger an email notification (e.g., create a task comment)
+3. Check your verified email inbox
+4. Email subject will indicate the notification type
+5. Email body will show original recipient info for debugging
+
+#### Integration Tests
+
+Email sending is mocked in integration tests to avoid hitting API limits:
+
+```typescript
+// jest.setup.js - Resend is automatically mocked
+jest.mock('resend', () => ({
+  Resend: jest.fn().mockImplementation(() => ({
+    emails: {
+      send: jest.fn().mockResolvedValue({
+        data: { id: 'mock-email-id' },
+        error: null,
+      }),
+    },
+  })),
+}));
+```
+
+### Environment Variables Reference
+
+```bash
+# Required: Resend API key
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# Required: Sender email address
+RESEND_EMAIL_FROM=onboarding@resend.dev
+
+# Optional: Test mode recipient (comment out for production)
+TEST_EMAIL_RECIPIENT=your-verified-email@gmail.com
+```
+
+### Code Reference
+
+Email sending logic is implemented in:
+
+- [EmailService.ts](src/app/server/services/EmailService.ts) - Email sending with test mode override
+- [NotificationService.ts](src/app/server/services/NotificationService.ts) - Integrates email with notifications
+- [TaskService.ts](src/services/task/TaskService.ts) - Triggers notifications on task updates
 
 ## 📁 File Upload & Storage System
 

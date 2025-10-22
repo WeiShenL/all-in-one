@@ -156,6 +156,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
 
   const { isConnected, error } = useRealtimeNotifications({
     channel: 'notifications',
+    userId: user?.id, // User-specific channel
     onNotification: handleRealtimeNotification,
     autoReconnect: true,
   });
