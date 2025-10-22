@@ -110,13 +110,20 @@ test.describe('Manager Project Task Edit Rights', () => {
       ['Customer Portal Redesign']
     );
 
-    if (projectResult.rows.length > 0) {
-      // Project found, we can proceed with the test
-    } else {
+    if (projectResult.rows.length === 0) {
       throw new Error(
         'Customer Portal Redesign project not found in seed data'
       );
     }
+
+    const projectId = projectResult.rows[0].id;
+
+    // Add manager as a project collaborator so they can see the project
+    // This is needed with the ProjectCollaborator model (SCRUM-32)
+    await pgClient.query(
+      'INSERT INTO "project_collaborator" ("projectId", "userId", "departmentId", "addedAt") VALUES ($1, $2, $3, NOW()) ON CONFLICT ("projectId", "userId") DO NOTHING',
+      [projectId, managerUserId, financeDeptId]
+    );
   });
 
   test.afterEach(async ({ context }) => {
@@ -129,6 +136,12 @@ test.describe('Manager Project Task Edit Rights', () => {
     try {
       // Cleanup test data created by this test
       if (managerUserId) {
+        // Delete any project collaborator entries for this manager
+        await pgClient.query(
+          'DELETE FROM "project_collaborator" WHERE "userId" = $1',
+          [managerUserId]
+        );
+
         // Delete any projects created by this manager (from the second test)
         await pgClient.query('DELETE FROM "project" WHERE "creatorId" = $1', [
           managerUserId,
