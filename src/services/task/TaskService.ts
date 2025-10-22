@@ -161,6 +161,7 @@ export class TaskService {
       parentTaskId: data.parentTaskId || null,
       recurringInterval: data.recurringInterval || null,
       isArchived: false, // New tasks are never archived
+      startDate: null, // Will be set when status changes to IN_PROGRESS
       assignments: new Set(data.assigneeIds),
       tags: new Set(data.tags || []),
     });
@@ -278,6 +279,7 @@ export class TaskService {
       recurringInterval: taskData.recurringInterval,
       isArchived: taskData.isArchived,
       createdAt: taskData.createdAt,
+      startDate: taskData.startDate || null, // When work first began
       updatedAt: taskData.updatedAt,
       assignments: new Set(taskData.assignments.map(a => a.userId)),
       tags: new Set(taskData.tags.map(t => t.tag.name)),
@@ -370,6 +372,7 @@ export class TaskService {
       recurringInterval: taskData.recurringInterval,
       isArchived: taskData.isArchived,
       createdAt: taskData.createdAt,
+      startDate: taskData.startDate || null, // When work first began
       updatedAt: taskData.updatedAt,
       assignments: new Set(
         taskData.assignments?.map((a: any) => a.userId) || []
@@ -610,13 +613,21 @@ export class TaskService {
       throw new Error('Task not found');
     }
 
-    // Capture old value before updating
+    // console.log('📝 [STATUS UPDATE] Task:', taskId);
+    // console.log('📝 [STATUS UPDATE] Current status:', task.getStatus(), '→', newStatus);
+    // console.log('📝 [STATUS UPDATE] Is recurring:', task.isTaskRecurring());
+    // console.log('📝 [STATUS UPDATE] Recurring interval:', task.getRecurringInterval());
+    // console.log('📝 [STATUS UPDATE] Current due date:', task.getDueDate().toISOString());
+
+    // Capture old values before updating
     const oldStatus = task.getStatus();
+    const oldStartDate = task.getStartDate();
 
     task.updateStatus(newStatus as any);
 
     await this.taskRepository.updateTask(taskId, {
       status: task.getStatus(),
+      startDate: task.getStartDate(),
       updatedAt: new Date(),
     });
 
@@ -636,6 +647,26 @@ export class TaskService {
       }
     );
 
+    // Log startDate change if it was set for first time
+    if (!oldStartDate && task.getStartDate()) {
+      await this.taskRepository.logTaskAction(
+        taskId,
+        user.userId,
+        'UPDATED',
+        'startDate',
+        {
+          changes: {
+            from: null,
+            to: task.getStartDate()?.toISOString(),
+          },
+          metadata: {
+            source: 'automatic',
+            reason: 'First transition to IN_PROGRESS',
+          },
+        }
+      );
+    }
+
     // Generate next recurring instance if status is COMPLETED and task is recurring
     if (newStatus === TaskStatus.COMPLETED && task.isTaskRecurring()) {
       await this.generateNextRecurringInstance(task, user);
@@ -654,14 +685,32 @@ export class TaskService {
     user: UserContext
   ): Promise<void> {
     const recurringInterval = completedTask.getRecurringInterval();
+    // console.log('🔄 [RECURRING] Starting generation for task:', completedTask.getId());
+    // console.log('🔄 [RECURRING] Recurring interval:', recurringInterval);
+
     if (!recurringInterval) {
+      // console.log('🔄 [RECURRING] No recurring interval, skipping');
       return;
     }
 
-    // Calculate next due date by adding recurring interval (in days)
+    // Calculate next due date AND createdAt by adding recurring interval (in days)
+    // Use UTC methods to avoid timezone issues (SGT = UTC+8)
     const currentDueDate = completedTask.getDueDate();
+    const currentCreatedAt = completedTask.getCreatedAt();
+
+    // console.log('🔄 [RECURRING] Current createdAt:', currentCreatedAt.toISOString());
+    // console.log('🔄 [RECURRING] Current due date:', currentDueDate.toISOString());
+
+    // Shift BOTH createdAt and dueDate by the interval
+    const nextCreatedAt = new Date(currentCreatedAt);
+    nextCreatedAt.setUTCDate(nextCreatedAt.getUTCDate() + recurringInterval);
+
     const nextDueDate = new Date(currentDueDate);
-    nextDueDate.setDate(nextDueDate.getDate() + recurringInterval);
+    nextDueDate.setUTCDate(nextDueDate.getUTCDate() + recurringInterval);
+
+    // console.log('🔄 [RECURRING] Next createdAt:', nextCreatedAt.toISOString());
+    // console.log('🔄 [RECURRING] Next due date:', nextDueDate.toISOString());
+    // console.log('🔄 [RECURRING] Days added:', recurringInterval);
 
     // Validate assignees still exist and are active
     const assigneeIds = Array.from(completedTask.getAssignees());
@@ -686,17 +735,24 @@ export class TaskService {
       parentTaskId: completedTask.getParentTaskId(),
       recurringInterval: recurringInterval,
       isArchived: false,
+      startDate: null, // Will be set when status changes to IN_PROGRESS
       assignments: completedTask.getAssignees(),
       tags: completedTask.getTags(),
     });
 
     // Persist next instance
+    // console.log('🔄 [RECURRING] Creating next task:');
+    // console.log('🔄 [RECURRING]   createdAt:', nextCreatedAt.toISOString());
+    // console.log('🔄 [RECURRING]   dueDate:', nextTask.getDueDate().toISOString());
+    // console.log('🔄 [RECURRING]   New task ID:', nextTask.getId());
+
     await this.taskRepository.createTask({
       id: nextTask.getId(),
       title: nextTask.getTitle(),
       description: nextTask.getDescription(),
       priority: nextTask.getPriorityBucket(),
       dueDate: nextTask.getDueDate(),
+      createdAt: nextCreatedAt, // ✅ Set createdAt to maintain recurring schedule
       ownerId: nextTask.getOwnerId(),
       departmentId: nextTask.getDepartmentId(),
       projectId: nextTask.getProjectId() ?? undefined,
@@ -705,6 +761,8 @@ export class TaskService {
       tags: Array.from(nextTask.getTags()),
       recurringInterval: nextTask.getRecurringInterval() ?? undefined,
     });
+
+    // console.log('🔄 [RECURRING] ✅ Next task created successfully');
 
     // Log the recurring task generation
     await this.taskRepository.logTaskAction(

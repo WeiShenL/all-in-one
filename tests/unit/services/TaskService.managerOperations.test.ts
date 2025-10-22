@@ -604,6 +604,7 @@ describe('TaskService - Manager Operations (SCRUM-15)', () => {
       const mockTask = {
         getId: () => 'task-1',
         getStatus: () => TaskStatus.TO_DO,
+        getStartDate: () => null,
         updateStatus: jest.fn(),
       } as unknown as Task;
 

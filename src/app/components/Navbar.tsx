@@ -106,6 +106,7 @@ export default function Navbar() {
             }}
           >
             <h1
+              data-testid='app-title'
               style={{
                 fontSize: '1.5rem',
                 fontWeight: 'bold',
@@ -367,6 +368,7 @@ export default function Navbar() {
           <button
             onClick={handleSecureLogout}
             disabled={isLoggingOut}
+            data-testid='sign-out-button'
             style={{
               backgroundColor: isLoggingOut ? '#6c757d' : '#dc3545',
               color: 'white',
@@ -429,6 +431,7 @@ export default function Navbar() {
             }}
           >
             <h1
+              data-testid='app-title-mobile'
               style={{
                 fontSize: '1.25rem',
                 fontWeight: 'bold',

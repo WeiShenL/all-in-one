@@ -233,7 +233,12 @@ export class TaskService extends BaseService {
       this.validateId(userId, 'User ID');
 
       const assignments = await this.prisma.taskAssignment.findMany({
-        where: { userId },
+        where: {
+          userId,
+          task: {
+            isArchived: false,
+          },
+        },
         include: {
           task: {
             include: {
@@ -607,7 +612,7 @@ export class TaskService extends BaseService {
       }
 
       // Calculate new due date by adding recurring interval (in days) to original due date
-      // Use UTC methods to avoid timezone issues
+      // Use UTC methods to avoid timezone issues (SGT = UTC+8)
       const newDueDate = new Date(completedTask.dueDate);
       newDueDate.setUTCDate(
         newDueDate.getUTCDate() + completedTask.recurringInterval
@@ -1333,6 +1338,13 @@ export class TaskService extends BaseService {
               updatedAt: true,
             },
           },
+          owner: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
           // Fetch subtasks with full details
           subtasks: {
             where: {
@@ -1379,6 +1391,13 @@ export class TaskService extends BaseService {
                   userId: true,
                   createdAt: true,
                   updatedAt: true,
+                },
+              },
+              owner: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
                 },
               },
             },
@@ -1431,8 +1450,14 @@ export class TaskService extends BaseService {
               createdAt: c.createdAt,
               updatedAt: c.updatedAt,
             })),
+            owner: subtask.owner || {
+              id: subtask.ownerId,
+              name: null,
+              email: null,
+            },
             priorityBucket: subtask.priority, // Map priority to priorityBucket for frontend
             isRecurring: subtask.recurringInterval !== null,
+            startDate: subtask.startDate,
             canEdit: subtaskCanEdit,
           };
         });
@@ -1447,8 +1472,14 @@ export class TaskService extends BaseService {
             createdAt: c.createdAt,
             updatedAt: c.updatedAt,
           })),
+          owner: task.owner || {
+            id: task.ownerId,
+            name: null,
+            email: null,
+          },
           priorityBucket: task.priority, // Map priority to priorityBucket for frontend
           isRecurring: task.recurringInterval !== null,
+          startDate: task.startDate,
           canEdit: taskCanEdit,
           subtasks: subtasksWithCanEdit,
         };
@@ -1511,6 +1542,13 @@ export class TaskService extends BaseService {
           },
           department: { select: { id: true, name: true } },
           project: { select: { id: true, name: true } },
+          owner: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
           tags: { include: { tag: { select: { name: true } } } },
           comments: {
             select: {
@@ -1532,6 +1570,13 @@ export class TaskService extends BaseService {
               },
               department: { select: { id: true, name: true } },
               project: { select: { id: true, name: true } },
+              owner: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
               tags: { include: { tag: { select: { name: true } } } },
               comments: {
                 select: {
@@ -1793,6 +1838,13 @@ export class TaskService extends BaseService {
             name: true,
           },
         },
+        owner: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
         tags: {
           include: {
             tag: {
@@ -1839,6 +1891,13 @@ export class TaskService extends BaseService {
               select: {
                 id: true,
                 name: true,
+              },
+            },
+            owner: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
               },
             },
             tags: {

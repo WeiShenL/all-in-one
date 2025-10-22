@@ -44,6 +44,7 @@ describe('TaskService - READ and UPDATE Operations', () => {
     parentTaskId: null,
     recurringInterval: null,
     isArchived: false,
+    startDate: null,
     createdAt: new Date('2025-01-01'),
     updatedAt: new Date('2025-01-01'),
     assignments: [{ userId: 'user-123' }],
@@ -420,6 +421,7 @@ describe('TaskService - READ and UPDATE Operations', () => {
 
         expect(mockRepository.updateTask).toHaveBeenCalledWith('task-001', {
           status: 'IN_PROGRESS',
+          startDate: expect.any(Date),
           updatedAt: expect.any(Date),
         });
         expect(mockRepository.logTaskAction).toHaveBeenCalledWith(

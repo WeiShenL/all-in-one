@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { ProjectDashboard } from '@/app/components/ProjectDashboard';
+import { useAuth } from '@/lib/supabase/auth-context';
 
 jest.mock('@/app/lib/trpc', () => ({
   trpc: {
@@ -24,8 +25,18 @@ jest.mock('@/app/lib/trpc', () => ({
   },
 }));
 
+jest.mock('@/lib/supabase/auth-context', () => ({
+  useAuth: jest.fn(),
+}));
+
 describe('ProjectDashboard', () => {
   it('renders TaskTable with provided title', () => {
+    // Mock useAuth return value
+    (useAuth as jest.Mock).mockReturnValue({
+      user: { id: 'user-123', email: 'test@example.com' },
+      userProfile: { role: 'MANAGER', name: 'Test User' },
+    });
+
     render(
       <ProjectDashboard
         projectId='11111111-1111-4111-8111-111111111111'
