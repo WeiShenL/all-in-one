@@ -6,11 +6,16 @@
  * - Orchestration between domain and infrastructure
  * - Transaction management
  * - Cross-aggregate operations
+ * - Task update notifications
  */
 
 import { Task, TaskStatus } from '../../domain/task/Task';
 import { ITaskRepository } from '../../repositories/ITaskRepository';
 import { SupabaseStorageService } from '../storage/SupabaseStorageService';
+import { PrismaClient, NotificationType } from '@prisma/client';
+import { NotificationService } from '../../app/server/services/NotificationService';
+import { EmailService } from '../../app/server/services/EmailService';
+import { RealtimeService } from '../../app/server/services/RealtimeService';
 
 export interface CreateTaskDTO {
   title: string;
@@ -51,11 +56,25 @@ export interface UserContext {
 
 export class TaskService {
   private storageService = new SupabaseStorageService();
+  private notificationService?: NotificationService;
+  private realtimeService?: RealtimeService;
 
   constructor(
-    protected readonly taskRepository: ITaskRepository
-    // Add other repositories as needed (UserRepository, ProjectRepository, etc.)
-  ) {}
+    protected readonly taskRepository: ITaskRepository,
+    private readonly prisma?: PrismaClient,
+    realtimeService?: RealtimeService
+  ) {
+    // Initialize NotificationService for task update notifications
+    // Only if prisma is provided (for endpoints that send notifications)
+    if (this.prisma) {
+      const emailService = new EmailService();
+      this.notificationService = new NotificationService(
+        this.prisma,
+        emailService
+      );
+    }
+    this.realtimeService = realtimeService;
+  }
 
   // ============================================
   // CREATE OPERATIONS
@@ -935,6 +954,14 @@ export class TaskService {
       }
     );
 
+    // Send notifications to assigned users
+    await this.sendTaskUpdateNotifications(
+      taskId,
+      'ASSIGNEE_ADDED',
+      user.userId,
+      { addedUserId: newUserId }
+    );
+
     return task;
   }
 
@@ -971,6 +998,14 @@ export class TaskService {
           commentId: comment.id,
         },
       }
+    );
+
+    // Send notifications to assigned users
+    await this.sendTaskUpdateNotifications(
+      taskId,
+      'COMMENT_ADDED',
+      user.userId,
+      { commentContent: content }
     );
 
     // Re-fetch to get persisted comment with ID
@@ -1021,6 +1056,14 @@ export class TaskService {
           commentId,
         },
       }
+    );
+
+    // Send notifications to assigned users
+    await this.sendTaskUpdateNotifications(
+      taskId,
+      'COMMENT_UPDATED',
+      user.userId,
+      { commentContent: newContent }
     );
 
     return task;
@@ -1437,6 +1480,14 @@ export class TaskService {
       }
     );
 
+    // Send notifications to assigned users
+    await this.sendTaskUpdateNotifications(
+      taskId,
+      'ASSIGNEE_REMOVED',
+      user.userId,
+      { removedUserId: userId }
+    );
+
     return task;
   }
 
@@ -1754,5 +1805,205 @@ export class TaskService {
     // Get task logs with user details
     const logs = await this.taskRepository.getTaskLogs(taskId);
     return logs;
+  }
+
+  // ============================================
+  // NOTIFICATION HELPER METHODS
+  // ============================================
+
+  /**
+   * Send notifications to all assigned users for task updates
+   *
+   * @param taskId - Task ID
+   * @param updateType - Type of update
+   * @param actorUserId - User who made the change
+   * @param metadata - Additional context
+   * @private
+   */
+  private async sendTaskUpdateNotifications(
+    taskId: string,
+    updateType:
+      | 'COMMENT_ADDED'
+      | 'COMMENT_UPDATED'
+      | 'ASSIGNEE_ADDED'
+      | 'ASSIGNEE_REMOVED',
+    actorUserId: string,
+    metadata?: {
+      addedUserId?: string;
+      removedUserId?: string;
+      commentContent?: string;
+    }
+  ): Promise<void> {
+    try {
+      // Guard: Skip if prisma or notificationService not initialized
+      if (!this.prisma || !this.notificationService) {
+        console.warn(
+          '[sendTaskUpdateNotifications] Notifications disabled - prisma not provided to TaskService'
+        );
+        return;
+      }
+
+      // 1. Get full task details
+      const taskData = await this.taskRepository.getTaskByIdFull(taskId);
+      if (!taskData) {
+        console.error(`[sendTaskUpdateNotifications] Task ${taskId} not found`);
+        return;
+      }
+
+      // 2. Get actor details
+      const actor = await this.prisma.userProfile.findUnique({
+        where: { id: actorUserId },
+        select: { name: true, email: true },
+      });
+      const actorName = actor?.name || actor?.email || 'Someone';
+
+      // 3. Get all current assignees (after the update)
+      const currentAssignees = taskData.assignments.map(a => a.userId);
+
+      // 4. Determine recipients based on update type
+      let recipients: string[] = [];
+      let notificationMessage = '';
+      let notificationTitle = '';
+      let dbNotificationType: NotificationType;
+
+      switch (updateType) {
+        case 'COMMENT_ADDED':
+          recipients = currentAssignees.filter(
+            userId => userId !== actorUserId
+          );
+          notificationTitle = 'New Comment';
+          notificationMessage = `${actorName} commented on "${taskData.title}"`;
+          dbNotificationType = 'COMMENT_ADDED';
+          break;
+
+        case 'COMMENT_UPDATED':
+          recipients = currentAssignees.filter(
+            userId => userId !== actorUserId
+          );
+          notificationTitle = 'Comment Edited';
+          notificationMessage = `${actorName} edited a comment on "${taskData.title}"`;
+          dbNotificationType = 'COMMENT_ADDED';
+          break;
+
+        case 'ASSIGNEE_ADDED':
+          recipients = currentAssignees.filter(
+            userId => userId !== actorUserId
+          );
+
+          const newAssignee = await this.prisma.userProfile.findUnique({
+            where: { id: metadata?.addedUserId },
+            select: { name: true, email: true },
+          });
+          const newAssigneeName =
+            newAssignee?.name || newAssignee?.email || 'A user';
+
+          notificationTitle = 'New Assignment';
+          notificationMessage = `${actorName} added ${newAssigneeName} to "${taskData.title}"`;
+          dbNotificationType = 'TASK_REASSIGNED';
+          break;
+
+        case 'ASSIGNEE_REMOVED':
+          recipients = currentAssignees.filter(
+            userId => userId !== actorUserId
+          );
+
+          const removedAssignee = await this.prisma.userProfile.findUnique({
+            where: { id: metadata?.removedUserId },
+            select: { name: true, email: true },
+          });
+          const removedAssigneeName =
+            removedAssignee?.name || removedAssignee?.email || 'A user';
+
+          notificationTitle = 'Assignment Removed';
+          notificationMessage = `${actorName} removed ${removedAssigneeName} from "${taskData.title}"`;
+          dbNotificationType = 'TASK_REASSIGNED';
+          break;
+      }
+
+      // 5. If no recipients, skip
+      if (recipients.length === 0) {
+        console.warn(
+          `[sendTaskUpdateNotifications] No recipients for task ${taskId}, skipping`
+        );
+        return;
+      }
+
+      // 6. Send notification to each recipient
+      // No duplicate check - database constraints prevent duplicate assignments
+      for (const recipientUserId of recipients) {
+        try {
+          // Create notification in DB + send email (automatic via NotificationService)
+          await this.notificationService.create({
+            userId: recipientUserId,
+            type: dbNotificationType,
+            title: notificationTitle,
+            message: notificationMessage,
+            taskId: taskId,
+          });
+
+          // Broadcast real-time toast
+          await this.broadcastToastNotification(recipientUserId, {
+            type: dbNotificationType,
+            title: notificationTitle,
+            message: notificationMessage,
+            taskId: taskId,
+          });
+        } catch (error) {
+          console.error(
+            `[sendTaskUpdateNotifications] Failed to notify user ${recipientUserId}:`,
+            error
+          );
+          // Continue to next recipient
+        }
+      }
+    } catch (error) {
+      console.error(
+        '[sendTaskUpdateNotifications] Error sending notifications:',
+        error
+      );
+      // Don't throw - notifications are non-critical
+    }
+  }
+
+  /**
+   * Broadcast real-time toast notification to specific user
+   * Uses RealtimeService (same as deadline notifications)
+   * @param userId - User ID
+   * @param notification - Notification payload
+   * @private
+   */
+  private async broadcastToastNotification(
+    userId: string,
+    notification: {
+      type: NotificationType;
+      title: string;
+      message: string;
+      taskId: string;
+    }
+  ): Promise<void> {
+    // Guard: Skip if realtimeService not provided
+    if (!this.realtimeService) {
+      console.warn(
+        '[broadcastToastNotification] RealtimeService not provided - skipping real-time broadcast'
+      );
+      return;
+    }
+
+    try {
+      await this.realtimeService.sendNotification(userId, {
+        type: notification.type,
+        title: notification.title,
+        message: notification.message,
+        taskId: notification.taskId,
+        userId: userId,
+        broadcast_at: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error(
+        `[broadcastToastNotification] Failed to broadcast to user ${userId}:`,
+        error
+      );
+      // Don't throw - real-time notification is non-critical
+    }
   }
 }

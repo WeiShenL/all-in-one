@@ -24,6 +24,21 @@ import { TaskService, UserContext } from '@/services/task/TaskService';
 import { PrismaTaskRepository } from '@/repositories/PrismaTaskRepository';
 import { PrismaClient } from '@prisma/client';
 
+// ============================================
+// MOCK RESEND TO PREVENT ACTUAL EMAIL SENDING
+// ============================================
+// Integration tests call addAssigneeToTask which triggers notifications
+// Mock Resend to prevent hitting rate limits
+jest.mock('resend', () => ({
+  Resend: jest.fn().mockImplementation(() => ({
+    emails: {
+      send: jest
+        .fn()
+        .mockResolvedValue({ data: { id: 'mock-email-id' }, error: null }),
+    },
+  })),
+}));
+
 const prisma = new PrismaClient();
 let pgClient: Client;
 let taskService: TaskService;
