@@ -656,7 +656,14 @@ export class PrismaTaskRepository implements ITaskRepository {
     assigneeIds: string[];
     tags?: string[];
     recurringInterval?: number;
+    createdAt?: Date; // Optional: for recurring tasks to maintain schedule
   }): Promise<{ id: string }> {
+    // console.log('💾 [REPOSITORY] createTask called');
+    // console.log('💾 [REPOSITORY] Task ID:', data.id);
+    // console.log('💾 [REPOSITORY] Created at:', data.createdAt?.toISOString() || 'auto (now)');
+    // console.log('💾 [REPOSITORY] Due date received:', data.dueDate.toISOString());
+    // console.log('💾 [REPOSITORY] Recurring interval:', data.recurringInterval);
+
     // Create task with assignments and tags
     const result = await this.prisma.task.create({
       data: {
@@ -665,6 +672,7 @@ export class PrismaTaskRepository implements ITaskRepository {
         description: data.description,
         priority: data.priority,
         dueDate: data.dueDate,
+        createdAt: data.createdAt, // Use provided createdAt for recurring tasks
         status: 'TO_DO',
         ownerId: data.ownerId,
         departmentId: data.departmentId,

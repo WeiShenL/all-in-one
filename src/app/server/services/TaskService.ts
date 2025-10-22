@@ -612,7 +612,7 @@ export class TaskService extends BaseService {
       }
 
       // Calculate new due date by adding recurring interval (in days) to original due date
-      // Use UTC methods to avoid timezone issues
+      // Use UTC methods to avoid timezone issues (SGT = UTC+8)
       const newDueDate = new Date(completedTask.dueDate);
       newDueDate.setUTCDate(
         newDueDate.getUTCDate() + completedTask.recurringInterval

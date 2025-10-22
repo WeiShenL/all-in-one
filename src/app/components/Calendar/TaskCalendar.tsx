@@ -717,6 +717,7 @@ export function TaskCalendar({
             agendaTimeRangeFormat: () => '',
           }}
           popup
+          max={4}
           tooltipAccessor={(event: any) => {
             return `${event.title}\nStatus: ${event.resource.status}\nPriority: ${event.resource.priority}/10`;
           }}
@@ -806,10 +807,13 @@ export function TaskCalendar({
             <span
               style={{
                 ...styles.legendColor,
-                backgroundColor: '#805ad5',
+                backgroundColor: '#cbd5e0',
+                borderStyle: 'dashed',
+                borderWidth: '2px',
+                borderColor: '#718096',
               }}
             ></span>
-            <span>🔁 RECURRING</span>
+            <span>🔁 RECURRING FORECAST</span>
           </div>
           <div style={styles.legendItem}>
             <span
