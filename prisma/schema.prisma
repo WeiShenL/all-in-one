@@ -64,7 +64,6 @@ model Department {
   projects Project[]
   tasks    Task[]
   teams    Team[]
-  projectAccesses      ProjectDepartmentAccess[]
   projectCollaborators ProjectCollaborator[]
 
   @@index([parentId])
@@ -158,8 +157,7 @@ model Project {
   department Department  @relation(fields: [departmentId], references: [id])
   creator    UserProfile @relation("CreatedProjects", fields: [creatorId], references: [id])
   tasks      Task[]
-  departmentAccesses ProjectDepartmentAccess[]
-  collaborators      ProjectCollaborator[]
+  collaborators ProjectCollaborator[]
 
   @@index([departmentId])
   @@index([creatorId])
@@ -225,21 +223,6 @@ model TaskAssignment {
   @@id([taskId, userId])
   @@index([assignedById])
   @@map("task_assignment")
-}
-
-// PROJECT DEPARTMENT ACCESS (bridge)
-// TODO: DEPRECATED - Will be removed after migration to ProjectCollaborator
-model ProjectDepartmentAccess {
-  projectId    String
-  departmentId String
-  grantedAt    DateTime @default(now())
-
-  project    Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  department Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
-
-  @@id([projectId, departmentId])
-  @@index([departmentId])
-  @@map("project_department_access")
 }
 
 // PROJECT COLLABORATOR (bridge)
