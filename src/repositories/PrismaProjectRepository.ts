@@ -228,4 +228,106 @@ export class PrismaProjectRepository implements IProjectRepository {
 
     return projects;
   }
+
+  /**
+   * Get all collaborators of a project (SCRUM-33)
+   * Returns unique users who are assigned to tasks in the project
+   */
+  async getProjectCollaborators(projectId: string): Promise<
+    Array<{
+      id: string;
+      email: string;
+      name: string;
+      role: string;
+      departmentId: string;
+      isHrAdmin: boolean;
+      isActive: boolean;
+    }>
+  > {
+    // Get all unique users assigned to tasks in this project
+    const tasks = await this.prisma.task.findMany({
+      where: {
+        projectId: projectId,
+        isArchived: false,
+      },
+      include: {
+        assignments: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                name: true,
+                role: true,
+                departmentId: true,
+                isHrAdmin: true,
+                isActive: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Extract unique users from all task assignments
+    const userMap = new Map();
+    for (const task of tasks) {
+      for (const assignment of task.assignments) {
+        if (!userMap.has(assignment.user.id)) {
+          userMap.set(assignment.user.id, assignment.user);
+        }
+      }
+    }
+
+    return Array.from(userMap.values());
+  }
+
+  /**
+   * Remove a collaborator from all project tasks (SCRUM-33)
+   * Removes user from all task assignments in the project
+   */
+  async removeProjectCollaborator(
+    projectId: string,
+    userId: string
+  ): Promise<void> {
+    // Get all tasks in the project where the user is assigned
+    const tasks = await this.prisma.task.findMany({
+      where: {
+        projectId: projectId,
+        assignments: {
+          some: {
+            userId: userId,
+          },
+        },
+      },
+      include: {
+        assignments: true,
+      },
+    });
+
+    // For each task, check if it would have at least 1 assignee after removal
+    for (const task of tasks) {
+      const remainingAssignees = task.assignments.filter(
+        a => a.userId !== userId
+      );
+
+      if (remainingAssignees.length === 0) {
+        throw new Error(
+          `Cannot remove user from task "${task.title}" - it must have at least one assignee`
+        );
+      }
+    }
+
+    // Remove the user from all task assignments in this project
+    await this.prisma.taskAssignment.deleteMany({
+      where: {
+        userId: userId,
+        task: {
+          projectId: projectId,
+        },
+      },
+    });
+
+    // Notification is handled by the service/router layer
+  }
 }

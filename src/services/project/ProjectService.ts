@@ -266,6 +266,56 @@ export class ProjectService {
   }
 
   /**
+   * Get all collaborators of a project (SCRUM-33)
+   * Collaborators are users assigned to tasks within the project
+   */
+  async getProjectCollaborators(
+    projectId: string,
+    _user: UserContext
+  ): Promise<
+    Array<{
+      id: string;
+      email: string;
+      name: string;
+      role: string;
+      departmentId: string;
+      isHrAdmin: boolean;
+      isActive: boolean;
+    }>
+  > {
+    // Get all tasks in the project with their assignees
+    const collaborators =
+      await this.projectRepository.getProjectCollaborators(projectId);
+    return collaborators;
+  }
+
+  /**
+   * Remove a collaborator from all tasks in a project (SCRUM-33)
+   * Only managers can remove collaborators
+   * Cannot remove user if it would leave a task with no assignees
+   */
+  async removeProjectCollaborator(
+    projectId: string,
+    userId: string,
+    actor: UserContext
+  ): Promise<void> {
+    // Authorization: Only managers can remove collaborators
+    if (actor.role !== 'MANAGER' && actor.role !== 'ADMIN') {
+      throw new Error('Only managers can remove collaborators from projects');
+    }
+
+    // Get project to verify it exists
+    const project = await this.projectRepository.getProjectById(projectId);
+    if (!project) {
+      throw new Error('Project not found');
+    }
+
+    // Remove user from all tasks in the project
+    // This will be handled by the repository
+    await this.projectRepository.removeProjectCollaborator(projectId, userId);
+  }
+
+  /**
    * Get all projects with optional filters
    */
   async getAllProjects(filters?: {

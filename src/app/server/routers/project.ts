@@ -2,7 +2,7 @@ import { router, publicProcedure, Context } from '../trpc';
 import { z } from 'zod';
 import { PrismaProjectRepository } from '@/repositories/PrismaProjectRepository';
 import { ProjectService } from '@/services/project/ProjectService';
-import { ProjectStatus } from '@prisma/client';
+import { ProjectStatus, NotificationType } from '@prisma/client';
 
 async function getUserContext(ctx: Context) {
   if (!ctx.userId) {
@@ -217,6 +217,72 @@ export const projectRouter = router({
       const service = new ProjectService(repo);
 
       await service.deleteProject(input.id);
+
+      return { success: true };
+    }),
+
+  // ============================================
+  // COLLABORATOR MANAGEMENT (SCRUM-33)
+  // ============================================
+
+  /**
+   * Get all collaborators of a project
+   * Returns users who are assigned to tasks in the project
+   */
+  getProjectCollaborators: publicProcedure
+    .input(z.object({ projectId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const repo = new PrismaProjectRepository(ctx.prisma);
+      const service = new ProjectService(repo);
+      const user = await getUserContext(ctx);
+
+      return service.getProjectCollaborators(input.projectId, user);
+    }),
+
+  /**
+   * Remove a collaborator from a project
+   * Removes user from all tasks in the project
+   * Only managers can perform this action
+   */
+  removeProjectCollaborator: publicProcedure
+    .input(
+      z.object({
+        projectId: z.string(),
+        userId: z.string(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const repo = new PrismaProjectRepository(ctx.prisma);
+      const service = new ProjectService(repo);
+      const user = await getUserContext(ctx);
+
+      await service.removeProjectCollaborator(
+        input.projectId,
+        input.userId,
+        user
+      );
+
+      // Send notification to removed user
+      try {
+        const project = await service.getProjectById(input.projectId);
+
+        // Create notification directly without email service for now
+        // This avoids the module resolution issue with svix/resend
+        await ctx.prisma.notification.create({
+          data: {
+            userId: input.userId,
+            type: NotificationType.TASK_UPDATED,
+            title: 'Removed from Project',
+            message: `You have been removed from the project "${project?.name || 'Unknown Project'}". You no longer have access to this project and its tasks.`,
+          },
+        });
+      } catch (notificationError) {
+        // Log but don't fail the operation if notification fails
+        console.error(
+          'Failed to send notification to removed collaborator:',
+          notificationError
+        );
+      }
 
       return { success: true };
     }),

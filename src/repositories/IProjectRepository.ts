@@ -111,4 +111,29 @@ export interface IProjectRepository {
       updatedAt: Date;
     }>
   >;
+
+  /**
+   * Get all collaborators of a project (SCRUM-33)
+   * Collaborators are users assigned to tasks in the project
+   * @param projectId - Project ID
+   * @returns Array of unique users assigned to project tasks
+   */
+  getProjectCollaborators(projectId: string): Promise<
+    Array<{
+      id: string;
+      email: string;
+      name: string;
+      role: string;
+      departmentId: string;
+      isHrAdmin: boolean;
+      isActive: boolean;
+    }>
+  >;
+
+  /**
+   * Remove a collaborator from all project tasks (SCRUM-33)
+   * @param projectId - Project ID
+   * @param userId - User ID to remove
+   */
+  removeProjectCollaborator(projectId: string, userId: string): Promise<void>;
 }
