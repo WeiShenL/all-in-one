@@ -60,12 +60,29 @@ async function main() {
 
   // 3b. Project Collaborators
   console.log('🔒 Seeding project collaborators...');
-  await prisma.projectCollaborator.createMany({
-    data: projectCollaborators.map(pc => ({
-      ...pc,
-      assignedAt: new Date(pc.assignedAt),
-    })),
-  });
+  // Get the list of valid project IDs from the seeded projects
+  const validProjectIds = new Set(projects.map(p => p.id));
+
+  // Filter collaborators to only include those for projects that exist
+  const validCollaborators = projectCollaborators.filter(pc =>
+    validProjectIds.has(pc.projectId)
+  );
+
+  if (validCollaborators.length > 0) {
+    await prisma.projectCollaborator.createMany({
+      data: validCollaborators.map(pc => ({
+        projectId: pc.projectId,
+        userId: pc.userId,
+        departmentId: pc.departmentId,
+        addedAt: new Date(pc.assignedAt),
+      })),
+    });
+    console.log(`✅ Seeded ${validCollaborators.length} project collaborators`);
+  } else {
+    console.log(
+      '⚠️  No valid project collaborators to seed (no matching projects)'
+    );
+  }
 
   // 4. Tasks (cast enums)
   console.log('✓ Seeding tasks...');

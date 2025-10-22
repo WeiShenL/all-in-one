@@ -258,10 +258,10 @@ test.describe('Project Calendar - Manager Flow', () => {
     projectBId = projectBResult.rows[0].id;
     createdProjectIds.push(projectBId);
 
-    // Add project department access for both projects (required by schema)
+    // Add project collaborator entries for manager (required to see projects in sidebar)
     await pgClient.query(
-      'INSERT INTO "project_department_access" ("projectId", "departmentId", "grantedAt") VALUES ($1, $2, NOW()), ($3, $4, NOW())',
-      [projectAId, parentDeptId, projectBId, parentDeptId]
+      'INSERT INTO "project_collaborator" ("projectId", "userId", "departmentId", "addedAt") VALUES ($1, $2, $3, NOW()), ($4, $5, $6, NOW())',
+      [projectAId, managerId, parentDeptId, projectBId, managerId, parentDeptId]
     );
 
     // 6. Create tasks with RELATIVE dates (always visible in current month)
@@ -389,10 +389,10 @@ test.describe('Project Calendar - Manager Flow', () => {
     try {
       // Cleanup - order matters due to foreign keys
 
-      // 1. Delete project department access
+      // 1. Delete project collaborators
       if (createdProjectIds.length > 0) {
         await pgClient.query(
-          'DELETE FROM "project_department_access" WHERE "projectId" = ANY($1)',
+          'DELETE FROM "project_collaborator" WHERE "projectId" = ANY($1)',
           [createdProjectIds]
         );
       }
