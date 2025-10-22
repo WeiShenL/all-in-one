@@ -22,12 +22,29 @@ jest.mock('@/services/storage/SupabaseStorageService', () => ({
   })),
 }));
 
+// Mock EmailService to prevent RESEND_API_KEY requirement in unit tests
+jest.mock('@/app/server/services/EmailService', () => ({
+  EmailService: jest.fn().mockImplementation(() => ({
+    sendEmail: jest.fn().mockResolvedValue(undefined),
+  })),
+}));
+
+// Mock Resend SDK (belt and suspenders)
+jest.mock('resend', () => ({
+  Resend: jest.fn().mockImplementation(() => ({
+    emails: {
+      send: jest
+        .fn()
+        .mockResolvedValue({ data: { id: 'mock-email-id' }, error: null }),
+    },
+  })),
+}));
+
 import { TaskService, UserContext } from '@/services/task/TaskService';
-import { ITaskRepository } from '@/repositories/ITaskRepository';
 
 describe('TaskService - Project Collaborator Auto-Creation', () => {
   let taskService: TaskService;
-  let mockTaskRepository: jest.Mocked<Partial<ITaskRepository>>;
+  let mockTaskRepository: any;
   let mockUser: UserContext;
   let mockPrisma: any;
   let mockNotificationService: any;
@@ -76,8 +93,7 @@ describe('TaskService - Project Collaborator Auto-Creation', () => {
       removeTaskAssignment: jest.fn(),
       createTask: jest.fn(),
       isUserProjectCollaborator: jest.fn().mockResolvedValue(false), // Default: user is not a collaborator
-      getTasksForUser: jest.fn(),
-    };
+    } as any;
 
     // Mock Prisma (for notification feature)
     mockPrisma = {
@@ -807,16 +823,18 @@ describe('TaskService - Project Collaborator Auto-Creation', () => {
       mockTaskRepository.logTaskAction!.mockResolvedValue();
 
       // Mock getUserProfile for both assignees
-      mockTaskRepository.getUserProfile!.mockImplementation(async userId => ({
-        id: userId,
-        departmentId: 'dept-2',
-        role: 'STAFF',
-        isActive: true,
-      }));
+      mockTaskRepository.getUserProfile!.mockImplementation(
+        async (userId: string) => ({
+          id: userId,
+          departmentId: 'dept-2',
+          role: 'STAFF',
+          isActive: true,
+        })
+      );
 
       // Mock isUserProjectCollaborator: assignee1 is NEW, assignee2 is EXISTING
       mockTaskRepository.isUserProjectCollaborator!.mockImplementation(
-        async (projectId, userId) => {
+        async (projectId: string, userId: string) => {
           if (userId === assignee1) {
             return false;
           } // NEW
@@ -870,7 +888,7 @@ describe('TaskService - Project Collaborator Auto-Creation', () => {
         priority: 5,
         dueDate: new Date(),
         assigneeIds: ['user-2'],
-        projectId: null, // NO PROJECT
+        projectId: undefined, // NO PROJECT
       };
 
       mockTaskRepository.validateAssignees!.mockResolvedValue({
