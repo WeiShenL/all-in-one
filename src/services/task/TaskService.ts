@@ -199,6 +199,13 @@ export class TaskService {
               assigneeId,
               userProfile.departmentId
             );
+
+            // Send project collaboration notification
+            await this.sendProjectCollaborationNotification(
+              data.projectId,
+              assigneeId,
+              result.id
+            );
           }
         }
       }
@@ -219,6 +226,21 @@ export class TaskService {
         },
       }
     );
+
+    // Send task assignment notifications to all assignees (excluding creator)
+    if (data.assigneeIds && data.assigneeIds.length > 0) {
+      for (const assigneeId of data.assigneeIds) {
+        // Skip sending notification to the creator
+        if (assigneeId !== creator.userId) {
+          await this.sendTaskUpdateNotifications(
+            result.id,
+            'ASSIGNEE_ADDED',
+            creator.userId,
+            { addedUserId: assigneeId }
+          );
+        }
+      }
+    }
 
     return result;
   }
@@ -933,6 +955,13 @@ export class TaskService {
           projectId,
           newUserId,
           userProfile.departmentId
+        );
+
+        // Send project collaboration notification
+        await this.sendProjectCollaborationNotification(
+          projectId,
+          newUserId,
+          taskId
         );
       }
     }
@@ -2004,6 +2033,70 @@ export class TaskService {
         error
       );
       // Don't throw - real-time notification is non-critical
+    }
+  }
+
+  /**
+   * Send notification when user becomes a project collaborator
+   * Creates DB notification + sends email + broadcasts real-time toast
+   *
+   * @param projectId - Project ID
+   * @param userId - User being added as collaborator
+   * @param taskId - Task ID that triggered the collaboration
+   * @private
+   */
+  private async sendProjectCollaborationNotification(
+    projectId: string,
+    userId: string,
+    taskId: string
+  ): Promise<void> {
+    try {
+      // Guard: Skip if prisma or notificationService not initialized
+      if (!this.prisma || !this.notificationService) {
+        console.warn(
+          '[sendProjectCollaborationNotification] Notifications disabled - prisma not provided to TaskService'
+        );
+        return;
+      }
+
+      // Get project details
+      const project = await this.prisma.project.findUnique({
+        where: { id: projectId },
+        select: { id: true, name: true },
+      });
+
+      if (!project) {
+        console.error(
+          `[sendProjectCollaborationNotification] Project ${projectId} not found`
+        );
+        return;
+      }
+
+      const notificationTitle = 'Added to Project';
+      const notificationMessage = `You've been added as a collaborator on project "${project.name}"`;
+
+      // Create notification in DB + send email (automatic via NotificationService)
+      await this.notificationService.create({
+        userId: userId,
+        type: 'PROJECT_COLLABORATION_ADDED',
+        title: notificationTitle,
+        message: notificationMessage,
+        taskId: taskId,
+      });
+
+      // Broadcast real-time toast
+      await this.broadcastToastNotification(userId, {
+        type: 'PROJECT_COLLABORATION_ADDED',
+        title: notificationTitle,
+        message: notificationMessage,
+        taskId: taskId,
+      });
+    } catch (error) {
+      console.error(
+        `[sendProjectCollaborationNotification] Failed to notify user ${userId}:`,
+        error
+      );
+      // Don't throw - notifications are non-critical
     }
   }
 }

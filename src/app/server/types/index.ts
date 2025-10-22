@@ -137,7 +137,8 @@ export interface CreateNotificationInput {
     | 'DEADLINE_REMINDER'
     | 'TASK_OVERDUE'
     | 'TASK_DELETED'
-    | 'TASK_REASSIGNED';
+    | 'TASK_REASSIGNED'
+    | 'PROJECT_COLLABORATION_ADDED';
   title: string;
   message: string;
   taskId?: string;
