@@ -433,46 +433,46 @@ test.describe('Personal Calendar - UI Flow', () => {
     const todoTaskCount = await page
       .locator('[data-task-title="E2E Personal Task - TO_DO"]')
       .count();
-    console.warn(`E2E Personal Task - TO_DO count: ${todoTaskCount}`);
+    // console.warn(`E2E Personal Task - TO_DO count: ${todoTaskCount}`);
     expect(todoTaskCount).toBeGreaterThan(0);
 
     const inProgressTaskCount = await page
       .locator('[data-task-title="E2E Personal Task - IN_PROGRESS"]')
       .count();
-    console.warn(
-      `E2E Personal Task - IN_PROGRESS count: ${inProgressTaskCount}`
-    );
+    // console.warn(
+    //   `E2E Personal Task - IN_PROGRESS count: ${inProgressTaskCount}`
+    // );
     expect(inProgressTaskCount).toBeGreaterThan(0);
 
     const completedTaskCount = await page
       .locator('[data-task-title="E2E Personal Task - COMPLETED"]')
       .count();
-    console.warn(`E2E Personal Task - COMPLETED count: ${completedTaskCount}`);
+    // console.warn(`E2E Personal Task - COMPLETED count: ${completedTaskCount}`);
     expect(completedTaskCount).toBeGreaterThan(0);
 
     const recurringTaskCount = await page
       .locator('[data-task-title="E2E Recurring Weekly Task"]')
       .count();
-    console.warn(`E2E Recurring Weekly Task count: ${recurringTaskCount}`);
+    // console.warn(`E2E Recurring Weekly Task count: ${recurringTaskCount}`);
     expect(recurringTaskCount).toBeGreaterThan(0);
 
     const overdueTaskCount = await page
       .locator('[data-task-title="E2E Overdue Task"]')
       .count();
-    console.warn(`E2E Overdue Task count: ${overdueTaskCount}`);
+    // console.warn(`E2E Overdue Task count: ${overdueTaskCount}`);
     expect(overdueTaskCount).toBeGreaterThan(0);
 
     // Verify other user's tasks do NOT appear in DOM at all
     const otherTask1Count = await page
       .locator('[data-task-title="E2E Other User Task 1"]')
       .count();
-    console.warn(`E2E Other User Task 1 count: ${otherTask1Count}`);
+    // console.warn(`E2E Other User Task 1 count: ${otherTask1Count}`);
     expect(otherTask1Count).toBe(0);
 
     const otherTask2Count = await page
       .locator('[data-task-title="E2E Other User Task 2"]')
       .count();
-    console.warn(`E2E Other User Task 2 count: ${otherTask2Count}`);
+    // console.warn(`E2E Other User Task 2 count: ${otherTask2Count}`);
     expect(otherTask2Count).toBe(0);
   });
 
@@ -496,9 +496,9 @@ test.describe('Personal Calendar - UI Flow', () => {
     const monthTaskCount = await page
       .locator('[data-task-title="E2E Personal Task - TO_DO"]')
       .count();
-    console.warn(
-      `Month view - E2E Personal Task - TO_DO count: ${monthTaskCount}`
-    );
+    // console.warn(
+    //   `Month view - E2E Personal Task - TO_DO count: ${monthTaskCount}`
+    // );
     expect(monthTaskCount).toBeGreaterThan(0);
 
     // ============================================
@@ -518,9 +518,9 @@ test.describe('Personal Calendar - UI Flow', () => {
     const weekTaskCount = await page
       .locator('[data-task-title="E2E Personal Task - TO_DO"]')
       .count();
-    console.warn(
-      `Week view - E2E Personal Task - TO_DO count: ${weekTaskCount}`
-    );
+    // console.warn(
+    //   `Week view - E2E Personal Task - TO_DO count: ${weekTaskCount}`
+    // );
     expect(weekTaskCount).toBeGreaterThan(0);
 
     // ============================================
@@ -539,7 +539,7 @@ test.describe('Personal Calendar - UI Flow', () => {
     // In Day view (Kanban), tasks are shown in status columns
     // Verify at least one task exists using data-task-title
     const dayTaskCount = await page.locator('[data-task-title]').count();
-    console.warn(`Day view - Total task elements: ${dayTaskCount}`);
+    // console.warn(`Day view - Total task elements: ${dayTaskCount}`);
     expect(dayTaskCount).toBeGreaterThan(0);
 
     // ============================================
@@ -558,7 +558,7 @@ test.describe('Personal Calendar - UI Flow', () => {
     // In Agenda view, tasks are shown chronologically
     // Verify at least one task exists
     const agendaTaskCount = await page.locator('[data-task-title]').count();
-    console.warn(`Agenda view - Total task elements: ${agendaTaskCount}`);
+    // console.warn(`Agenda view - Total task elements: ${agendaTaskCount}`);
     expect(agendaTaskCount).toBeGreaterThan(0);
 
     // ============================================
@@ -575,9 +575,9 @@ test.describe('Personal Calendar - UI Flow', () => {
     const finalMonthTaskCount = await page
       .locator('[data-task-title="E2E Personal Task - TO_DO"]')
       .count();
-    console.warn(
-      `Back to Month view - E2E Personal Task - TO_DO count: ${finalMonthTaskCount}`
-    );
+    // console.warn(
+    //   `Back to Month view - E2E Personal Task - TO_DO count: ${finalMonthTaskCount}`
+    // );
     expect(finalMonthTaskCount).toBeGreaterThan(0);
   });
 
@@ -595,7 +595,7 @@ test.describe('Personal Calendar - UI Flow', () => {
     const completedTaskCount = await page
       .locator('[data-task-title="E2E Personal Task - COMPLETED"]')
       .count();
-    console.warn(`E2E Personal Task - COMPLETED count: ${completedTaskCount}`);
+    // console.warn(`E2E Personal Task - COMPLETED count: ${completedTaskCount}`);
     expect(completedTaskCount).toBeGreaterThan(0);
 
     // Verify legend shows COMPLETED status color (use .first() to avoid strict mode violation)

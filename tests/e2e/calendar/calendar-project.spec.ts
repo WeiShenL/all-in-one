@@ -483,35 +483,35 @@ test.describe('Project Calendar - Manager Flow', () => {
     const parentProjectACount = await page
       .locator('[data-task-title="Parent Dept - Project A Task"]')
       .count();
-    console.warn(`Parent Dept - Project A Task count: ${parentProjectACount}`);
+    // console.warn(`Parent Dept - Project A Task count: ${parentProjectACount}`);
     expect(parentProjectACount).toBeGreaterThan(0);
 
     // Verify tasks from child dept + Project A are in DOM (should exist)
     const childProjectACount = await page
       .locator('[data-task-title="Child Dept - Project A Task"]')
       .count();
-    console.warn(`Child Dept - Project A Task count: ${childProjectACount}`);
+    // console.warn(`Child Dept - Project A Task count: ${childProjectACount}`);
     expect(childProjectACount).toBeGreaterThan(0);
 
     // Verify peer dept task does NOT appear (outside dept hierarchy)
     const peerProjectACount = await page
       .locator('[data-task-title="Peer Dept - Project A Task"]')
       .count();
-    console.warn(`Peer Dept - Project A Task count: ${peerProjectACount}`);
+    // console.warn(`Peer Dept - Project A Task count: ${peerProjectACount}`);
     expect(peerProjectACount).toBe(0);
 
     // Verify Project B task does NOT appear (different project)
     const projectBCount = await page
       .locator('[data-task-title="Parent Dept - Project B Task"]')
       .count();
-    console.warn(`Parent Dept - Project B Task count: ${projectBCount}`);
+    // console.warn(`Parent Dept - Project B Task count: ${projectBCount}`);
     expect(projectBCount).toBe(0);
 
     // Verify standalone task does NOT appear (no project)
     const standaloneCount = await page
       .locator('[data-task-title="Standalone Task"]')
       .count();
-    console.warn(`Standalone Task count: ${standaloneCount}`);
+    // console.warn(`Standalone Task count: ${standaloneCount}`);
     expect(standaloneCount).toBe(0);
   });
 

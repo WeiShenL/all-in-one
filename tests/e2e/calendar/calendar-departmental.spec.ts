@@ -491,35 +491,35 @@ test.describe('Departmental Calendar - Manager Flow', () => {
     const aliceTask1Count = await page
       .locator('[data-task-title="Alice Task - Frontend Update"]')
       .count();
-    console.warn(`Alice Task - Frontend Update count: ${aliceTask1Count}`);
+    // console.warn(`Alice Task - Frontend Update count: ${aliceTask1Count}`);
     expect(aliceTask1Count).toBeGreaterThan(0);
 
     const bobTaskCount = await page
       .locator('[data-task-title="Bob Task - Backend API"]')
       .count();
-    console.warn(`Bob Task - Backend API count: ${bobTaskCount}`);
+    // console.warn(`Bob Task - Backend API count: ${bobTaskCount}`);
     expect(bobTaskCount).toBeGreaterThan(0);
 
     const aliceTask2Count = await page
       .locator('[data-task-title="Alice Task 2 - UI Testing"]')
       .count();
-    console.warn(`Alice Task 2 - UI Testing count: ${aliceTask2Count}`);
+    // console.warn(`Alice Task 2 - UI Testing count: ${aliceTask2Count}`);
     expect(aliceTask2Count).toBeGreaterThan(0);
 
     // Verify tasks from child dept are in DOM (should exist)
     const charlieTaskCount = await page
       .locator('[data-task-title="Charlie Task - Database Migration"]')
       .count();
-    console.warn(
-      `Charlie Task - Database Migration count: ${charlieTaskCount}`
-    );
+    // console.warn(
+    //   `Charlie Task - Database Migration count: ${charlieTaskCount}`
+    // );
     expect(charlieTaskCount).toBeGreaterThan(0);
 
     // Verify peer dept task does NOT appear in DOM at all
     const peerTaskCount = await page
       .locator('[data-task-title="Peer Dept Task - Should Not Appear"]')
       .count();
-    console.warn(`Peer Dept Task - Should Not Appear count: ${peerTaskCount}`);
+    // console.warn(`Peer Dept Task - Should Not Appear count: ${peerTaskCount}`);
     expect(peerTaskCount).toBe(0);
   });
 
@@ -583,7 +583,7 @@ test.describe('Departmental Calendar - Manager Flow', () => {
     const monthTaskCount = await page
       .locator('[data-task-title="Alice Task - Frontend Update"]')
       .count();
-    console.warn(`Month view - Alice Task count: ${monthTaskCount}`);
+    // console.warn(`Month view - Alice Task count: ${monthTaskCount}`);
     expect(monthTaskCount).toBeGreaterThan(0);
 
     // ============================================
@@ -603,7 +603,7 @@ test.describe('Departmental Calendar - Manager Flow', () => {
     const weekTaskCount = await page
       .locator('[data-task-title="Alice Task - Frontend Update"]')
       .count();
-    console.warn(`Week view - Alice Task count: ${weekTaskCount}`);
+    // console.warn(`Week view - Alice Task count: ${weekTaskCount}`);
     expect(weekTaskCount).toBeGreaterThan(0);
 
     // ============================================
@@ -622,7 +622,7 @@ test.describe('Departmental Calendar - Manager Flow', () => {
     // In Day view (Kanban), tasks are shown in status columns
     // Verify at least one task exists using data-task-title
     const dayTaskCount = await page.locator('[data-task-title]').count();
-    console.warn(`Day view - Total task elements: ${dayTaskCount}`);
+    // console.warn(`Day view - Total task elements: ${dayTaskCount}`);
     expect(dayTaskCount).toBeGreaterThan(0);
 
     // ============================================
@@ -641,7 +641,7 @@ test.describe('Departmental Calendar - Manager Flow', () => {
     // In Agenda view, tasks are shown chronologically
     // Verify at least one task exists
     const agendaTaskCount = await page.locator('[data-task-title]').count();
-    console.warn(`Agenda view - Total task elements: ${agendaTaskCount}`);
+    // console.warn(`Agenda view - Total task elements: ${agendaTaskCount}`);
     expect(agendaTaskCount).toBeGreaterThan(0);
 
     // ============================================
@@ -658,9 +658,9 @@ test.describe('Departmental Calendar - Manager Flow', () => {
     const finalMonthTaskCount = await page
       .locator('[data-task-title="Alice Task - Frontend Update"]')
       .count();
-    console.warn(
-      `Back to Month view - Alice Task count: ${finalMonthTaskCount}`
-    );
+    // console.warn(
+    //   `Back to Month view - Alice Task count: ${finalMonthTaskCount}`
+    // );
     expect(finalMonthTaskCount).toBeGreaterThan(0);
   });
 
@@ -684,7 +684,7 @@ test.describe('Departmental Calendar - Manager Flow', () => {
     // Should contain: "All Departments" + parent dept + child dept
     // Should NOT contain peer dept
     const options = await departmentFilter.locator('option').allTextContents();
-    console.warn('Department filter options:', options);
+    // console.warn('Department filter options:', options);
 
     expect(options).toContain('All Departments');
     expect(options.length).toBeGreaterThan(1); // At least "All Departments" + 1 or more depts
@@ -719,9 +719,9 @@ test.describe('Departmental Calendar - Manager Flow', () => {
         .locator('[data-task-title="Charlie Task - Database Migration"]')
         .count();
 
-      console.warn(
-        `Parent dept filter - Alice1: ${aliceTask1Count}, Bob: ${bobTaskCount}, Alice2: ${aliceTask2Count}, Charlie: ${charlieTaskCount}`
-      );
+      // console.warn(
+      //   `Parent dept filter - Alice1: ${aliceTask1Count}, Bob: ${bobTaskCount}, Alice2: ${aliceTask2Count}, Charlie: ${charlieTaskCount}`
+      // );
 
       // Parent dept tasks should be visible
       expect(aliceTask1Count + bobTaskCount + aliceTask2Count).toBeGreaterThan(
@@ -753,9 +753,9 @@ test.describe('Departmental Calendar - Manager Flow', () => {
         .locator('[data-task-title="Bob Task - Backend API"]')
         .count();
 
-      console.warn(
-        `Child dept filter - Charlie: ${charlieTaskCount}, Alice1: ${aliceTask1Count}, Bob: ${bobTaskCount}`
-      );
+      // console.warn(
+      //   `Child dept filter - Charlie: ${charlieTaskCount}, Alice1: ${aliceTask1Count}, Bob: ${bobTaskCount}`
+      // );
 
       // Child dept tasks should be visible
       expect(charlieTaskCount).toBeGreaterThan(0);
@@ -780,9 +780,9 @@ test.describe('Departmental Calendar - Manager Flow', () => {
       .locator('[data-task-title="Charlie Task - Database Migration"]')
       .count();
 
-    console.warn(
-      `All departments - Alice1: ${allAliceTask1Count}, Bob: ${allBobTaskCount}, Charlie: ${allCharlieTaskCount}`
-    );
+    // console.warn(
+    //   `All departments - Alice1: ${allAliceTask1Count}, Bob: ${allBobTaskCount}, Charlie: ${allCharlieTaskCount}`
+    // );
 
     // All tasks from hierarchy should be visible
     expect(allAliceTask1Count).toBeGreaterThan(0);
@@ -816,7 +816,7 @@ test.describe('Departmental Calendar - Manager Flow', () => {
     // TEST 2: Verify dropdown shows staff members
     // ============================================
     const options = await assigneeFilter.locator('option').allTextContents();
-    console.warn('Assignee filter options:', options);
+    // console.warn('Assignee filter options:', options);
 
     expect(options).toContain('All Team Members');
     expect(options).toContain('Alice Smith');
@@ -849,9 +849,9 @@ test.describe('Departmental Calendar - Manager Flow', () => {
       .locator('[data-task-title="Charlie Task - Database Migration"]')
       .count();
 
-    console.warn(
-      `Filter by Alice - Alice1: ${aliceTask1Count}, Alice2: ${aliceTask2Count}, Bob: ${bobTaskCount}, Charlie: ${charlieTaskCount}`
-    );
+    // console.warn(
+    //   `Filter by Alice - Alice1: ${aliceTask1Count}, Alice2: ${aliceTask2Count}, Bob: ${bobTaskCount}, Charlie: ${charlieTaskCount}`
+    // );
 
     // Alice's tasks should be visible
     expect(aliceTask1Count + aliceTask2Count).toBeGreaterThan(0);
@@ -876,9 +876,9 @@ test.describe('Departmental Calendar - Manager Flow', () => {
       .locator('[data-task-title="Charlie Task - Database Migration"]')
       .count();
 
-    console.warn(
-      `All Team Members - Alice: ${allAliceCount}, Bob: ${allBobCount}, Charlie: ${allCharlieCount}`
-    );
+    // console.warn(
+    //   `All Team Members - Alice: ${allAliceCount}, Bob: ${allBobCount}, Charlie: ${allCharlieCount}`
+    // );
 
     expect(allAliceCount).toBeGreaterThan(0);
     expect(allBobCount).toBeGreaterThan(0);
