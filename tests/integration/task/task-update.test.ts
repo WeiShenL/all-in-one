@@ -228,12 +228,11 @@ describe('Task Update Integration Tests', () => {
     );
     testProjectId = projectResult.rows[0].id;
 
-    // Initialize TaskService
-    // Note: We do NOT pass prisma/realtimeService here because this test
-    // focuses on task update logic, not notification logic
-    // (Notifications are tested separately in task-update-notifications.test.ts)
+    // Initialize TaskService with prisma and realtimeService
+    // Required for SCRUM-32 project collaborator auto-creation logic
+    // (Mocks prevent hitting external APIs - see EmailService, Resend, RealtimeService mocks above)
     const repository = new PrismaTaskRepository(prisma);
-    taskService = new TaskService(repository);
+    taskService = new TaskService(repository, prisma, new _RealtimeService());
 
     // Test user context
     testUser = {
