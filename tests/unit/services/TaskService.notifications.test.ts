@@ -65,6 +65,15 @@ const createMockTaskRepository = (): jest.Mocked<ITaskRepository> =>
     getParentTaskDepth: jest.fn(),
     validateProjectExists: jest.fn(),
     getUserTasks: jest.fn(),
+    getUserProfile: jest.fn().mockResolvedValue({
+      id: 'user-123',
+      departmentId: 'dept-456',
+      role: 'STAFF',
+      isActive: true,
+    }),
+    isUserProjectCollaborator: jest.fn().mockResolvedValue(false),
+    createProjectCollaborator: jest.fn(),
+    removeProjectCollaboratorIfNoTasks: jest.fn(),
   }) as any;
 
 const createMockPrismaClient = (): jest.Mocked<PrismaClient> => {
@@ -92,6 +101,12 @@ const createMockPrismaClient = (): jest.Mocked<PrismaClient> => {
         description: 'Test',
       }),
       update: jest.fn(),
+    },
+    project: {
+      findUnique: jest.fn().mockResolvedValue({
+        id: 'project-123',
+        name: 'Test Project',
+      }),
     },
   };
   return mockPrisma;

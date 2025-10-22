@@ -20,6 +20,9 @@ describe('TaskService - Project Collaborator Auto-Creation', () => {
   let taskService: TaskService;
   let mockTaskRepository: jest.Mocked<Partial<ITaskRepository>>;
   let mockUser: UserContext;
+  let mockPrisma: any;
+  let mockNotificationService: any;
+  let mockRealtimeService: any;
 
   /**
    * Helper to create mock task data for repository
@@ -67,8 +70,35 @@ describe('TaskService - Project Collaborator Auto-Creation', () => {
       getTasksForUser: jest.fn(),
     };
 
-    // Create task service with mocked repository
-    taskService = new TaskService(mockTaskRepository as any);
+    // Mock Prisma (for notification feature)
+    mockPrisma = {
+      project: {
+        findUnique: jest.fn(),
+      },
+      userProfile: {
+        findUnique: jest.fn(),
+      },
+    };
+
+    // Mock NotificationService
+    mockNotificationService = {
+      create: jest.fn().mockResolvedValue({}),
+    };
+
+    // Mock RealtimeService
+    mockRealtimeService = {
+      sendNotification: jest.fn().mockResolvedValue('ok'),
+    };
+
+    // Create task service with mocked repository, prisma, and realtime service
+    taskService = new TaskService(
+      mockTaskRepository as any,
+      mockPrisma,
+      mockRealtimeService
+    );
+
+    // Inject mocked NotificationService
+    (taskService as any).notificationService = mockNotificationService;
 
     // Mock user context
     mockUser = {
@@ -629,7 +659,8 @@ describe('TaskService - Project Collaborator Auto-Creation', () => {
        *
        * Given: A task with projectId = "project-1"
        * When: User B is added as assignee AND is not already a collaborator
-       * Then: createNotification is called with PROJECT_COLLABORATION_ADDED type
+       * Then: NotificationService.create is called with PROJECT_COLLABORATION_ADDED type
+       * And: RealtimeService.sendNotification is called for real-time toast
        * And: Notification message includes the project name
        */
 
@@ -658,35 +689,36 @@ describe('TaskService - Project Collaborator Auto-Creation', () => {
       mockTaskRepository.isUserProjectCollaborator!.mockResolvedValue(false); // NEW collaborator
       mockTaskRepository.createProjectCollaborator!.mockResolvedValue();
 
-      // Mock getProjectById to return project name
-      mockTaskRepository.getProjectById = jest.fn().mockResolvedValue({
+      // Mock Prisma to return project
+      mockPrisma.project.findUnique.mockResolvedValue({
         id: projectId,
         name: projectName,
-        description: 'Test project',
-        priority: 5,
-        status: 'ACTIVE',
-        departmentId: 'dept-1',
-        creatorId: 'user-1',
-        isArchived: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
       });
-
-      // Mock createNotification (NEW METHOD - not implemented yet)
-      mockTaskRepository.createNotification = jest.fn().mockResolvedValue();
 
       // Act
       await taskService.addAssigneeToTask(taskId, newUserId, mockUser);
 
-      // Assert
-      expect(mockTaskRepository.createNotification).toHaveBeenCalledTimes(1);
-      expect(mockTaskRepository.createNotification).toHaveBeenCalledWith({
+      // Assert - DB notification created via NotificationService
+      expect(mockNotificationService.create).toHaveBeenCalledTimes(1);
+      expect(mockNotificationService.create).toHaveBeenCalledWith({
         userId: newUserId,
         type: 'PROJECT_COLLABORATION_ADDED',
         title: 'Added to Project',
         message: `You've been added as a collaborator on project "${projectName}"`,
         taskId: taskId,
       });
+
+      // Assert - Real-time notification sent via RealtimeService
+      expect(mockRealtimeService.sendNotification).toHaveBeenCalledTimes(1);
+      expect(mockRealtimeService.sendNotification).toHaveBeenCalledWith(
+        newUserId,
+        expect.objectContaining({
+          type: 'PROJECT_COLLABORATION_ADDED',
+          title: 'Added to Project',
+          message: `You've been added as a collaborator on project "${projectName}"`,
+          taskId: taskId,
+        })
+      );
     });
 
     it('should NOT create notification when user is already a collaborator via addAssigneeToTask', async () => {
@@ -695,7 +727,8 @@ describe('TaskService - Project Collaborator Auto-Creation', () => {
        *
        * Given: A task with projectId = "project-1"
        * When: User B is added as assignee BUT is already a collaborator
-       * Then: createNotification is NOT called
+       * Then: NotificationService.create is NOT called
+       * And: RealtimeService.sendNotification is NOT called
        */
 
       // Arrange
@@ -721,8 +754,6 @@ describe('TaskService - Project Collaborator Auto-Creation', () => {
       });
       mockTaskRepository.isUserProjectCollaborator!.mockResolvedValue(true); // EXISTING collaborator
 
-      mockTaskRepository.createNotification = jest.fn().mockResolvedValue();
-
       // Act
       await taskService.addAssigneeToTask(taskId, newUserId, mockUser);
 
@@ -730,7 +761,8 @@ describe('TaskService - Project Collaborator Auto-Creation', () => {
       expect(
         mockTaskRepository.createProjectCollaborator
       ).not.toHaveBeenCalled();
-      expect(mockTaskRepository.createNotification).not.toHaveBeenCalled();
+      expect(mockNotificationService.create).not.toHaveBeenCalled();
+      expect(mockRealtimeService.sendNotification).not.toHaveBeenCalled();
     });
 
     it('should create notification when user becomes new collaborator via createTask', async () => {
@@ -739,7 +771,8 @@ describe('TaskService - Project Collaborator Auto-Creation', () => {
        *
        * Given: Creating a new task with projectId = "project-1"
        * When: Task is created with 2 assignees, one new collaborator and one existing
-       * Then: createNotification is called only for the new collaborator
+       * Then: NotificationService.create is called only for the new collaborator
+       * And: RealtimeService.sendNotification is called only for the new collaborator
        */
 
       // Arrange
@@ -787,21 +820,11 @@ describe('TaskService - Project Collaborator Auto-Creation', () => {
 
       mockTaskRepository.createProjectCollaborator!.mockResolvedValue();
 
-      // Mock getProjectById
-      mockTaskRepository.getProjectById = jest.fn().mockResolvedValue({
+      // Mock Prisma to return project
+      mockPrisma.project.findUnique.mockResolvedValue({
         id: projectId,
         name: projectName,
-        description: 'Test project',
-        priority: 5,
-        status: 'ACTIVE',
-        departmentId: 'dept-1',
-        creatorId: 'user-1',
-        isArchived: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
       });
-
-      mockTaskRepository.createNotification = jest.fn().mockResolvedValue();
 
       // Act
       await taskService.createTask(taskData, mockUser);
@@ -810,14 +833,15 @@ describe('TaskService - Project Collaborator Auto-Creation', () => {
       expect(
         mockTaskRepository.createProjectCollaborator
       ).toHaveBeenCalledTimes(1); // Only for assignee1
-      expect(mockTaskRepository.createNotification).toHaveBeenCalledTimes(1); // Only for assignee1
-      expect(mockTaskRepository.createNotification).toHaveBeenCalledWith({
+      expect(mockNotificationService.create).toHaveBeenCalledTimes(1); // Only for assignee1
+      expect(mockNotificationService.create).toHaveBeenCalledWith({
         userId: assignee1,
         type: 'PROJECT_COLLABORATION_ADDED',
         title: 'Added to Project',
         message: `You've been added as a collaborator on project "${projectName}"`,
         taskId: 'new-task-1',
       });
+      expect(mockRealtimeService.sendNotification).toHaveBeenCalledTimes(1); // Only for assignee1
     });
 
     it('should NOT create notification when creating standalone task (no project)', async () => {
@@ -826,7 +850,8 @@ describe('TaskService - Project Collaborator Auto-Creation', () => {
        *
        * Given: Creating a new task with projectId = null
        * When: Task is created with assignees
-       * Then: createNotification is NOT called
+       * Then: NotificationService.create is NOT called
+       * And: RealtimeService.sendNotification is NOT called
        */
 
       // Arrange
@@ -854,8 +879,6 @@ describe('TaskService - Project Collaborator Auto-Creation', () => {
         isActive: true,
       });
 
-      mockTaskRepository.createNotification = jest.fn().mockResolvedValue();
-
       // Act
       await taskService.createTask(taskData, mockUser);
 
@@ -863,16 +886,18 @@ describe('TaskService - Project Collaborator Auto-Creation', () => {
       expect(
         mockTaskRepository.createProjectCollaborator
       ).not.toHaveBeenCalled();
-      expect(mockTaskRepository.createNotification).not.toHaveBeenCalled();
+      expect(mockNotificationService.create).not.toHaveBeenCalled();
+      expect(mockRealtimeService.sendNotification).not.toHaveBeenCalled();
     });
 
     it('should NOT create notification when removing collaborator', async () => {
       /**
-       * TEST: Verify that no notification is sent when a user is removed from a task
+       * TEST: Verify that no PROJECT COLLABORATION notification is sent when a user is removed from a task
        *
        * Given: A task with projectId = "project-1"
        * When: User B is removed as assignee
-       * Then: createNotification is NOT called (removal doesn't need notification)
+       * Then: Project collaboration notification is NOT sent (removal doesn't create collaborator)
+       * Note: TASK_REASSIGNED notifications ARE sent to remaining assignees (this is expected)
        */
 
       // Arrange
@@ -908,8 +933,6 @@ describe('TaskService - Project Collaborator Auto-Creation', () => {
       mockTaskRepository.logTaskAction!.mockResolvedValue();
       mockTaskRepository.removeProjectCollaboratorIfNoTasks!.mockResolvedValue();
 
-      mockTaskRepository.createNotification = jest.fn().mockResolvedValue();
-
       // Act
       await taskService.removeAssigneeFromTask(
         taskId,
@@ -921,7 +944,14 @@ describe('TaskService - Project Collaborator Auto-Creation', () => {
       expect(
         mockTaskRepository.removeProjectCollaboratorIfNoTasks
       ).toHaveBeenCalledTimes(1);
-      expect(mockTaskRepository.createNotification).not.toHaveBeenCalled();
+
+      // Verify that NO PROJECT_COLLABORATION_ADDED notifications were sent
+      // (TASK_REASSIGNED notifications ARE expected for remaining assignees)
+      const collaborationNotifications =
+        mockNotificationService.create.mock.calls.filter(
+          (call: any) => call[0]?.type === 'PROJECT_COLLABORATION_ADDED'
+        );
+      expect(collaborationNotifications).toHaveLength(0);
     });
   });
 });
