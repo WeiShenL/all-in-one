@@ -12,6 +12,7 @@ This document covers development practices, guidelines, and advanced topics for 
 - [Email System](#-email-system)
 - [File Upload & Storage System](#-file-upload--storage-system)
 - [Reusable Components](#-reusable-components)
+  - [TaskCalendar Component](#taskcalendar-component)
 - [Project Structure](#-project-structure)
 
 ## 🚀 Getting Started
@@ -1947,6 +1948,51 @@ export function Dashboard() {
 - **Success messages**: Green banner with auto-dismiss after 3 seconds
 - **Error messages**: Red banner with auto-dismiss after 5 seconds
 - **View-only banner**: Persistent yellow banner when `canEdit: false`
+
+### TaskCalendar Component
+
+Reusable calendar component for displaying tasks in calendar views with recurring task support.
+
+**Location**: `src/app/components/Calendar/TaskCalendar.tsx`
+
+#### Features
+
+- **Multiple Views**: Month, Week, Day, Agenda views via React Big Calendar
+- **3 Calendar Types**: Personal (user tasks), Departmental (manager view), Project (all project tasks)
+- **Visual Indicators**:
+  - Status colors (blue/green/yellow/orange/gray)
+  - Priority borders (red/yellow/green)
+  - Dashed borders for recurring task forecasts
+  - Overdue styling (orange + red border)
+- **Recurring Tasks**: Duration-based forecast generation (gray dashed events)
+- **Interactive Features**: Click to view task details, export to iCal format
+- **Smart Display**: Shows max 4 events per day, remaining hidden behind "+more" button
+
+#### Basic Usage
+
+```tsx
+<TaskCalendar calendarType='personal' selectedTags={[]} isWideView={true} />
+```
+
+#### Recurring Task Behavior
+
+Recurring tasks display **forecast occurrences** (gray dashed events) on the calendar based on task duration:
+
+- **Original Task**: Shown with normal status color and solid border
+- **Forecast Occurrences**: Shown with gray background and dashed border
+- **Generation Logic**: Forecasts generate while `nextStart ≤ originalEnd` (duration-based)
+- **Completed Tasks**: Do not generate forecasts (prevents duplicates)
+
+When a recurring task is marked complete, a new occurrence is automatically created with:
+
+- `createdAt` and `dueDate` shifted by `recurringInterval` days
+- Status reset to `TO_DO`
+- All other fields preserved (title, description, priority, assignments, etc.)
+
+#### Related Tests
+
+- **Unit Tests**: `tests/unit/components/Calendar/utils/generateRecurringEvents.test.ts`
+- **E2E Tests**: `tests/e2e/calendar/calendar-personal.spec.ts`
 
 ## 📁 Project Structure
 

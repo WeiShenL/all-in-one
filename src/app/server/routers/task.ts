@@ -54,6 +54,7 @@ function serializeTask(task: Task) {
     recurringInterval: task.getRecurringInterval(),
     isArchived: task.getIsArchived(),
     createdAt: task.getCreatedAt().toISOString(),
+    startDate: task.getStartDate()?.toISOString() || null,
     updatedAt: task.getUpdatedAt().toISOString(),
     assignments: Array.from(task.getAssignees()),
     tags: Array.from(task.getTags()),
@@ -803,13 +804,33 @@ export const taskRouter = router({
         task.getAssignees().forEach(userId => userIds.add(userId));
       });
 
-      // Fetch user details for all assignees
+      // Get all unique owner IDs
+      const ownerIds = new Set<string>();
+      tasks.forEach(task => {
+        ownerIds.add(task.getOwnerId());
+      });
+
+      // Get all unique department IDs
+      const departmentIds = new Set<string>();
+      tasks.forEach(task => {
+        departmentIds.add(task.getDepartmentId());
+      });
+
+      // Fetch user details for all assignees and owners (combine sets)
+      const allUserIds = new Set([...userIds, ...ownerIds]);
       const users = await ctx.prisma.userProfile.findMany({
-        where: { id: { in: Array.from(userIds) } },
+        where: { id: { in: Array.from(allUserIds) } },
         select: { id: true, name: true, email: true },
       });
 
+      // Fetch department details for all departments
+      const departments = await ctx.prisma.department.findMany({
+        where: { id: { in: Array.from(departmentIds) } },
+        select: { id: true, name: true },
+      });
+
       const userMap = new Map(users.map(u => [u.id, u]));
+      const departmentMap = new Map(departments.map(d => [d.id, d]));
 
       // Get all unique project IDs
       const projectIds = new Set<string>();
@@ -849,6 +870,15 @@ export const taskRouter = router({
 
         return {
           ...serialized,
+          owner: userMap.get(task.getOwnerId()) || {
+            id: task.getOwnerId(),
+            name: null,
+            email: null,
+          },
+          department: departmentMap.get(task.getDepartmentId()) || {
+            id: task.getDepartmentId(),
+            name: 'Unknown Department',
+          },
           assignments: assignmentsWithDetails,
           project: project || null,
           canEdit: true,

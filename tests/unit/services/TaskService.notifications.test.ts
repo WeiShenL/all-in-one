@@ -126,6 +126,7 @@ const createMockTask = (overrides?: Partial<any>) => ({
   recurringInterval: null,
   isArchived: false,
   createdAt: new Date(),
+  startDate: null,
   updatedAt: new Date(),
   assignments: [
     { userId: 'user-1', taskId: 'task-123', assignedBy: 'owner-1' },

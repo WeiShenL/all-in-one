@@ -346,7 +346,9 @@ describe('HR/Admin Company Dashboard - Integration Tests', () => {
       });
       const caller = appRouter.createCaller(ctx);
 
-      const result = await caller.task.getCompanyTasks({});
+      const result = await caller.task.getCompanyTasks({
+        departmentId: TEST_IDS.DEPT_ROOT,
+      });
 
       expect(result).toBeDefined();
       expect(Array.isArray(result)).toBe(true);
@@ -362,9 +364,9 @@ describe('HR/Admin Company Dashboard - Integration Tests', () => {
       });
       const caller = appRouter.createCaller(ctx);
 
-      await expect(caller.task.getCompanyTasks({})).rejects.toThrow(
-        /only.*hr.*admin/i
-      );
+      await expect(
+        caller.task.getCompanyTasks({ departmentId: TEST_IDS.DEPT_ROOT })
+      ).rejects.toThrow(/only.*hr.*admin/i);
     }, 30000);
 
     it('should deny MANAGER (without HR/Admin) access to getCompanyTasks', async () => {
@@ -376,9 +378,9 @@ describe('HR/Admin Company Dashboard - Integration Tests', () => {
       });
       const caller = appRouter.createCaller(ctx);
 
-      await expect(caller.task.getCompanyTasks({})).rejects.toThrow(
-        /only.*hr.*admin/i
-      );
+      await expect(
+        caller.task.getCompanyTasks({ departmentId: TEST_IDS.DEPT_ROOT })
+      ).rejects.toThrow(/only.*hr.*admin/i);
     }, 30000);
 
     it('should allow HR/Admin + Manager combined role to access getCompanyTasks', async () => {
@@ -390,7 +392,9 @@ describe('HR/Admin Company Dashboard - Integration Tests', () => {
       });
       const caller = appRouter.createCaller(ctx);
 
-      const result = await caller.task.getCompanyTasks({});
+      const result = await caller.task.getCompanyTasks({
+        departmentId: TEST_IDS.DEPT_ROOT,
+      });
 
       expect(result).toBeDefined();
       expect(Array.isArray(result)).toBe(true);
@@ -407,7 +411,9 @@ describe('HR/Admin Company Dashboard - Integration Tests', () => {
       });
       const caller = appRouter.createCaller(ctx);
 
-      const result = await caller.task.getCompanyTasks({});
+      const result = await caller.task.getCompanyTasks({
+        departmentId: TEST_IDS.DEPT_ROOT,
+      });
 
       // Find engineering task
       const engTask = result.find(
@@ -437,7 +443,9 @@ describe('HR/Admin Company Dashboard - Integration Tests', () => {
       });
       const caller = appRouter.createCaller(ctx);
 
-      const result = await caller.task.getCompanyTasks({});
+      const result = await caller.task.getCompanyTasks({
+        departmentId: TEST_IDS.DEPT_ROOT,
+      });
 
       // Find HR department task
       const hrTask = result.find(
@@ -460,7 +468,9 @@ describe('HR/Admin Company Dashboard - Integration Tests', () => {
       });
       const caller = appRouter.createCaller(ctx);
 
-      const result = await caller.task.getCompanyTasks({});
+      const result = await caller.task.getCompanyTasks({
+        departmentId: TEST_IDS.DEPT_ROOT,
+      });
 
       // Find engineering task (user is manager of Engineering dept)
       const engTask = result.find(
@@ -490,7 +500,9 @@ describe('HR/Admin Company Dashboard - Integration Tests', () => {
       });
       const caller = appRouter.createCaller(ctx);
 
-      const result = await caller.task.getCompanyTasks({});
+      const result = await caller.task.getCompanyTasks({
+        departmentId: TEST_IDS.DEPT_ROOT,
+      });
 
       // Find sales task (user is not manager of Sales dept)
       const salesTask = result.find(
@@ -580,6 +592,7 @@ describe('HR/Admin Company Dashboard - Integration Tests', () => {
       const caller = appRouter.createCaller(ctx);
 
       const result = await caller.task.getCompanyTasks({
+        departmentId: TEST_IDS.DEPT_ROOT,
         projectId: TEST_IDS.PROJECT_ENG,
       });
 
@@ -599,6 +612,7 @@ describe('HR/Admin Company Dashboard - Integration Tests', () => {
       const caller = appRouter.createCaller(ctx);
 
       const result = await caller.task.getCompanyTasks({
+        departmentId: TEST_IDS.DEPT_ROOT,
         assigneeId: TEST_IDS.USER_STAFF,
       });
 
@@ -645,6 +659,7 @@ describe('HR/Admin Company Dashboard - Integration Tests', () => {
       const caller = appRouter.createCaller(ctx);
 
       const result = await caller.task.getCompanyTasks({
+        departmentId: TEST_IDS.DEPT_ROOT,
         status: 'IN_PROGRESS',
       });
 
@@ -664,7 +679,9 @@ describe('HR/Admin Company Dashboard - Integration Tests', () => {
       });
       const caller = appRouter.createCaller(ctx);
 
-      const result = await caller.task.getCompanyTasks({});
+      const result = await caller.task.getCompanyTasks({
+        departmentId: TEST_IDS.DEPT_ROOT,
+      });
 
       expect(result.length).toBeGreaterThan(0);
       const task = result[0];
@@ -771,9 +788,11 @@ describe('HR/Admin Company Dashboard - Integration Tests', () => {
         const caller = appRouter.createCaller(ctx);
 
         const resultWithArchived = await caller.task.getCompanyTasks({
+          departmentId: TEST_IDS.DEPT_ROOT,
           includeArchived: true,
         });
         const resultWithoutArchived = await caller.task.getCompanyTasks({
+          departmentId: TEST_IDS.DEPT_ROOT,
           includeArchived: false,
         });
 
@@ -824,7 +843,9 @@ describe('HR/Admin Company Dashboard - Integration Tests', () => {
       });
       const caller = appRouter.createCaller(ctx);
 
-      const result = await caller.task.getCompanyTasks({});
+      const result = await caller.task.getCompanyTasks({
+        departmentId: TEST_IDS.DEPT_ROOT,
+      });
 
       const taskWithoutProject = result.find((t: any) => !t.projectId);
       expect(taskWithoutProject).toBeDefined();

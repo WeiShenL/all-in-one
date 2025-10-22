@@ -126,6 +126,7 @@ export class SubtaskService extends TaskService {
       parentTaskId: data.parentTaskId, // REQUIRED for subtasks
       recurringInterval: null, // ENFORCED: subtasks cannot be recurring
       isArchived: false,
+      startDate: null, // Will be set when status changes to IN_PROGRESS
       assignments: new Set(data.assigneeIds),
       tags: new Set(data.tags || []),
     });

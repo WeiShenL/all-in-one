@@ -184,6 +184,7 @@ export interface ITaskRepository {
     recurringInterval: number | null;
     isArchived: boolean;
     createdAt: Date;
+    startDate: Date | null;
     updatedAt: Date;
     assignments: Array<{ userId: string }>;
     tags: Array<{ tag: { name: string } }>;
@@ -267,6 +268,7 @@ export interface ITaskRepository {
     assigneeIds: string[];
     tags?: string[];
     recurringInterval?: number; // Matches Prisma schema field
+    createdAt?: Date; // Optional: for recurring tasks to maintain schedule
   }): Promise<{ id: string }>;
 
   /**
@@ -324,6 +326,7 @@ export interface ITaskRepository {
       priority: number;
       dueDate: Date;
       status: string;
+      startDate: Date | null;
       recurringInterval: number | null;
       updatedAt: Date;
     }>
