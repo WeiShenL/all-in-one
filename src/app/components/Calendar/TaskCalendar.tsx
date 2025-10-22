@@ -717,7 +717,7 @@ export function TaskCalendar({
             agendaTimeRangeFormat: () => '',
           }}
           popup
-          max={4}
+          allDayMaxRows={4}
           tooltipAccessor={(event: any) => {
             return `${event.title}\nStatus: ${event.resource.status}\nPriority: ${event.resource.priority}/10`;
           }}

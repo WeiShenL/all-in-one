@@ -268,6 +268,7 @@ export interface ITaskRepository {
     assigneeIds: string[];
     tags?: string[];
     recurringInterval?: number; // Matches Prisma schema field
+    createdAt?: Date; // Optional: for recurring tasks to maintain schedule
   }): Promise<{ id: string }>;
 
   /**
