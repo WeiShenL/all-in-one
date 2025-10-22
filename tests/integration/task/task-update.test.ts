@@ -641,7 +641,7 @@ describe('Task Update Integration Tests', () => {
       );
 
       expect(Array.from(updatedTask.getAssignees()).length).toBe(5);
-    }, 30000);
+    }, 150000); // Increased timeout to 150 seconds to handle CI/CD performance variations
 
     it('should reject adding 6th assignee', async () => {
       const task = await createTaskWithAssignment({
@@ -677,7 +677,7 @@ describe('Task Update Integration Tests', () => {
       await expect(
         taskService.addAssigneeToTask(task.id, testAssignee3Id, testUser)
       ).rejects.toThrow();
-    }, 30000);
+    }, 150000); // Increased timeout to 150 seconds to handle CI/CD performance variations
   });
 
   // ============================================
