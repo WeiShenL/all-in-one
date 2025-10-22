@@ -23,12 +23,20 @@ import { Client } from 'pg';
 import { TaskService, UserContext } from '@/services/task/TaskService';
 import { PrismaTaskRepository } from '@/repositories/PrismaTaskRepository';
 import { PrismaClient } from '@prisma/client';
+import { RealtimeService as _RealtimeService } from '@/app/server/services/RealtimeService';
 
 // ============================================
-// MOCK RESEND TO PREVENT ACTUAL EMAIL SENDING
+// MOCK EMAILSERVICE TO PREVENT RESEND_API_KEY REQUIREMENT
 // ============================================
-// Integration tests call addAssigneeToTask which triggers notifications
-// Mock Resend to prevent hitting rate limits
+jest.mock('@/app/server/services/EmailService', () => ({
+  EmailService: jest.fn().mockImplementation(() => ({
+    sendEmail: jest.fn().mockResolvedValue(undefined),
+  })),
+}));
+
+// ============================================
+// MOCK RESEND SDK (belt and suspenders)
+// ============================================
 jest.mock('resend', () => ({
   Resend: jest.fn().mockImplementation(() => ({
     emails: {
@@ -36,6 +44,15 @@ jest.mock('resend', () => ({
         .fn()
         .mockResolvedValue({ data: { id: 'mock-email-id' }, error: null }),
     },
+  })),
+}));
+
+// ============================================
+// MOCK REALTIMESERVICE TO PREVENT SUPABASE CONNECTION
+// ============================================
+jest.mock('@/app/server/services/RealtimeService', () => ({
+  RealtimeService: jest.fn().mockImplementation(() => ({
+    sendNotification: jest.fn().mockResolvedValue(undefined),
   })),
 }));
 
@@ -212,6 +229,9 @@ describe('Task Update Integration Tests', () => {
     testProjectId = projectResult.rows[0].id;
 
     // Initialize TaskService
+    // Note: We do NOT pass prisma/realtimeService here because this test
+    // focuses on task update logic, not notification logic
+    // (Notifications are tested separately in task-update-notifications.test.ts)
     const repository = new PrismaTaskRepository(prisma);
     taskService = new TaskService(repository);
 
