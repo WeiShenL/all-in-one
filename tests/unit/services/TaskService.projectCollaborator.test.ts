@@ -13,6 +13,15 @@
  * Test Focus: Service layer logic for automatic ProjectCollaborator creation
  */
 
+// Mock SupabaseStorageService to prevent Supabase client instantiation in unit tests
+jest.mock('@/services/storage/SupabaseStorageService', () => ({
+  SupabaseStorageService: jest.fn().mockImplementation(() => ({
+    uploadFile: jest.fn(),
+    deleteFile: jest.fn(),
+    getFileUrl: jest.fn(),
+  })),
+}));
+
 import { TaskService, UserContext } from '@/services/task/TaskService';
 import { ITaskRepository } from '@/repositories/ITaskRepository';
 
