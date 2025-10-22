@@ -617,4 +617,311 @@ describe('TaskService - Project Collaborator Auto-Creation', () => {
       ).not.toHaveBeenCalled();
     });
   });
+
+  // ============================================
+  // NEW: Notification Creation Tests
+  // ============================================
+
+  describe('Notification Creation for New Collaborators', () => {
+    it('should create notification when user becomes new collaborator via addAssigneeToTask', async () => {
+      /**
+       * TEST: Verify that a notification is sent when a user becomes a new project collaborator
+       *
+       * Given: A task with projectId = "project-1"
+       * When: User B is added as assignee AND is not already a collaborator
+       * Then: createNotification is called with PROJECT_COLLABORATION_ADDED type
+       * And: Notification message includes the project name
+       */
+
+      // Arrange
+      const taskId = 'task-1';
+      const projectId = 'project-1';
+      const newUserId = 'user-2';
+      const newUserDeptId = 'dept-2';
+      const projectName = 'Customer Portal Redesign';
+
+      mockTaskRepository.getTaskByIdFull!.mockResolvedValue(
+        createMockTaskData({ id: taskId, projectId })
+      );
+      mockTaskRepository.validateAssignees!.mockResolvedValue({
+        allExist: true,
+        allActive: true,
+      });
+      mockTaskRepository.addTaskAssignment!.mockResolvedValue();
+      mockTaskRepository.logTaskAction!.mockResolvedValue();
+      mockTaskRepository.getUserProfile!.mockResolvedValue({
+        id: newUserId,
+        departmentId: newUserDeptId,
+        role: 'STAFF',
+        isActive: true,
+      });
+      mockTaskRepository.isUserProjectCollaborator!.mockResolvedValue(false); // NEW collaborator
+      mockTaskRepository.createProjectCollaborator!.mockResolvedValue();
+
+      // Mock getProjectById to return project name
+      mockTaskRepository.getProjectById = jest.fn().mockResolvedValue({
+        id: projectId,
+        name: projectName,
+        description: 'Test project',
+        priority: 5,
+        status: 'ACTIVE',
+        departmentId: 'dept-1',
+        creatorId: 'user-1',
+        isArchived: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      // Mock createNotification (NEW METHOD - not implemented yet)
+      mockTaskRepository.createNotification = jest.fn().mockResolvedValue();
+
+      // Act
+      await taskService.addAssigneeToTask(taskId, newUserId, mockUser);
+
+      // Assert
+      expect(mockTaskRepository.createNotification).toHaveBeenCalledTimes(1);
+      expect(mockTaskRepository.createNotification).toHaveBeenCalledWith({
+        userId: newUserId,
+        type: 'PROJECT_COLLABORATION_ADDED',
+        title: 'Added to Project',
+        message: `You've been added as a collaborator on project "${projectName}"`,
+        taskId: taskId,
+      });
+    });
+
+    it('should NOT create notification when user is already a collaborator via addAssigneeToTask', async () => {
+      /**
+       * TEST: Verify that no notification is sent when user is already a collaborator
+       *
+       * Given: A task with projectId = "project-1"
+       * When: User B is added as assignee BUT is already a collaborator
+       * Then: createNotification is NOT called
+       */
+
+      // Arrange
+      const taskId = 'task-1';
+      const projectId = 'project-1';
+      const newUserId = 'user-2';
+      const newUserDeptId = 'dept-2';
+
+      mockTaskRepository.getTaskByIdFull!.mockResolvedValue(
+        createMockTaskData({ id: taskId, projectId })
+      );
+      mockTaskRepository.validateAssignees!.mockResolvedValue({
+        allExist: true,
+        allActive: true,
+      });
+      mockTaskRepository.addTaskAssignment!.mockResolvedValue();
+      mockTaskRepository.logTaskAction!.mockResolvedValue();
+      mockTaskRepository.getUserProfile!.mockResolvedValue({
+        id: newUserId,
+        departmentId: newUserDeptId,
+        role: 'STAFF',
+        isActive: true,
+      });
+      mockTaskRepository.isUserProjectCollaborator!.mockResolvedValue(true); // EXISTING collaborator
+
+      mockTaskRepository.createNotification = jest.fn().mockResolvedValue();
+
+      // Act
+      await taskService.addAssigneeToTask(taskId, newUserId, mockUser);
+
+      // Assert
+      expect(
+        mockTaskRepository.createProjectCollaborator
+      ).not.toHaveBeenCalled();
+      expect(mockTaskRepository.createNotification).not.toHaveBeenCalled();
+    });
+
+    it('should create notification when user becomes new collaborator via createTask', async () => {
+      /**
+       * TEST: Verify that notifications are sent when creating a task with assignees in a project
+       *
+       * Given: Creating a new task with projectId = "project-1"
+       * When: Task is created with 2 assignees, one new collaborator and one existing
+       * Then: createNotification is called only for the new collaborator
+       */
+
+      // Arrange
+      const projectId = 'project-1';
+      const projectName = 'Website Redesign';
+      const assignee1 = 'user-2'; // NEW collaborator
+      const assignee2 = 'user-3'; // EXISTING collaborator
+      const taskData = {
+        title: 'Design mockups',
+        description: 'Create UI mockups',
+        priority: 5,
+        dueDate: new Date(),
+        assigneeIds: [assignee1, assignee2],
+        projectId: projectId,
+      };
+
+      mockTaskRepository.validateAssignees!.mockResolvedValue({
+        allExist: true,
+        allActive: true,
+      });
+      mockTaskRepository.validateProjectExists!.mockResolvedValue(true);
+      mockTaskRepository.createTask!.mockResolvedValue({ id: 'new-task-1' });
+      mockTaskRepository.logTaskAction!.mockResolvedValue();
+
+      // Mock getUserProfile for both assignees
+      mockTaskRepository.getUserProfile!.mockImplementation(async userId => ({
+        id: userId,
+        departmentId: 'dept-2',
+        role: 'STAFF',
+        isActive: true,
+      }));
+
+      // Mock isUserProjectCollaborator: assignee1 is NEW, assignee2 is EXISTING
+      mockTaskRepository.isUserProjectCollaborator!.mockImplementation(
+        async (projectId, userId) => {
+          if (userId === assignee1) {
+            return false;
+          } // NEW
+          if (userId === assignee2) {
+            return true;
+          } // EXISTING
+          return false;
+        }
+      );
+
+      mockTaskRepository.createProjectCollaborator!.mockResolvedValue();
+
+      // Mock getProjectById
+      mockTaskRepository.getProjectById = jest.fn().mockResolvedValue({
+        id: projectId,
+        name: projectName,
+        description: 'Test project',
+        priority: 5,
+        status: 'ACTIVE',
+        departmentId: 'dept-1',
+        creatorId: 'user-1',
+        isArchived: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      mockTaskRepository.createNotification = jest.fn().mockResolvedValue();
+
+      // Act
+      await taskService.createTask(taskData, mockUser);
+
+      // Assert
+      expect(
+        mockTaskRepository.createProjectCollaborator
+      ).toHaveBeenCalledTimes(1); // Only for assignee1
+      expect(mockTaskRepository.createNotification).toHaveBeenCalledTimes(1); // Only for assignee1
+      expect(mockTaskRepository.createNotification).toHaveBeenCalledWith({
+        userId: assignee1,
+        type: 'PROJECT_COLLABORATION_ADDED',
+        title: 'Added to Project',
+        message: `You've been added as a collaborator on project "${projectName}"`,
+        taskId: 'new-task-1',
+      });
+    });
+
+    it('should NOT create notification when creating standalone task (no project)', async () => {
+      /**
+       * TEST: Verify that no notification is sent for standalone tasks
+       *
+       * Given: Creating a new task with projectId = null
+       * When: Task is created with assignees
+       * Then: createNotification is NOT called
+       */
+
+      // Arrange
+      const taskData = {
+        title: 'Standalone task',
+        description: 'No project',
+        priority: 5,
+        dueDate: new Date(),
+        assigneeIds: ['user-2'],
+        projectId: null, // NO PROJECT
+      };
+
+      mockTaskRepository.validateAssignees!.mockResolvedValue({
+        allExist: true,
+        allActive: true,
+      });
+      mockTaskRepository.createTask!.mockResolvedValue({
+        id: 'standalone-task-1',
+      });
+      mockTaskRepository.logTaskAction!.mockResolvedValue();
+      mockTaskRepository.getUserProfile!.mockResolvedValue({
+        id: 'user-2',
+        departmentId: 'dept-2',
+        role: 'STAFF',
+        isActive: true,
+      });
+
+      mockTaskRepository.createNotification = jest.fn().mockResolvedValue();
+
+      // Act
+      await taskService.createTask(taskData, mockUser);
+
+      // Assert
+      expect(
+        mockTaskRepository.createProjectCollaborator
+      ).not.toHaveBeenCalled();
+      expect(mockTaskRepository.createNotification).not.toHaveBeenCalled();
+    });
+
+    it('should NOT create notification when removing collaborator', async () => {
+      /**
+       * TEST: Verify that no notification is sent when a user is removed from a task
+       *
+       * Given: A task with projectId = "project-1"
+       * When: User B is removed as assignee
+       * Then: createNotification is NOT called (removal doesn't need notification)
+       */
+
+      // Arrange
+      const taskId = 'task-1';
+      const projectId = 'project-1';
+      const removedUserId = 'user-2';
+
+      const managerUser: UserContext = {
+        userId: 'manager-1',
+        departmentId: 'dept-1',
+        role: 'MANAGER',
+      };
+
+      mockTaskRepository.getTaskByIdFull!.mockResolvedValue(
+        createMockTaskData({
+          id: taskId,
+          projectId: projectId,
+          assignments: [
+            {
+              userId: 'user-1',
+              assignedById: 'user-1',
+              assignedAt: new Date(),
+            },
+            {
+              userId: removedUserId,
+              assignedById: 'user-1',
+              assignedAt: new Date(),
+            },
+          ],
+        })
+      );
+      mockTaskRepository.removeTaskAssignment!.mockResolvedValue();
+      mockTaskRepository.logTaskAction!.mockResolvedValue();
+      mockTaskRepository.removeProjectCollaboratorIfNoTasks!.mockResolvedValue();
+
+      mockTaskRepository.createNotification = jest.fn().mockResolvedValue();
+
+      // Act
+      await taskService.removeAssigneeFromTask(
+        taskId,
+        removedUserId,
+        managerUser
+      );
+
+      // Assert
+      expect(
+        mockTaskRepository.removeProjectCollaboratorIfNoTasks
+      ).toHaveBeenCalledTimes(1);
+      expect(mockTaskRepository.createNotification).not.toHaveBeenCalled();
+    });
+  });
 });
