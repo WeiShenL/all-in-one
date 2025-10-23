@@ -1,6 +1,11 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import ProjectsPage from '@/app/dashboard/projects/page';
+import { NotificationProvider } from '@/lib/context/NotificationContext';
+
+const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <NotificationProvider>{children}</NotificationProvider>
+);
 
 // Mock useAuth to avoid AuthProvider requirement
 jest.mock('@/lib/supabase/auth-context', () => ({
@@ -10,11 +15,12 @@ jest.mock('@/lib/supabase/auth-context', () => ({
   })),
 }));
 
-// Mock useRouter to avoid Next.js router requirement
+// Mock useRouter and usePathname to avoid Next.js router requirement
 jest.mock('next/navigation', () => ({
   useRouter: jest.fn(() => ({
     push: jest.fn(),
   })),
+  usePathname: jest.fn(() => '/dashboard/projects'),
 }));
 
 // Mock trpc to avoid provider requirement inside ProjectsPage -> ProjectDashboard
@@ -22,7 +28,12 @@ jest.mock('@/app/lib/trpc', () => ({
   trpc: {
     task: {
       getProjectTasksForUser: {
-        useQuery: jest.fn(() => ({ data: [], isLoading: false, error: null })),
+        useQuery: jest.fn(() => ({
+          data: [],
+          isLoading: false,
+          error: null,
+          refetch: jest.fn(),
+        })),
       },
     },
     userProfile: {
@@ -30,9 +41,45 @@ jest.mock('@/app/lib/trpc', () => ({
         useQuery: jest.fn(() => ({ data: [], isLoading: false, error: null })),
       },
     },
+    notification: {
+      getUnreadNotifications: {
+        useQuery: jest.fn(() => ({ data: [], isLoading: false, error: null })),
+      },
+      getUnreadCount: {
+        useQuery: jest.fn(() => ({
+          data: { count: 0 },
+          isLoading: false,
+          error: null,
+          refetch: jest.fn(),
+        })),
+      },
+      getNotifications: {
+        useQuery: jest.fn(() => ({
+          data: [],
+          isLoading: false,
+          error: null,
+          refetch: jest.fn(),
+        })),
+      },
+      markAsRead: {
+        useMutation: jest.fn(() => ({
+          mutate: jest.fn(),
+          isLoading: false,
+          error: null,
+        })),
+      },
+    },
     useUtils: jest.fn(() => ({
       task: {
         getProjectTasksForUser: {
+          invalidate: jest.fn(),
+        },
+      },
+      notification: {
+        getUnreadNotifications: {
+          invalidate: jest.fn(),
+        },
+        getUnreadCount: {
           invalidate: jest.fn(),
         },
       },
@@ -55,7 +102,7 @@ describe('Projects Dashboard Page', () => {
   });
 
   it('renders fallback project title when no selection present', () => {
-    render(<ProjectsPage />);
+    render(<ProjectsPage />, { wrapper: TestWrapper });
     expect(
       screen.getByRole('heading', { name: 'Projects' })
     ).toBeInTheDocument();
@@ -68,7 +115,7 @@ describe('Projects Dashboard Page', () => {
       'activeProjectId',
       '11111111-1111-4111-8111-111111111111'
     );
-    render(<ProjectsPage />);
+    render(<ProjectsPage />, { wrapper: TestWrapper });
     expect(
       screen.getByRole('heading', { name: 'Customer Portal Redesign' })
     ).toBeInTheDocument();
@@ -76,7 +123,7 @@ describe('Projects Dashboard Page', () => {
   });
 
   it('updates selected projecttitle when activeProjectChanged event is dispatched', async () => {
-    render(<ProjectsPage />);
+    render(<ProjectsPage />, { wrapper: TestWrapper });
     expect(
       screen.getByRole('heading', { name: 'Projects' })
     ).toBeInTheDocument();

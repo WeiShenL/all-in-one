@@ -62,10 +62,11 @@ describe('DashboardTaskService - getAvailableParentTasks', () => {
         parentId: null,
       });
 
-      mockPrisma.department.findMany.mockResolvedValue([
-        { id: departmentId },
-        { id: subordinateDeptId },
-      ]);
+      // Mock department.findMany to handle recursive calls properly
+      // First call returns subordinate dept, subsequent calls return empty array (no more children)
+      mockPrisma.department.findMany
+        .mockResolvedValueOnce([{ id: subordinateDeptId }])
+        .mockResolvedValue([]);
 
       // Mock parent tasks in hierarchy
       const mockParentTasks = [
@@ -135,7 +136,7 @@ describe('DashboardTaskService - getAvailableParentTasks', () => {
         parentId: null,
       });
 
-      mockPrisma.department.findMany.mockResolvedValue([{ id: departmentId }]);
+      mockPrisma.department.findMany.mockResolvedValue([]);
 
       // Only parent tasks should be returned
       const mockParentTasks = [
@@ -185,7 +186,7 @@ describe('DashboardTaskService - getAvailableParentTasks', () => {
         parentId: null,
       });
 
-      mockPrisma.department.findMany.mockResolvedValue([{ id: departmentId }]);
+      mockPrisma.department.findMany.mockResolvedValue([]);
 
       mockPrisma.task.findMany.mockResolvedValue([
         {
@@ -235,7 +236,7 @@ describe('DashboardTaskService - getAvailableParentTasks', () => {
         parentId: null,
       });
 
-      mockPrisma.department.findMany.mockResolvedValue([{ id: departmentId }]);
+      mockPrisma.department.findMany.mockResolvedValue([]);
 
       // Mock tasks - only assigned tasks should be returned
       const mockAssignedTasks = [
@@ -293,7 +294,7 @@ describe('DashboardTaskService - getAvailableParentTasks', () => {
         parentId: null,
       });
 
-      mockPrisma.department.findMany.mockResolvedValue([{ id: departmentId }]);
+      mockPrisma.department.findMany.mockResolvedValue([]);
 
       // No tasks assigned to this staff member
       mockPrisma.task.findMany.mockResolvedValue([]);
@@ -333,7 +334,7 @@ describe('DashboardTaskService - getAvailableParentTasks', () => {
         parentId: null,
       });
 
-      mockPrisma.department.findMany.mockResolvedValue([{ id: departmentId }]);
+      mockPrisma.department.findMany.mockResolvedValue([]);
 
       mockPrisma.task.findMany.mockResolvedValue([
         {
@@ -381,7 +382,7 @@ describe('DashboardTaskService - getAvailableParentTasks', () => {
         parentId: null,
       });
 
-      mockPrisma.department.findMany.mockResolvedValue([{ id: departmentId }]);
+      mockPrisma.department.findMany.mockResolvedValue([]);
 
       const mockAssignedTasks = [
         {
@@ -420,13 +421,18 @@ describe('DashboardTaskService - getAvailableParentTasks', () => {
 
   describe('Error Handling', () => {
     it('should throw error for invalid user ID', async () => {
+      // Mock to return null for invalid ID (simulating validation failure or not found)
+      mockPrisma.userProfile.findUnique.mockResolvedValue(null);
+      mockPrisma.department.findMany.mockResolvedValue([]);
+
       await expect(
         service.getAvailableParentTasks('invalid-uuid')
-      ).rejects.toThrow();
+      ).rejects.toThrow('User not found or inactive');
     });
 
     it('should throw error for non-existent user', async () => {
       mockPrisma.userProfile.findUnique.mockResolvedValue(null);
+      mockPrisma.department.findMany.mockResolvedValue([]);
 
       await expect(service.getAvailableParentTasks('user-999')).rejects.toThrow(
         'User not found or inactive'
@@ -434,12 +440,9 @@ describe('DashboardTaskService - getAvailableParentTasks', () => {
     });
 
     it('should throw error for inactive user', async () => {
-      mockPrisma.userProfile.findUnique.mockResolvedValue({
-        id: 'user-001',
-        departmentId: 'dept-001',
-        role: 'STAFF',
-        isActive: false,
-      });
+      // The query uses `where: { id: userId, isActive: true }`, so inactive users won't be found
+      mockPrisma.userProfile.findUnique.mockResolvedValue(null);
+      mockPrisma.department.findMany.mockResolvedValue([]);
 
       await expect(service.getAvailableParentTasks('user-001')).rejects.toThrow(
         'User not found or inactive'
@@ -465,7 +468,7 @@ describe('DashboardTaskService - getAvailableParentTasks', () => {
         parentId: null,
       });
 
-      mockPrisma.department.findMany.mockResolvedValue([{ id: departmentId }]);
+      mockPrisma.department.findMany.mockResolvedValue([]);
 
       mockPrisma.task.findMany.mockResolvedValue([
         {
