@@ -23,6 +23,23 @@ jest.mock('next/navigation', () => ({
   usePathname: jest.fn(() => '/dashboard/projects'),
 }));
 
+// Mock Supabase client
+jest.mock('@/lib/supabase/client', () => ({
+  getRealtimeClient: jest.fn(() => ({
+    channel: jest.fn(() => ({
+      on: jest.fn().mockReturnThis(),
+      subscribe: jest.fn((callback: (status: string) => void) => {
+        callback('SUBSCRIBED');
+        return {
+          unsubscribe: jest.fn(),
+        };
+      }),
+      send: jest.fn(),
+    })),
+    removeChannel: jest.fn(),
+  })),
+}));
+
 // Mock trpc to avoid provider requirement inside ProjectsPage -> ProjectDashboard
 jest.mock('@/app/lib/trpc', () => ({
   trpc: {
