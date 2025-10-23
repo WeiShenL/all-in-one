@@ -146,7 +146,7 @@ export function TaskCreateModal({
     fetchUsers();
   }, [isOpen]);
 
-  // Fetch user's tasks for parent task selector
+  // Fetch available parent tasks based on user role
   useEffect(() => {
     async function fetchTasks() {
       if (!userProfile || !isOpen) {
@@ -154,9 +154,7 @@ export function TaskCreateModal({
       }
 
       try {
-        const response = await fetch(
-          `/api/trpc/task.getByOwner?input=${encodeURIComponent(JSON.stringify({ ownerId: userProfile.id }))}`
-        );
+        const response = await fetch(`/api/trpc/task.getAvailableParentTasks`);
         const data = await response.json();
 
         if (data.result?.data) {
@@ -169,9 +167,9 @@ export function TaskCreateModal({
           const tasks = Array.isArray(data.result.data)
             ? data.result.data
             : [data.result.data];
-          const parentTasks = tasks.filter((t: TaskData) => !t.parentTaskId);
+          // Tasks are already filtered to parent tasks only by the backend
           setAvailableTasks(
-            parentTasks.map((t: TaskData) => ({
+            tasks.map((t: TaskData) => ({
               id: t.id,
               title: t.title,
               dueDate: t.dueDate,

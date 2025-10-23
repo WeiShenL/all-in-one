@@ -1098,6 +1098,17 @@ export const taskRouter = router({
   }),
 
   /**
+   * Get available parent tasks for task creation
+   * - For MANAGERS: Returns all parent tasks visible in department view
+   * - For STAFF: Returns only parent tasks they are assigned to
+   */
+  getAvailableParentTasks: protectedProcedure.query(async ({ ctx }) => {
+    const userId = ctx.session.user.id;
+    const taskService = new DashboardTaskService(ctx.prisma);
+    return await taskService.getAvailableParentTasks(userId);
+  }),
+
+  /**
    * Get project-scoped tasks for any user (Staff or Manager)
    */
   getProjectTasksForUser: protectedProcedure
