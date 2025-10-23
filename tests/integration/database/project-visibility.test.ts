@@ -6,7 +6,7 @@
  * Tests the complete project visibility flow with real database operations:
  * - Role-based project visibility (STAFF, MANAGER, ADMIN)
  * - Department hierarchy access
- * - ProjectDepartmentAccess bridge table functionality
+ * - ProjectCollaborator bridge table functionality
  * - Cross-department project sharing
  *
  * Test Coverage:
@@ -48,8 +48,7 @@ describe('Integration Tests - Project Visibility and Department Access', () => {
 
   // Track created projects for cleanup
   const createdProjectIds: string[] = [];
-  const createdAccessRows: Array<{ projectId: string; departmentId: string }> =
-    [];
+  const createdAccessRows: Array<{ projectId: string; userId: string }> = [];
 
   beforeAll(async () => {
     // Connect to database
@@ -64,7 +63,7 @@ describe('Integration Tests - Project Visibility and Department Access', () => {
 
     // Clean up any leftover test data
     await pgClient.query(
-      `DELETE FROM "project_department_access" WHERE "projectId" IN (
+      `DELETE FROM "project_collaborator" WHERE "projectId" IN (
         SELECT id FROM "project" WHERE "creatorId" IN (
           SELECT id FROM "user_profile" WHERE email LIKE '%@${testNamespace}.com'
         )
@@ -220,17 +219,17 @@ describe('Integration Tests - Project Visibility and Department Access', () => {
     try {
       // Clean up in correct order to avoid foreign key constraint violations
 
-      // 1. Clean up project department access rows first
+      // 1. Clean up project collaborator rows first
       for (const accessRow of createdAccessRows) {
         await pgClient.query(
-          `DELETE FROM "project_department_access" WHERE "projectId" = $1 AND "departmentId" = $2`,
-          [accessRow.projectId, accessRow.departmentId]
+          `DELETE FROM "project_collaborator" WHERE "projectId" = $1 AND "userId" = $2`,
+          [accessRow.projectId, accessRow.userId]
         );
       }
 
-      // 2. Clean up all project department access related to test users
+      // 2. Clean up all project collaborators related to test users
       await pgClient.query(
-        `DELETE FROM "project_department_access" WHERE "projectId" IN (
+        `DELETE FROM "project_collaborator" WHERE "projectId" IN (
           SELECT id FROM "project" WHERE "creatorId" IN (
             SELECT id FROM "user_profile" WHERE email LIKE '%@${testNamespace}.com'
           )
@@ -263,8 +262,20 @@ describe('Integration Tests - Project Visibility and Department Access', () => {
     } catch (error) {
       console.error('Cleanup failed:', error);
     } finally {
-      await pgClient.end();
-      await prisma.$disconnect();
+      if (pgClient) {
+        try {
+          await pgClient.end();
+        } catch (error) {
+          console.error('Failed to close pgClient:', error);
+        }
+      }
+      if (prisma) {
+        try {
+          await prisma.$disconnect();
+        } catch (error) {
+          console.error('Failed to disconnect prisma:', error);
+        }
+      }
     }
   });
 
@@ -275,8 +286,8 @@ describe('Integration Tests - Project Visibility and Department Access', () => {
     }
     for (const accessRow of createdAccessRows) {
       await pgClient.query(
-        `DELETE FROM "project_department_access" WHERE "projectId" = $1 AND "departmentId" = $2`,
-        [accessRow.projectId, accessRow.departmentId]
+        `DELETE FROM "project_collaborator" WHERE "projectId" = $1 AND "userId" = $2`,
+        [accessRow.projectId, accessRow.userId]
       );
     }
     createdProjectIds.length = 0;
@@ -540,15 +551,15 @@ describe('Integration Tests - Project Visibility and Department Access', () => {
       );
       createdProjectIds.push(sharedProject.id);
 
-      // Grant access to child2 department
+      // Grant access to child2 department by adding staffInChild2 as collaborator
       await pgClient.query(
-        `INSERT INTO "project_department_access" ("projectId", "departmentId", "grantedAt")
-         VALUES ($1, $2, NOW())`,
-        [sharedProject.id, childDept2Id]
+        `INSERT INTO "project_collaborator" ("projectId", "userId", "departmentId", "addedAt")
+         VALUES ($1, $2, $3, NOW())`,
+        [sharedProject.id, staffInChild2Id, childDept2Id]
       );
       createdAccessRows.push({
         projectId: sharedProject.id,
-        departmentId: childDept2Id,
+        userId: staffInChild2Id,
       });
 
       // Staff in child2 should now see the shared project
@@ -583,15 +594,21 @@ describe('Integration Tests - Project Visibility and Department Access', () => {
       );
       createdProjectIds.push(multiAccessProject.id);
 
-      // Grant access to multiple departments
+      // Grant access to multiple departments by adding collaborators
       await pgClient.query(
-        `INSERT INTO "project_department_access" ("projectId", "departmentId", "grantedAt")
-         VALUES ($1, $2, NOW()), ($1, $3, NOW())`,
-        [multiAccessProject.id, childDept1Id, unrelatedDeptId]
+        `INSERT INTO "project_collaborator" ("projectId", "userId", "departmentId", "addedAt")
+         VALUES ($1, $2, $3, NOW()), ($1, $4, $5, NOW())`,
+        [
+          multiAccessProject.id,
+          staffInChild1Id,
+          childDept1Id,
+          staffInUnrelatedId,
+          unrelatedDeptId,
+        ]
       );
       createdAccessRows.push(
-        { projectId: multiAccessProject.id, departmentId: childDept1Id },
-        { projectId: multiAccessProject.id, departmentId: unrelatedDeptId }
+        { projectId: multiAccessProject.id, userId: staffInChild1Id },
+        { projectId: multiAccessProject.id, userId: staffInUnrelatedId }
       );
 
       // Staff in child1 should see the project

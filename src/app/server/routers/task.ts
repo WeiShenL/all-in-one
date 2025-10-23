@@ -162,7 +162,11 @@ export const taskRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const repository = new PrismaTaskRepository(ctx.prisma);
-      const service = new TaskService(repository);
+      const service = new TaskService(
+        repository,
+        ctx.prisma,
+        new RealtimeService()
+      ); // Inject PrismaClient + RealtimeService for notifications
       const user = await getUserContext(ctx);
 
       const result = await service.createTask(

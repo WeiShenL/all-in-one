@@ -133,6 +133,13 @@ test.describe('Staff Project Task Edit Rights', () => {
         'INSERT INTO "task_assignment" ("taskId", "userId", "assignedById", "assignedAt") VALUES ($1, $2, $3, NOW())',
         [additionalTaskResult.rows[0].id, staffUserId, staffUserId]
       );
+
+      // Add staff as a project collaborator so they can see the project
+      // This is needed with the ProjectCollaborator model (SCRUM-32)
+      await pgClient.query(
+        'INSERT INTO "project_collaborator" ("projectId", "userId", "departmentId", "addedAt") VALUES ($1, $2, $3, NOW()) ON CONFLICT ("projectId", "userId") DO NOTHING',
+        [customerPortalProjectId, staffUserId, financeDeptId]
+      );
     } else {
       throw new Error(
         'Customer Portal Redesign project not found in seed data'
@@ -150,6 +157,12 @@ test.describe('Staff Project Task Edit Rights', () => {
     try {
       // Cleanup test data created by this test
       if (staffUserId) {
+        // Delete any project collaborator entries for this staff
+        await pgClient.query(
+          'DELETE FROM "project_collaborator" WHERE "userId" = $1',
+          [staffUserId]
+        );
+
         // First, delete any projects created by this staff to avoid foreign key constraints
         await pgClient.query('DELETE FROM "project" WHERE "creatorId" = $1', [
           staffUserId,

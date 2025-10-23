@@ -75,6 +75,15 @@ describe('TaskService - Manager Operations (SCRUM-15)', () => {
       createComment: jest.fn(),
       updateTask: jest.fn(),
       getUserDepartments: jest.fn(),
+      getUserProfile: jest.fn().mockResolvedValue({
+        id: 'user-123',
+        departmentId: 'dept-sales',
+        role: 'STAFF',
+        isActive: true,
+      }),
+      isUserProjectCollaborator: jest.fn().mockResolvedValue(false),
+      createProjectCollaborator: jest.fn(),
+      removeProjectCollaboratorIfNoTasks: jest.fn(),
     } as any;
 
     // Create mock Prisma
@@ -401,6 +410,7 @@ describe('TaskService - Manager Operations (SCRUM-15)', () => {
         getOwnerId: () => 'owner-id',
         getDepartmentId: () => 'dept-sales',
         getAssignees: () => new Set(['manager-id', 'staff-id']), // 2 assignees
+        getProjectId: () => null,
         removeAssignee: jest.fn(), // Mock domain method
       } as unknown as Task;
 
@@ -701,6 +711,7 @@ describe('TaskService - Manager Operations (SCRUM-15)', () => {
         getId: () => 'task-1',
         getOwnerId: () => originalOwnerId,
         getAssignees: () => new Set(['manager-id', 'staff-id']),
+        getProjectId: () => null,
         removeAssignee: jest.fn(),
       } as unknown as Task;
 
@@ -732,6 +743,7 @@ describe('TaskService - Manager Operations (SCRUM-15)', () => {
         getId: () => 'task-1',
         getOwnerId: () => originalOwnerId,
         getAssignees: () => new Set(['task-owner', 'another-assignee']),
+        getProjectId: () => null,
         removeAssignee: jest.fn(), // Should NOT throw error even when removing owner
       } as unknown as Task;
 
@@ -799,6 +811,7 @@ describe('TaskService - Manager Operations (SCRUM-15)', () => {
         getId: () => 'task-1',
         getOwnerId: () => originalOwnerId,
         getAssignees: () => new Set(['manager-id', 'staff-1', 'staff-2']),
+        getProjectId: () => null,
         removeAssignee: jest.fn(),
       } as unknown as Task;
 

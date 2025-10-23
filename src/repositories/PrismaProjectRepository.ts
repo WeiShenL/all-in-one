@@ -255,9 +255,10 @@ export class PrismaProjectRepository implements IProjectRepository {
     }
 
     // Step 1: Find projectIds that have explicit access via bridge table
-    const accessRows = await (
-      this.prisma as any
-    ).projectDepartmentAccess.findMany({
+    // Note: ProjectCollaborator may have multiple rows for same (projectId, departmentId)
+    // because multiple users from same department can collaborate on same project
+    // We use Set to deduplicate projectIds
+    const accessRows = await (this.prisma as any).projectCollaborator.findMany({
       where: { departmentId: { in: departmentIds } },
       select: { projectId: true },
     });

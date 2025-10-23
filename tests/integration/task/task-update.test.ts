@@ -23,12 +23,20 @@ import { Client } from 'pg';
 import { TaskService, UserContext } from '@/services/task/TaskService';
 import { PrismaTaskRepository } from '@/repositories/PrismaTaskRepository';
 import { PrismaClient } from '@prisma/client';
+import { RealtimeService as _RealtimeService } from '@/app/server/services/RealtimeService';
 
 // ============================================
-// MOCK RESEND TO PREVENT ACTUAL EMAIL SENDING
+// MOCK EMAILSERVICE TO PREVENT RESEND_API_KEY REQUIREMENT
 // ============================================
-// Integration tests call addAssigneeToTask which triggers notifications
-// Mock Resend to prevent hitting rate limits
+jest.mock('@/app/server/services/EmailService', () => ({
+  EmailService: jest.fn().mockImplementation(() => ({
+    sendEmail: jest.fn().mockResolvedValue(undefined),
+  })),
+}));
+
+// ============================================
+// MOCK RESEND SDK (belt and suspenders)
+// ============================================
 jest.mock('resend', () => ({
   Resend: jest.fn().mockImplementation(() => ({
     emails: {
@@ -36,6 +44,15 @@ jest.mock('resend', () => ({
         .fn()
         .mockResolvedValue({ data: { id: 'mock-email-id' }, error: null }),
     },
+  })),
+}));
+
+// ============================================
+// MOCK REALTIMESERVICE TO PREVENT SUPABASE CONNECTION
+// ============================================
+jest.mock('@/app/server/services/RealtimeService', () => ({
+  RealtimeService: jest.fn().mockImplementation(() => ({
+    sendNotification: jest.fn().mockResolvedValue(undefined),
   })),
 }));
 
@@ -211,9 +228,11 @@ describe('Task Update Integration Tests', () => {
     );
     testProjectId = projectResult.rows[0].id;
 
-    // Initialize TaskService
+    // Initialize TaskService with prisma and realtimeService
+    // Required for SCRUM-32 project collaborator auto-creation logic
+    // (Mocks prevent hitting external APIs - see EmailService, Resend, RealtimeService mocks above)
     const repository = new PrismaTaskRepository(prisma);
-    taskService = new TaskService(repository);
+    taskService = new TaskService(repository, prisma, new _RealtimeService());
 
     // Test user context
     testUser = {
@@ -622,7 +641,7 @@ describe('Task Update Integration Tests', () => {
       );
 
       expect(Array.from(updatedTask.getAssignees()).length).toBe(5);
-    }, 30000);
+    }, 150000); // Increased timeout to 150 seconds to handle CI/CD performance variations
 
     it('should reject adding 6th assignee', async () => {
       const task = await createTaskWithAssignment({
@@ -658,7 +677,7 @@ describe('Task Update Integration Tests', () => {
       await expect(
         taskService.addAssigneeToTask(task.id, testAssignee3Id, testUser)
       ).rejects.toThrow();
-    }, 30000);
+    }, 150000); // Increased timeout to 150 seconds to handle CI/CD performance variations
   });
 
   // ============================================

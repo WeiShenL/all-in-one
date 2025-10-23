@@ -182,6 +182,36 @@ export class TaskService {
       recurringInterval: data.recurringInterval,
     });
 
+    // Auto-create ProjectCollaborator for each assignee if task belongs to a project
+    if (data.projectId && data.assigneeIds && data.assigneeIds.length > 0) {
+      for (const assigneeId of data.assigneeIds) {
+        const userProfile =
+          await this.taskRepository.getUserProfile(assigneeId);
+        if (userProfile) {
+          // Check if already a collaborator to avoid duplicates
+          const isCollaborator =
+            await this.taskRepository.isUserProjectCollaborator(
+              data.projectId,
+              assigneeId
+            );
+          if (!isCollaborator) {
+            await this.taskRepository.createProjectCollaborator(
+              data.projectId,
+              assigneeId,
+              userProfile.departmentId
+            );
+
+            // Send project collaboration notification
+            await this.sendProjectCollaborationNotification(
+              data.projectId,
+              assigneeId,
+              result.id
+            );
+          }
+        }
+      }
+    }
+
     // Log task creation
     await this.taskRepository.logTaskAction(
       result.id,
@@ -197,6 +227,21 @@ export class TaskService {
         },
       }
     );
+
+    // Send task assignment notifications to all assignees (excluding creator)
+    if (data.assigneeIds && data.assigneeIds.length > 0) {
+      for (const assigneeId of data.assigneeIds) {
+        // Skip sending notification to the creator
+        if (assigneeId !== creator.userId) {
+          await this.sendTaskUpdateNotifications(
+            result.id,
+            'ASSIGNEE_ADDED',
+            creator.userId,
+            { addedUserId: assigneeId }
+          );
+        }
+      }
+    }
 
     return result;
   }
@@ -916,6 +961,10 @@ export class TaskService {
   /**
    * Add assignee to task (max 5 - TM023)
    * Authorization: Only assigned users can update (Update User Story AC)
+   *
+   * NEW (SCRUM-XX): Automatically creates ProjectCollaborator entry when:
+   * - Task belongs to a project (projectId is not null)
+   * - User is not already a collaborator on that project
    */
   async addAssigneeToTask(
     taskId: string,
@@ -938,10 +987,42 @@ export class TaskService {
       throw new Error('Assignee is inactive');
     }
 
+    // Get user profile to retrieve departmentId for ProjectCollaborator
+    const userProfile = await this.taskRepository.getUserProfile(newUserId);
+    if (!userProfile) {
+      throw new Error('Assignee user profile not found');
+    }
+
+    // Add assignee to domain model
     task.addAssignee(newUserId, user.userId, user.role);
 
     // Persist assignment
     await this.taskRepository.addTaskAssignment(taskId, newUserId, user.userId);
+
+    // Auto-create ProjectCollaborator if task belongs to a project
+    const projectId = task.getProjectId();
+    if (projectId) {
+      // Only create if user is not already a collaborator
+      const isCollaborator =
+        await this.taskRepository.isUserProjectCollaborator(
+          projectId,
+          newUserId
+        );
+      if (!isCollaborator) {
+        await this.taskRepository.createProjectCollaborator(
+          projectId,
+          newUserId,
+          userProfile.departmentId
+        );
+
+        // Send project collaboration notification
+        await this.sendProjectCollaborationNotification(
+          projectId,
+          newUserId,
+          taskId
+        );
+      }
+    }
 
     await this.taskRepository.logTaskAction(
       taskId,
@@ -1435,6 +1516,10 @@ export class TaskService {
    * Authorization: Only assigned users can update
    * Business rule: Must maintain at least 1 assignee (TM016)
    *
+   * NEW (SCRUM-XX): Automatically removes ProjectCollaborator entry when:
+   * - Task belongs to a project (projectId is not null)
+   * - User has no other active task assignments in that project
+   *
    * TODO: Make this role-based auth for MANAGER/HR_ADMIN only in future.
    * Currently violates TM015 for STAFF users: "Assigned Staff member can add
    * assignees, max 5 only. (but NOT remove them - TM015)"
@@ -1454,6 +1539,15 @@ export class TaskService {
 
     // Persist removal
     await this.taskRepository.removeTaskAssignment(taskId, userId);
+
+    // Auto-remove ProjectCollaborator if user has no other tasks in project
+    const projectId = task.getProjectId();
+    if (projectId) {
+      await this.taskRepository.removeProjectCollaboratorIfNoTasks(
+        projectId,
+        userId
+      );
+    }
 
     // Log action
     await this.taskRepository.logTaskAction(
@@ -1997,6 +2091,70 @@ export class TaskService {
         error
       );
       // Don't throw - real-time notification is non-critical
+    }
+  }
+
+  /**
+   * Send notification when user becomes a project collaborator
+   * Creates DB notification + sends email + broadcasts real-time toast
+   *
+   * @param projectId - Project ID
+   * @param userId - User being added as collaborator
+   * @param taskId - Task ID that triggered the collaboration
+   * @private
+   */
+  private async sendProjectCollaborationNotification(
+    projectId: string,
+    userId: string,
+    taskId: string
+  ): Promise<void> {
+    try {
+      // Guard: Skip if prisma or notificationService not initialized
+      if (!this.prisma || !this.notificationService) {
+        console.warn(
+          '[sendProjectCollaborationNotification] Notifications disabled - prisma not provided to TaskService'
+        );
+        return;
+      }
+
+      // Get project details
+      const project = await this.prisma.project.findUnique({
+        where: { id: projectId },
+        select: { id: true, name: true },
+      });
+
+      if (!project) {
+        console.error(
+          `[sendProjectCollaborationNotification] Project ${projectId} not found`
+        );
+        return;
+      }
+
+      const notificationTitle = 'Added to Project';
+      const notificationMessage = `You've been added as a collaborator on project "${project.name}"`;
+
+      // Create notification in DB + send email (automatic via NotificationService)
+      await this.notificationService.create({
+        userId: userId,
+        type: 'PROJECT_COLLABORATION_ADDED',
+        title: notificationTitle,
+        message: notificationMessage,
+        taskId: taskId,
+      });
+
+      // Broadcast real-time toast
+      await this.broadcastToastNotification(userId, {
+        type: 'PROJECT_COLLABORATION_ADDED',
+        title: notificationTitle,
+        message: notificationMessage,
+        taskId: taskId,
+      });
+    } catch (error) {
+      console.error(
+        `[sendProjectCollaborationNotification] Failed to notify user ${userId}:`,
+        error
+      );
+      // Don't throw - notifications are non-critical
     }
   }
 }

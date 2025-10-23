@@ -15,7 +15,7 @@ import tags from './data/6_tags.json' assert { type: 'json' };
 import taskTags from './data/7_task_tags.json' assert { type: 'json' };
 import comments from './data/8_comments.json' assert { type: 'json' };
 import taskLogs from './data/9_task_logs.json' assert { type: 'json' };
-import projectDepartmentAccess from './data/10_project_department_access.json' assert { type: 'json' };
+import projectCollaborators from './data/10_project_collaborator.json' assert { type: 'json' };
 
 const prisma = new PrismaClient();
 
@@ -31,7 +31,7 @@ async function main() {
   await prisma.tag.deleteMany({});
   await prisma.taskAssignment.deleteMany({});
   await prisma.task.deleteMany({});
-  await prisma.projectDepartmentAccess.deleteMany({});
+  await prisma.projectCollaborator.deleteMany({});
   await prisma.project.deleteMany({});
   await prisma.teamMember.deleteMany({});
   await prisma.team.deleteMany({});
@@ -58,11 +58,31 @@ async function main() {
 
   await prisma.project.createMany({ data: transformedProjects });
 
-  // 3b. Project Department Access
-  console.log('🔒 Seeding project department access...');
-  await prisma.projectDepartmentAccess.createMany({
-    data: projectDepartmentAccess,
-  });
+  // 3b. Project Collaborators
+  console.log('🔒 Seeding project collaborators...');
+  // Get the list of valid project IDs from the seeded projects
+  const validProjectIds = new Set(projects.map(p => p.id));
+
+  // Filter collaborators to only include those for projects that exist
+  const validCollaborators = projectCollaborators.filter(pc =>
+    validProjectIds.has(pc.projectId)
+  );
+
+  if (validCollaborators.length > 0) {
+    await prisma.projectCollaborator.createMany({
+      data: validCollaborators.map(pc => ({
+        projectId: pc.projectId,
+        userId: pc.userId,
+        departmentId: pc.departmentId,
+        addedAt: new Date(pc.assignedAt),
+      })),
+    });
+    console.log(`✅ Seeded ${validCollaborators.length} project collaborators`);
+  } else {
+    console.log(
+      '⚠️  No valid project collaborators to seed (no matching projects)'
+    );
+  }
 
   // 4. Tasks (cast enums)
   console.log('✓ Seeding tasks...');

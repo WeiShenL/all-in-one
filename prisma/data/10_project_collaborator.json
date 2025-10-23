@@ -1,0 +1,320 @@
+[
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "040fe132-c24c-4f1d-86c2-ab8527601736",
+    "departmentId": "50e52f12-b178-462f-b735-485ffe816c74",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "0504e15b-e487-4161-aa00-a2b9a51a5307",
+    "departmentId": "ebf099a4-ed19-4f8e-8f24-137a36e994ec",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "064ac532-9de2-4b95-92c3-7eef1503fe36",
+    "departmentId": "8ce56303-aab4-42dd-94a4-3d3b086ac875",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "069432b1-9fb2-4f46-9cea-5a7a71fd493e",
+    "departmentId": "52db10ee-1a2e-43a3-a7da-d6fd85fa604b",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "0a366524-f839-43d2-a530-9a73f2119743",
+    "departmentId": "68fbff0d-51f6-4847-bc05-b3f815ea7a68",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "0eebd24c-0df5-4329-904a-563db7aebd09",
+    "departmentId": "70fa1603-cf66-4f30-80c6-80988fbe94b6",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "15b9a106-4db3-4617-90ba-4ff52c98776c",
+    "departmentId": "d5699276-1162-4c99-8352-501eb845ad3b",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "18ede35b-1a4b-454f-abb7-6612ae70c452",
+    "departmentId": "3ca06c0c-8c40-4235-a58c-2b043b0f24c4",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "1b9d33c4-8142-4374-a74f-20d2407b314a",
+    "departmentId": "ebf099a4-ed19-4f8e-8f24-137a36e994ec",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "1e7c4bcf-5c39-4e21-b5fe-cbdf01ffa8e6",
+    "departmentId": "dd826d0f-df32-4932-a62d-25d02add0721",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "1f2636b6-57af-4e5e-9eab-3985620aa910",
+    "departmentId": "60e6fc6e-b46c-4b78-9687-40e45546599f",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "21aef6c6-eadc-4029-bbe2-2322c75158cf",
+    "departmentId": "dd826d0f-df32-4932-a62d-25d02add0721",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "232aaa34-01b6-4e56-b00e-6ee3d3a240ca",
+    "departmentId": "50e52f12-b178-462f-b735-485ffe816c74",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "2b6da7d6-50c2-4a7e-918c-3ccbc22b250f",
+    "departmentId": "003e9e60-d5cd-48cb-a54c-13f3c5ba4d66",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "2fdec839-9786-43cc-9a38-7728bd80c615",
+    "departmentId": "d5699276-1162-4c99-8352-501eb845ad3b",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "367f33d6-c2cd-4f14-8f98-3757475eb12b",
+    "departmentId": "ebf099a4-ed19-4f8e-8f24-137a36e994ec",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "3d17b618-6401-4570-a019-ef80478fbbf6",
+    "departmentId": "afb6476b-5791-4552-837c-2283a1526066",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "47d7d2e1-b537-4023-9c7a-eb58d21dcbc0",
+    "departmentId": "0ee58fab-9a45-4d6e-8389-654a7047bfad",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "50dda8e6-7350-43fa-b2d4-ec5e183d022c",
+    "departmentId": "003e9e60-d5cd-48cb-a54c-13f3c5ba4d66",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "5d262de6-66ac-4816-a859-cfcf864e3b94",
+    "departmentId": "1580eb26-dcfe-489f-9658-5befbadb5886",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "60b1bca8-21ca-4a8c-b76b-d8667343f93e",
+    "departmentId": "dfa74aba-7b72-42e4-9ae2-0db2ebc8dbf6",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "68f54fde-9e75-49a9-9be1-82db5daef24d",
+    "departmentId": "a4f5a77c-ab3d-42cd-975d-d216d4c9c589",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "6be2fb2f-3467-4c52-8339-822c004d625c",
+    "departmentId": "50e52f12-b178-462f-b735-485ffe816c74",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "7a124270-f778-42e8-bd5b-41eb741b87fd",
+    "departmentId": "dd826d0f-df32-4932-a62d-25d02add0721",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "7ecb6e94-0f2c-4808-9ed0-0f94597ea101",
+    "departmentId": "785c4263-8112-4e56-abb9-c0ce5a2102c9",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "80470e4e-ec4a-4ef9-9a1e-2a2e368b1ef3",
+    "departmentId": "52db10ee-1a2e-43a3-a7da-d6fd85fa604b",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "82aec1ad-5679-4a1d-9af7-bdd9c46b604f",
+    "departmentId": "76f638fb-5de9-4843-89f8-e273e892a7e3",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "8367db93-ca21-4805-bb5c-6f9c2f1964ba",
+    "departmentId": "afb6476b-5791-4552-837c-2283a1526066",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "9d87ae2e-db91-4587-a7b6-a3bfe7c8624f",
+    "departmentId": "0ee58fab-9a45-4d6e-8389-654a7047bfad",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "a2501d0c-9591-4c08-a7cc-07a701879f43",
+    "departmentId": "884d672c-97c6-4987-b582-c54f99fbdb7a",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "b00be864-831b-4dfc-8a39-6f1e3eac9172",
+    "departmentId": "76f638fb-5de9-4843-89f8-e273e892a7e3",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "b24aa514-e9e9-443f-bf94-5cfc53c9af30",
+    "departmentId": "a4f5a77c-ab3d-42cd-975d-d216d4c9c589",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "b48c33a7-5a22-476c-8b0a-93e2d9e2ff8e",
+    "departmentId": "a4f5a77c-ab3d-42cd-975d-d216d4c9c589",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "b56920ce-f894-4be2-8778-218116131eef",
+    "departmentId": "0ee58fab-9a45-4d6e-8389-654a7047bfad",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "b57dea98-b359-4cef-955b-ede245a7342c",
+    "departmentId": "670b01da-a014-4e7a-a194-fb85e60b2983",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "bec6975a-e622-4762-bc6d-c0e2e614773a",
+    "departmentId": "afb6476b-5791-4552-837c-2283a1526066",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "c5aac00f-5959-4c03-b571-9c26fb1a3334",
+    "departmentId": "785c4263-8112-4e56-abb9-c0ce5a2102c9",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "ca074191-5d33-4b7d-b25e-ab4c3ea76ef9",
+    "departmentId": "106a22e4-8f92-40e8-9cdc-366cec808c4c",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "d44299f1-ee17-4613-9f59-2a7fac059f12",
+    "departmentId": "52db10ee-1a2e-43a3-a7da-d6fd85fa604b",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "d4724a00-0a34-4596-a744-029e44a0c57e",
+    "departmentId": "dfa74aba-7b72-42e4-9ae2-0db2ebc8dbf6",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "d5e0ac0d-ef80-4055-ae14-fc4cf95b7165",
+    "departmentId": "76f638fb-5de9-4843-89f8-e273e892a7e3",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "d6717468-e635-4545-a724-8049c92014d5",
+    "departmentId": "785c4263-8112-4e56-abb9-c0ce5a2102c9",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "da5c27ea-f2ec-4673-b434-925f2c90c193",
+    "departmentId": "d5699276-1162-4c99-8352-501eb845ad3b",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "db5c0124-9778-4f61-bb90-86ed673f4b7a",
+    "departmentId": "1580eb26-dcfe-489f-9658-5befbadb5886",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "e0d6b535-d58a-4e26-b74c-eb065104df8a",
+    "departmentId": "106a22e4-8f92-40e8-9cdc-366cec808c4c",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "e94f353e-5535-45bb-a83f-a9938938ee9e",
+    "departmentId": "dfa74aba-7b72-42e4-9ae2-0db2ebc8dbf6",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "ea32bf62-6d85-4f84-a44e-96804c4c7cba",
+    "departmentId": "1580eb26-dcfe-489f-9658-5befbadb5886",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "eb58427c-6fa0-4c5e-b5c0-5f94b7eb7557",
+    "departmentId": "106a22e4-8f92-40e8-9cdc-366cec808c4c",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "ee58ac24-26df-44e8-9990-76afeb9e4eee",
+    "departmentId": "003e9e60-d5cd-48cb-a54c-13f3c5ba4d66",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "ee59fb11-b6ae-4079-8d21-39225658d81d",
+    "departmentId": "3ca06c0c-8c40-4235-a58c-2b043b0f24c4",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "f28d3c25-81a6-4b46-8b1d-6e6ee1d8946c",
+    "departmentId": "ce21d5ea-02b0-4f21-8cc3-a8220d53c738",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "f467e279-8571-4f14-980d-07ddb26d493b",
+    "departmentId": "3ca06c0c-8c40-4235-a58c-2b043b0f24c4",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  },
+  {
+    "projectId": "a0459cfd-4ca5-4796-a1a7-4764e65d241c",
+    "userId": "f96ab0f3-35cb-4b42-80cc-3e900b70b691",
+    "departmentId": "e2e6d9b5-aa3b-4eea-ada1-f7cc0b01c81d",
+    "assignedAt": "2025-01-05T00:00:00.000Z"
+  }
+]

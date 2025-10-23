@@ -35,6 +35,7 @@ enum NotificationType {
   TASK_OVERDUE
   TASK_DELETED
   TASK_REASSIGNED
+  PROJECT_COLLABORATION_ADDED
 }
 
 enum LogAction {
@@ -63,7 +64,7 @@ model Department {
   projects Project[]
   tasks    Task[]
   teams    Team[]
-  projectAccesses ProjectDepartmentAccess[]
+  projectCollaborators ProjectCollaborator[]
 
   @@index([parentId])
   @@index([managerId])
@@ -85,19 +86,20 @@ model UserProfile {
 
   @@map("user_profile")
 
-  department         Department?      @relation(fields: [departmentId], references: [id])
-  managedDepartments Department[]     @relation("DepartmentManager")
-  ledTeams           Team[]           @relation("TeamLeader")
+  department         Department?           @relation(fields: [departmentId], references: [id])
+  managedDepartments Department[]          @relation("DepartmentManager")
+  ledTeams           Team[]                @relation("TeamLeader")
   teamMembers        TeamMember[]
-  createdProjects    Project[]        @relation("CreatedProjects")
-  ownedTasks         Task[]           @relation("TaskOwner")
-  assignedTasks      TaskAssignment[] @relation("AssignedUser")
-  assignedByTasks    TaskAssignment[] @relation("AssignmentAssigner")
+  createdProjects    Project[]             @relation("CreatedProjects")
+  ownedTasks         Task[]                @relation("TaskOwner")
+  assignedTasks      TaskAssignment[]      @relation("AssignedUser")
+  assignedByTasks    TaskAssignment[]      @relation("AssignmentAssigner")
   comments           Comment[]
   taskLogs           TaskLog[]
-  uploadedFiles      TaskFile[]       @relation("FileUploader")
+  uploadedFiles      TaskFile[]            @relation("FileUploader")
   notifications      Notification[]
   calendarEvents     CalendarEvent[]
+  projectCollaborations ProjectCollaborator[]
 
   @@index([email])
   @@index([role])
@@ -155,7 +157,7 @@ model Project {
   department Department  @relation(fields: [departmentId], references: [id])
   creator    UserProfile @relation("CreatedProjects", fields: [creatorId], references: [id])
   tasks      Task[]
-  departmentAccesses ProjectDepartmentAccess[]
+  collaborators ProjectCollaborator[]
 
   @@index([departmentId])
   @@index([creatorId])
@@ -223,18 +225,24 @@ model TaskAssignment {
   @@map("task_assignment")
 }
 
-// PROJECT DEPARTMENT ACCESS (bridge)
-model ProjectDepartmentAccess {
+// PROJECT COLLABORATOR (bridge)
+// User-level project access control - implements "Invite Collaborators" user story
+// A user becomes a collaborator when assigned to any task within a project
+model ProjectCollaborator {
   projectId    String
+  userId       String
   departmentId String
-  grantedAt    DateTime @default(now())
+  addedAt      DateTime @default(now())
 
-  project    Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  department Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  project    Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user       UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department Department  @relation(fields: [departmentId], references: [id], onDelete: Cascade)
 
-  @@id([projectId, departmentId])
+  @@id([projectId, userId])
+  @@index([userId])
   @@index([departmentId])
-  @@map("project_department_access")
+  @@index([projectId, departmentId])
+  @@map("project_collaborator")
 }
 
 // COMMENT
