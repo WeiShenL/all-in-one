@@ -323,8 +323,8 @@ describe('AuthorizationService - isHrAdmin Field', () => {
 
       const result = authService.canEditTask(task, user, hierarchy);
 
-      // Task is not in their hierarchy, so should be false
-      expect(result).toBe(false);
+      // STAFF can edit if assigned, regardless of hierarchy
+      expect(result).toBe(true);
     });
 
     it('should handle MANAGER + isHrAdmin with wide hierarchy access', () => {
