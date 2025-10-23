@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/supabase/auth-context';
 import { useNotifications } from '@/lib/context/NotificationContext';
+import { UserSelectOption } from './UserSelectOption';
 
 interface TaskCreateModalProps {
   isOpen: boolean;
@@ -75,6 +76,12 @@ export function TaskCreateModal({
       id: string;
       name: string;
       email: string;
+      role?: string;
+      isHrAdmin?: boolean;
+      department?: {
+        id: string;
+        name: string;
+      };
     }>
   >([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
@@ -789,11 +796,37 @@ export function TaskCreateModal({
                           display: 'flex',
                           justifyContent: 'space-between',
                           alignItems: 'center',
+                          gap: '12px',
                         }}
                       >
-                        <span>
+                        <span style={{ flex: 1, minWidth: 0 }}>
                           {isCurrentUser ? '👑' : '👤'}{' '}
-                          {user?.name || 'Unknown'} ({user?.email || 'Unknown'})
+                          {user
+                            ? (() => {
+                                const additionalInfo: string[] = [];
+                                // Add department if available
+                                if (user.department?.name) {
+                                  additionalInfo.push(user.department.name);
+                                }
+                                // Add role if available (title case)
+                                if (user.role) {
+                                  const roleDisplay = user.role
+                                    .replace('_', ' ')
+                                    .toLowerCase()
+                                    .replace(/\b\w/g, l => l.toUpperCase());
+                                  additionalInfo.push(roleDisplay);
+                                }
+                                // Add HR_Admin if applicable
+                                if (user.isHrAdmin) {
+                                  additionalInfo.push('HR_Admin');
+                                }
+                                // Combine: name (email), then dash, then comma-separated additional info
+                                const mainPart = `${user.name} (${user.email})`;
+                                return additionalInfo.length > 0
+                                  ? `${mainPart} - ${additionalInfo.join(', ')}`
+                                  : mainPart;
+                              })()
+                            : 'Unknown'}
                           {isCurrentUser && (
                             <span
                               style={{
@@ -804,6 +837,7 @@ export function TaskCreateModal({
                                 borderRadius: '3px',
                                 fontSize: '11px',
                                 fontWeight: '600',
+                                whiteSpace: 'nowrap',
                               }}
                             >
                               YOU
@@ -823,6 +857,8 @@ export function TaskCreateModal({
                               cursor: 'pointer',
                               fontSize: '11px',
                               fontWeight: '600',
+                              whiteSpace: 'nowrap',
+                              flexShrink: 0,
                             }}
                             title='Remove assignee'
                           >
@@ -847,6 +883,9 @@ export function TaskCreateModal({
                   }}
                 >
                   💡 Select user to add as assignee • Max 5 total
+                  <span style={{ marginLeft: '8px', color: '#6b7280' }}>
+                    ({availableUsers.length} users available)
+                  </span>
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <select
@@ -884,9 +923,18 @@ export function TaskCreateModal({
                     </option>
                     {availableUsers
                       .filter(user => !assigneeIds.includes(user.id))
+                      .sort((a, b) => {
+                        // Sort by department name, then by user name
+                        const deptA = a.department?.name || '';
+                        const deptB = b.department?.name || '';
+                        if (deptA !== deptB) {
+                          return deptA.localeCompare(deptB);
+                        }
+                        return a.name.localeCompare(b.name);
+                      })
                       .map(user => (
                         <option key={user.id} value={user.id}>
-                          {user.name} ({user.email})
+                          {UserSelectOption({ user })}
                         </option>
                       ))}
                   </select>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/supabase/auth-context';
 import { useNotifications } from '@/lib/context/NotificationContext';
+import { UserSelectOption } from './UserSelectOption';
 
 interface TaskCreateFormProps {
   onSuccess?: (taskId: string) => void;
@@ -70,6 +71,12 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
       id: string;
       name: string;
       email: string;
+      role?: string;
+      isHrAdmin?: boolean;
+      department?: {
+        id: string;
+        name: string;
+      };
     }>
   >([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
@@ -525,11 +532,21 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
               cursor: loadingUsers ? 'not-allowed' : 'pointer',
             }}
           >
-            {availableUsers.map(user => (
-              <option key={user.id} value={user.id}>
-                {user.name} ({user.email})
-              </option>
-            ))}
+            {availableUsers
+              .sort((a, b) => {
+                // Sort by department name, then by user name
+                const deptA = a.department?.name || '';
+                const deptB = b.department?.name || '';
+                if (deptA !== deptB) {
+                  return deptA.localeCompare(deptB);
+                }
+                return a.name.localeCompare(b.name);
+              })
+              .map(user => (
+                <option key={user.id} value={user.id}>
+                  {UserSelectOption({ user })}
+                </option>
+              ))}
           </select>
           <small style={{ color: '#666', fontSize: '0.875rem' }}>
             {loadingUsers
