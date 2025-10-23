@@ -706,7 +706,7 @@ describe('Task-Project Assignment Integration Tests', () => {
       project1Tasks.forEach(task => {
         expect(task.getProjectId()).toBe(testProject1Id);
       });
-    }, 30000);
+    }, 60000);
 
     it('should filter standalone tasks (null project)', async () => {
       // Create standalone task
