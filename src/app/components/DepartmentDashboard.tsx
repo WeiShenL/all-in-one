@@ -2,15 +2,20 @@
 
 import { useState } from 'react';
 import { TaskTable } from './TaskTable';
+import { TaskCalendar } from './Calendar/TaskCalendar';
+import { DashboardTabs } from './DashboardTabs';
 import { trpc } from '../lib/trpc';
+import { useAuth } from '@/lib/supabase/auth-context';
 import ProjectCollaboratorsManager from './ProjectCollaboratorsManager';
 
 /**
  * Department Dashboard Component
  * Shows tasks from user's department hierarchy with role-based edit permissions
  * Matches structure of Personal Dashboard (StaffDashboard)
+ * Supports both Table and Calendar views via tabs
  */
 export function DepartmentDashboard() {
+  const { userProfile } = useAuth();
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
     null
   );
@@ -31,13 +36,6 @@ export function DepartmentDashboard() {
   // Get unique projects from tasks
   const { data: projects } = trpc.project.getAll.useQuery();
 
-  const handleTaskCreated = utils
-    ? () => {
-        // Invalidate the query to trigger a refetch
-        utils.task.getDepartmentTasksForUser.invalidate();
-      }
-    : undefined;
-
   const handleTaskUpdated = utils
     ? () => {
         // Invalidate the query to trigger a refetch
@@ -45,22 +43,40 @@ export function DepartmentDashboard() {
       }
     : undefined;
 
+  const emptyStateConfig = {
+    icon: '📁',
+    title: 'No tasks in your department yet',
+    description:
+      'Create your first task or wait for tasks to be added to your department.',
+  };
+
   return (
     <div>
-      <TaskTable
-        tasks={data || []}
-        title='All Tasks'
-        showCreateButton={true}
-        onTaskCreated={handleTaskCreated}
-        onTaskUpdated={handleTaskUpdated}
-        emptyStateConfig={{
-          icon: '📁',
-          title: 'No tasks in your department yet',
-          description:
-            'Create your first task or wait for tasks to be added to your department.',
-        }}
-        isLoading={isLoading}
-        error={error ? new Error(error.message) : null}
+      <DashboardTabs
+        tableView={
+          <TaskTable
+            tasks={data || []}
+            title='All Tasks'
+            showCreateButton={true}
+            emptyStateConfig={emptyStateConfig}
+            isLoading={isLoading}
+            error={error ? new Error(error.message) : null}
+            onTaskCreated={handleTaskUpdated}
+            onTaskUpdated={handleTaskUpdated}
+          />
+        }
+        calendarView={
+          <TaskCalendar
+            tasks={data || []}
+            title='Department Task Calendar'
+            emptyStateConfig={emptyStateConfig}
+            isLoading={isLoading}
+            error={error ? new Error(error.message) : null}
+            onTaskUpdated={handleTaskUpdated}
+            showDepartmentFilter={userProfile?.role === 'MANAGER'}
+          />
+        }
+        defaultTab='table'
       />
 
       {/* Project Collaborators Section - Only show if there are projects */}

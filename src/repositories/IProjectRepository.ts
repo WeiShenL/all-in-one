@@ -113,6 +113,29 @@ export interface IProjectRepository {
   >;
 
   /**
+   * Get projects visible to a set of departments
+   * A project is visible if project.departmentId is in the set OR there exists
+   * a ProjectDepartmentAccess row linking the project to any department in the set.
+   */
+  getProjectsVisibleToDepartments(
+    departmentIds: string[],
+    options?: { isArchived?: boolean }
+  ): Promise<
+    Array<{
+      id: string;
+      name: string;
+      description: string | null;
+      priority: number;
+      status: string;
+      departmentId: string;
+      creatorId: string;
+      isArchived: boolean;
+      createdAt: Date;
+      updatedAt: Date;
+    }>
+  >;
+
+  /**
    * Get all collaborators of a project (SCRUM-33)
    * Collaborators are users assigned to tasks in the project
    * @param projectId - Project ID

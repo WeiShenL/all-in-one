@@ -34,6 +34,41 @@ export class EmailService {
 
   async sendEmail(options: EmailOptions) {
     try {
+      // ============================================
+      // TEST_EMAIL_RECIPIENT Override Logic
+      // ============================================
+      // For Resend free tier: all emails must go to verified email
+      // This overrides the actual recipient but includes original in email body
+
+      let actualRecipient = options.to;
+      const testRecipient = process.env.TEST_EMAIL_RECIPIENT;
+
+      // Get original recipient info for debugging
+      const originalRecipientInfo = Array.isArray(options.to)
+        ? options.to.join(', ')
+        : options.to;
+
+      // Override recipient if TEST_EMAIL_RECIPIENT is set
+      if (testRecipient && testRecipient.trim() !== '') {
+        console.warn('[EmailService] TEST MODE: Overriding email recipient');
+        console.warn(`  Original: ${originalRecipientInfo}`);
+        console.warn(`  Override: ${testRecipient}`);
+        actualRecipient = testRecipient;
+      }
+
+      // ============================================
+      // Build Email HTML with Debug Info
+      // ============================================
+
+      // Debug header for test mode
+      const debugHeader =
+        testRecipient && testRecipient.trim() !== ''
+          ? `<div style="background: #fef3c7; padding: 10px; margin-bottom: 20px; border-left: 4px solid #f59e0b;">
+             <strong>⚠️ TEST MODE</strong><br>
+             <strong>Original Recipient:</strong> ${originalRecipientInfo}
+           </div>`
+          : '';
+
       const defaultHtml = `
       <!DOCTYPE html>
       <html lang="en">
@@ -72,6 +107,7 @@ export class EmailService {
       </head>
       <body>
         <div class="container">
+          ${debugHeader}
           <div class="header">Task Completed</div>
           <div class="content">
             <p>${options.text}</p>
@@ -83,11 +119,24 @@ export class EmailService {
       </body>
       </html>
       `;
+
+      // Use provided HTML or default, but inject debug header if in test mode
+      let finalHtml = options.html || defaultHtml;
+
+      // If custom HTML provided and in test mode, prepend debug header
+      if (options.html && testRecipient && testRecipient.trim() !== '') {
+        finalHtml = debugHeader + options.html;
+      }
+
+      // ============================================
+      // Send Email
+      // ============================================
+
       const { data, error } = await this.resend.emails.send({
         from: process.env.RESEND_EMAIL_FROM || 'onboarding@resend.dev',
-        to: options.to,
+        to: actualRecipient, // Use overridden recipient if in test mode
         subject: options.subject,
-        html: options.html || defaultHtml,
+        html: finalHtml,
       });
 
       if (error) {

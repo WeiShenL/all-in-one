@@ -44,6 +44,7 @@ describe('TaskService - READ and UPDATE Operations', () => {
     parentTaskId: null,
     recurringInterval: null,
     isArchived: false,
+    startDate: null,
     createdAt: new Date('2025-01-01'),
     updatedAt: new Date('2025-01-01'),
     assignments: [{ userId: 'user-123' }],
@@ -75,6 +76,16 @@ describe('TaskService - READ and UPDATE Operations', () => {
       updateComment: jest.fn(),
       getDepartmentWithParent: jest.fn(),
       getUserDepartments: jest.fn(),
+      getUserProfile: jest.fn().mockResolvedValue({
+        id: 'user-123',
+        departmentId: 'dept-456',
+        role: 'STAFF',
+        isActive: true,
+      }),
+      isUserProjectCollaborator: jest.fn().mockResolvedValue(false),
+      createProjectCollaborator: jest.fn(),
+      removeProjectCollaboratorIfNoTasks: jest.fn(),
+      removeTaskAssignment: jest.fn(),
     } as any;
 
     service = new TaskService(mockRepository);
@@ -420,6 +431,7 @@ describe('TaskService - READ and UPDATE Operations', () => {
 
         expect(mockRepository.updateTask).toHaveBeenCalledWith('task-001', {
           status: 'IN_PROGRESS',
+          startDate: expect.any(Date),
           updatedAt: expect.any(Date),
         });
         expect(mockRepository.logTaskAction).toHaveBeenCalledWith(

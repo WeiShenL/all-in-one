@@ -6,11 +6,16 @@
  * - Orchestration between domain and infrastructure
  * - Transaction management
  * - Cross-aggregate operations
+ * - Task update notifications
  */
 
 import { Task, TaskStatus } from '../../domain/task/Task';
 import { ITaskRepository } from '../../repositories/ITaskRepository';
 import { SupabaseStorageService } from '../storage/SupabaseStorageService';
+import { PrismaClient, NotificationType } from '@prisma/client';
+import { NotificationService } from '../../app/server/services/NotificationService';
+import { EmailService } from '../../app/server/services/EmailService';
+import { RealtimeService } from '../../app/server/services/RealtimeService';
 
 export interface CreateTaskDTO {
   title: string;
@@ -51,11 +56,25 @@ export interface UserContext {
 
 export class TaskService {
   private storageService = new SupabaseStorageService();
+  private notificationService?: NotificationService;
+  private realtimeService?: RealtimeService;
 
   constructor(
-    protected readonly taskRepository: ITaskRepository
-    // Add other repositories as needed (UserRepository, ProjectRepository, etc.)
-  ) {}
+    protected readonly taskRepository: ITaskRepository,
+    private readonly prisma?: PrismaClient,
+    realtimeService?: RealtimeService
+  ) {
+    // Initialize NotificationService for task update notifications
+    // Only if prisma is provided (for endpoints that send notifications)
+    if (this.prisma) {
+      const emailService = new EmailService();
+      this.notificationService = new NotificationService(
+        this.prisma,
+        emailService
+      );
+    }
+    this.realtimeService = realtimeService;
+  }
 
   // ============================================
   // CREATE OPERATIONS
@@ -142,6 +161,7 @@ export class TaskService {
       parentTaskId: data.parentTaskId || null,
       recurringInterval: data.recurringInterval || null,
       isArchived: false, // New tasks are never archived
+      startDate: null, // Will be set when status changes to IN_PROGRESS
       assignments: new Set(data.assigneeIds),
       tags: new Set(data.tags || []),
     });
@@ -162,6 +182,36 @@ export class TaskService {
       recurringInterval: data.recurringInterval,
     });
 
+    // Auto-create ProjectCollaborator for each assignee if task belongs to a project
+    if (data.projectId && data.assigneeIds && data.assigneeIds.length > 0) {
+      for (const assigneeId of data.assigneeIds) {
+        const userProfile =
+          await this.taskRepository.getUserProfile(assigneeId);
+        if (userProfile) {
+          // Check if already a collaborator to avoid duplicates
+          const isCollaborator =
+            await this.taskRepository.isUserProjectCollaborator(
+              data.projectId,
+              assigneeId
+            );
+          if (!isCollaborator) {
+            await this.taskRepository.createProjectCollaborator(
+              data.projectId,
+              assigneeId,
+              userProfile.departmentId
+            );
+
+            // Send project collaboration notification
+            await this.sendProjectCollaborationNotification(
+              data.projectId,
+              assigneeId,
+              result.id
+            );
+          }
+        }
+      }
+    }
+
     // Log task creation
     await this.taskRepository.logTaskAction(
       result.id,
@@ -177,6 +227,21 @@ export class TaskService {
         },
       }
     );
+
+    // Send task assignment notifications to all assignees (excluding creator)
+    if (data.assigneeIds && data.assigneeIds.length > 0) {
+      for (const assigneeId of data.assigneeIds) {
+        // Skip sending notification to the creator
+        if (assigneeId !== creator.userId) {
+          await this.sendTaskUpdateNotifications(
+            result.id,
+            'ASSIGNEE_ADDED',
+            creator.userId,
+            { addedUserId: assigneeId }
+          );
+        }
+      }
+    }
 
     return result;
   }
@@ -259,6 +324,7 @@ export class TaskService {
       recurringInterval: taskData.recurringInterval,
       isArchived: taskData.isArchived,
       createdAt: taskData.createdAt,
+      startDate: taskData.startDate || null, // When work first began
       updatedAt: taskData.updatedAt,
       assignments: new Set(taskData.assignments.map(a => a.userId)),
       tags: new Set(taskData.tags.map(t => t.tag.name)),
@@ -351,6 +417,7 @@ export class TaskService {
       recurringInterval: taskData.recurringInterval,
       isArchived: taskData.isArchived,
       createdAt: taskData.createdAt,
+      startDate: taskData.startDate || null, // When work first began
       updatedAt: taskData.updatedAt,
       assignments: new Set(
         taskData.assignments?.map((a: any) => a.userId) || []
@@ -591,13 +658,21 @@ export class TaskService {
       throw new Error('Task not found');
     }
 
-    // Capture old value before updating
+    // console.log('📝 [STATUS UPDATE] Task:', taskId);
+    // console.log('📝 [STATUS UPDATE] Current status:', task.getStatus(), '→', newStatus);
+    // console.log('📝 [STATUS UPDATE] Is recurring:', task.isTaskRecurring());
+    // console.log('📝 [STATUS UPDATE] Recurring interval:', task.getRecurringInterval());
+    // console.log('📝 [STATUS UPDATE] Current due date:', task.getDueDate().toISOString());
+
+    // Capture old values before updating
     const oldStatus = task.getStatus();
+    const oldStartDate = task.getStartDate();
 
     task.updateStatus(newStatus as any);
 
     await this.taskRepository.updateTask(taskId, {
       status: task.getStatus(),
+      startDate: task.getStartDate(),
       updatedAt: new Date(),
     });
 
@@ -617,6 +692,26 @@ export class TaskService {
       }
     );
 
+    // Log startDate change if it was set for first time
+    if (!oldStartDate && task.getStartDate()) {
+      await this.taskRepository.logTaskAction(
+        taskId,
+        user.userId,
+        'UPDATED',
+        'startDate',
+        {
+          changes: {
+            from: null,
+            to: task.getStartDate()?.toISOString(),
+          },
+          metadata: {
+            source: 'automatic',
+            reason: 'First transition to IN_PROGRESS',
+          },
+        }
+      );
+    }
+
     // Generate next recurring instance if status is COMPLETED and task is recurring
     if (newStatus === TaskStatus.COMPLETED && task.isTaskRecurring()) {
       await this.generateNextRecurringInstance(task, user);
@@ -635,14 +730,32 @@ export class TaskService {
     user: UserContext
   ): Promise<void> {
     const recurringInterval = completedTask.getRecurringInterval();
+    // console.log('🔄 [RECURRING] Starting generation for task:', completedTask.getId());
+    // console.log('🔄 [RECURRING] Recurring interval:', recurringInterval);
+
     if (!recurringInterval) {
+      // console.log('🔄 [RECURRING] No recurring interval, skipping');
       return;
     }
 
-    // Calculate next due date by adding recurring interval (in days)
+    // Calculate next due date AND createdAt by adding recurring interval (in days)
+    // Use UTC methods to avoid timezone issues (SGT = UTC+8)
     const currentDueDate = completedTask.getDueDate();
+    const currentCreatedAt = completedTask.getCreatedAt();
+
+    // console.log('🔄 [RECURRING] Current createdAt:', currentCreatedAt.toISOString());
+    // console.log('🔄 [RECURRING] Current due date:', currentDueDate.toISOString());
+
+    // Shift BOTH createdAt and dueDate by the interval
+    const nextCreatedAt = new Date(currentCreatedAt);
+    nextCreatedAt.setUTCDate(nextCreatedAt.getUTCDate() + recurringInterval);
+
     const nextDueDate = new Date(currentDueDate);
-    nextDueDate.setDate(nextDueDate.getDate() + recurringInterval);
+    nextDueDate.setUTCDate(nextDueDate.getUTCDate() + recurringInterval);
+
+    // console.log('🔄 [RECURRING] Next createdAt:', nextCreatedAt.toISOString());
+    // console.log('🔄 [RECURRING] Next due date:', nextDueDate.toISOString());
+    // console.log('🔄 [RECURRING] Days added:', recurringInterval);
 
     // Validate assignees still exist and are active
     const assigneeIds = Array.from(completedTask.getAssignees());
@@ -667,17 +780,24 @@ export class TaskService {
       parentTaskId: completedTask.getParentTaskId(),
       recurringInterval: recurringInterval,
       isArchived: false,
+      startDate: null, // Will be set when status changes to IN_PROGRESS
       assignments: completedTask.getAssignees(),
       tags: completedTask.getTags(),
     });
 
     // Persist next instance
+    // console.log('🔄 [RECURRING] Creating next task:');
+    // console.log('🔄 [RECURRING]   createdAt:', nextCreatedAt.toISOString());
+    // console.log('🔄 [RECURRING]   dueDate:', nextTask.getDueDate().toISOString());
+    // console.log('🔄 [RECURRING]   New task ID:', nextTask.getId());
+
     await this.taskRepository.createTask({
       id: nextTask.getId(),
       title: nextTask.getTitle(),
       description: nextTask.getDescription(),
       priority: nextTask.getPriorityBucket(),
       dueDate: nextTask.getDueDate(),
+      createdAt: nextCreatedAt, // ✅ Set createdAt to maintain recurring schedule
       ownerId: nextTask.getOwnerId(),
       departmentId: nextTask.getDepartmentId(),
       projectId: nextTask.getProjectId() ?? undefined,
@@ -686,6 +806,8 @@ export class TaskService {
       tags: Array.from(nextTask.getTags()),
       recurringInterval: nextTask.getRecurringInterval() ?? undefined,
     });
+
+    // console.log('🔄 [RECURRING] ✅ Next task created successfully');
 
     // Log the recurring task generation
     await this.taskRepository.logTaskAction(
@@ -839,6 +961,10 @@ export class TaskService {
   /**
    * Add assignee to task (max 5 - TM023)
    * Authorization: Only assigned users can update (Update User Story AC)
+   *
+   * NEW (SCRUM-XX): Automatically creates ProjectCollaborator entry when:
+   * - Task belongs to a project (projectId is not null)
+   * - User is not already a collaborator on that project
    */
   async addAssigneeToTask(
     taskId: string,
@@ -861,10 +987,42 @@ export class TaskService {
       throw new Error('Assignee is inactive');
     }
 
+    // Get user profile to retrieve departmentId for ProjectCollaborator
+    const userProfile = await this.taskRepository.getUserProfile(newUserId);
+    if (!userProfile) {
+      throw new Error('Assignee user profile not found');
+    }
+
+    // Add assignee to domain model
     task.addAssignee(newUserId, user.userId, user.role);
 
     // Persist assignment
     await this.taskRepository.addTaskAssignment(taskId, newUserId, user.userId);
+
+    // Auto-create ProjectCollaborator if task belongs to a project
+    const projectId = task.getProjectId();
+    if (projectId) {
+      // Only create if user is not already a collaborator
+      const isCollaborator =
+        await this.taskRepository.isUserProjectCollaborator(
+          projectId,
+          newUserId
+        );
+      if (!isCollaborator) {
+        await this.taskRepository.createProjectCollaborator(
+          projectId,
+          newUserId,
+          userProfile.departmentId
+        );
+
+        // Send project collaboration notification
+        await this.sendProjectCollaborationNotification(
+          projectId,
+          newUserId,
+          taskId
+        );
+      }
+    }
 
     await this.taskRepository.logTaskAction(
       taskId,
@@ -881,6 +1039,14 @@ export class TaskService {
           newUserId,
         },
       }
+    );
+
+    // Send notifications to assigned users
+    await this.sendTaskUpdateNotifications(
+      taskId,
+      'ASSIGNEE_ADDED',
+      user.userId,
+      { addedUserId: newUserId }
     );
 
     return task;
@@ -919,6 +1085,14 @@ export class TaskService {
           commentId: comment.id,
         },
       }
+    );
+
+    // Send notifications to assigned users
+    await this.sendTaskUpdateNotifications(
+      taskId,
+      'COMMENT_ADDED',
+      user.userId,
+      { commentContent: content }
     );
 
     // Re-fetch to get persisted comment with ID
@@ -969,6 +1143,14 @@ export class TaskService {
           commentId,
         },
       }
+    );
+
+    // Send notifications to assigned users
+    await this.sendTaskUpdateNotifications(
+      taskId,
+      'COMMENT_UPDATED',
+      user.userId,
+      { commentContent: newContent }
     );
 
     return task;
@@ -1334,6 +1516,10 @@ export class TaskService {
    * Authorization: Only assigned users can update
    * Business rule: Must maintain at least 1 assignee (TM016)
    *
+   * NEW (SCRUM-XX): Automatically removes ProjectCollaborator entry when:
+   * - Task belongs to a project (projectId is not null)
+   * - User has no other active task assignments in that project
+   *
    * TODO: Make this role-based auth for MANAGER/HR_ADMIN only in future.
    * Currently violates TM015 for STAFF users: "Assigned Staff member can add
    * assignees, max 5 only. (but NOT remove them - TM015)"
@@ -1354,6 +1540,15 @@ export class TaskService {
     // Persist removal
     await this.taskRepository.removeTaskAssignment(taskId, userId);
 
+    // Auto-remove ProjectCollaborator if user has no other tasks in project
+    const projectId = task.getProjectId();
+    if (projectId) {
+      await this.taskRepository.removeProjectCollaboratorIfNoTasks(
+        projectId,
+        userId
+      );
+    }
+
     // Log action
     await this.taskRepository.logTaskAction(
       taskId,
@@ -1370,6 +1565,14 @@ export class TaskService {
           removedUserId: userId,
         },
       }
+    );
+
+    // Send notifications to assigned users
+    await this.sendTaskUpdateNotifications(
+      taskId,
+      'ASSIGNEE_REMOVED',
+      user.userId,
+      { removedUserId: userId }
     );
 
     return task;
@@ -1689,5 +1892,269 @@ export class TaskService {
     // Get task logs with user details
     const logs = await this.taskRepository.getTaskLogs(taskId);
     return logs;
+  }
+
+  // ============================================
+  // NOTIFICATION HELPER METHODS
+  // ============================================
+
+  /**
+   * Send notifications to all assigned users for task updates
+   *
+   * @param taskId - Task ID
+   * @param updateType - Type of update
+   * @param actorUserId - User who made the change
+   * @param metadata - Additional context
+   * @private
+   */
+  private async sendTaskUpdateNotifications(
+    taskId: string,
+    updateType:
+      | 'COMMENT_ADDED'
+      | 'COMMENT_UPDATED'
+      | 'ASSIGNEE_ADDED'
+      | 'ASSIGNEE_REMOVED',
+    actorUserId: string,
+    metadata?: {
+      addedUserId?: string;
+      removedUserId?: string;
+      commentContent?: string;
+    }
+  ): Promise<void> {
+    try {
+      // Guard: Skip if prisma or notificationService not initialized
+      if (!this.prisma || !this.notificationService) {
+        console.warn(
+          '[sendTaskUpdateNotifications] Notifications disabled - prisma not provided to TaskService'
+        );
+        return;
+      }
+
+      // 1. Get full task details
+      const taskData = await this.taskRepository.getTaskByIdFull(taskId);
+      if (!taskData) {
+        console.error(`[sendTaskUpdateNotifications] Task ${taskId} not found`);
+        return;
+      }
+
+      // 2. Get actor details
+      const actor = await this.prisma.userProfile.findUnique({
+        where: { id: actorUserId },
+        select: { name: true, email: true },
+      });
+      const actorName = actor?.name || actor?.email || 'Someone';
+
+      // 3. Get all current assignees (after the update)
+      const currentAssignees = taskData.assignments.map(a => a.userId);
+
+      // 4. Determine recipients based on update type
+      let recipients: string[] = [];
+      let notificationMessage = '';
+      let notificationTitle = '';
+      let dbNotificationType: NotificationType;
+
+      switch (updateType) {
+        case 'COMMENT_ADDED':
+          recipients = currentAssignees.filter(
+            userId => userId !== actorUserId
+          );
+          notificationTitle = 'New Comment';
+          notificationMessage = `${actorName} commented on "${taskData.title}"`;
+          dbNotificationType = 'COMMENT_ADDED';
+          break;
+
+        case 'COMMENT_UPDATED':
+          recipients = currentAssignees.filter(
+            userId => userId !== actorUserId
+          );
+          notificationTitle = 'Comment Edited';
+          notificationMessage = `${actorName} edited a comment on "${taskData.title}"`;
+          dbNotificationType = 'COMMENT_ADDED';
+          break;
+
+        case 'ASSIGNEE_ADDED':
+          recipients = currentAssignees.filter(
+            userId => userId !== actorUserId
+          );
+
+          const newAssignee = await this.prisma.userProfile.findUnique({
+            where: { id: metadata?.addedUserId },
+            select: { name: true, email: true },
+          });
+          const newAssigneeName =
+            newAssignee?.name || newAssignee?.email || 'A user';
+
+          notificationTitle = 'New Assignment';
+          notificationMessage = `${actorName} added ${newAssigneeName} to "${taskData.title}"`;
+          dbNotificationType = 'TASK_REASSIGNED';
+          break;
+
+        case 'ASSIGNEE_REMOVED':
+          recipients = currentAssignees.filter(
+            userId => userId !== actorUserId
+          );
+
+          const removedAssignee = await this.prisma.userProfile.findUnique({
+            where: { id: metadata?.removedUserId },
+            select: { name: true, email: true },
+          });
+          const removedAssigneeName =
+            removedAssignee?.name || removedAssignee?.email || 'A user';
+
+          notificationTitle = 'Assignment Removed';
+          notificationMessage = `${actorName} removed ${removedAssigneeName} from "${taskData.title}"`;
+          dbNotificationType = 'TASK_REASSIGNED';
+          break;
+      }
+
+      // 5. If no recipients, skip
+      if (recipients.length === 0) {
+        console.warn(
+          `[sendTaskUpdateNotifications] No recipients for task ${taskId}, skipping`
+        );
+        return;
+      }
+
+      // 6. Send notification to each recipient
+      // No duplicate check - database constraints prevent duplicate assignments
+      for (const recipientUserId of recipients) {
+        try {
+          // Create notification in DB + send email (automatic via NotificationService)
+          await this.notificationService.create({
+            userId: recipientUserId,
+            type: dbNotificationType,
+            title: notificationTitle,
+            message: notificationMessage,
+            taskId: taskId,
+          });
+
+          // Broadcast real-time toast
+          await this.broadcastToastNotification(recipientUserId, {
+            type: dbNotificationType,
+            title: notificationTitle,
+            message: notificationMessage,
+            taskId: taskId,
+          });
+        } catch (error) {
+          console.error(
+            `[sendTaskUpdateNotifications] Failed to notify user ${recipientUserId}:`,
+            error
+          );
+          // Continue to next recipient
+        }
+      }
+    } catch (error) {
+      console.error(
+        '[sendTaskUpdateNotifications] Error sending notifications:',
+        error
+      );
+      // Don't throw - notifications are non-critical
+    }
+  }
+
+  /**
+   * Broadcast real-time toast notification to specific user
+   * Uses RealtimeService (same as deadline notifications)
+   * @param userId - User ID
+   * @param notification - Notification payload
+   * @private
+   */
+  private async broadcastToastNotification(
+    userId: string,
+    notification: {
+      type: NotificationType;
+      title: string;
+      message: string;
+      taskId: string;
+    }
+  ): Promise<void> {
+    // Guard: Skip if realtimeService not provided
+    if (!this.realtimeService) {
+      console.warn(
+        '[broadcastToastNotification] RealtimeService not provided - skipping real-time broadcast'
+      );
+      return;
+    }
+
+    try {
+      await this.realtimeService.sendNotification(userId, {
+        type: notification.type,
+        title: notification.title,
+        message: notification.message,
+        taskId: notification.taskId,
+        userId: userId,
+        broadcast_at: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error(
+        `[broadcastToastNotification] Failed to broadcast to user ${userId}:`,
+        error
+      );
+      // Don't throw - real-time notification is non-critical
+    }
+  }
+
+  /**
+   * Send notification when user becomes a project collaborator
+   * Creates DB notification + sends email + broadcasts real-time toast
+   *
+   * @param projectId - Project ID
+   * @param userId - User being added as collaborator
+   * @param taskId - Task ID that triggered the collaboration
+   * @private
+   */
+  private async sendProjectCollaborationNotification(
+    projectId: string,
+    userId: string,
+    taskId: string
+  ): Promise<void> {
+    try {
+      // Guard: Skip if prisma or notificationService not initialized
+      if (!this.prisma || !this.notificationService) {
+        console.warn(
+          '[sendProjectCollaborationNotification] Notifications disabled - prisma not provided to TaskService'
+        );
+        return;
+      }
+
+      // Get project details
+      const project = await this.prisma.project.findUnique({
+        where: { id: projectId },
+        select: { id: true, name: true },
+      });
+
+      if (!project) {
+        console.error(
+          `[sendProjectCollaborationNotification] Project ${projectId} not found`
+        );
+        return;
+      }
+
+      const notificationTitle = 'Added to Project';
+      const notificationMessage = `You've been added as a collaborator on project "${project.name}"`;
+
+      // Create notification in DB + send email (automatic via NotificationService)
+      await this.notificationService.create({
+        userId: userId,
+        type: 'PROJECT_COLLABORATION_ADDED',
+        title: notificationTitle,
+        message: notificationMessage,
+        taskId: taskId,
+      });
+
+      // Broadcast real-time toast
+      await this.broadcastToastNotification(userId, {
+        type: 'PROJECT_COLLABORATION_ADDED',
+        title: notificationTitle,
+        message: notificationMessage,
+        taskId: taskId,
+      });
+    } catch (error) {
+      console.error(
+        `[sendProjectCollaborationNotification] Failed to notify user ${userId}:`,
+        error
+      );
+      // Don't throw - notifications are non-critical
+    }
   }
 }

@@ -1,10 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import type { RealtimeNotification } from '@/types/notification';
-import type { RealtimeChannel } from '@supabase/supabase-js';
 
 export class RealtimeService {
   private supabase;
-  private channel: RealtimeChannel | null = null;
 
   constructor() {
     if (
@@ -29,41 +27,41 @@ export class RealtimeService {
   }
 
   /**
-   * Ensures the channel is subscribed before sending notifications
+   * Send notification to user-specific channel
+   * Matches frontend channel: `notifications:${userId}`
    */
-  private async ensureChannelSubscribed(): Promise<RealtimeChannel> {
-    if (this.channel) {
-      return this.channel;
-    }
-
-    const channel = this.supabase.channel('notifications', {
-      config: {
-        broadcast: {
-          self: true,
-        },
-      },
-    });
-
-    return new Promise((resolve, reject) => {
-      channel.subscribe(status => {
-        if (status === 'SUBSCRIBED') {
-          this.channel = channel;
-          resolve(channel);
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('❌ RealtimeService: Failed to subscribe to channel');
-          reject(new Error('Failed to subscribe to realtime channel'));
-        } else if (status === 'TIMED_OUT') {
-          console.error('❌ RealtimeService: Channel subscription timed out');
-          reject(new Error('Channel subscription timed out'));
-        }
-      });
-    });
-  }
-
   async sendNotification(userId: string, notification: RealtimeNotification) {
     try {
-      const channel = await this.ensureChannelSubscribed();
+      // Create user-specific channel to match frontend subscription
+      const channelName = `notifications:${userId}`;
+      const channel = this.supabase.channel(channelName, {
+        config: {
+          broadcast: {
+            self: true,
+          },
+        },
+      });
 
+      // Subscribe to channel
+      await new Promise<void>((resolve, reject) => {
+        channel.subscribe(status => {
+          if (status === 'SUBSCRIBED') {
+            resolve();
+          } else if (status === 'CHANNEL_ERROR') {
+            console.error(
+              `❌ RealtimeService: Failed to subscribe to ${channelName}`
+            );
+            reject(new Error('Failed to subscribe to realtime channel'));
+          } else if (status === 'TIMED_OUT') {
+            console.error(
+              `❌ RealtimeService: Channel ${channelName} subscription timed out`
+            );
+            reject(new Error('Channel subscription timed out'));
+          }
+        });
+      });
+
+      // Send notification
       const payload = {
         ...notification,
         broadcast_at: new Date().toISOString(),
@@ -74,6 +72,9 @@ export class RealtimeService {
         event: 'notification',
         payload: payload,
       });
+
+      // Cleanup: Remove channel after sending
+      await this.supabase.removeChannel(channel);
 
       if (response !== 'ok') {
         console.error(
@@ -87,16 +88,6 @@ export class RealtimeService {
         error
       );
       throw error;
-    }
-  }
-
-  /**
-   * Cleanup method to unsubscribe from the channel
-   */
-  async cleanup() {
-    if (this.channel) {
-      await this.supabase.removeChannel(this.channel);
-      this.channel = null;
     }
   }
 }

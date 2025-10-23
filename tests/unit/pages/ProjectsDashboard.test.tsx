@@ -1,0 +1,97 @@
+import React from 'react';
+import { render, screen, waitFor } from '@testing-library/react';
+import ProjectsPage from '@/app/dashboard/projects/page';
+
+// Mock useAuth to avoid AuthProvider requirement
+jest.mock('@/lib/supabase/auth-context', () => ({
+  useAuth: jest.fn(() => ({
+    user: { email: 'test@example.com' },
+    loading: false,
+  })),
+}));
+
+// Mock useRouter to avoid Next.js router requirement
+jest.mock('next/navigation', () => ({
+  useRouter: jest.fn(() => ({
+    push: jest.fn(),
+  })),
+}));
+
+// Mock trpc to avoid provider requirement inside ProjectsPage -> ProjectDashboard
+jest.mock('@/app/lib/trpc', () => ({
+  trpc: {
+    task: {
+      getProjectTasksForUser: {
+        useQuery: jest.fn(() => ({ data: [], isLoading: false, error: null })),
+      },
+    },
+    userProfile: {
+      getAll: {
+        useQuery: jest.fn(() => ({ data: [], isLoading: false, error: null })),
+      },
+    },
+    useUtils: jest.fn(() => ({
+      task: {
+        getProjectTasksForUser: {
+          invalidate: jest.fn(),
+        },
+      },
+    })),
+  },
+}));
+
+// Mock Navbar to avoid pulling in app-level dependencies
+jest.mock('@/app/components/Navbar', () => {
+  return {
+    __esModule: true,
+    default: () => <div data-testid='navbar' />,
+  };
+});
+
+describe('Projects Dashboard Page', () => {
+  beforeEach(() => {
+    jest.restoreAllMocks();
+    sessionStorage.clear();
+  });
+
+  it('renders fallback project title when no selection present', () => {
+    render(<ProjectsPage />);
+    expect(
+      screen.getByRole('heading', { name: 'Projects' })
+    ).toBeInTheDocument();
+    expect(screen.getByText('Welcome, test@example.com')).toBeInTheDocument();
+  });
+
+  it('selected project title is shown using sessionStorage activeProjectName if present', () => {
+    sessionStorage.setItem('activeProjectName', 'Customer Portal Redesign');
+    sessionStorage.setItem(
+      'activeProjectId',
+      '11111111-1111-4111-8111-111111111111'
+    );
+    render(<ProjectsPage />);
+    expect(
+      screen.getByRole('heading', { name: 'Customer Portal Redesign' })
+    ).toBeInTheDocument();
+    expect(screen.getByText('Welcome, test@example.com')).toBeInTheDocument();
+  });
+
+  it('updates selected projecttitle when activeProjectChanged event is dispatched', async () => {
+    render(<ProjectsPage />);
+    expect(
+      screen.getByRole('heading', { name: 'Projects' })
+    ).toBeInTheDocument();
+    expect(screen.getByText('Welcome, test@example.com')).toBeInTheDocument();
+
+    window.dispatchEvent(
+      new CustomEvent('activeProjectChanged', {
+        detail: { id: 'p1', name: 'New Selected Project' },
+      })
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('heading', { name: 'New Selected Project' })
+      ).toBeInTheDocument();
+    });
+  });
+});

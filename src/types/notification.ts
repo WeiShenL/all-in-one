@@ -17,4 +17,5 @@ export interface RealtimeNotification {
   message: string;
   broadcast_at: string;
   userId: string; // The user this notification is intended for
+  taskId?: string; // Optional task ID for routing/linking
 }

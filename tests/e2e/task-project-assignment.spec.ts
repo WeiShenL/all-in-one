@@ -314,20 +314,25 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
       { timeout: 15000 }
     );
 
-    // Now select using a more reliable selector - find the select that contains the project option
-    const allSelects = await page.locator('select').all();
-    let projectSelect = null;
-    for (const select of allSelects) {
-      const options = await select.locator('option').allTextContents();
-      if (options.some(opt => opt.toLowerCase().includes('project'))) {
-        projectSelect = select;
-        break;
-      }
-    }
+    // Select project using data-testid (more reliable)
+    const projectSelect = page.locator('[data-testid="project-select"]');
+    await projectSelect.waitFor({ state: 'visible', timeout: 15000 });
 
-    if (!projectSelect) {
-      throw new Error('Could not find project select dropdown');
-    }
+    // Wait for projects to load
+    await page.waitForFunction(
+      projectName => {
+        const select = document.querySelector(
+          '[data-testid="project-select"]'
+        ) as HTMLSelectElement | null;
+        if (!select) {
+          return false;
+        }
+        const options = Array.from(select.options);
+        return options.some(opt => opt.text.includes(projectName as string));
+      },
+      testProjectName,
+      { timeout: 15000 }
+    );
 
     await projectSelect.selectOption({ label: testProjectName });
 

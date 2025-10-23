@@ -38,6 +38,7 @@ export class PrismaTaskRepository implements ITaskRepository {
         departmentId: task.getDepartmentId(),
         ownerId: task.getOwnerId(),
         parentTaskId: task.getParentTaskId(),
+        startDate: task.getStartDate(),
         updatedAt: task.getUpdatedAt(),
         assignments: {
           deleteMany: {},
@@ -80,6 +81,7 @@ export class PrismaTaskRepository implements ITaskRepository {
         departmentId: task.getDepartmentId(),
         ownerId: task.getOwnerId(),
         parentTaskId: task.getParentTaskId(),
+        startDate: task.getStartDate(),
         updatedAt: task.getUpdatedAt(),
         assignments: {
           create: assignments.map(userId => ({
@@ -468,6 +470,7 @@ export class PrismaTaskRepository implements ITaskRepository {
     recurringInterval: number | null;
     isArchived: boolean;
     createdAt: Date;
+    startDate: Date | null;
     updatedAt: Date;
     assignments: Array<{ userId: string }>;
     tags: Array<{ tag: { name: string } }>;
@@ -582,6 +585,7 @@ export class PrismaTaskRepository implements ITaskRepository {
     recurringInterval: number | null;
     isArchived: boolean;
     createdAt: Date;
+    startDate?: Date | null;
     updatedAt: Date;
     assignments?: Array<{ userId: string }>;
     tags?: Array<{ tag: { name: string } }>;
@@ -626,6 +630,7 @@ export class PrismaTaskRepository implements ITaskRepository {
       recurringInterval: prismaTask.recurringInterval || null,
       isArchived: prismaTask.isArchived || false,
       createdAt: prismaTask.createdAt,
+      startDate: prismaTask.startDate || null,
       updatedAt: prismaTask.updatedAt,
       assignments,
       tags,
@@ -651,7 +656,14 @@ export class PrismaTaskRepository implements ITaskRepository {
     assigneeIds: string[];
     tags?: string[];
     recurringInterval?: number;
+    createdAt?: Date; // Optional: for recurring tasks to maintain schedule
   }): Promise<{ id: string }> {
+    // console.log('💾 [REPOSITORY] createTask called');
+    // console.log('💾 [REPOSITORY] Task ID:', data.id);
+    // console.log('💾 [REPOSITORY] Created at:', data.createdAt?.toISOString() || 'auto (now)');
+    // console.log('💾 [REPOSITORY] Due date received:', data.dueDate.toISOString());
+    // console.log('💾 [REPOSITORY] Recurring interval:', data.recurringInterval);
+
     // Create task with assignments and tags
     const result = await this.prisma.task.create({
       data: {
@@ -660,6 +672,7 @@ export class PrismaTaskRepository implements ITaskRepository {
         description: data.description,
         priority: data.priority,
         dueDate: data.dueDate,
+        createdAt: data.createdAt, // Use provided createdAt for recurring tasks
         status: 'TO_DO',
         ownerId: data.ownerId,
         departmentId: data.departmentId,
@@ -877,6 +890,7 @@ export class PrismaTaskRepository implements ITaskRepository {
       dueDate: Date;
       status: TaskStatus;
       recurringInterval: number | null;
+      startDate: Date | null;
       updatedAt: Date;
     }>
   ): Promise<void> {
@@ -1417,5 +1431,135 @@ export class PrismaTaskRepository implements ITaskRepository {
       userId: user.id,
       departmentId: user.departmentId,
     }));
+  }
+
+  // ============================================
+  // PROJECT COLLABORATOR OPERATIONS
+  // SCRUM-XX: Invite Collaborators to Project
+  // ============================================
+
+  /**
+   * Get user profile with department information
+   * Used for retrieving departmentId when creating ProjectCollaborator entries
+   */
+  async getUserProfile(userId: string): Promise<{
+    id: string;
+    departmentId: string;
+    role: 'STAFF' | 'MANAGER' | 'HR_ADMIN';
+    isActive: boolean;
+  } | null> {
+    const user = await this.prisma.userProfile.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        departmentId: true,
+        role: true,
+        isActive: true,
+      },
+    });
+
+    if (!user) {
+      return null;
+    }
+
+    return {
+      id: user.id,
+      departmentId: user.departmentId,
+      role: user.role as 'STAFF' | 'MANAGER' | 'HR_ADMIN',
+      isActive: user.isActive,
+    };
+  }
+
+  /**
+   * Check if user is already a collaborator on a project
+   * Used to prevent duplicate ProjectCollaborator entries
+   */
+  async isUserProjectCollaborator(
+    projectId: string,
+    userId: string
+  ): Promise<boolean> {
+    const collaborator = await this.prisma.projectCollaborator.findUnique({
+      where: {
+        projectId_userId: {
+          projectId,
+          userId,
+        },
+      },
+    });
+
+    return collaborator !== null;
+  }
+
+  /**
+   * Create ProjectCollaborator entry
+   * Uses upsert to handle race conditions gracefully
+   * If entry already exists, it will be updated (no-op in this case)
+   */
+  async createProjectCollaborator(
+    projectId: string,
+    userId: string,
+    departmentId: string
+  ): Promise<void> {
+    await this.prisma.projectCollaborator.upsert({
+      where: {
+        projectId_userId: {
+          projectId,
+          userId,
+        },
+      },
+      create: {
+        projectId,
+        userId,
+        departmentId,
+        addedAt: new Date(),
+      },
+      update: {
+        // If already exists, do nothing (keep existing entry)
+        // This handles race conditions where multiple tasks are assigned simultaneously
+      },
+    });
+  }
+
+  /**
+   * Remove ProjectCollaborator if user has no other active tasks in project
+   *
+   * Business Logic:
+   * 1. Count how many active (non-archived) tasks the user is assigned to in this project
+   * 2. If count === 0, delete the ProjectCollaborator entry
+   * 3. If count > 0, do nothing (user still has other tasks)
+   */
+  async removeProjectCollaboratorIfNoTasks(
+    projectId: string,
+    userId: string
+  ): Promise<void> {
+    // Step 1: Count user's remaining active task assignments in this project
+    const activeTaskCount = await this.prisma.taskAssignment.count({
+      where: {
+        userId: userId,
+        task: {
+          projectId: projectId,
+          isArchived: false, // Only count active tasks
+        },
+      },
+    });
+
+    // Step 2: Only remove collaborator if NO active tasks remain
+    if (activeTaskCount === 0) {
+      await this.prisma.projectCollaborator
+        .delete({
+          where: {
+            projectId_userId: {
+              projectId,
+              userId,
+            },
+          },
+        })
+        .catch(() => {
+          // Ignore if already deleted (race condition handling)
+          // This can happen if multiple removals happen simultaneously
+        });
+    }
+
+    // If activeTaskCount > 0, user still has tasks in this project, so do nothing
   }
 }

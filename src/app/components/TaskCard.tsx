@@ -1643,6 +1643,7 @@ export function TaskCard({
                   return (
                     <div
                       key={userId}
+                      data-testid={`task-assignee-${userId}`}
                       style={{
                         padding: '6px 10px',
                         backgroundColor: isOwner ? '#fef3c7' : '#dcfce7',

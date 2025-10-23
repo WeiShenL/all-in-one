@@ -10,6 +10,7 @@ import type { RealtimeNotification } from '@/types/notification';
 
 export interface UseRealtimeNotificationsOptions {
   channel?: string;
+  userId?: string; // User-specific notification channel
   onNotification?: (notification: RealtimeNotification) => void;
   autoReconnect?: boolean;
 }
@@ -24,6 +25,7 @@ export interface UseRealtimeNotificationsReturn {
 
 export const useRealtimeNotifications = ({
   channel = 'notifications',
+  userId,
   onNotification,
   autoReconnect = true,
 }: UseRealtimeNotificationsOptions = {}): UseRealtimeNotificationsReturn => {
@@ -39,10 +41,13 @@ export const useRealtimeNotifications = ({
   useEffect(() => {
     const supabase = getRealtimeClient();
 
-    const realtimeChannel = supabase.channel(channel, {
+    // Build user-specific channel name
+    const channelName = userId ? `notifications:${userId}` : channel;
+
+    const realtimeChannel = supabase.channel(channelName, {
       config: {
         broadcast: {
-          self: true,
+          self: false, // Don't receive own broadcasts
         },
       },
     });
@@ -81,7 +86,7 @@ export const useRealtimeNotifications = ({
       }
       setIsConnected(false);
     };
-  }, [channel, autoReconnect]);
+  }, [channel, userId, autoReconnect]); // Added userId dependency
 
   const sendBroadcast = async (
     notification: Omit<RealtimeNotification, 'broadcast_at'>

@@ -19,6 +19,7 @@ describe('EmailService', () => {
   beforeEach(() => {
     process.env.RESEND_API_KEY = 'test_api_key';
     process.env.RESEND_EMAIL_FROM = 'test@example.com';
+    delete process.env.TEST_EMAIL_RECIPIENT; // Ensure no override for base tests
     emailService = new EmailService();
     mockResendSend = (Resend as jest.Mock).mock.results[0].value.emails.send;
   });
@@ -27,6 +28,7 @@ describe('EmailService', () => {
     jest.clearAllMocks();
     delete process.env.RESEND_API_KEY;
     delete process.env.RESEND_EMAIL_FROM;
+    delete process.env.TEST_EMAIL_RECIPIENT;
   });
 
   it('should send an email successfully', async () => {

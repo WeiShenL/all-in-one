@@ -12,7 +12,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": "2025-10-16T01:02:25.918Z"
   },
   {
     "id": "902b6e75-0ba8-4ef2-95b2-b3102bf43978",
@@ -27,7 +28,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": "2025-10-15T14:53:36.900Z"
   },
   {
     "id": "9fb9a14f-5bea-4415-a990-1b1c02f3ce53",
@@ -42,7 +44,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": "2025-10-13T01:32:43.046Z"
   },
   {
     "id": "b2a4b1db-5fac-4bc2-a996-685e590dbc4e",
@@ -57,7 +60,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": "2025-10-18T14:47:14.685Z"
   },
   {
     "id": "39bfd0f8-7ede-497e-aced-6c01c20ee2c2",
@@ -72,7 +76,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": "2025-10-22T14:05:55.679Z"
   },
   {
     "id": "e2a778e7-c367-46b1-99fa-92f5f82e6ecc",
@@ -87,7 +92,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": "2025-10-11T21:37:13.317Z"
   },
   {
     "id": "9ad8fc85-72fc-405e-bc0e-bc38c7577f32",
@@ -102,7 +108,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": null
   },
   {
     "id": "29cdf35e-125d-4870-bf3b-2451c1efe935",
@@ -117,7 +124,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": null
   },
   {
     "id": "3f229890-b96a-4dab-aa4c-41b3c2f4cffb",
@@ -132,7 +140,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": "2025-10-23T07:13:46.311Z"
   },
   {
     "id": "721af470-f21d-45b4-a0e9-2ea0d44bc10f",
@@ -147,7 +156,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": null
   },
   {
     "id": "0cb560ff-8adf-4964-ae26-1d8ef68e985f",
@@ -162,7 +172,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": "2025-10-26T05:29:06.825Z"
   },
   {
     "id": "e61171a7-6dd5-402d-8e53-da939a097423",
@@ -177,7 +188,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": "2025-10-23T19:50:40.902Z"
   },
   {
     "id": "0a8612b9-56c5-4703-a466-b977837d843e",
@@ -192,7 +204,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": null
   },
   {
     "id": "b5dcb4f9-9728-4492-a41b-3da116dea7fa",
@@ -207,7 +220,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": null
   },
   {
     "id": "d39cbc31-4123-41ea-a904-a7ee025b19cb",
@@ -222,7 +236,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": "2025-10-21T18:15:33.385Z"
   },
   {
     "id": "99ff00af-0496-41e1-be4b-a3d478f2ac49",
@@ -237,7 +252,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": null
   },
   {
     "id": "0cd007f8-dc19-4f1b-9e40-b6ad42c27f41",
@@ -252,7 +268,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": null
   },
   {
     "id": "0d2094a4-9a75-468b-829c-ae6197195f7e",
@@ -267,7 +284,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": "2025-10-16T13:11:01.641Z"
   },
   {
     "id": "20d1d0cd-d755-4d2e-93e2-e0395fd741dd",
@@ -282,7 +300,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": "2025-10-18T20:16:22.493Z"
   },
   {
     "id": "659fd31d-b521-4069-afbe-8d3fddbfab3c",
@@ -297,7 +316,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": "2025-10-29T03:03:26.363Z"
   },
   {
     "id": "83bc6c2d-fd85-4fa3-992f-551eeef8302d",
@@ -312,7 +332,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": null
   },
   {
     "id": "33bbe811-0101-48d0-9d14-afe6d2fd0154",
@@ -327,7 +348,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": null
   },
   {
     "id": "26eab8db-e22b-44ed-9495-504b4788ed88",
@@ -342,7 +364,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": "2025-10-16T16:31:17.941Z"
   },
   {
     "id": "6cabc16f-1d6a-4f9b-89e9-d16679dd46e9",
@@ -357,7 +380,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": null
   },
   {
     "id": "8006f044-b693-4cb4-8077-1b39bc5f2bce",
@@ -372,7 +396,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": "2025-10-26T06:30:52.045Z"
   },
   {
     "id": "6de9c57b-981b-4387-93ac-5a7bfa198bc6",
@@ -387,7 +412,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": null
   },
   {
     "id": "4f27e5b9-ba2c-453f-9904-b4e764051381",
@@ -402,7 +428,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": "2025-10-22T08:32:18.106Z"
   },
   {
     "id": "c0e9eb32-3642-4271-9ad9-859e0493a7c2",
@@ -417,7 +444,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": null
   },
   {
     "id": "ef274d18-3697-4dd7-a9a0-f432308a7b83",
@@ -432,7 +460,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": "2025-10-19T11:36:01.308Z"
   },
   {
     "id": "786547c5-9f24-4bb2-8e00-5d3797bb5af2",
@@ -447,7 +476,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": null
   },
   {
     "id": "137d70a2-9898-4bab-bb1b-2519bfba8a07",
@@ -462,7 +492,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": null
   },
   {
     "id": "4e8b5a38-c6f8-40cc-ac0e-1294febb86b3",
@@ -477,7 +508,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": null
   },
   {
     "id": "9285ad37-0a6e-4d38-9c16-1837ec0a64ca",
@@ -492,7 +524,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": "2025-10-16T19:01:00.284Z"
   },
   {
     "id": "119c48b5-3949-47e4-b230-e45ca84866a4",
@@ -507,7 +540,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": null
   },
   {
     "id": "40ddd1e6-2ca7-4fa5-93d8-e79974fc5b1b",
@@ -522,7 +556,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": "2025-10-24T15:48:24.991Z"
   },
   {
     "id": "741b2108-27f2-4f57-9bce-930907e0f4b7",
@@ -537,7 +572,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": null
   },
   {
     "id": "aa502ea0-97a9-4c74-a7ee-60501a5abcd8",
@@ -552,7 +588,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": null
   },
   {
     "id": "3d4c1c8d-6208-4ae0-9240-9fffdbfbb897",
@@ -567,7 +604,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": null
   },
   {
     "id": "c071fddf-01f5-4e7a-9125-74970b6d2008",
@@ -582,7 +620,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": "2025-10-12T20:52:25.155Z"
   },
   {
     "id": "54c18016-09a6-4727-983d-849d79a18184",
@@ -597,7 +636,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": null
   },
   {
     "id": "e49a9e1b-c041-4ccb-a88b-41504d767bf7",
@@ -612,7 +652,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": null
   },
   {
     "id": "eba692e9-e4f6-43fc-84d5-ce2c5cd1b209",
@@ -627,7 +668,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": null
   },
   {
     "id": "eeda3364-682d-432e-a07d-cca50856efd1",
@@ -642,7 +684,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": null
   },
   {
     "id": "70773329-194e-471a-a434-1680c6e5ecd9",
@@ -657,7 +700,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": "2025-10-30T08:09:37.518Z"
   },
   {
     "id": "df896218-961a-4fde-8cd1-b294921bf185",
@@ -672,7 +716,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": null
   },
   {
     "id": "9a4ee1e8-89eb-4a37-9dfb-ff37c230bdf3",
@@ -687,7 +732,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": null
   },
   {
     "id": "89ccfcc9-3279-4e5f-bdcf-60dd21c9e922",
@@ -702,7 +748,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": "2025-10-26T03:40:02.984Z"
   },
   {
     "id": "cb26f191-b767-4d16-ab74-9fbf65f07c5b",
@@ -717,7 +764,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": null
   },
   {
     "id": "1abcee52-42a2-43aa-9ef3-4dcbd1eadc71",
@@ -732,7 +780,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": null
   },
   {
     "id": "ca9011b0-8837-4196-aab1-d51ab00d81b4",
@@ -747,7 +796,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": "2025-10-23T13:05:57.671Z"
   },
   {
     "id": "532ba558-404f-448f-92f9-1782c87712b6",
@@ -762,7 +812,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": "2025-10-13T08:18:34.953Z"
   },
   {
     "id": "c57fe8f7-29c0-44d8-a3ae-a86f3fdb9f4b",
@@ -777,7 +828,8 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": null
   },
   {
     "id": "aefd8a0c-d717-44ae-b32e-77f63f434c88",
@@ -792,6 +844,7 @@
     "parentTaskId": null,
     "createdAt": "2025-10-11T00:00:00.000Z",
     "updatedAt": "2025-10-11T00:00:00.000Z",
-    "isArchived": false
+    "isArchived": false,
+    "startDate": "2025-10-12T07:07:35.743Z"
   }
 ]

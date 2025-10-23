@@ -1,9 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { Client } from 'pg';
 
-const TEST_USER_EMAIL = 'login-test@example.com';
-const TEST_USER_PASSWORD = 'Test123!@#';
-
 // Define metadata type instead of using `any`
 interface UserMetadata {
   name?: string;
@@ -14,6 +11,11 @@ describe('Login Integration Tests', () => {
   let supabaseClient: ReturnType<typeof createClient>;
   let pgClient: Client;
   const serviceRoleKey = process.env.SERVICE_ROLE_KEY;
+
+  // Unique namespace for this test run to prevent parallel conflicts
+  const testNamespace = `auth-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  const TEST_USER_EMAIL = `login-test.${testNamespace}@example.com`;
+  const TEST_USER_PASSWORD = 'Test123!@#';
 
   if (!serviceRoleKey) {
     throw new Error('SERVICE_ROLE_KEY is required for integration tests');
@@ -34,21 +36,25 @@ describe('Login Integration Tests', () => {
   });
 
   beforeEach(async () => {
-    await pgClient.query('DELETE FROM public."user_profile" WHERE email = $1', [
-      TEST_USER_EMAIL,
-    ]);
-    await pgClient.query('DELETE FROM auth.users WHERE email = $1', [
-      TEST_USER_EMAIL,
+    // Clean up any existing test data with namespace
+    await pgClient.query(
+      'DELETE FROM public."user_profile" WHERE email LIKE $1',
+      [`%.${testNamespace}@%`]
+    );
+    await pgClient.query('DELETE FROM auth.users WHERE email LIKE $1', [
+      `%.${testNamespace}@%`,
     ]);
   });
 
   afterEach(async () => {
     await supabaseClient.auth.signOut();
-    await pgClient.query('DELETE FROM public."user_profile" WHERE email = $1', [
-      TEST_USER_EMAIL,
-    ]);
-    await pgClient.query('DELETE FROM auth.users WHERE email = $1', [
-      TEST_USER_EMAIL,
+    // Clean up test data with namespace
+    await pgClient.query(
+      'DELETE FROM public."user_profile" WHERE email LIKE $1',
+      [`%.${testNamespace}@%`]
+    );
+    await pgClient.query('DELETE FROM auth.users WHERE email LIKE $1', [
+      `%.${testNamespace}@%`,
     ]);
   });
 

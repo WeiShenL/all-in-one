@@ -29,6 +29,7 @@ export function createTestTask(overrides: Partial<TaskData> = {}): Task {
     recurringInterval: null, // null = not recurring
     isArchived: false,
     createdAt: new Date('2025-10-01'),
+    startDate: null, // No start date for TO_DO tasks
     updatedAt: new Date('2025-10-01'),
     assignments: new Set(['owner-1']), // Owner is always assigned by default
     tags: new Set(),

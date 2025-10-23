@@ -32,7 +32,7 @@ export const StatusPill = ({ status }: { status: Task['status'] }) => {
   const getStatusConfig = (status: Task['status']) => {
     switch (status) {
       case 'TO_DO':
-        return { color: '#f3f4f6', textColor: '#6b7280', text: 'To Do' };
+        return { color: '#E8C0FA', textColor: '#ffffff', text: 'To Do' };
       case 'IN_PROGRESS':
         return { color: '#dbeafe', textColor: '#1e40af', text: 'In Progress' };
       case 'COMPLETED':

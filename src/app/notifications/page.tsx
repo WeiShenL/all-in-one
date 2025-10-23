@@ -41,7 +41,10 @@ export default function NotificationsPage() {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#f7fafc' }}>
         <Navbar />
-        <div style={{ padding: '2rem' }}>
+        <div
+          style={{ padding: '2rem', marginLeft: '280px' }}
+          className='main-content'
+        >
           <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
             <h1
               style={{
@@ -64,7 +67,10 @@ export default function NotificationsPage() {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#f7fafc' }}>
         <Navbar />
-        <div style={{ padding: '2rem' }}>
+        <div
+          style={{ padding: '2rem', marginLeft: '280px' }}
+          className='main-content'
+        >
           <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
             <h1
               style={{
@@ -86,7 +92,10 @@ export default function NotificationsPage() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f7fafc' }}>
       <Navbar />
-      <div style={{ padding: '2rem' }}>
+      <div
+        style={{ padding: '2rem', marginLeft: '280px' }}
+        className='main-content'
+      >
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <h1
             style={{
@@ -135,6 +144,15 @@ export default function NotificationsPage() {
           </div>
         </div>
       </div>
+
+      {/* CSS for responsive behavior */}
+      <style jsx>{`
+        @media (max-width: 768px) {
+          .main-content {
+            margin-left: 0 !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }
