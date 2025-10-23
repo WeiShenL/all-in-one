@@ -66,8 +66,7 @@ export class TaskService {
   ) {
     // Initialize NotificationService for task update notifications
     // Only if prisma is provided (for endpoints that send notifications)
-    // and RESEND_API_KEY is available (for email notifications)
-    if (this.prisma && process.env.RESEND_API_KEY) {
+    if (this.prisma) {
       try {
         const emailService = new EmailService();
         this.notificationService = new NotificationService(
@@ -76,6 +75,7 @@ export class TaskService {
         );
       } catch {
         // If email service fails to initialize, continue without it
+        // This allows tests and CI environments without proper email config to work
         console.warn(
           'EmailService initialization failed, continuing without email notifications'
         );
