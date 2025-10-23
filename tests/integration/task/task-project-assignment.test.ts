@@ -133,9 +133,9 @@ describe('Task-Project Assignment Integration Tests', () => {
       'Second test project'
     );
 
-    // Initialize TaskService
+    // Initialize TaskService with prisma for notification support
     const repository = new PrismaTaskRepository(prisma);
-    taskService = new TaskService(repository);
+    taskService = new TaskService(repository, prisma);
 
     // Test user context
     testUser = {
