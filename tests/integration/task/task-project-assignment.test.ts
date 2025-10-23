@@ -17,6 +17,21 @@
  * Each test gets fresh database state with complete isolation
  */
 
+// ============================================
+// MOCK RESEND TO PREVENT ACTUAL EMAIL SENDING
+// ============================================
+// Task creation can trigger notifications which use Resend for emails
+// Mock Resend to prevent hitting rate limits in CI environment
+jest.mock('resend', () => ({
+  Resend: jest.fn().mockImplementation(() => ({
+    emails: {
+      send: jest
+        .fn()
+        .mockResolvedValue({ data: { id: 'mock-email-id' }, error: null }),
+    },
+  })),
+}));
+
 import { Client } from 'pg';
 import { TaskService, UserContext } from '@/services/task/TaskService';
 import { PrismaTaskRepository } from '@/repositories/PrismaTaskRepository';

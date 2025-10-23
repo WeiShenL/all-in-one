@@ -66,12 +66,20 @@ export class TaskService {
   ) {
     // Initialize NotificationService for task update notifications
     // Only if prisma is provided (for endpoints that send notifications)
-    if (this.prisma) {
-      const emailService = new EmailService();
-      this.notificationService = new NotificationService(
-        this.prisma,
-        emailService
-      );
+    // and RESEND_API_KEY is available (for email notifications)
+    if (this.prisma && process.env.RESEND_API_KEY) {
+      try {
+        const emailService = new EmailService();
+        this.notificationService = new NotificationService(
+          this.prisma,
+          emailService
+        );
+      } catch {
+        // If email service fails to initialize, continue without it
+        console.warn(
+          'EmailService initialization failed, continuing without email notifications'
+        );
+      }
     }
     this.realtimeService = realtimeService;
   }
