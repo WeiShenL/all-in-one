@@ -2028,7 +2028,8 @@ export class TaskService {
             taskId: taskId,
           });
 
-          // Broadcast real-time toast
+          // Broadcast real-time toast notification
+          // This also triggers dashboard refresh via lastNotificationTime
           await this.broadcastToastNotification(recipientUserId, {
             type: dbNotificationType,
             title: notificationTitle,

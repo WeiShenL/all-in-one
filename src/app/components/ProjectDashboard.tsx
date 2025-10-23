@@ -1,11 +1,12 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { TaskTable } from './TaskTable';
 import { TaskCalendar } from './Calendar/TaskCalendar';
 import { DashboardTabs } from './DashboardTabs';
 import { trpc } from '@/app/lib/trpc';
 import { useAuth } from '@/lib/supabase/auth-context';
+import { useNotifications } from '@/lib/context/NotificationContext';
 
 interface ProjectDashboardProps {
   projectId: string;
@@ -17,15 +18,25 @@ export function ProjectDashboard({
   title = 'Project Tasks',
 }: ProjectDashboardProps) {
   const { userProfile } = useAuth();
+  const { lastNotificationTime } = useNotifications();
 
-  const { data, isLoading, error } = trpc.task.getProjectTasksForUser.useQuery({
-    projectId,
-  });
+  const { data, isLoading, error, refetch } =
+    trpc.task.getProjectTasksForUser.useQuery({
+      projectId,
+    });
   const utils = trpc.useUtils();
 
   const handleInvalidate = () => {
     void utils.task.getProjectTasksForUser.invalidate({ projectId });
   };
+
+  // Refetch tasks when a real-time notification is received
+  // (notifications are sent when tasks are assigned/updated)
+  useEffect(() => {
+    if (lastNotificationTime > 0) {
+      refetch();
+    }
+  }, [lastNotificationTime, refetch]);
 
   const emptyStateConfig = {
     icon: '📁',

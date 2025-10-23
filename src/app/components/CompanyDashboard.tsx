@@ -2,6 +2,8 @@
 
 import { TaskTable } from './TaskTable';
 import { trpc } from '../lib/trpc';
+import { useNotifications } from '@/lib/context/NotificationContext';
+import { useEffect } from 'react';
 
 /**
  * Company Dashboard Component
@@ -9,6 +11,8 @@ import { trpc } from '../lib/trpc';
  * with role-based edit permissions
  */
 export function CompanyDashboard() {
+  const { lastNotificationTime } = useNotifications();
+
   // Try to get utils for query invalidation (may not be available in test environment)
   let utils;
   try {
@@ -18,7 +22,16 @@ export function CompanyDashboard() {
     utils = null;
   }
 
-  const { data, isLoading, error } = trpc.task.getCompanyTasks.useQuery({});
+  const { data, isLoading, error, refetch } =
+    trpc.task.getCompanyTasks.useQuery({});
+
+  // Refetch tasks when a real-time notification is received
+  // (notifications are sent when tasks are assigned/updated)
+  useEffect(() => {
+    if (lastNotificationTime > 0) {
+      refetch();
+    }
+  }, [lastNotificationTime, refetch]);
 
   const handleTaskCreated = utils
     ? () => {
