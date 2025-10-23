@@ -266,8 +266,8 @@ test.describe('Task Comments - Isolated E2E Tests', () => {
     await expect(editButton).toBeVisible({ timeout: 30000 });
     await editButton.click();
 
-    // Wait for modal to open - look for task title instead of heading
-    await expect(page.getByTestId('task-title-display')).toBeVisible({
+    // Wait for modal to open - wait for form inputs to be visible
+    await expect(page.getByLabel('Title')).toBeVisible({
       timeout: 30000,
     });
 
