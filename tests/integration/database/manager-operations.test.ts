@@ -65,10 +65,10 @@ describe('Integration Tests - Manager Operations (SCRUM-15)', () => {
     pgClient = new Client({ connectionString: process.env.DATABASE_URL });
     await pgClient.connect();
 
-    // Initialize Prisma client and service
+    // Initialize Prisma client and service with prisma for notification support
     prisma = new PrismaClient();
     const repository = new PrismaTaskRepository(prisma);
-    taskService = new TaskService(repository);
+    taskService = new TaskService(repository, prisma);
 
     // Clean up any leftover test data
     await pgClient.query(

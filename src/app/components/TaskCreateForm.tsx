@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/supabase/auth-context';
 import { useNotifications } from '@/lib/context/NotificationContext';
+import { UserSelectOption } from './UserSelectOption';
 
 interface TaskCreateFormProps {
   onSuccess?: (taskId: string) => void;
@@ -70,6 +71,12 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
       id: string;
       name: string;
       email: string;
+      role?: string;
+      isHrAdmin?: boolean;
+      department?: {
+        id: string;
+        name: string;
+      };
     }>
   >([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
@@ -84,7 +91,7 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
     }
   }, [userProfile]);
 
-  // Fetch user's tasks for parent task selector
+  // Fetch available parent tasks based on user role
   useEffect(() => {
     async function fetchTasks() {
       if (!userProfile) {
@@ -92,9 +99,7 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
       }
 
       try {
-        const response = await fetch(
-          `/api/trpc/task.getByOwner?input=${encodeURIComponent(JSON.stringify({ ownerId: userProfile.id }))}`
-        );
+        const response = await fetch(`/api/trpc/task.getAvailableParentTasks`);
         const data = await response.json();
 
         if (data.result?.data) {
@@ -107,10 +112,9 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
           const tasks = Array.isArray(data.result.data)
             ? data.result.data
             : [data.result.data];
-          // Filter to only show parent tasks (tasks without a parent)
-          const parentTasks = tasks.filter((t: TaskData) => !t.parentTaskId);
+          // Tasks are already filtered to parent tasks only by the backend
           setAvailableTasks(
-            parentTasks.map((t: TaskData) => ({
+            tasks.map((t: TaskData) => ({
               id: t.id,
               title: t.title,
               dueDate: t.dueDate,
@@ -528,11 +532,21 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
               cursor: loadingUsers ? 'not-allowed' : 'pointer',
             }}
           >
-            {availableUsers.map(user => (
-              <option key={user.id} value={user.id}>
-                {user.name} ({user.email})
-              </option>
-            ))}
+            {availableUsers
+              .sort((a, b) => {
+                // Sort by department name, then by user name
+                const deptA = a.department?.name || '';
+                const deptB = b.department?.name || '';
+                if (deptA !== deptB) {
+                  return deptA.localeCompare(deptB);
+                }
+                return a.name.localeCompare(b.name);
+              })
+              .map(user => (
+                <option key={user.id} value={user.id}>
+                  {UserSelectOption({ user })}
+                </option>
+              ))}
           </select>
           <small style={{ color: '#666', fontSize: '0.875rem' }}>
             {loadingUsers

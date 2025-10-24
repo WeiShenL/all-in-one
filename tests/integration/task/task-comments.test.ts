@@ -158,9 +158,9 @@ describe('Task Comment Integration Tests', () => {
     );
     testProjectId = projectResult.rows[0].id;
 
-    // Initialize TaskService
+    // Initialize TaskService with prisma for notification support
     const repository = new PrismaTaskRepository(prisma);
-    taskService = new TaskService(repository);
+    taskService = new TaskService(repository, prisma);
 
     // Test user context
     testUser = {

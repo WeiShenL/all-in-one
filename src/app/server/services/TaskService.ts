@@ -1493,6 +1493,98 @@ export class TaskService extends BaseService {
   }
 
   /**
+   * Get available parent tasks for task creation
+   * - For MANAGERS: Returns all parent tasks visible in department view (subordinate departments)
+   * - For STAFF: Returns only parent tasks they are assigned to
+   * @param userId - User ID
+   * @returns Array of parent tasks (without subtasks)
+   */
+  async getAvailableParentTasks(userId: string) {
+    try {
+      this.validateId(userId, 'User ID');
+
+      // Get user's profile
+      const user = await this.prisma.userProfile.findUnique({
+        where: { id: userId, isActive: true },
+        select: {
+          id: true,
+          departmentId: true,
+          role: true,
+        },
+      });
+
+      if (!user) {
+        throw new Error('User not found or inactive');
+      }
+
+      // Get all subordinate departments (including user's own department)
+      const departmentIds = await this.getSubordinateDepartments(
+        user.departmentId
+      );
+
+      // Build the query based on role
+      const whereClause: any = {
+        isArchived: false,
+        parentTaskId: null, // Only parent tasks (not subtasks)
+      };
+
+      if (user.role === 'MANAGER') {
+        // Managers can see all parent tasks in their department hierarchy
+        whereClause.OR = [
+          {
+            departmentId: {
+              in: departmentIds,
+            },
+          },
+          {
+            assignments: {
+              some: {
+                user: {
+                  departmentId: {
+                    in: departmentIds,
+                  },
+                  isActive: true,
+                },
+              },
+            },
+          },
+        ];
+      } else {
+        // Staff (and HR_ADMIN) can only see parent tasks they are assigned to
+        // HR_ADMIN role is for company-wide view access, not department-level parent task assignment
+        whereClause.assignments = {
+          some: {
+            userId: user.id,
+          },
+        };
+      }
+
+      // Fetch parent tasks
+      const parentTasks = await this.prisma.task.findMany({
+        where: whereClause,
+        select: {
+          id: true,
+          title: true,
+          dueDate: true,
+          parentTaskId: true,
+          status: true,
+          priority: true,
+          departmentId: true,
+          projectId: true,
+        },
+        orderBy: {
+          dueDate: 'asc',
+        },
+      });
+
+      return parentTasks;
+    } catch (error) {
+      this.handleError(error, 'getAvailableParentTasks');
+      throw error;
+    }
+  }
+
+  /**
    * Get project-scoped tasks for any user (Staff or Manager)
    * Applies the same visibility rules as the department dashboard but
    * additionally filters by the provided projectId.

@@ -1,6 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 import type { RealtimeNotification } from '@/types/notification';
 
+export interface RealtimeTaskUpdate {
+  type: 'task_assigned' | 'task_updated' | 'task_deleted';
+  taskId: string;
+  userId: string;
+  broadcast_at?: string;
+}
+
 export class RealtimeService {
   private supabase;
 
@@ -88,6 +95,34 @@ export class RealtimeService {
         error
       );
       throw error;
+    }
+  }
+
+  /**
+   * Send task update to user-specific channel
+   * Since Supabase realtime works best with frontend subscriptions,
+   * we piggyback on the existing notification channel to trigger task updates
+   */
+  async sendTaskUpdate(userId: string, update: RealtimeTaskUpdate) {
+    // Simply send the task update as a notification on the same channel
+    // The frontend will distinguish by the payload structure
+    try {
+      await this.sendNotification(userId, {
+        type: 'TASK_ASSIGNED', // Use existing notification type
+        title: 'Task Update',
+        message: 'Task list updated',
+        taskId: update.taskId,
+        userId: userId,
+        broadcast_at: new Date().toISOString(),
+        // Add custom field to identify this as a task update trigger
+        metadata: { taskUpdateType: update.type },
+      } as any);
+    } catch (error) {
+      console.error(
+        `❌ Error sending realtime task update to user ${userId}:`,
+        error
+      );
+      // Don't throw - task updates are non-critical
     }
   }
 }

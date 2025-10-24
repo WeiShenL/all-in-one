@@ -37,10 +37,6 @@ export class AuthorizationService {
     // Check if task is in the user's department hierarchy
     const taskInHierarchy = userDepartmentHierarchy.includes(task.departmentId);
 
-    if (!taskInHierarchy) {
-      return false;
-    }
-
     // Legacy HR_ADMIN role: Can edit all tasks in their hierarchy
     if (user.role === 'HR_ADMIN') {
       return taskInHierarchy;
@@ -51,8 +47,8 @@ export class AuthorizationService {
       return taskInHierarchy;
     }
 
-    // STAFF with isHrAdmin: Can view all but can only edit if assigned
-    // (HR Admin privilege is for viewing, not editing)
+    // STAFF: Can edit if assigned to the task (regardless of hierarchy)
+    // This allows staff assigned to tasks in other departments to edit them
     if (user.role === 'STAFF') {
       return task.assignments.some(
         assignment => assignment.userId === user.userId

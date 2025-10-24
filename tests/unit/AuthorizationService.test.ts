@@ -54,7 +54,22 @@ describe('AuthorizationService', () => {
         expect(result).toBe(false);
       });
 
-      it('should deny STAFF editing tasks outside their department', () => {
+      it('should allow STAFF to edit tasks if assigned, even outside their department', () => {
+        // user-alice is assigned to the task
+        const user = {
+          userId: 'user-alice',
+          role: 'STAFF' as const,
+          departmentId: 'dept-hr',
+        };
+        const hierarchy = ['dept-hr'];
+
+        const result = authService.canEditTask(mockTask, user, hierarchy);
+
+        expect(result).toBe(true);
+      });
+
+      it('should deny STAFF editing tasks outside their department if not assigned', () => {
+        // user-eve is NOT assigned to the task
         const user = {
           userId: 'user-eve',
           role: 'STAFF' as const,

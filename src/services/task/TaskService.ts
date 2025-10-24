@@ -67,11 +67,19 @@ export class TaskService {
     // Initialize NotificationService for task update notifications
     // Only if prisma is provided (for endpoints that send notifications)
     if (this.prisma) {
-      const emailService = new EmailService();
-      this.notificationService = new NotificationService(
-        this.prisma,
-        emailService
-      );
+      try {
+        const emailService = new EmailService();
+        this.notificationService = new NotificationService(
+          this.prisma,
+          emailService
+        );
+      } catch {
+        // If email service fails to initialize, continue without it
+        // This allows tests and CI environments without proper email config to work
+        console.warn(
+          'EmailService initialization failed, continuing without email notifications'
+        );
+      }
     }
     this.realtimeService = realtimeService;
   }
@@ -2028,7 +2036,8 @@ export class TaskService {
             taskId: taskId,
           });
 
-          // Broadcast real-time toast
+          // Broadcast real-time toast notification
+          // This also triggers dashboard refresh via lastNotificationTime
           await this.broadcastToastNotification(recipientUserId, {
             type: dbNotificationType,
             title: notificationTitle,

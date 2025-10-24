@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/supabase/auth-context';
 import LogItem from './LogItem';
 import { ConnectedTasks } from './ConnectedTasks';
 import { TaskDatePill } from './TaskTable/TaskDatePill';
+import { UserSelectOption } from './UserSelectOption';
 
 interface Task {
   id: string;
@@ -126,11 +127,35 @@ export function TaskCard({
   const [totalSize, setTotalSize] = useState(0);
 
   // Assignee management states (AC7 - TM015: can add but NOT remove)
-  const [newAssigneeEmail, setNewAssigneeEmail] = useState('');
   const [addingAssignee, setAddingAssignee] = useState(false);
   const [userDetailsMap, setUserDetailsMap] = useState<
-    Map<string, { name: string; email: string }>
+    Map<
+      string,
+      {
+        name: string;
+        email: string;
+        role?: string;
+        isHrAdmin?: boolean;
+        department?: { id: string; name: string };
+      }
+    >
   >(new Map());
+
+  // Available users for assignee dropdown
+  const [availableUsers, setAvailableUsers] = useState<
+    Array<{
+      id: string;
+      name: string;
+      email: string;
+      role?: string;
+      isHrAdmin?: boolean;
+      department?: {
+        id: string;
+        name: string;
+      };
+    }>
+  >([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
 
   useEffect(() => {
     fetchTask();
@@ -138,6 +163,7 @@ export function TaskCard({
     fetchDepartmentUsers();
     fetchTaskLogs();
     fetchProjects();
+    fetchAllUsers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [taskId]);
 
@@ -237,10 +263,32 @@ export function TaskCard({
       const data = await response.json();
 
       if (data.result?.data) {
-        const userMap = new Map<string, { name: string; email: string }>();
+        const userMap = new Map<
+          string,
+          {
+            name: string;
+            email: string;
+            role?: string;
+            isHrAdmin?: boolean;
+            department?: { id: string; name: string };
+          }
+        >();
         data.result.data.forEach(
-          (user: { id: string; name: string; email: string }) => {
-            userMap.set(user.id, { name: user.name, email: user.email });
+          (user: {
+            id: string;
+            name: string;
+            email: string;
+            role?: string;
+            isHrAdmin?: boolean;
+            department?: { id: string; name: string };
+          }) => {
+            userMap.set(user.id, {
+              name: user.name,
+              email: user.email,
+              role: user.role,
+              isHrAdmin: user.isHrAdmin,
+              department: user.department,
+            });
           }
         );
         setUserDetailsMap(userMap);
@@ -288,6 +336,9 @@ export function TaskCard({
               newUserMap.set(userId, {
                 name: data.result.data.name,
                 email: data.result.data.email,
+                role: data.result.data.role,
+                isHrAdmin: data.result.data.isHrAdmin,
+                department: data.result.data.department,
               });
               //   console.log(`Successfully loaded user: ${data.result.data.name} (${data.result.data.email})`);
               break; // Success, exit retry loop
@@ -388,6 +439,27 @@ export function TaskCard({
       console.error('Failed to fetch projects:', err);
     } finally {
       setLoadingProjects(false);
+    }
+  };
+
+  const fetchAllUsers = async () => {
+    if (!userProfile) {
+      return;
+    }
+
+    setLoadingUsers(true);
+    try {
+      const response = await fetch('/api/trpc/userProfile.getAll');
+      const data = await response.json();
+
+      if (data.result?.data) {
+        // Set all users - the API should already filter for active users
+        setAvailableUsers(data.result.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch users:', err);
+    } finally {
+      setLoadingUsers(false);
     }
   };
 
@@ -520,17 +592,9 @@ export function TaskCard({
     setEditCommentValue('');
   };
 
-  // AC7: Add assignee by email (max 5, cannot remove - TM015)
-  const handleAddAssignee = async () => {
-    if (!newAssigneeEmail.trim() || !userProfile) {
-      return;
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(newAssigneeEmail.trim())) {
-      setError('Invalid email format');
-      setTimeout(() => setError(null), 3000);
+  // AC7: Add assignee from dropdown (max 5, cannot remove - TM015)
+  const handleAddAssignee = async (userId: string) => {
+    if (!userId || !userProfile) {
       return;
     }
 
@@ -541,48 +605,29 @@ export function TaskCard({
       return;
     }
 
+    // Check if already assigned
+    if (
+      task &&
+      task.assignments.some(a => {
+        const assigneeUserId = typeof a === 'string' ? a : a.userId;
+        return assigneeUserId === userId;
+      })
+    ) {
+      setError('User is already assigned to this task');
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+
     setAddingAssignee(true);
     setError(null);
 
     try {
-      // Step 1: Look up user ID from email
-      const lookupResponse = await fetch('/api/trpc/userProfile.findByEmails', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ emails: [newAssigneeEmail.trim()] }),
-      });
-
-      if (!lookupResponse.ok) {
-        throw new Error('Failed to find user by email');
-      }
-
-      const lookupData = await lookupResponse.json();
-      const userIds = lookupData.result?.data || [];
-
-      if (userIds.length === 0) {
-        setError(`User with email "${newAssigneeEmail.trim()}" not found`);
-        setAddingAssignee(false);
-        setTimeout(() => setError(null), 3000);
-        return;
-      }
-
-      const newUserId = userIds[0];
-
-      // Check if already assigned
-      if (task && task.assignments.includes(newUserId)) {
-        setError('User is already assigned to this task');
-        setAddingAssignee(false);
-        setTimeout(() => setError(null), 3000);
-        return;
-      }
-
-      // Step 2: Add assignee via API
       const addResponse = await fetch('/api/trpc/task.addAssignee', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           taskId,
-          userId: newUserId,
+          userId: userId,
         }),
       });
 
@@ -591,8 +636,9 @@ export function TaskCard({
         throw new Error(errorData.error?.message || 'Failed to add assignee');
       }
 
-      setSuccess(`✅ Assignee "${newAssigneeEmail.trim()}" added`);
-      setNewAssigneeEmail('');
+      const user = availableUsers.find(u => u.id === userId);
+      const displayName = user ? `${user.name} (${user.email})` : 'User';
+      setSuccess(`✅ Assignee "${displayName}" added`);
       await fetchTask(); // Refresh task data
       onTaskUpdated?.(); // Notify parent to refresh dashboard
 
@@ -1654,12 +1700,38 @@ export function TaskCard({
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
+                        gap: '12px',
                       }}
                     >
-                      <span>
+                      <span style={{ flex: 1, minWidth: 0 }}>
                         {isOwner ? '👑' : '👤'}{' '}
                         {userDetails
-                          ? `${userDetails.name} (${userDetails.email})`
+                          ? (() => {
+                              const additionalInfo: string[] = [];
+                              // Add department if available
+                              if (userDetails.department?.name) {
+                                additionalInfo.push(
+                                  userDetails.department.name
+                                );
+                              }
+                              // Add role if available (title case)
+                              if (userDetails.role) {
+                                const roleDisplay = userDetails.role
+                                  .replace('_', ' ')
+                                  .toLowerCase()
+                                  .replace(/\b\w/g, l => l.toUpperCase());
+                                additionalInfo.push(roleDisplay);
+                              }
+                              // Add HR_Admin if applicable
+                              if (userDetails.isHrAdmin) {
+                                additionalInfo.push('HR_Admin');
+                              }
+                              // Combine: name (email), then dash, then comma-separated additional info
+                              const mainPart = `${userDetails.name} (${userDetails.email})`;
+                              return additionalInfo.length > 0
+                                ? `${mainPart} - ${additionalInfo.join(', ')}`
+                                : mainPart;
+                            })()
                           : `User ${userId.slice(0, 8)}...`}
                         {isOwner && (
                           <span
@@ -1671,6 +1743,7 @@ export function TaskCard({
                               borderRadius: '3px',
                               fontSize: '11px',
                               fontWeight: '600',
+                              whiteSpace: 'nowrap',
                             }}
                           >
                             OWNER
@@ -1689,6 +1762,8 @@ export function TaskCard({
                             cursor: 'pointer',
                             fontSize: '11px',
                             fontWeight: '600',
+                            whiteSpace: 'nowrap',
+                            flexShrink: 0,
                           }}
                           title='Remove assignee (Manager only)'
                           data-testid={`remove-assignee-${userId}`}
@@ -1704,7 +1779,7 @@ export function TaskCard({
         </div>
 
         {/* Max 5 assignees (TM023). TM015: Staff cannot remove, but Managers can (SCRUM-15 AC3) */}
-        {/* Add Assignee Interface */}
+        {/* Add Assignee Interface - Dropdown */}
         {hasEditPermission && task.assignments.length < 5 ? (
           <div>
             <div
@@ -1714,46 +1789,64 @@ export function TaskCard({
                 marginBottom: '8px',
               }}
             >
-              💡 Add assignee by email • Max 5 total
+              💡 Select user to add as assignee • Max 5 total
+              {/* Debug info */}
+              <span style={{ marginLeft: '8px', color: '#6b7280' }}>
+                ({availableUsers.length} users available)
+              </span>
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <input
-                type='email'
-                value={newAssigneeEmail}
-                onChange={e => setNewAssigneeEmail(e.target.value)}
-                placeholder='user@example.com'
-                disabled={addingAssignee}
+              <select
+                value=''
+                onChange={e => {
+                  const userId = e.target.value;
+                  if (userId) {
+                    handleAddAssignee(userId);
+                  }
+                }}
+                disabled={addingAssignee || loadingUsers}
                 style={{
                   flex: 1,
                   padding: '6px',
-                  border: '1px solid #cbd5e0',
+                  border: '2px solid #e5e7eb',
                   borderRadius: '4px',
                   fontSize: '0.875rem',
-                }}
-                data-testid='assignee-email-input'
-              />
-              <button
-                onClick={handleAddAssignee}
-                disabled={addingAssignee || !newAssigneeEmail.trim()}
-                style={{
-                  padding: '6px 12px',
-                  backgroundColor:
-                    addingAssignee || !newAssigneeEmail.trim()
-                      ? '#9ca3af'
-                      : '#dc2626',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
+                  boxSizing: 'border-box',
                   cursor:
-                    addingAssignee || !newAssigneeEmail.trim()
-                      ? 'not-allowed'
-                      : 'pointer',
-                  fontSize: '0.875rem',
+                    addingAssignee || loadingUsers ? 'not-allowed' : 'pointer',
                 }}
-                data-testid='add-assignee-button'
+                data-testid='assignee-dropdown'
               >
-                {addingAssignee ? '⏳ Adding...' : '➕ Add'}
-              </button>
+                <option value=''>
+                  {loadingUsers
+                    ? 'Loading users...'
+                    : addingAssignee
+                      ? 'Adding...'
+                      : '-- Select User to Add --'}
+                </option>
+                {availableUsers
+                  .filter(user => {
+                    // Filter out users already assigned
+                    const assignedUserIds = task.assignments.map(a =>
+                      typeof a === 'string' ? a : a.userId
+                    );
+                    return !assignedUserIds.includes(user.id);
+                  })
+                  .sort((a, b) => {
+                    // Sort by department name, then by user name
+                    const deptA = a.department?.name || '';
+                    const deptB = b.department?.name || '';
+                    if (deptA !== deptB) {
+                      return deptA.localeCompare(deptB);
+                    }
+                    return a.name.localeCompare(b.name);
+                  })
+                  .map(user => (
+                    <option key={user.id} value={user.id}>
+                      {UserSelectOption({ user })}
+                    </option>
+                  ))}
+              </select>
             </div>
           </div>
         ) : hasEditPermission && task.assignments.length >= 5 ? (

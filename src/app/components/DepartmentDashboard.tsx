@@ -5,6 +5,8 @@ import { TaskCalendar } from './Calendar/TaskCalendar';
 import { DashboardTabs } from './DashboardTabs';
 import { trpc } from '../lib/trpc';
 import { useAuth } from '@/lib/supabase/auth-context';
+import { useNotifications } from '@/lib/context/NotificationContext';
+import { useEffect } from 'react';
 
 /**
  * Department Dashboard Component
@@ -14,6 +16,7 @@ import { useAuth } from '@/lib/supabase/auth-context';
  */
 export function DepartmentDashboard() {
   const { userProfile } = useAuth();
+  const { lastNotificationTime } = useNotifications();
 
   // Try to get utils for query invalidation (may not be available in test environment)
   let utils;
@@ -24,8 +27,16 @@ export function DepartmentDashboard() {
     utils = null;
   }
 
-  const { data, isLoading, error } =
+  const { data, isLoading, error, refetch } =
     trpc.task.getDepartmentTasksForUser.useQuery();
+
+  // Refetch tasks when a real-time notification is received
+  // (notifications are sent when tasks are assigned/updated)
+  useEffect(() => {
+    if (lastNotificationTime > 0) {
+      refetch();
+    }
+  }, [lastNotificationTime, refetch]);
 
   const handleTaskUpdated = utils
     ? () => {

@@ -174,28 +174,35 @@ test.describe('Subtask Creation E2E - SCRUM-65', () => {
       ]);
     }
 
-    // 4. Delete user profile
+    // 4. Delete any other tasks owned by this user (before deleting user_profile)
+    if (testUserId) {
+      await pgClient.query('DELETE FROM "task" WHERE "ownerId" = $1', [
+        testUserId,
+      ]);
+    }
+
+    // 5. Delete user profile (after all tasks that reference it)
     if (testUserId) {
       await pgClient.query('DELETE FROM "user_profile" WHERE id = $1', [
         testUserId,
       ]);
     }
 
-    // 5. Delete auth user
+    // 6. Delete auth user
     await supabaseClient.auth.signOut();
     const unique = testEmail.split('.')[2].split('@')[0];
     await pgClient.query('DELETE FROM auth.users WHERE email LIKE $1', [
       `e2e.subtask.${unique}%`,
     ]);
 
-    // 6. Delete department
+    // 7. Delete department (must be last)
     if (testDepartmentId) {
       await pgClient.query('DELETE FROM "department" WHERE id = $1', [
         testDepartmentId,
       ]);
     }
 
-    // 7. Close connections
+    // 8. Close connections
     await pgClient.end();
   });
 

@@ -1,10 +1,12 @@
 'use client';
 
 import { useAuth } from '@/lib/supabase/auth-context';
+import { useNotifications } from '@/lib/context/NotificationContext';
 import { TaskTable } from './TaskTable';
 import { TaskCalendar } from './Calendar/TaskCalendar';
 import { DashboardTabs } from './DashboardTabs';
 import { trpc } from '../lib/trpc';
+import { useEffect } from 'react';
 
 /**
  * Personal Dashboard Component (Personal Dashboard)
@@ -13,6 +15,7 @@ import { trpc } from '../lib/trpc';
  */
 export function PersonalDashboard() {
   const { user } = useAuth();
+  const { lastNotificationTime } = useNotifications();
 
   // Try to get utils for query invalidation (may not be available in test environment)
   let utils;
@@ -23,10 +26,18 @@ export function PersonalDashboard() {
     utils = null;
   }
 
-  const { data, isLoading, error } = trpc.task.getUserTasks.useQuery(
+  const { data, isLoading, error, refetch } = trpc.task.getUserTasks.useQuery(
     { userId: user?.id || '', includeArchived: false },
     { enabled: !!user?.id }
   );
+
+  // Refetch tasks when a real-time notification is received
+  // (notifications are sent when tasks are assigned/updated)
+  useEffect(() => {
+    if (lastNotificationTime > 0) {
+      refetch();
+    }
+  }, [lastNotificationTime, refetch]);
 
   const handleTaskUpdated = utils
     ? () => {

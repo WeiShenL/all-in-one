@@ -272,7 +272,7 @@ startxref
       await expect(editButton).toBeVisible({ timeout: 30000 });
       await editButton.click();
 
-      // Wait for modal to open - look for task title instead of heading
+      // Wait for modal to open - wait for task title display to be visible
       await expect(page.getByTestId('task-title-display')).toBeVisible({
         timeout: 30000,
       });
