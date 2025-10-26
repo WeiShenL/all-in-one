@@ -173,29 +173,50 @@ describe('Task Involved Departments - Integration Tests', () => {
   // Cleanup after all tests
   afterAll(async () => {
     try {
+      const allUserIds = [
+        testUserDeptA,
+        testUserDeptB,
+        testUserDeptC,
+        ...createdManagerIds,
+      ];
+
       // Cleanup in reverse dependency order
-      await pgClient.query('DELETE FROM "task_log" WHERE "taskId" = ANY($1)', [
-        createdTaskIds,
-      ]);
-      await pgClient.query('DELETE FROM "comment" WHERE "taskId" = ANY($1)', [
-        createdTaskIds,
-      ]);
-      await pgClient.query('DELETE FROM "task_tag" WHERE "taskId" = ANY($1)', [
-        createdTaskIds,
-      ]);
+      // Delete task-related data first
       await pgClient.query(
-        'DELETE FROM "task_assignment" WHERE "taskId" = ANY($1)',
-        [createdTaskIds]
+        'DELETE FROM "task_log" WHERE "taskId" IN (SELECT id FROM "task" WHERE "ownerId" = ANY($1))',
+        [allUserIds]
       );
-      await pgClient.query('DELETE FROM "task" WHERE id = ANY($1)', [
-        createdTaskIds,
+      await pgClient.query(
+        'DELETE FROM "comment" WHERE "taskId" IN (SELECT id FROM "task" WHERE "ownerId" = ANY($1))',
+        [allUserIds]
+      );
+      await pgClient.query(
+        'DELETE FROM "task_tag" WHERE "taskId" IN (SELECT id FROM "task" WHERE "ownerId" = ANY($1))',
+        [allUserIds]
+      );
+      await pgClient.query(
+        'DELETE FROM "task_assignment" WHERE "taskId" IN (SELECT id FROM "task" WHERE "ownerId" = ANY($1))',
+        [allUserIds]
+      );
+
+      // Delete all tasks owned by test users
+      await pgClient.query('DELETE FROM "task" WHERE "ownerId" = ANY($1)', [
+        allUserIds,
       ]);
-      await pgClient.query('DELETE FROM "project" WHERE id = $1', [
-        testProjectId,
-      ]);
+
+      // Delete project
+      if (testProjectId) {
+        await pgClient.query('DELETE FROM "project" WHERE id = $1', [
+          testProjectId,
+        ]);
+      }
+
+      // Now safe to delete users
       await pgClient.query('DELETE FROM "user_profile" WHERE id = ANY($1)', [
-        [testUserDeptA, testUserDeptB, testUserDeptC, ...createdManagerIds],
+        allUserIds,
       ]);
+
+      // Finally delete departments
       await pgClient.query('DELETE FROM "department" WHERE id = ANY($1)', [
         [testDepartmentAId, testDepartmentBId, testDepartmentCId],
       ]);
