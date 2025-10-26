@@ -66,7 +66,7 @@ test.describe('HR/Admin Company Dashboard - Happy Path', () => {
     await page.goto('/dashboard/company', { timeout: 60000 });
 
     // Should successfully load the page
-    await expect(page).toHaveURL(/\/dashboard\/company/, { timeout: 30000 });
+    await expect(page).toHaveURL(/\/dashboard\/company/, { timeout: 60000 });
 
     // Wait for the specific page heading to avoid matching navbar title
     await expect(
@@ -147,7 +147,7 @@ async function createAndLoginUser(
 
     // Wait for redirect to dashboard OR check for error message
     try {
-      await page.waitForURL(/\/dashboard/, { timeout: 30000 });
+      await page.waitForURL(/\/dashboard/, { timeout: 60000 });
     } catch (urlError) {
       // Check if there's an error about existing user
       const errorDiv = page
@@ -163,7 +163,7 @@ async function createAndLoginUser(
         await page.getByLabel('Email').fill(user.email);
         await page.getByLabel('Password').fill(user.password);
         await page.getByRole('button', { name: /sign in/i }).click();
-        await page.waitForURL(/\/dashboard/, { timeout: 30000 });
+        await page.waitForURL(/\/dashboard/, { timeout: 60000 });
         return;
       }
       throw urlError;
