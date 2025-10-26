@@ -6,6 +6,7 @@ import LogItem from './LogItem';
 import { ConnectedTasks } from './ConnectedTasks';
 import { TaskDatePill } from './TaskTable/TaskDatePill';
 import { UserSelectOption } from './UserSelectOption';
+import { DepartmentPill } from './TaskTable/DepartmentPill';
 
 interface Task {
   id: string;
@@ -34,6 +35,7 @@ interface Task {
     createdAt: string;
     updatedAt: string;
   }>;
+  involvedDepartments?: Array<{ id: string; name: string }>;
   canEdit?: boolean; // Permission field from backend
 }
 
@@ -2005,6 +2007,25 @@ export function TaskCard({
           </>
         )}
       </div>
+
+      {/* Involved Departments */}
+      {task.involvedDepartments && task.involvedDepartments.length > 0 && (
+        <div style={{ marginBottom: '1.5rem' }}>
+          <h3
+            style={{
+              fontSize: '0.875rem',
+              fontWeight: '600',
+              marginBottom: '8px',
+            }}
+          >
+            🏢 Involved Departments
+          </h3>
+          <DepartmentPill
+            departments={task.involvedDepartments}
+            parentDepartmentId={(task as any).departmentId}
+          />
+        </div>
+      )}
 
       {/* Tags */}
       <div style={{ marginBottom: '1.5rem' }}>

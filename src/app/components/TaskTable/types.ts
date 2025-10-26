@@ -46,6 +46,7 @@ export interface Task {
   }>;
   subtasks?: Task[]; // Subtasks for parent tasks
   hasSubtasks?: boolean; // Flag to indicate if task has subtasks
+  involvedDepartments?: Array<{ id: string; name: string; isActive?: boolean }>; // Departments from assignees
   canEdit?: boolean; // Permission field from backend - optional for backward compatibility
 }
 

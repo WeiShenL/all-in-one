@@ -64,8 +64,9 @@ let testUserDeptB: string;
 let testUserDeptC: string;
 let testProjectId: string;
 
-// Track created tasks for cleanup
+// Track created tasks and users for cleanup
 const createdTaskIds: string[] = [];
+const createdManagerIds: string[] = [];
 
 describe('Task Involved Departments - Integration Tests', () => {
   // Unique namespace for this test run
@@ -80,9 +81,10 @@ describe('Task Involved Departments - Integration Tests', () => {
     _departmentId: string
   ) {
     const ctx = createInnerTRPCContext({
-      userId,
-      session: null,
-      prisma,
+      session: {
+        user: { id: userId },
+        expires: new Date(Date.now() + 3600000).toISOString(),
+      },
     });
     return appRouter.createCaller(ctx);
   }
@@ -192,7 +194,7 @@ describe('Task Involved Departments - Integration Tests', () => {
         testProjectId,
       ]);
       await pgClient.query('DELETE FROM "user_profile" WHERE id = ANY($1)', [
-        [testUserDeptA, testUserDeptB, testUserDeptC],
+        [testUserDeptA, testUserDeptB, testUserDeptC, ...createdManagerIds],
       ]);
       await pgClient.query('DELETE FROM "department" WHERE id = ANY($1)', [
         [testDepartmentAId, testDepartmentBId, testDepartmentCId],
@@ -231,6 +233,7 @@ describe('Task Involved Departments - Integration Tests', () => {
     expect(task!.involvedDepartments![0]).toEqual({
       id: testDepartmentAId,
       name: `Engineering-${testNamespace}`,
+      isActive: true,
     });
   }, 30000);
 
@@ -266,10 +269,12 @@ describe('Task Involved Departments - Integration Tests', () => {
     expect(task!.involvedDepartments).toContainEqual({
       id: testDepartmentAId,
       name: `Engineering-${testNamespace}`,
+      isActive: true,
     });
     expect(task!.involvedDepartments).toContainEqual({
       id: testDepartmentBId,
       name: `Marketing-${testNamespace}`,
+      isActive: true,
     });
   }, 30000);
 
@@ -299,21 +304,38 @@ describe('Task Involved Departments - Integration Tests', () => {
     expect(task!.involvedDepartments).toContainEqual({
       id: testDepartmentAId,
       name: `Engineering-${testNamespace}`,
+      isActive: true,
     });
     expect(task!.involvedDepartments).toContainEqual({
       id: testDepartmentBId,
       name: `Marketing-${testNamespace}`,
+      isActive: true,
     });
     expect(task!.involvedDepartments).toContainEqual({
       id: testDepartmentCId,
       name: `Sales-${testNamespace}`,
+      isActive: true,
     });
   }, 30000);
 
   // AC4: GIVEN a task has only one assignee from Department A, WHEN that assignee is removed from the task,
   // THEN the department tag for Department A is removed (while others are unchanged).
   test('AC4: should remove Department A from involvedDepartments when last assignee from Dept A is removed', async () => {
-    const caller = createCaller(testUserDeptA, 'STAFF', testDepartmentAId);
+    // Create a manager user from Department B to avoid auto-assignment from Dept A
+    const managerResult = await pgClient.query(
+      `INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt")
+       VALUES (gen_random_uuid(), $1, $2, 'MANAGER', $3, true, NOW(), NOW())
+       RETURNING id`,
+      [
+        `manager-${testNamespace}@test.com`,
+        `Manager ${testNamespace}`,
+        testDepartmentBId, // Use Dept B so manager doesn't add Dept A
+      ]
+    );
+    const managerId = managerResult.rows[0].id;
+    createdManagerIds.push(managerId);
+
+    const caller = createCaller(managerId, 'MANAGER', testDepartmentBId);
 
     // Create task with assignees from Dept A and B
     const result = await caller.task.create({
@@ -338,14 +360,24 @@ describe('Task Involved Departments - Integration Tests', () => {
 
     expect(task).not.toBeNull();
     expect(task!.involvedDepartments).toBeDefined();
-    expect(task!.involvedDepartments).toHaveLength(1);
-    expect(task!.involvedDepartments).toContainEqual({
-      id: testDepartmentBId,
-      name: `Marketing-${testNamespace}`,
-    });
-    expect(task!.involvedDepartments).not.toContainEqual(
-      expect.objectContaining({ id: testDepartmentAId })
+    // Parent department should still appear but marked as inactive
+    expect(task!.involvedDepartments).toHaveLength(2);
+
+    // Engineering (parent) should be present but inactive
+    const engineeringDept = task!.involvedDepartments!.find(
+      d => d.id === testDepartmentAId
     );
+    expect(engineeringDept).toBeDefined();
+    expect(engineeringDept!.name).toBe(`Engineering-${testNamespace}`);
+    expect(engineeringDept!.isActive).toBe(false); // No assignees
+
+    // Marketing should be active
+    const marketingDept = task!.involvedDepartments!.find(
+      d => d.id === testDepartmentBId
+    );
+    expect(marketingDept).toBeDefined();
+    expect(marketingDept!.name).toBe(`Marketing-${testNamespace}`);
+    expect(marketingDept!.isActive).toBe(true); // Has assignees
   }, 30000);
 
   // Additional test: Parent department ID should appear first
@@ -372,9 +404,11 @@ describe('Task Involved Departments - Integration Tests', () => {
     expect(task!.involvedDepartments).toHaveLength(3);
 
     // Parent department (task.departmentId) should be first
+    // It's inactive because the task only has assignees from Dept B and C, not A
     expect(task!.involvedDepartments![0]).toEqual({
       id: testDepartmentAId,
       name: `Engineering-${testNamespace}`,
+      isActive: false, // No assignees from parent department
     });
   }, 30000);
 });

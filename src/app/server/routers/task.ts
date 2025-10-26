@@ -692,9 +692,70 @@ export const taskRouter = router({
         user: userMap.get(userId) || { id: userId, name: null, email: null },
       }));
 
+      // Fetch user profiles with department info in a single query
+      const userProfiles = await ctx.prisma.userProfile.findMany({
+        where: { id: { in: assigneeIds } },
+        select: {
+          id: true,
+          departmentId: true,
+          department: { select: { id: true, name: true } },
+        },
+      });
+
+      // Build involvedDepartments - unique departments from assignees with parent first
+      let taskDeptId: string | null = task.getDepartmentId();
+
+      // If task has no department, try to get it from the task's project
+      if (!taskDeptId) {
+        const taskWithProject = await ctx.prisma.task.findUnique({
+          where: { id: input.taskId },
+          select: {
+            projectId: true,
+            project: { select: { departmentId: true } },
+          },
+        });
+        taskDeptId = taskWithProject?.project?.departmentId ?? null;
+      }
+
+      const deptMap = new Map<
+        string,
+        { id: string; name: string; isActive?: boolean }
+      >();
+
+      // Check if parent department has any actual assignees (before adding fake profile)
+      const hasParentAssignee = userProfiles.some(
+        up => up.departmentId === taskDeptId
+      );
+
+      // Always include parent department if task has one, mark as inactive if no assignees
+      if (taskDeptId) {
+        const parentDept = await ctx.prisma.department.findUnique({
+          where: { id: taskDeptId },
+          select: { id: true, name: true },
+        });
+        if (parentDept) {
+          deptMap.set(taskDeptId, {
+            ...parentDept,
+            isActive: hasParentAssignee,
+          });
+        }
+      }
+
+      // Add all other unique departments from assignees (all active)
+      for (const up of userProfiles) {
+        if (up.department && !deptMap.has(up.department.id)) {
+          deptMap.set(up.department.id, {
+            ...up.department,
+            isActive: true,
+          });
+        }
+      }
+      const involvedDepartments = Array.from(deptMap.values());
+
       return {
         ...serializeTask(task),
         assignments: assignmentsWithDetails,
+        involvedDepartments,
         canEdit,
       };
     }),

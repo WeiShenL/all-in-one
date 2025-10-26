@@ -88,6 +88,154 @@ const AssigneeCount = ({ userIds, userMap }: AssigneeCountProps) => {
   );
 };
 
+interface DepartmentCountProps {
+  departments: Array<{ id: string; name: string; isActive?: boolean }>;
+  parentDepartmentId?: string;
+}
+
+const DepartmentCount = ({
+  departments,
+  parentDepartmentId,
+}: DepartmentCountProps) => {
+  const [showPopup, setShowPopup] = useState(false);
+  const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  // Find parent department and check if it's active
+  const parentDept = departments.find(d => d.id === parentDepartmentId);
+  const isParentActive = parentDept?.isActive !== false;
+
+  // Get active departments only (exclude inactive ones)
+  const activeDepartments = departments.filter(d => d.isActive !== false);
+
+  // Sort active departments alphabetically (non-parent departments)
+  const sortedActiveDepartments = [...activeDepartments].sort((a, b) =>
+    a.name.localeCompare(b.name)
+  );
+
+  // Sort departments for display and tooltip:
+  // - If parent is active, show parent first, then others alphabetically
+  // - If parent is inactive, show only active departments alphabetically
+  const sortedDepartments = isParentActive
+    ? ([
+        parentDept,
+        ...sortedActiveDepartments.filter(d => d.id !== parentDepartmentId),
+      ].filter(Boolean) as Array<{
+        id: string;
+        name: string;
+        isActive?: boolean;
+      }>)
+    : sortedActiveDepartments;
+
+  // For display: show first department from sortedDepartments
+  const displayDept = sortedDepartments[0];
+
+  const remainingCount =
+    sortedDepartments.length > 1 ? sortedDepartments.length - 1 : 0;
+
+  const handleMouseEnter = () => {
+    if (wrapperRef.current && sortedDepartments.length > 0) {
+      const rect = wrapperRef.current.getBoundingClientRect();
+      setPopupPosition({
+        top: rect.top - 10,
+        left: rect.left + rect.width / 2,
+      });
+      setShowPopup(true);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setShowPopup(false);
+  };
+
+  return (
+    <>
+      <div
+        ref={wrapperRef}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '4px',
+          fontSize: '0.75rem',
+        }}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
+        <span
+          style={{
+            fontWeight: '500',
+            color: displayDept?.isActive === false ? '#9ca3af' : '#2d3748',
+            textDecoration:
+              displayDept?.isActive === false ? 'line-through' : 'none',
+            opacity: displayDept?.isActive === false ? 0.7 : 1,
+          }}
+        >
+          {displayDept?.name || 'N/A'}
+          {displayDept?.isActive === false && ' (Unassigned)'}
+        </span>
+        {remainingCount > 0 && (
+          <span
+            style={{
+              padding: '2px 6px',
+              borderRadius: '10px',
+              backgroundColor: '#e2e8f0',
+              color: '#4a5568',
+              fontWeight: '600',
+              fontSize: '0.7rem',
+            }}
+          >
+            +{remainingCount}
+          </span>
+        )}
+      </div>
+      {showPopup && sortedDepartments.length > 0 && (
+        <div
+          style={{
+            ...styles.popup,
+            top: popupPosition.top,
+            left: popupPosition.left,
+            transform: 'translateX(-50%)',
+            whiteSpace: 'normal',
+            maxWidth: 'min(90vw, 250px)',
+            wordBreak: 'break-word',
+          }}
+        >
+          {sortedDepartments.map((dept, index) => {
+            // Only highlight parent if it's active
+            const isParent = dept.id === parentDepartmentId && isParentActive;
+            const isActive = dept.isActive !== false;
+            return (
+              <div
+                key={dept.id}
+                style={
+                  index === sortedDepartments.length - 1
+                    ? styles.popupItemLast
+                    : styles.popupItem
+                }
+              >
+                <div
+                  style={{
+                    fontWeight: 600,
+                    color: !isActive ? '#9ca3af' : undefined,
+                    textDecoration: !isActive ? 'line-through' : 'none',
+                    opacity: !isActive ? 0.7 : 1,
+                  }}
+                >
+                  {isParent && '👑 '}
+                  {dept.name}
+                  {isParent && ' (Parent)'}
+                  {!isActive && ' (Unassigned)'}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </>
+  );
+};
+
 const TagsCount = ({ tags }: TagsCountProps) => {
   const [showPopup, setShowPopup] = useState(false);
   const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
@@ -361,7 +509,23 @@ export const TaskRow = ({
           )}
         </td>
         <td style={styles.td}>
-          {departmentData.find(d => d.id === task.departmentId)?.name || 'N/A'}
+          {task.involvedDepartments && task.involvedDepartments.length > 0 ? (
+            <DepartmentCount
+              departments={task.involvedDepartments}
+              parentDepartmentId={task.departmentId}
+            />
+          ) : (
+            <span
+              style={{
+                color: '#9ca3af',
+                fontStyle: 'italic',
+                fontSize: '0.75rem',
+              }}
+            >
+              {departmentData.find(d => d.id === task.departmentId)?.name ||
+                'N/A'}
+            </span>
+          )}
         </td>
         <td style={styles.td}>
           {canEdit && (

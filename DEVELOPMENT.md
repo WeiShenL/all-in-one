@@ -801,6 +801,61 @@ export function BroadcastComponent() {
 
 ### API Reference
 
+#### Task API
+
+##### Involved Departments Feature (SCRUM-72)
+
+**Task responses now include `involvedDepartments` field:**
+
+The `task.getById` endpoint returns an `involvedDepartments` array containing all unique departments represented by task assignees:
+
+```typescript
+{
+  id: string;
+  title: string;
+  // ... other task fields
+  involvedDepartments: Array<{
+    id: string;
+    name: string;
+  }>;
+}
+```
+
+**Behavior:**
+
+- Parent department (from `task.departmentId`) appears first in the array
+- Departments are derived from assignee user profiles
+- Automatically updates when assignees are added/removed
+- Departments are deduplicated (each appears once)
+- Optimized with batched queries (single DB call for all departments)
+
+**Example Response:**
+
+```json
+{
+  "id": "task-123",
+  "title": "Cross-departmental project",
+  "departmentId": "eng-dept",
+  "assignments": [
+    { "userId": "user-1", "user": { "name": "John" } },
+    { "userId": "user-2", "user": { "name": "Jane" } }
+  ],
+  "involvedDepartments": [
+    { "id": "eng-dept", "name": "Engineering" }, // Parent department first
+    { "id": "marketing-dept", "name": "Marketing" }, // From assignees
+    { "id": "sales-dept", "name": "Sales" } // From assignees
+  ]
+}
+```
+
+**UI Components:**
+
+- `DepartmentPill`: Displays department tags with parent highlighting (gold crown)
+- `DepartmentCount`: Compact view showing parent + count with hover popup
+- Used in: TaskCard, TaskCreateForm, TaskTable
+
+### API Reference
+
 #### `useNotifications()` Hook
 
 Returns notification context with the following methods and properties:
