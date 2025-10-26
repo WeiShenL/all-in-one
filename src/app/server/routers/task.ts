@@ -871,17 +871,22 @@ export const taskRouter = router({
         ownerIds.add(task.getOwnerId());
       });
 
-      // Get all unique department IDs
-      const departmentIds = new Set<string>();
-      tasks.forEach(task => {
-        departmentIds.add(task.getDepartmentId());
-      });
-
       // Fetch user details for all assignees and owners (combine sets)
       const allUserIds = new Set([...userIds, ...ownerIds]);
       const users = await ctx.prisma.userProfile.findMany({
         where: { id: { in: Array.from(allUserIds) } },
-        select: { id: true, name: true, email: true },
+        select: { id: true, name: true, email: true, departmentId: true },
+      });
+
+      // Get all unique department IDs (from tasks and from assignees)
+      const departmentIds = new Set<string>();
+      tasks.forEach(task => {
+        departmentIds.add(task.getDepartmentId());
+      });
+      users.forEach(user => {
+        if (user.departmentId) {
+          departmentIds.add(user.departmentId);
+        }
       });
 
       // Fetch department details for all departments
@@ -889,7 +894,6 @@ export const taskRouter = router({
         where: { id: { in: Array.from(departmentIds) } },
         select: { id: true, name: true },
       });
-
       const userMap = new Map(users.map(u => [u.id, u]));
       const departmentMap = new Map(departments.map(d => [d.id, d]));
 
@@ -929,6 +933,51 @@ export const taskRouter = router({
         const projectId = task.getProjectId();
         const project = projectId ? projectMap.get(projectId) : null;
 
+        // Build involvedDepartments from assignees
+        const taskDeptId = task.getDepartmentId();
+        const deptMap = new Map<
+          string,
+          { id: string; name: string; isActive?: boolean }
+        >();
+
+        // Get unique department IDs from assignees
+        const assigneeDepartmentIds = new Set<string>();
+        assignmentsWithDetails.forEach(assignment => {
+          const user = assignment.user;
+          if (user && 'departmentId' in user && user.departmentId) {
+            assigneeDepartmentIds.add(user.departmentId);
+          }
+        });
+
+        // Check if parent department has any assignees
+        const hasParentAssignee = assigneeDepartmentIds.has(taskDeptId);
+
+        // Always include parent department if task has one, mark as inactive if no assignees
+        if (taskDeptId) {
+          const parentDept = departmentMap.get(taskDeptId);
+          if (parentDept) {
+            deptMap.set(taskDeptId, {
+              ...parentDept,
+              isActive: hasParentAssignee,
+            });
+          }
+        }
+
+        // Add all other unique departments from assignees (all active)
+        assigneeDepartmentIds.forEach(deptId => {
+          if (!deptMap.has(deptId)) {
+            const dept = departmentMap.get(deptId);
+            if (dept) {
+              deptMap.set(deptId, {
+                ...dept,
+                isActive: true,
+              });
+            }
+          }
+        });
+
+        const involvedDepartments = Array.from(deptMap.values());
+
         return {
           ...serialized,
           owner: userMap.get(task.getOwnerId()) || {
@@ -943,6 +992,7 @@ export const taskRouter = router({
           assignments: assignmentsWithDetails,
           project: project || null,
           canEdit: true,
+          involvedDepartments,
         };
       });
     }),

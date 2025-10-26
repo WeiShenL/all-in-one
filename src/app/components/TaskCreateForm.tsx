@@ -533,6 +533,9 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
               border: '1px solid #ccc',
               borderRadius: '4px',
               minHeight: '120px',
+              maxHeight: '200px',
+              overflowY: 'auto',
+              maxWidth: '100%',
               backgroundColor: loadingUsers ? '#f5f5f5' : 'white',
               cursor: loadingUsers ? 'not-allowed' : 'pointer',
             }}

@@ -162,7 +162,7 @@ describe('DepartmentPill Component', () => {
       );
 
       const pill = screen.getByText(/Engineering/);
-      expect(pill).toHaveAttribute('title', 'Engineering (Parent Department)');
+      expect(pill).toHaveAttribute('title', 'Engineering (Owner)');
     });
   });
 

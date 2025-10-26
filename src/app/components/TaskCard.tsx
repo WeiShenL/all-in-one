@@ -1814,6 +1814,10 @@ export function TaskCard({
                   borderRadius: '4px',
                   fontSize: '0.875rem',
                   boxSizing: 'border-box',
+                  maxHeight: '200px',
+                  overflowY: 'auto',
+                  maxWidth: '100%',
+                  textOverflow: 'ellipsis',
                   cursor:
                     addingAssignee || loadingUsers ? 'not-allowed' : 'pointer',
                 }}

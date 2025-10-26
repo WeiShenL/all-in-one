@@ -72,7 +72,7 @@ export const DepartmentPill = ({
             style={getStyles(isParent, isActive)}
             title={
               showTooltip
-                ? `${dept.name}${isParent ? ' (Parent Department)' : ''}${!isActive ? ' (No assignees)' : ''}`
+                ? `${dept.name}${isParent ? ' (Owner)' : ''}${!isActive ? ' (No assignees)' : ''}`
                 : undefined
             }
           >

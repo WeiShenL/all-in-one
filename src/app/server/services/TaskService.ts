@@ -1319,23 +1319,38 @@ export class TaskService extends BaseService {
         user.departmentId
       );
 
-      // Fetch all parent tasks (no parentTaskId) that have assignees in the department hierarchy
-      // Department Dashboard shows tasks where at least one assignee is from the user's department hierarchy
-      // This ensures that when all assignees from a department are removed, the task no longer appears
+      // Fetch all parent tasks (no parentTaskId) that either:
+      // 1. Have assignees from the department hierarchy, OR
+      // 2. Are unassigned tasks in the department hierarchy
+      // This ensures managers can see unassigned tasks to assign people
       const parentTasks = await this.prisma.task.findMany({
         where: {
           isArchived: false,
           parentTaskId: null, // Only parent tasks
-          assignments: {
-            some: {
-              user: {
-                departmentId: {
-                  in: departmentIds,
+          departmentId: {
+            in: departmentIds, // Task's department must be in hierarchy
+          },
+          OR: [
+            // Case 1: Has assignees from the department hierarchy
+            {
+              assignments: {
+                some: {
+                  user: {
+                    departmentId: {
+                      in: departmentIds,
+                    },
+                    isActive: true,
+                  },
                 },
-                isActive: true,
               },
             },
-          },
+            // Case 2: Has no assignees at all (unassigned task)
+            {
+              assignments: {
+                none: {},
+              },
+            },
+          ],
         },
         include: {
           assignments: {
@@ -1712,7 +1727,15 @@ export class TaskService extends BaseService {
           assignments: {
             select: {
               userId: true,
-              user: { select: { id: true, name: true, email: true } },
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  departmentId: true,
+                  department: { select: { id: true, name: true } },
+                },
+              },
             },
           },
           department: { select: { id: true, name: true } },
@@ -1772,6 +1795,46 @@ export class TaskService extends BaseService {
       const authService = new AuthorizationService();
 
       const tasksWithCanEdit = parentTasks.map(task => {
+        // Build involvedDepartments from assignees
+        const taskDeptId = task.departmentId;
+        const deptMap = new Map<
+          string,
+          { id: string; name: string; isActive?: boolean }
+        >();
+
+        // Get unique department IDs from assignees
+        const assigneeDepartmentIds = new Set<string>();
+        task.assignments.forEach(assignment => {
+          if (assignment.user.departmentId && assignment.user.department) {
+            assigneeDepartmentIds.add(assignment.user.departmentId);
+          }
+        });
+
+        // Check if parent department has any assignees
+        const hasParentAssignee = assigneeDepartmentIds.has(taskDeptId);
+
+        // Always include parent department
+        if (taskDeptId && task.department) {
+          deptMap.set(taskDeptId, {
+            ...task.department,
+            isActive: hasParentAssignee,
+          });
+        }
+
+        // Add all other unique departments from assignees (all active)
+        task.assignments.forEach(assignment => {
+          const deptId = assignment.user.departmentId;
+          const dept = assignment.user.department;
+          if (deptId && dept && !deptMap.has(deptId)) {
+            deptMap.set(deptId, {
+              ...dept,
+              isActive: true,
+            });
+          }
+        });
+
+        const involvedDepartments = Array.from(deptMap.values());
+
         const taskCanEdit = authService.canEditTask(
           {
             departmentId: task.departmentId,
@@ -1828,6 +1891,7 @@ export class TaskService extends BaseService {
           priorityBucket: task.priority,
           isRecurring: task.recurringInterval !== null,
           canEdit: taskCanEdit,
+          involvedDepartments,
           subtasks: subtasksWithCanEdit,
         };
       });
@@ -1998,6 +2062,12 @@ export class TaskService extends BaseService {
                 name: true,
                 email: true,
                 departmentId: true,
+                department: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
               },
             },
           },
@@ -2054,6 +2124,12 @@ export class TaskService extends BaseService {
                     name: true,
                     email: true,
                     departmentId: true,
+                    department: {
+                      select: {
+                        id: true,
+                        name: true,
+                      },
+                    },
                   },
                 },
               },
@@ -2109,6 +2185,50 @@ export class TaskService extends BaseService {
     const authService = new AuthorizationService();
 
     const tasksWithCanEdit = parentTasks.map(task => {
+      // Build involvedDepartments from assignees
+      const taskDeptId = task.departmentId;
+      const deptMap = new Map<
+        string,
+        { id: string; name: string; isActive?: boolean }
+      >();
+
+      // Get unique department IDs from assignees
+      const assigneeDepartmentIds = new Set<string>();
+      task.assignments.forEach(assignment => {
+        if (assignment.user.departmentId) {
+          assigneeDepartmentIds.add(assignment.user.departmentId);
+        }
+      });
+
+      // Check if parent department has any assignees
+      const hasParentAssignee = assigneeDepartmentIds.has(taskDeptId);
+
+      // Always include parent department
+      if (taskDeptId && task.department) {
+        deptMap.set(taskDeptId, {
+          ...task.department,
+          isActive: hasParentAssignee,
+        });
+      }
+
+      // Add all other unique departments from assignees (all active)
+      assigneeDepartmentIds.forEach(deptId => {
+        if (!deptMap.has(deptId)) {
+          // Find assignment with this department to get actual department info
+          const assignment = task.assignments.find(
+            a => a.user.departmentId === deptId
+          );
+          if (assignment?.user.department) {
+            deptMap.set(deptId, {
+              ...assignment.user.department,
+              isActive: true,
+            });
+          }
+        }
+      });
+
+      const involvedDepartments = Array.from(deptMap.values());
+
       // Extract assignee department IDs for permission check
       const taskAssigneeDepartmentIds = Array.from(
         new Set(task.assignments.map(a => a.user.departmentId))
@@ -2180,6 +2300,7 @@ export class TaskService extends BaseService {
         priorityBucket: task.priority,
         isRecurring: task.recurringInterval !== null,
         canEdit: taskCanEdit,
+        involvedDepartments,
         subtasks: subtasksWithCanEdit,
       };
     });

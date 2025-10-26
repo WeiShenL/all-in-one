@@ -224,7 +224,7 @@ const DepartmentCount = ({
                 >
                   {isParent && '👑 '}
                   {dept.name}
-                  {isParent && ' (Parent)'}
+                  {isParent && ' (Owner)'}
                   {!isActive && ' (Unassigned)'}
                 </div>
               </div>

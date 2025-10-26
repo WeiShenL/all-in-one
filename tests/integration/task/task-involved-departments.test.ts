@@ -360,24 +360,22 @@ describe('Task Involved Departments - Integration Tests', () => {
 
     expect(task).not.toBeNull();
     expect(task!.involvedDepartments).toBeDefined();
-    // Parent department should still appear but marked as inactive
-    expect(task!.involvedDepartments).toHaveLength(2);
+    // Only parent department (Marketing/Dept B) should remain since we removed Dept A assignee
+    expect(task!.involvedDepartments).toHaveLength(1);
 
-    // Engineering (parent) should be present but inactive
-    const engineeringDept = task!.involvedDepartments!.find(
-      d => d.id === testDepartmentAId
-    );
-    expect(engineeringDept).toBeDefined();
-    expect(engineeringDept!.name).toBe(`Engineering-${testNamespace}`);
-    expect(engineeringDept!.isActive).toBe(false); // No assignees
-
-    // Marketing should be active
+    // Marketing (parent) should be present and active
     const marketingDept = task!.involvedDepartments!.find(
       d => d.id === testDepartmentBId
     );
     expect(marketingDept).toBeDefined();
     expect(marketingDept!.name).toBe(`Marketing-${testNamespace}`);
-    expect(marketingDept!.isActive).toBe(true); // Has assignees
+    expect(marketingDept!.isActive).toBe(true); // Has assignees (testUserDeptB)
+
+    // Engineering (NOT parent) should be removed since no assignees left
+    const engineeringDept = task!.involvedDepartments!.find(
+      d => d.id === testDepartmentAId
+    );
+    expect(engineeringDept).toBeUndefined();
   }, 30000);
 
   // Additional test: Parent department ID should appear first
