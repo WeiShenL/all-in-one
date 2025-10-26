@@ -1592,9 +1592,19 @@ export class TaskService {
 
   /**
    * Archive a task (soft delete)
-   * Authorization: Only assigned users can archive
+   * Authorization: Only managers can archive tasks (AC1)
+   *
+   * Acceptance Criteria:
+   * - AC1: Only managers can archive tasks within their department hierarchy
+   * - AC2: Archived tasks are no longer visible in UI (handled by repository filters)
+   * - AC3: Archiving a parent task automatically archives all subtasks
    */
   async archiveTask(taskId: string, user: UserContext): Promise<Task> {
+    // AC1: Only managers can archive tasks
+    if (user.role !== 'MANAGER') {
+      throw new Error('Unauthorized: Only managers can archive tasks');
+    }
+
     const task = await this.getTaskById(taskId, user);
     if (!task) {
       throw new Error('Task not found');
@@ -1603,10 +1613,10 @@ export class TaskService {
     // Use domain method
     task.archive();
 
-    // Persist
+    // Persist parent task
     await this.taskRepository.archiveTask(taskId);
 
-    // Log action
+    // Log action for parent
     await this.taskRepository.logTaskAction(
       taskId,
       user.userId,
@@ -1623,6 +1633,34 @@ export class TaskService {
         },
       }
     );
+
+    // AC3: Cascade - Archive all subtasks when parent is archived
+    // The subtasks are archived silently (no authorization check) because the parent was already authorized
+    const subtasks = await this.taskRepository.getSubtasks(taskId);
+    for (const subtask of subtasks) {
+      // Use repository method to maintain abstraction layer
+      await this.taskRepository.archiveTask(subtask.id);
+
+      // Log action for each subtask
+      await this.taskRepository.logTaskAction(
+        subtask.id,
+        user.userId,
+        'ARCHIVED',
+        'Task',
+        {
+          changes: {
+            from: false,
+            to: true,
+          },
+          metadata: {
+            source: 'web_ui',
+            taskTitle: subtask.title,
+            cascadeFromParent: true,
+            parentTaskId: taskId,
+          },
+        }
+      );
+    }
 
     return task;
   }
