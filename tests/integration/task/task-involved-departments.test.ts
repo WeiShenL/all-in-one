@@ -52,6 +52,16 @@ jest.mock('@/app/server/services/RealtimeService', () => ({
   })),
 }));
 
+// ============================================
+// MOCK NOTIFICATIONSERVICE TO PREVENT STACK OVERFLOW
+// ============================================
+jest.mock('@/app/server/services/NotificationService', () => ({
+  NotificationService: jest.fn().mockImplementation(() => ({
+    create: jest.fn().mockResolvedValue({ id: 'mock-notification-id' }),
+    getUnreadCount: jest.fn().mockResolvedValue(0),
+  })),
+}));
+
 const prisma = new PrismaClient();
 let pgClient: Client;
 
