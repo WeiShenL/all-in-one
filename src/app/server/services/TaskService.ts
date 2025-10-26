@@ -1320,18 +1320,17 @@ export class TaskService extends BaseService {
       );
 
       // Fetch all parent tasks (no parentTaskId) that either:
-      // 1. Have assignees from the department hierarchy, OR
+      // 1. Have assignees from the department hierarchy (regardless of task's parent dept), OR
       // 2. Are unassigned tasks in the department hierarchy
-      // This ensures managers can see unassigned tasks to assign people
+      // This ensures:
+      // - Users see tasks they're assigned to from ANY department
+      // - Managers can see unassigned tasks in their hierarchy to assign people
       const parentTasks = await this.prisma.task.findMany({
         where: {
           isArchived: false,
           parentTaskId: null, // Only parent tasks
-          departmentId: {
-            in: departmentIds, // Task's department must be in hierarchy
-          },
           OR: [
-            // Case 1: Has assignees from the department hierarchy
+            // Case 1: Has assignees from the department hierarchy (ANY task parent dept)
             {
               assignments: {
                 some: {
@@ -1344,11 +1343,20 @@ export class TaskService extends BaseService {
                 },
               },
             },
-            // Case 2: Has no assignees at all (unassigned task)
+            // Case 2: Unassigned tasks where task's parent dept is in hierarchy
             {
-              assignments: {
-                none: {},
-              },
+              AND: [
+                {
+                  departmentId: {
+                    in: departmentIds,
+                  },
+                },
+                {
+                  assignments: {
+                    none: {},
+                  },
+                },
+              ],
             },
           ],
         },
@@ -1423,6 +1431,13 @@ export class TaskService extends BaseService {
                       id: true,
                       name: true,
                       email: true,
+                      departmentId: true,
+                      department: {
+                        select: {
+                          id: true,
+                          name: true,
+                        },
+                      },
                     },
                   },
                 },
@@ -1476,6 +1491,15 @@ export class TaskService extends BaseService {
       const authService = new AuthorizationService();
 
       const tasksWithCanEdit = parentTasks.map(task => {
+        // Get unique department IDs from task assignees
+        const taskAssigneeDepartmentIds = [
+          ...new Set(
+            task.assignments
+              .map(a => a.user.departmentId)
+              .filter((deptId): deptId is string => deptId !== null)
+          ),
+        ];
+
         const taskCanEdit = authService.canEditTask(
           {
             departmentId: task.departmentId,
@@ -1486,11 +1510,21 @@ export class TaskService extends BaseService {
             role: user.role as 'STAFF' | 'MANAGER' | 'HR_ADMIN',
             departmentId: user.departmentId,
           },
-          departmentIds
+          departmentIds,
+          taskAssigneeDepartmentIds
         );
 
         // Calculate canEdit for subtasks
         const subtasksWithCanEdit = task.subtasks?.map(subtask => {
+          // Get unique department IDs from subtask assignees
+          const subtaskAssigneeDepartmentIds = [
+            ...new Set(
+              subtask.assignments
+                .map(a => a.user.departmentId)
+                .filter((deptId): deptId is string => deptId !== null)
+            ),
+          ];
+
           const subtaskCanEdit = authService.canEditTask(
             {
               departmentId: subtask.departmentId,
@@ -1501,7 +1535,8 @@ export class TaskService extends BaseService {
               role: user.role as 'STAFF' | 'MANAGER' | 'HR_ADMIN',
               departmentId: user.departmentId,
             },
-            departmentIds
+            departmentIds,
+            subtaskAssigneeDepartmentIds
           );
 
           return {
@@ -1763,7 +1798,15 @@ export class TaskService extends BaseService {
               assignments: {
                 select: {
                   userId: true,
-                  user: { select: { id: true, name: true, email: true } },
+                  user: {
+                    select: {
+                      id: true,
+                      name: true,
+                      email: true,
+                      departmentId: true,
+                      department: { select: { id: true, name: true } },
+                    },
+                  },
                 },
               },
               department: { select: { id: true, name: true } },
@@ -1835,6 +1878,15 @@ export class TaskService extends BaseService {
 
         const involvedDepartments = Array.from(deptMap.values());
 
+        // Get unique department IDs from task assignees for permission check
+        const taskAssigneeDepartmentIds = [
+          ...new Set(
+            task.assignments
+              .map(a => a.user.departmentId)
+              .filter((deptId): deptId is string => deptId !== null)
+          ),
+        ];
+
         const taskCanEdit = authService.canEditTask(
           {
             departmentId: task.departmentId,
@@ -1845,10 +1897,20 @@ export class TaskService extends BaseService {
             role: user.role as 'STAFF' | 'MANAGER' | 'HR_ADMIN',
             departmentId: user.departmentId,
           },
-          departmentIds
+          departmentIds,
+          taskAssigneeDepartmentIds
         );
 
         const subtasksWithCanEdit = task.subtasks?.map(subtask => {
+          // Get unique department IDs from subtask assignees for permission check
+          const subtaskAssigneeDepartmentIds = [
+            ...new Set(
+              subtask.assignments
+                .map(a => a.user.departmentId)
+                .filter((deptId): deptId is string => deptId !== null)
+            ),
+          ];
+
           const subtaskCanEdit = authService.canEditTask(
             {
               departmentId: subtask.departmentId,
@@ -1859,7 +1921,8 @@ export class TaskService extends BaseService {
               role: user.role as 'STAFF' | 'MANAGER' | 'HR_ADMIN',
               departmentId: user.departmentId,
             },
-            departmentIds
+            departmentIds,
+            subtaskAssigneeDepartmentIds
           );
 
           return {
@@ -2084,13 +2147,7 @@ export class TaskService extends BaseService {
             name: true,
           },
         },
-        owner: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
+        owner: true,
         tags: {
           include: {
             tag: {

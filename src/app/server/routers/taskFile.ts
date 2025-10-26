@@ -1,12 +1,35 @@
-import { router, publicProcedure } from '../trpc';
+import { router, publicProcedure, type Context } from '../trpc';
 import { TaskService } from '../../../services/task/TaskService';
 import { PrismaTaskRepository } from '../../../repositories/PrismaTaskRepository';
 import { z } from 'zod';
+import type { UserContext } from '../../../services/task/TaskService';
 
 /**
  * Task File Router
  * tRPC endpoints for file upload, download, and delete operations
  */
+
+// Helper to get authenticated user context
+async function getUserContext(ctx: Context): Promise<UserContext> {
+  if (!ctx.userId) {
+    throw new Error('User not authenticated');
+  }
+
+  const userProfile = await ctx.prisma.userProfile.findUnique({
+    where: { id: ctx.userId },
+  });
+
+  if (!userProfile) {
+    throw new Error('User profile not found');
+  }
+
+  return {
+    userId: ctx.userId,
+    role: userProfile.role as 'STAFF' | 'MANAGER' | 'HR_ADMIN',
+    departmentId: userProfile.departmentId,
+    isHrAdmin: userProfile.isHrAdmin,
+  };
+}
 
 // Input validation schemas
 const uploadFileSchema = z.object({
@@ -190,11 +213,8 @@ export const taskFileRouter = router({
         const repository = new PrismaTaskRepository(ctx.prisma);
         const service = new TaskService(repository);
 
-        const user = {
-          userId: input.userId,
-          role: input.userRole,
-          departmentId: input.departmentId,
-        };
+        // Get authenticated user context with isHrAdmin flag
+        const user = await getUserContext(ctx);
 
         const files = await service.getTaskFiles(input.taskId, user);
 

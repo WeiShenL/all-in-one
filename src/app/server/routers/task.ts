@@ -657,28 +657,6 @@ export const taskRouter = router({
         user.departmentId
       );
 
-      // Import AuthorizationService
-      const { AuthorizationService } = await import(
-        '../services/AuthorizationService'
-      );
-      const authService = new AuthorizationService();
-
-      // Calculate canEdit permission
-      const canEdit = authService.canEditTask(
-        {
-          departmentId: task.getDepartmentId(),
-          assignments: Array.from(task.getAssignees()).map(userId => ({
-            userId,
-          })),
-        },
-        {
-          userId: user.userId,
-          role: user.role,
-          departmentId: user.departmentId,
-        },
-        departmentIds
-      );
-
       // Fetch user details for assignments
       const assigneeIds = Array.from(task.getAssignees());
       const users = await ctx.prisma.userProfile.findMany({
@@ -701,6 +679,38 @@ export const taskRouter = router({
           department: { select: { id: true, name: true } },
         },
       });
+
+      // Get unique department IDs from all assignees for permission check
+      const assigneeDepartmentIds = [
+        ...new Set(
+          userProfiles
+            .map(up => up.departmentId)
+            .filter((deptId): deptId is string => deptId !== null)
+        ),
+      ];
+
+      // Import AuthorizationService
+      const { AuthorizationService } = await import(
+        '../services/AuthorizationService'
+      );
+      const authService = new AuthorizationService();
+
+      // Calculate canEdit permission with assignee department IDs
+      const canEdit = authService.canEditTask(
+        {
+          departmentId: task.getDepartmentId(),
+          assignments: Array.from(task.getAssignees()).map(userId => ({
+            userId,
+          })),
+        },
+        {
+          userId: user.userId,
+          role: user.role,
+          departmentId: user.departmentId,
+        },
+        departmentIds,
+        assigneeDepartmentIds // Pass assignee departments for accurate permission check
+      );
 
       // Build involvedDepartments - unique departments from assignees with parent first
       let taskDeptId: string | null = task.getDepartmentId();

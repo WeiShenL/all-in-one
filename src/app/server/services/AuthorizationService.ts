@@ -57,11 +57,13 @@ export class AuthorizationService {
       return taskInHierarchy;
     }
 
-    // MANAGER: Can edit tasks where at least one assignee is from their hierarchy
+    // MANAGER: Can edit tasks where:
+    // - Task's department is in hierarchy, OR
+    // - At least one assignee is from their hierarchy
     if (user.role === 'MANAGER') {
-      // If assignee departments are provided, require at least one assignee from hierarchy
+      // If assignee departments are provided, check both conditions
       if (assigneeDepartmentIds) {
-        return hasAssigneeInHierarchy;
+        return taskInHierarchy || hasAssigneeInHierarchy;
       }
       // Fallback to old behavior if assignee departments not provided
       return taskInHierarchy;
