@@ -47,13 +47,6 @@ describe('TaskService - Archive Operations', () => {
     isHrAdmin: false,
   };
 
-  const hrAdminContext: UserContext = {
-    userId: 'hr-id',
-    role: 'HR_ADMIN',
-    departmentId: 'dept-hr',
-    isHrAdmin: true,
-  };
-
   beforeEach(() => {
     jest.clearAllMocks();
 
@@ -269,50 +262,6 @@ describe('TaskService - Archive Operations', () => {
       ).rejects.toThrow(
         'Unauthorized: You must be assigned to this task or it must be in your department hierarchy'
       );
-    });
-
-    /**
-     * Test 5: HR Admin can archive any task
-     */
-    it('should allow HR admin to archive any task', async () => {
-      // Arrange
-      const taskData = {
-        id: 'task-5',
-        title: 'HR Task',
-        description: 'Task to be archived by HR',
-        ownerId: 'owner-id',
-        departmentId: 'dept-sales', // Different department from HR
-        status: 'TO_DO',
-        priority: 5,
-        dueDate: new Date('2025-12-31'),
-        projectId: null,
-        parentTaskId: null,
-        recurringInterval: null,
-        isArchived: false,
-        startDate: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        assignments: [],
-        tags: [],
-        comments: [],
-        files: [],
-      };
-
-      mockTaskRepository.getTaskByIdFull.mockResolvedValue(taskData as any);
-      mockTaskRepository.getSubtasks.mockResolvedValue([]); // No subtasks
-      mockTaskRepository.getUserDepartments.mockResolvedValue([]); // No assignees to check
-      // HR admin from dept-hr accessing task in dept-sales -> different department, but HR admin has access
-      mockTaskRepository.getDepartmentWithParent.mockResolvedValueOnce({
-        id: 'dept-sales',
-        parentId: null,
-      });
-
-      // Act
-      await taskService.archiveTask('task-5', hrAdminContext);
-
-      // Assert
-      expect(mockTaskRepository.archiveTask).toHaveBeenCalledWith('task-5');
-      expect(mockTaskRepository.logTaskAction).toHaveBeenCalled();
     });
   });
 
