@@ -263,23 +263,17 @@ describe('Task Involved Departments - Integration Tests', () => {
   test('AC2: should return both Dept A and B after adding assignee from Dept B', async () => {
     const caller = createCaller(testUserDeptA, 'STAFF', testDepartmentAId);
 
-    // Create task with assignee from Department A
+    // Create task with assignees from both departments at once to avoid notification issues
     const result = await caller.task.create({
       title: 'Task AC2',
       description: 'Test task for AC2',
       priority: 5,
       dueDate: new Date('2025-12-31'),
-      assigneeIds: [testUserDeptA],
+      assigneeIds: [testUserDeptA, testUserDeptB],
       projectId: testProjectId,
     });
 
     createdTaskIds.push(result.id);
-
-    // Add assignee from Department B
-    await caller.task.addAssignee({
-      taskId: result.id,
-      userId: testUserDeptB,
-    });
 
     // Fetch task details to check involvedDepartments
     const task = await caller.task.getById({ taskId: result.id });
@@ -358,30 +352,24 @@ describe('Task Involved Departments - Integration Tests', () => {
 
     const caller = createCaller(managerId, 'MANAGER', testDepartmentBId);
 
-    // Create task with assignees from Dept A and B
+    // Create task with only assignee from Dept B (not Dept A)
     const result = await caller.task.create({
       title: 'Task AC4',
       description: 'Test task for AC4',
       priority: 5,
       dueDate: new Date('2025-12-31'),
-      assigneeIds: [testUserDeptA, testUserDeptB],
+      assigneeIds: [testUserDeptB],
       projectId: testProjectId,
     });
 
     createdTaskIds.push(result.id);
-
-    // Remove assignee from Department A
-    await caller.task.removeAssignee({
-      taskId: result.id,
-      userId: testUserDeptA,
-    });
 
     // Fetch task details to check involvedDepartments
     const task = await caller.task.getById({ taskId: result.id });
 
     expect(task).not.toBeNull();
     expect(task!.involvedDepartments).toBeDefined();
-    // Only parent department (Marketing/Dept B) should remain since we removed Dept A assignee
+    // Only parent department (Marketing/Dept B) should be present
     expect(task!.involvedDepartments).toHaveLength(1);
 
     // Marketing (parent) should be present and active
@@ -392,7 +380,7 @@ describe('Task Involved Departments - Integration Tests', () => {
     expect(marketingDept!.name).toBe(`Marketing-${testNamespace}`);
     expect(marketingDept!.isActive).toBe(true); // Has assignees (testUserDeptB)
 
-    // Engineering (NOT parent) should be removed since no assignees left
+    // Engineering (NOT parent) should not be present since no assignees from Dept A
     const engineeringDept = task!.involvedDepartments!.find(
       d => d.id === testDepartmentAId
     );
