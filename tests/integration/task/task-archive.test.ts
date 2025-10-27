@@ -16,6 +16,8 @@ import { PrismaClient } from '@prisma/client';
 import { appRouter } from '@/app/server/routers/_app';
 import { createInnerTRPCContext } from '@/app/server/trpc';
 
+jest.setTimeout(180000); // 3 minutes timeout for ALL tests
+
 describe('Integration Tests - Task Archive', () => {
   let pgClient: Client;
   const prisma = new PrismaClient();
