@@ -593,7 +593,16 @@ export const taskRouter = router({
     .input(z.object({ taskId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const repository = new PrismaTaskRepository(ctx.prisma);
-      const realtimeService = new RealtimeService();
+
+      // Try to initialize RealtimeService, but gracefully handle failures (e.g., in test environments)
+      let realtimeService;
+      try {
+        realtimeService = new RealtimeService();
+      } catch {
+        // RealtimeService not available (e.g., in test environment)
+        realtimeService = undefined;
+      }
+
       const service = new TaskService(repository, ctx.prisma, realtimeService);
 
       const user = await getUserContext(ctx);
