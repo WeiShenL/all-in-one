@@ -359,6 +359,14 @@ describe('HR/Admin Company Dashboard - Integration Tests', () => {
   }
 
   beforeAll(async () => {
+    // First, clean up any orphaned tasks that might cause Prisma relation errors
+    // This handles tasks where the owner or department was deleted in previous failed test runs
+    await prisma.$executeRaw`
+      DELETE FROM "task"
+      WHERE "ownerId" NOT IN (SELECT id FROM "user_profile")
+         OR "departmentId" NOT IN (SELECT id FROM "department")
+    `;
+
     // Cleanup existing test data
     await cleanupTestData();
 
