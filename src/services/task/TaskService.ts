@@ -1688,29 +1688,42 @@ export class TaskService {
     // Remove ProjectCollaborator entries for users who no longer have active tasks in project
     // When a task is archived, users may no longer have any active (non-archived) tasks in the project
     const projectId = task.getProjectId();
-    if (projectId) {
-      // Get all unique assignees from parent task and subtasks
-      const allAssigneeIds = new Set<string>();
+    const allAssigneeIds = new Set<string>();
 
-      // Add parent task assignees (Task domain uses Set<string> for assignments)
-      task.getAssignees().forEach(userId => {
-        allAssigneeIds.add(userId);
-      });
+    // Add parent task assignees (Task domain uses Set<string> for assignments)
+    task.getAssignees().forEach(userId => {
+      allAssigneeIds.add(userId);
+    });
 
-      // Add subtask assignees (Repository returns Prisma objects with assignments array)
-      for (const subtask of subtasks) {
-        if (subtask.assignments && Array.isArray(subtask.assignments)) {
-          subtask.assignments.forEach((assignment: { userId: string }) => {
-            allAssigneeIds.add(assignment.userId);
-          });
-        }
+    // Add subtask assignees (Repository returns Prisma objects with assignments array)
+    for (const subtask of subtasks) {
+      if (subtask.assignments && Array.isArray(subtask.assignments)) {
+        subtask.assignments.forEach((assignment: { userId: string }) => {
+          allAssigneeIds.add(assignment.userId);
+        });
       }
+    }
 
+    if (projectId) {
       // Check each assignee and remove from project collaborators if no active tasks remain
       for (const assigneeId of allAssigneeIds) {
         await this.removeProjectCollaboratorIfNeeded(projectId, assigneeId);
       }
     }
+
+    // Broadcast real-time update to all affected users to trigger dashboard refresh
+    // Fire all broadcasts concurrently to avoid sequential timeout issues
+    const broadcastPromises = Array.from(allAssigneeIds).map(assigneeId =>
+      this.broadcastToastNotification(assigneeId, {
+        type: 'TASK_UPDATED',
+        title: 'Task Updated',
+        message: 'Task list updated',
+        taskId: taskId,
+      })
+    );
+
+    // Wait for all broadcasts to complete (or fail gracefully)
+    await Promise.allSettled(broadcastPromises);
 
     return task;
   }
