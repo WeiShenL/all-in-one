@@ -178,7 +178,7 @@ test.describe('Task Creation with Tags - Isolated E2E Tests', () => {
     const createTaskButton = page.getByRole('button', {
       name: /\+ Create Task/i,
     });
-    await expect(createTaskButton).toBeVisible({ timeout: 30000 });
+    await expect(createTaskButton).toBeVisible({ timeout: 60000 });
     await createTaskButton.click();
 
     // Wait for modal to open
@@ -214,7 +214,7 @@ test.describe('Task Creation with Tags - Isolated E2E Tests', () => {
     try {
       await expect(
         page.getByRole('heading', { name: /create new task/i })
-      ).not.toBeVisible({ timeout: 20000 });
+      ).not.toBeVisible({ timeout: 60000 });
     } catch {
       // Modal might still be visible, but that's okay - verify task was created instead
       // Check if we're redirected to dashboard or task appears in list

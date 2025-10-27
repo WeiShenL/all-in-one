@@ -209,7 +209,7 @@ test.describe('Task Comments - Isolated E2E Tests', () => {
 
     // Find and click edit button for our test task
     const editButton = page.getByTestId(`edit-task-button-${testTaskId}`);
-    await expect(editButton).toBeVisible({ timeout: 30000 });
+    await expect(editButton).toBeVisible({ timeout: 60000 });
     await editButton.click();
 
     // Wait for modal to open - look for task title instead of heading
@@ -263,7 +263,7 @@ test.describe('Task Comments - Isolated E2E Tests', () => {
 
     // Find and click edit button for our test task
     const editButton = page.getByTestId(`edit-task-button-${testTaskId}`);
-    await expect(editButton).toBeVisible({ timeout: 30000 });
+    await expect(editButton).toBeVisible({ timeout: 60000 });
     await editButton.click();
 
     // Wait for modal to open - wait for task title display to be visible

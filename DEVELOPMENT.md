@@ -11,6 +11,7 @@ This document covers development practices, guidelines, and advanced topics for 
 - [Real-time Notification System](#-real-time-notification-system)
 - [Email System](#-email-system)
 - [File Upload & Storage System](#-file-upload--storage-system)
+- [Project Report Export](#-project-report-export)
 - [Reusable Components](#-reusable-components)
   - [TaskCalendar Component](#taskcalendar-component)
 - [Project Structure](#-project-structure)
@@ -1179,6 +1180,27 @@ Click **Review** → **Save policy**
 ```
 
 Click **Review** → **Save policy**
+
+## 📊 Project Report Export
+
+HR/Admin users can export project reports in PDF or Excel format.
+
+**Access**: `/dashboard/hr` (HR_ADMIN role or `isHrAdmin` flag required)
+
+**Usage**:
+
+1. Select a project from dropdown
+2. Click "Export Report"
+3. Choose PDF or Excel format
+4. File downloads automatically
+
+**Implementation**:
+
+- **Architecture**: Follows DDD pattern with repository layer
+- **Backend**: `ProjectReportService` with authorization and data fetching via `IProjectRepository`
+- **Frontend**: `ProjectReportExportButton` component with `exportProjectToPDF()` and `exportProjectToXLSX()` utilities
+- **Authorization**: Service validates HR/Admin access before allowing export
+- **Testing**: Full coverage with unit tests (34), integration tests (15), and E2E tests (2)
 
 ## 🧩 Reusable Components
 

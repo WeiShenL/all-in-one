@@ -134,4 +134,48 @@ export interface IProjectRepository {
       updatedAt: Date;
     }>
   >;
+
+  // ============================================
+  // REPORTING OPERATIONS
+  // ============================================
+
+  /**
+   * Get comprehensive project report data for export
+   * Fetches project details, tasks, and collaborators with all required relations
+   *
+   * @param projectId - Project ID to fetch report for
+   * @returns Report data including project, tasks, and collaborators
+   */
+  getProjectReportData(projectId: string): Promise<{
+    project: {
+      id: string;
+      name: string;
+      description: string | null;
+      priority: number;
+      status: string;
+      departmentName: string;
+      creatorName: string;
+      creatorEmail: string;
+      createdAt: Date;
+      updatedAt: Date;
+    };
+    tasks: Array<{
+      id: string;
+      title: string;
+      description: string;
+      status: string;
+      priority: number;
+      dueDate: Date;
+      createdAt: Date;
+      ownerName: string;
+      ownerEmail: string;
+      assignees: string[];
+    }>;
+    collaborators: Array<{
+      name: string;
+      email: string;
+      departmentName: string;
+      addedAt: Date;
+    }>;
+  }>;
 }

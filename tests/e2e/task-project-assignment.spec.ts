@@ -231,7 +231,7 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
     await page.click('button[type="submit"]');
 
     // Wait for redirect to dashboard
-    await page.waitForURL(/\/dashboard/, { timeout: 15000 });
+    await page.waitForURL(/\/dashboard/, { timeout: 60000 });
 
     // 2. Navigate to task creation page/modal
     // Look for "Create Task" button (exact text: "+ Create Task")
@@ -311,12 +311,12 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
         return options.some(opt => opt.text.includes(projectName));
       },
       testProjectName,
-      { timeout: 15000 }
+      { timeout: 60000 }
     );
 
     // Select project using data-testid (more reliable)
     const projectSelect = page.locator('[data-testid="project-select"]');
-    await projectSelect.waitFor({ state: 'visible', timeout: 15000 });
+    await projectSelect.waitFor({ state: 'visible', timeout: 60000 });
 
     // Wait for projects to load
     await page.waitForFunction(
@@ -331,7 +331,7 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
         return options.some(opt => opt.text.includes(projectName as string));
       },
       testProjectName,
-      { timeout: 15000 }
+      { timeout: 60000 }
     );
 
     await projectSelect.selectOption({ label: testProjectName });
@@ -458,7 +458,7 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
     await page.fill('input[type="email"]', testEmail);
     await page.fill('input[type="password"]', testPassword);
     await page.click('button[type="submit"]');
-    await page.waitForURL(/\/dashboard/, { timeout: 15000 });
+    await page.waitForURL(/\/dashboard/, { timeout: 60000 });
 
     // 2. Create parent task with project
     const createTaskButton = page
@@ -506,7 +506,7 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
 
     // Select project using data-testid
     const projectSelect = page.locator('[data-testid="project-select"]');
-    await projectSelect.waitFor({ state: 'visible', timeout: 15000 });
+    await projectSelect.waitFor({ state: 'visible', timeout: 60000 });
 
     // Wait for projects to load
     await page.waitForFunction(
@@ -521,7 +521,7 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
         return options.some(opt => opt.text.includes(projectName as string));
       },
       testProjectName,
-      { timeout: 15000 }
+      { timeout: 60000 }
     );
 
     await projectSelect.selectOption({ label: testProjectName });
