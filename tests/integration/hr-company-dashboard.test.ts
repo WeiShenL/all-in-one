@@ -273,51 +273,86 @@ describe('HR/Admin Company Dashboard - Integration Tests', () => {
   }
 
   async function cleanupTestData() {
-    // Delete in reverse order of foreign key constraints using unique namespace
-    await prisma.taskAssignment.deleteMany({
-      where: {
-        task: {
-          owner: {
-            email: {
-              contains: testNamespace,
-            },
-          },
-        },
-      },
-    });
+    // Delete in reverse order of foreign key constraints using specific IDs
+    // Use direct IDs, not relation filters
+    // This prevents orphaned data issues in parallel test execution
 
+    const taskIds = [
+      TEST_IDS.TASK_ENG_UNASSIGNED,
+      TEST_IDS.TASK_ENG_ASSIGNED,
+      TEST_IDS.TASK_SALES_ASSIGNED,
+      TEST_IDS.TASK_HR_ASSIGNED,
+      TEST_IDS.TASK_ENG_DEV_ASSIGNED,
+    ];
+
+    const projectIds = [TEST_IDS.PROJECT_ENG, TEST_IDS.PROJECT_SALES];
+
+    const userIds = [
+      TEST_IDS.USER_HR_ADMIN_ONLY,
+      TEST_IDS.USER_HR_ADMIN_AND_MANAGER,
+      TEST_IDS.USER_MANAGER_ONLY,
+      TEST_IDS.USER_STAFF,
+      TEST_IDS.USER_STAFF_SALES,
+    ];
+
+    const deptIds = [
+      TEST_IDS.DEPT_ENGINEERING_DEV,
+      TEST_IDS.DEPT_ENGINEERING,
+      TEST_IDS.DEPT_SALES,
+      TEST_IDS.DEPT_HR,
+      TEST_IDS.DEPT_ROOT,
+    ];
+
+    // Also cleanup any leftover archived tasks from this namespace
     await prisma.task.deleteMany({
       where: {
-        owner: {
-          email: {
-            contains: testNamespace,
-          },
+        title: {
+          contains: testNamespace,
         },
       },
     });
 
+    // Delete task assignments first
+    await prisma.taskAssignment.deleteMany({
+      where: {
+        taskId: {
+          in: taskIds,
+        },
+      },
+    });
+
+    // Delete tasks (works even if owner relation is broken)
+    await prisma.task.deleteMany({
+      where: {
+        id: {
+          in: taskIds,
+        },
+      },
+    });
+
+    // Delete projects
     await prisma.project.deleteMany({
       where: {
-        creator: {
-          email: {
-            contains: testNamespace,
-          },
+        id: {
+          in: projectIds,
         },
       },
     });
 
+    // Delete users
     await prisma.userProfile.deleteMany({
       where: {
-        email: {
-          contains: testNamespace,
+        id: {
+          in: userIds,
         },
       },
     });
 
+    // Delete departments (in correct order - children first)
     await prisma.department.deleteMany({
       where: {
-        name: {
-          contains: testNamespace,
+        id: {
+          in: deptIds,
         },
       },
     });

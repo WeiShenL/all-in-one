@@ -296,4 +296,137 @@ export class PrismaProjectRepository implements IProjectRepository {
 
     return projects;
   }
+
+  /**
+   * Get comprehensive project report data for export
+   * Fetches project with all required relations: department, creator, tasks, collaborators
+   *
+   * Note: This is a read-heavy operation for reporting purposes
+   * - Fetches project with department and creator
+   * - Fetches all non-archived tasks with owners and assignments
+   * - Fetches all collaborators with user and department info
+   * - Can add stats in the future if needed (other user stories)
+   */
+  async getProjectReportData(projectId: string): Promise<{
+    project: {
+      id: string;
+      name: string;
+      description: string | null;
+      priority: number;
+      status: string;
+      departmentName: string;
+      creatorName: string;
+      creatorEmail: string;
+      createdAt: Date;
+      updatedAt: Date;
+    };
+    tasks: Array<{
+      id: string;
+      title: string;
+      description: string;
+      status: string;
+      priority: number;
+      dueDate: Date;
+      createdAt: Date;
+      ownerName: string;
+      ownerEmail: string;
+      assignees: string[];
+    }>;
+    collaborators: Array<{
+      name: string;
+      email: string;
+      departmentName: string;
+      addedAt: Date;
+    }>;
+  }> {
+    // Fetch project with department and creator relations
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      include: {
+        department: {
+          select: { id: true, name: true },
+        },
+        creator: {
+          select: { id: true, name: true, email: true },
+        },
+      },
+    });
+
+    if (!project) {
+      throw new Error('Project not found');
+    }
+
+    // Fetch all active tasks with owner and assignments
+    const tasks = await this.prisma.task.findMany({
+      where: {
+        projectId,
+        isArchived: false,
+      },
+      include: {
+        owner: {
+          select: { id: true, name: true, email: true },
+        },
+        assignments: {
+          include: {
+            user: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+
+    // Fetch all collaborators with user and department info
+    const collaborators = await this.prisma.projectCollaborator.findMany({
+      where: { projectId },
+      include: {
+        user: {
+          select: { id: true, name: true, email: true },
+        },
+        department: {
+          select: { id: true, name: true },
+        },
+      },
+      orderBy: {
+        addedAt: 'asc',
+      },
+    });
+
+    // Transform and return formatted data
+    return {
+      project: {
+        id: project.id,
+        name: project.name,
+        description: project.description,
+        priority: project.priority,
+        status: project.status,
+        departmentName: project.department.name,
+        creatorName: project.creator.name,
+        creatorEmail: project.creator.email,
+        createdAt: project.createdAt,
+        updatedAt: project.updatedAt,
+      },
+      tasks: tasks.map(task => ({
+        id: task.id,
+        title: task.title,
+        description: task.description,
+        status: task.status,
+        priority: task.priority,
+        dueDate: task.dueDate,
+        createdAt: task.createdAt,
+        ownerName: task.owner.name,
+        ownerEmail: task.owner.email,
+        assignees: task.assignments.map(a => a.user.name),
+      })),
+      collaborators: collaborators.map(c => ({
+        name: c.user.name,
+        email: c.user.email,
+        departmentName: c.department.name,
+        addedAt: c.addedAt,
+      })),
+    };
+  }
 }

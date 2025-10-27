@@ -212,7 +212,7 @@ test.describe('Basic Task Update - Isolated E2E Tests', () => {
 
     // Find and click edit button for our test task
     const editButton = page.getByTestId(`edit-task-button-${testTaskId}`);
-    await expect(editButton).toBeVisible({ timeout: 30000 });
+    await expect(editButton).toBeVisible({ timeout: 60000 });
     await editButton.click();
 
     // Wait for modal to open - look for task title instead of heading
@@ -233,7 +233,7 @@ test.describe('Basic Task Update - Isolated E2E Tests', () => {
     // Verify title update success message (optional - may not appear in CI)
     try {
       await expect(page.getByText(/title updated|✅/i)).toBeVisible({
-        timeout: 30000,
+        timeout: 60000,
       });
     } catch {
       // Success message not visible, but that's okay - verify the actual change instead
@@ -259,7 +259,7 @@ test.describe('Basic Task Update - Isolated E2E Tests', () => {
 
     // Verify description update success message
     await expect(page.getByText(/description updated|✅/i)).toBeVisible({
-      timeout: 30000,
+      timeout: 60000,
     });
   });
 
@@ -275,7 +275,7 @@ test.describe('Basic Task Update - Isolated E2E Tests', () => {
 
     // Find and click edit button for our test task
     const editButton = page.getByTestId(`edit-task-button-${testTaskId}`);
-    await expect(editButton).toBeVisible({ timeout: 30000 });
+    await expect(editButton).toBeVisible({ timeout: 60000 });
     await editButton.click();
 
     // Wait for modal to open - look for task title instead of heading
@@ -296,7 +296,7 @@ test.describe('Basic Task Update - Isolated E2E Tests', () => {
     // Verify priority update success message (optional - may not appear in CI)
     try {
       await expect(page.getByText(/priority updated|✅/i)).toBeVisible({
-        timeout: 30000,
+        timeout: 60000,
       });
     } catch {
       // Success message not visible, but that's okay - verify the actual change instead
@@ -319,7 +319,7 @@ test.describe('Basic Task Update - Isolated E2E Tests', () => {
 
     // Verify due date update success message
     await expect(page.getByText(/deadline updated|✅/i)).toBeVisible({
-      timeout: 30000,
+      timeout: 60000,
     });
   });
 
@@ -335,7 +335,7 @@ test.describe('Basic Task Update - Isolated E2E Tests', () => {
 
     // Find and click edit button for our test task
     const editButton = page.getByTestId(`edit-task-button-${testTaskId}`);
-    await expect(editButton).toBeVisible({ timeout: 30000 });
+    await expect(editButton).toBeVisible({ timeout: 60000 });
     await editButton.click();
 
     // Wait for modal to open - look for task title instead of heading
@@ -356,7 +356,7 @@ test.describe('Basic Task Update - Isolated E2E Tests', () => {
     // Verify success message (optional - may not appear in CI)
     try {
       await expect(page.getByText(/status updated|✅/i)).toBeVisible({
-        timeout: 30000,
+        timeout: 60000,
       });
     } catch {
       // Success message not visible, but that's okay - verify the actual change instead

@@ -250,4 +250,37 @@ export const projectRouter = router({
 
       return { success: true };
     }),
+
+  // ============================================
+  // REPORT EXPORT
+  // ============================================
+
+  /**
+   * Get project report data for export
+   * Authorization: Only HR/Admin users (isHrAdmin flag OR HR_ADMIN role)
+   * Returns: Project details, tasks, collaborators
+   *
+   * DDD Pattern:
+   * - Instantiates repository (infrastructure layer)
+   * - Injects repository into service (dependency inversion)
+   * - Service orchestrates authorization and delegates to repository
+   */
+  getProjectReport: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const { ProjectReportService } = await import(
+        '../../../services/project/ProjectReportService'
+      );
+      const { PrismaProjectRepository } = await import(
+        '../../../repositories/PrismaProjectRepository'
+      );
+
+      // Instantiate repository (infrastructure)
+      const projectRepository = new PrismaProjectRepository(ctx.prisma);
+
+      // Inject dependencies into service (DDD pattern)
+      const service = new ProjectReportService(projectRepository, ctx.prisma);
+
+      return service.getProjectReportData(input.id, ctx.userId!);
+    }),
 });

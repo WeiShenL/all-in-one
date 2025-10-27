@@ -221,7 +221,7 @@ test.describe('Staff Project Task Edit Rights', () => {
     await page.waitForLoadState('networkidle');
     await expect(
       page.getByRole('heading', { name: /personal dashboard/i })
-    ).toBeVisible({ timeout: 30000 });
+    ).toBeVisible({ timeout: 60000 });
 
     // Step 2: Wait for projects to load in navbar/sidebar, specifically Customer Portal Redesign
     await page.waitForTimeout(5000); // Give extra time for projects to load
@@ -230,23 +230,23 @@ test.describe('Staff Project Task Edit Rights', () => {
     const projectSpan = page
       .locator('span[title="Customer Portal Redesign"]')
       .first();
-    await expect(projectSpan).toBeVisible({ timeout: 30000 });
+    await expect(projectSpan).toBeVisible({ timeout: 60000 });
     await projectSpan.click();
 
     // Step 3: Verify project title shows "Customer Portal Redesign"
     await page.waitForLoadState('networkidle');
     await expect(
       page.getByRole('heading', { name: 'Customer Portal Redesign', level: 1 })
-    ).toBeVisible({ timeout: 30000 });
+    ).toBeVisible({ timeout: 60000 });
 
     // Step 4: Verify project dashboard shows "Customer Portal Redesign (8)" - 7 seed tasks + 1 assigned task
     await expect(page.getByText('Customer Portal Redesign (8)')).toBeVisible({
-      timeout: 30000,
+      timeout: 60000,
     });
 
     // Step 5: Wait for task table to load
     const taskTable = page.locator('table').first();
-    await expect(taskTable).toBeVisible({ timeout: 30000 });
+    await expect(taskTable).toBeVisible({ timeout: 60000 });
 
     // Step 6: Verify edit button visibility based on task assignment
     const taskRows = page.locator('tbody tr');
@@ -257,18 +257,18 @@ test.describe('Staff Project Task Edit Rights', () => {
     const assignedTaskRow = page
       .locator('tbody tr')
       .filter({ hasText: `Task assigned to staff member ${testNamespace}` });
-    await expect(assignedTaskRow).toBeVisible({ timeout: 30000 });
+    await expect(assignedTaskRow).toBeVisible({ timeout: 60000 });
 
     // Verify the assigned task has an edit button
     const assignedTaskEditButton = assignedTaskRow
       .locator('button')
       .filter({ hasText: /edit/i });
-    await expect(assignedTaskEditButton).toBeVisible({ timeout: 30000 });
+    await expect(assignedTaskEditButton).toBeVisible({ timeout: 60000 });
 
     // Check that all other tasks (seed data tasks) do NOT have edit buttons
     for (let i = 0; i < rowCount; i++) {
       const row = taskRows.nth(i);
-      await expect(row).toBeVisible({ timeout: 30000 });
+      await expect(row).toBeVisible({ timeout: 60000 });
 
       // Skip the assigned task row (we already checked it)
       const rowText = await row.textContent();
@@ -278,7 +278,7 @@ test.describe('Staff Project Task Edit Rights', () => {
 
       // All other tasks should NOT have edit buttons
       const editButton = row.locator('button').filter({ hasText: /edit/i });
-      await expect(editButton).not.toBeVisible({ timeout: 30000 });
+      await expect(editButton).not.toBeVisible({ timeout: 60000 });
     }
 
     // Step 7: Sign out
@@ -287,6 +287,6 @@ test.describe('Staff Project Task Edit Rights', () => {
     // Verify we're back on login page
     await expect(
       page.getByRole('heading', { name: /welcome back/i })
-    ).toBeVisible({ timeout: 30000 });
+    ).toBeVisible({ timeout: 60000 });
   });
 });

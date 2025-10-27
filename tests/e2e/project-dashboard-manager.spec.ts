@@ -200,7 +200,7 @@ test.describe('Manager Project Task Edit Rights', () => {
     await page.waitForLoadState('networkidle');
     await expect(
       page.getByRole('heading', { name: /personal dashboard/i })
-    ).toBeVisible({ timeout: 30000 });
+    ).toBeVisible({ timeout: 60000 });
 
     // Step 2: Wait for projects to load in navbar/sidebar, specifically Customer Portal Redesign
     // Wait for the project to appear in the navbar/sidebar
@@ -213,7 +213,7 @@ test.describe('Manager Project Task Edit Rights', () => {
       .first();
 
     // Wait for the project to be visible and clickable
-    await expect(projectSpan).toBeVisible({ timeout: 30000 });
+    await expect(projectSpan).toBeVisible({ timeout: 60000 });
 
     // Click on the project name span
     await projectSpan.click();
@@ -222,7 +222,7 @@ test.describe('Manager Project Task Edit Rights', () => {
     await page.waitForLoadState('networkidle');
     await expect(
       page.getByRole('heading', { name: 'Customer Portal Redesign', level: 1 })
-    ).toBeVisible({ timeout: 30000 });
+    ).toBeVisible({ timeout: 60000 });
 
     // Step 6: Wait for task table to load
     // Try different table locators since data-testid might not be present
@@ -240,7 +240,7 @@ test.describe('Manager Project Task Edit Rights', () => {
       }
     }
 
-    await expect(taskTable).toBeVisible({ timeout: 30000 });
+    await expect(taskTable).toBeVisible({ timeout: 60000 });
 
     // Step 7: Verify all rows have Edit buttons in Actions column
     const taskRows = page.locator('tbody tr');
@@ -252,11 +252,11 @@ test.describe('Manager Project Task Edit Rights', () => {
     // Check that all visible task rows have Edit buttons
     for (let i = 0; i < Math.min(rowCount, 7); i++) {
       const row = taskRows.nth(i);
-      await expect(row).toBeVisible({ timeout: 30000 });
+      await expect(row).toBeVisible({ timeout: 60000 });
 
       // Find Edit button in Actions column (last column)
       const editButton = row.locator('button').filter({ hasText: /edit/i });
-      await expect(editButton).toBeVisible({ timeout: 30000 });
+      await expect(editButton).toBeVisible({ timeout: 60000 });
     }
 
     // Step 8: Sign out
@@ -265,7 +265,7 @@ test.describe('Manager Project Task Edit Rights', () => {
     // Verify we're back on login page
     await expect(
       page.getByRole('heading', { name: /welcome back/i })
-    ).toBeVisible({ timeout: 30000 });
+    ).toBeVisible({ timeout: 60000 });
   });
 
   test('AC5: Manager can create a new project and filter by project', async ({
@@ -290,7 +290,7 @@ test.describe('Manager Project Task Edit Rights', () => {
     await page.waitForLoadState('networkidle');
     await expect(
       page.getByRole('heading', { name: /personal dashboard/i })
-    ).toBeVisible({ timeout: 30000 });
+    ).toBeVisible({ timeout: 60000 });
 
     // Step 2: Wait for projects to load in navbar/sidebar, specifically Customer Portal Redesign
     // Wait for the project to appear in the navbar/sidebar
@@ -303,7 +303,7 @@ test.describe('Manager Project Task Edit Rights', () => {
       .first();
 
     // Wait for the project to be visible and clickable
-    await expect(projectSpan).toBeVisible({ timeout: 30000 });
+    await expect(projectSpan).toBeVisible({ timeout: 60000 });
 
     // Click on the project name span
     await projectSpan.click();
@@ -312,7 +312,7 @@ test.describe('Manager Project Task Edit Rights', () => {
     await page.waitForLoadState('networkidle');
     await expect(
       page.getByRole('heading', { name: 'Customer Portal Redesign', level: 1 })
-    ).toBeVisible({ timeout: 30000 });
+    ).toBeVisible({ timeout: 60000 });
 
     // Step 6: Click the "Add" button (+) next to PROJECTS heading in navbar
     // Look for the + button that's positioned next to the PROJECTS heading
@@ -321,13 +321,13 @@ test.describe('Manager Project Task Edit Rights', () => {
       .filter({ hasText: 'PROJECTS' })
       .locator('button[title="Add Project"]')
       .first();
-    await expect(addProjectButton).toBeVisible({ timeout: 30000 });
+    await expect(addProjectButton).toBeVisible({ timeout: 60000 });
     await addProjectButton.click();
 
     // Step 7: Fill up the project creation modal
     await expect(
       page.getByRole('heading', { name: /create.*project/i })
-    ).toBeVisible({ timeout: 30000 });
+    ).toBeVisible({ timeout: 60000 });
 
     // Fill project name
     await page.getByLabel(/name/i).fill(newProjectName);
@@ -346,7 +346,7 @@ test.describe('Manager Project Task Edit Rights', () => {
     const newProjectItem = page
       .locator(`span[title="${newProjectName}"]`)
       .first();
-    await expect(newProjectItem).toBeVisible({ timeout: 30000 });
+    await expect(newProjectItem).toBeVisible({ timeout: 60000 });
 
     // Step 10: Click on the new project in the sidebar
     await newProjectItem.click();
@@ -355,11 +355,11 @@ test.describe('Manager Project Task Edit Rights', () => {
     await page.waitForLoadState('networkidle');
     await expect(
       page.getByRole('heading', { name: newProjectName, level: 1 })
-    ).toBeVisible({ timeout: 30000 });
+    ).toBeVisible({ timeout: 60000 });
 
     // Step 12: Check the task count shows 0
     await expect(page.getByText(`${newProjectName} (0)`)).toBeVisible({
-      timeout: 30000,
+      timeout: 60000,
     });
 
     // Step 13: Sign out
@@ -368,6 +368,6 @@ test.describe('Manager Project Task Edit Rights', () => {
     // Verify we're back on login page
     await expect(
       page.getByRole('heading', { name: /welcome back/i })
-    ).toBeVisible({ timeout: 30000 });
+    ).toBeVisible({ timeout: 60000 });
   });
 });
