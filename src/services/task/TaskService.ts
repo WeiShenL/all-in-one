@@ -1549,13 +1549,7 @@ export class TaskService {
     await this.taskRepository.removeTaskAssignment(taskId, userId);
 
     // Auto-remove ProjectCollaborator if user has no other tasks in project
-    const projectId = task.getProjectId();
-    if (projectId) {
-      await this.taskRepository.removeProjectCollaboratorIfNoTasks(
-        projectId,
-        userId
-      );
-    }
+    await this.removeProjectCollaboratorIfNeeded(task.getProjectId(), userId);
 
     // Log action
     await this.taskRepository.logTaskAction(
@@ -1589,6 +1583,22 @@ export class TaskService {
   // ============================================
   // ARCHIVE/DELETE OPERATIONS (NEW)
   // ============================================
+
+  /**
+   * Helper: Remove project collaborator for a user if they have no active tasks
+   * Reusable across removeAssignee and archiveTask operations
+   */
+  private async removeProjectCollaboratorIfNeeded(
+    projectId: string | null,
+    userId: string
+  ): Promise<void> {
+    if (projectId) {
+      await this.taskRepository.removeProjectCollaboratorIfNoTasks(
+        projectId,
+        userId
+      );
+    }
+  }
 
   /**
    * Archive a task (soft delete)
@@ -1660,6 +1670,33 @@ export class TaskService {
           },
         }
       );
+    }
+
+    // Remove ProjectCollaborator entries for users who no longer have active tasks in project
+    // When a task is archived, users may no longer have any active (non-archived) tasks in the project
+    const projectId = task.getProjectId();
+    if (projectId) {
+      // Get all unique assignees from parent task and subtasks
+      const allAssigneeIds = new Set<string>();
+
+      // Add parent task assignees (Task domain uses Set<string> for assignments)
+      task.getAssignees().forEach(userId => {
+        allAssigneeIds.add(userId);
+      });
+
+      // Add subtask assignees (Repository returns Prisma objects with assignments array)
+      for (const subtask of subtasks) {
+        if (subtask.assignments && Array.isArray(subtask.assignments)) {
+          subtask.assignments.forEach((assignment: { userId: string }) => {
+            allAssigneeIds.add(assignment.userId);
+          });
+        }
+      }
+
+      // Check each assignee and remove from project collaborators if no active tasks remain
+      for (const assigneeId of allAssigneeIds) {
+        await this.removeProjectCollaboratorIfNeeded(projectId, assigneeId);
+      }
     }
 
     return task;
