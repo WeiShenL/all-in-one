@@ -30,6 +30,7 @@ interface UserSelectOptionProps {
 /**
  * Formats user information for display in select dropdown
  * Format: Name (email) - Department, Role, HR_Admin
+ * Text is truncated if too long to prevent horizontal overflow
  */
 export function UserSelectOption({ user }: UserSelectOptionProps) {
   const mainPart = `${user.name} (${user.email})`;
@@ -55,10 +56,19 @@ export function UserSelectOption({ user }: UserSelectOptionProps) {
   }
 
   // Combine: main part, then dash, then comma-separated additional info
+  let fullText: string;
   if (additionalInfo.length > 0) {
-    return `${mainPart} - ${additionalInfo.join(', ')}`;
+    fullText = `${mainPart} - ${additionalInfo.join(', ')}`;
+  } else {
+    fullText = mainPart;
   }
-  return mainPart;
+
+  // Truncate if text is too long (prevent horizontal overflow in dropdowns)
+  const MAX_LENGTH = 80;
+  if (fullText.length > MAX_LENGTH) {
+    return fullText.substring(0, MAX_LENGTH - 3) + '...';
+  }
+  return fullText;
 }
 
 /**

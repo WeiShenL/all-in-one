@@ -125,9 +125,20 @@ export function TaskTable({
     const projectsMap = new Map<string, { id: string; name: string }>();
 
     tasks.forEach((task: Task) => {
-      const dept = departmentData.find(d => d.id === task.departmentId);
-      if (dept) {
-        departmentsSet.add(dept.name);
+      // Collect all involved departments (not just parent department)
+      if (task.involvedDepartments && task.involvedDepartments.length > 0) {
+        task.involvedDepartments.forEach(dept => {
+          // Only include active departments in the filter list
+          if (dept.isActive !== false) {
+            departmentsSet.add(dept.name);
+          }
+        });
+      } else {
+        // Fallback to parent department if involvedDepartments not available
+        const dept = departmentData.find(d => d.id === task.departmentId);
+        if (dept) {
+          departmentsSet.add(dept.name);
+        }
       }
 
       task.assignments.forEach(assignment => {
@@ -217,10 +228,19 @@ export function TaskTable({
       const statusMatch =
         filters.status.length === 0 || filters.status.includes(task.status);
 
-      const dept = departmentData.find(d => d.id === task.departmentId);
+      // Department filter: check if task has ANY of the selected departments
+      // (similar to assignee logic - OR condition)
       const departmentMatch =
         filters.department.length === 0 ||
-        (dept && filters.department.includes(dept.name));
+        (task.involvedDepartments && task.involvedDepartments.length > 0
+          ? task.involvedDepartments.some(dept =>
+              filters.department.includes(dept.name)
+            )
+          : // Fallback to parent department if involvedDepartments not available
+            (() => {
+              const dept = departmentData.find(d => d.id === task.departmentId);
+              return dept && filters.department.includes(dept.name);
+            })());
 
       const assigneeMatch =
         filters.assignee.length === 0 ||

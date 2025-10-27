@@ -276,10 +276,14 @@ export class TaskService {
       return null;
     }
 
-    // Check authorization: user can view if assigned OR in department hierarchy
-    // View permission: assigned OR in department hierarchy (for both STAFF and MANAGER)
+    // Check authorization: user can view if assigned OR in department hierarchy OR has isHrAdmin flag
+    // View permission: assigned OR in department hierarchy (for both STAFF and MANAGER) OR isHrAdmin
     // Edit permission: handled separately by canEdit field
     const isAssigned = taskData.assignments.some(a => a.userId === user.userId);
+
+    // STAFF with isHrAdmin flag can view all company tasks (but edit permission is still restricted)
+    const hasHrAdminViewAccess =
+      user.role === 'STAFF' && user.isHrAdmin === true;
 
     // Check if task is in user's department hierarchy
     let isInDepartmentHierarchy = false;
@@ -311,7 +315,7 @@ export class TaskService {
       }
     }
 
-    if (!isAssigned && !isInDepartmentHierarchy) {
+    if (!isAssigned && !isInDepartmentHierarchy && !hasHrAdminViewAccess) {
       throw new Error(
         'Unauthorized: You must be assigned to this task or it must be in your department hierarchy'
       );
@@ -1409,6 +1413,10 @@ export class TaskService {
       assignment => assignment.userId === user.userId
     );
 
+    // STAFF with isHrAdmin flag can view all company task files (view-only access)
+    const hasHrAdminViewAccess =
+      user.role === 'STAFF' && user.isHrAdmin === true;
+
     // Check if user is a manager who can access this task
     let isManagerWithAccess = false;
     if (user.role === 'MANAGER' && !isOwner && !isAssigned) {
@@ -1419,7 +1427,12 @@ export class TaskService {
       );
     }
 
-    if (!isOwner && !isAssigned && !isManagerWithAccess) {
+    if (
+      !isOwner &&
+      !isAssigned &&
+      !isManagerWithAccess &&
+      !hasHrAdminViewAccess
+    ) {
       throw new Error(
         'Unauthorized: You must be the task owner, assigned to this task, or a manager of the department to view files'
       );

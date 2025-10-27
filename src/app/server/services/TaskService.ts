@@ -32,6 +32,50 @@ type TaskHierarchyNode = TaskWithOwner & {
  */
 export class TaskService extends BaseService {
   /**
+   * Derive unique departments from task assignees
+   * @param assignments - Task assignments with user department info
+   * @param parentDepartmentId - Optional parent department ID to prioritize
+   * @returns Array of unique departments
+   */
+  static deriveInvolvedDepartments(
+    assignments: Array<{
+      user: {
+        departmentId: string;
+        department?: { id: string; name: string };
+      };
+    }>,
+    parentDepartmentId?: string | null
+  ): Array<{ id: string; name: string }> {
+    const departmentMap = new Map<string, { id: string; name: string }>();
+
+    // Always include parent department first if it exists
+    if (parentDepartmentId) {
+      const parentDeptFromAssignments = assignments.find(
+        a => a.user.departmentId === parentDepartmentId && a.user.department
+      )?.user.department;
+
+      if (parentDeptFromAssignments) {
+        departmentMap.set(parentDepartmentId, parentDeptFromAssignments);
+      } else {
+        // Fallback - will be handled in service layer with department fetch
+        departmentMap.set(parentDepartmentId, {
+          id: parentDepartmentId,
+          name: 'Unknown Department',
+        });
+      }
+    }
+
+    // Add all unique departments from assignees
+    for (const assignment of assignments) {
+      const dept = assignment.user.department;
+      if (dept && !departmentMap.has(dept.id)) {
+        departmentMap.set(dept.id, { id: dept.id, name: dept.name });
+      }
+    }
+
+    return Array.from(departmentMap.values());
+  }
+  /**
    * Get all tasks with optional filters
    * @param filters - Optional filters for tasks
    * @returns Array of tasks
@@ -160,6 +204,13 @@ export class TaskService extends BaseService {
                   name: true,
                   email: true,
                   role: true,
+                  departmentId: true,
+                  department: {
+                    select: {
+                      id: true,
+                      name: true,
+                    },
+                  },
                 },
               },
               assignedBy: {
@@ -1268,19 +1319,18 @@ export class TaskService extends BaseService {
         user.departmentId
       );
 
-      // Fetch all parent tasks (no parentTaskId) in the department hierarchy
-      // Department Dashboard shows ALL tasks in hierarchy for ALL users (STAFF + MANAGER)
-      // Edit permissions are controlled by canEdit field based on assignment/role
+      // Fetch all parent tasks (no parentTaskId) that either:
+      // 1. Have assignees from the department hierarchy (regardless of task's parent dept), OR
+      // 2. Are unassigned tasks in the department hierarchy
+      // This ensures:
+      // - Users see tasks they're assigned to from ANY department
+      // - Managers can see unassigned tasks in their hierarchy to assign people
       const parentTasks = await this.prisma.task.findMany({
         where: {
           isArchived: false,
           parentTaskId: null, // Only parent tasks
           OR: [
-            {
-              departmentId: {
-                in: departmentIds,
-              },
-            },
+            // Case 1: Has assignees from the department hierarchy (ANY task parent dept)
             {
               assignments: {
                 some: {
@@ -1293,6 +1343,21 @@ export class TaskService extends BaseService {
                 },
               },
             },
+            // Case 2: Unassigned tasks where task's parent dept is in hierarchy
+            {
+              AND: [
+                {
+                  departmentId: {
+                    in: departmentIds,
+                  },
+                },
+                {
+                  assignments: {
+                    none: {},
+                  },
+                },
+              ],
+            },
           ],
         },
         include: {
@@ -1304,6 +1369,13 @@ export class TaskService extends BaseService {
                   id: true,
                   name: true,
                   email: true,
+                  departmentId: true,
+                  department: {
+                    select: {
+                      id: true,
+                      name: true,
+                    },
+                  },
                 },
               },
             },
@@ -1359,6 +1431,13 @@ export class TaskService extends BaseService {
                       id: true,
                       name: true,
                       email: true,
+                      departmentId: true,
+                      department: {
+                        select: {
+                          id: true,
+                          name: true,
+                        },
+                      },
                     },
                   },
                 },
@@ -1412,6 +1491,15 @@ export class TaskService extends BaseService {
       const authService = new AuthorizationService();
 
       const tasksWithCanEdit = parentTasks.map(task => {
+        // Get unique department IDs from task assignees
+        const taskAssigneeDepartmentIds = [
+          ...new Set(
+            task.assignments
+              .map(a => a.user.departmentId)
+              .filter((deptId): deptId is string => deptId !== null)
+          ),
+        ];
+
         const taskCanEdit = authService.canEditTask(
           {
             departmentId: task.departmentId,
@@ -1422,11 +1510,21 @@ export class TaskService extends BaseService {
             role: user.role as 'STAFF' | 'MANAGER' | 'HR_ADMIN',
             departmentId: user.departmentId,
           },
-          departmentIds
+          departmentIds,
+          taskAssigneeDepartmentIds
         );
 
         // Calculate canEdit for subtasks
         const subtasksWithCanEdit = task.subtasks?.map(subtask => {
+          // Get unique department IDs from subtask assignees
+          const subtaskAssigneeDepartmentIds = [
+            ...new Set(
+              subtask.assignments
+                .map(a => a.user.departmentId)
+                .filter((deptId): deptId is string => deptId !== null)
+            ),
+          ];
+
           const subtaskCanEdit = authService.canEditTask(
             {
               departmentId: subtask.departmentId,
@@ -1437,7 +1535,8 @@ export class TaskService extends BaseService {
               role: user.role as 'STAFF' | 'MANAGER' | 'HR_ADMIN',
               departmentId: user.departmentId,
             },
-            departmentIds
+            departmentIds,
+            subtaskAssigneeDepartmentIds
           );
 
           return {
@@ -1482,6 +1581,40 @@ export class TaskService extends BaseService {
           startDate: task.startDate,
           canEdit: taskCanEdit,
           subtasks: subtasksWithCanEdit,
+          involvedDepartments: (() => {
+            const deptMap = new Map<
+              string,
+              { id: string; name: string; isActive?: boolean }
+            >();
+
+            // Check if parent department has any actual assignees
+            const hasParentAssignee = task.assignments.some(
+              a => a.user.departmentId === task.departmentId
+            );
+
+            // Always include parent department if task has one, mark as inactive if no assignees
+            if (task.departmentId && task.department) {
+              deptMap.set(task.departmentId, {
+                ...task.department,
+                isActive: hasParentAssignee,
+              });
+            }
+
+            // Add all other unique departments from assignees (all active)
+            for (const assignment of task.assignments) {
+              if (
+                assignment.user.department &&
+                !deptMap.has(assignment.user.department.id)
+              ) {
+                deptMap.set(assignment.user.department.id, {
+                  ...assignment.user.department,
+                  isActive: true,
+                });
+              }
+            }
+
+            return Array.from(deptMap.values());
+          })(),
         };
       });
 
@@ -1629,7 +1762,15 @@ export class TaskService extends BaseService {
           assignments: {
             select: {
               userId: true,
-              user: { select: { id: true, name: true, email: true } },
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  departmentId: true,
+                  department: { select: { id: true, name: true } },
+                },
+              },
             },
           },
           department: { select: { id: true, name: true } },
@@ -1657,7 +1798,15 @@ export class TaskService extends BaseService {
               assignments: {
                 select: {
                   userId: true,
-                  user: { select: { id: true, name: true, email: true } },
+                  user: {
+                    select: {
+                      id: true,
+                      name: true,
+                      email: true,
+                      departmentId: true,
+                      department: { select: { id: true, name: true } },
+                    },
+                  },
                 },
               },
               department: { select: { id: true, name: true } },
@@ -1689,6 +1838,55 @@ export class TaskService extends BaseService {
       const authService = new AuthorizationService();
 
       const tasksWithCanEdit = parentTasks.map(task => {
+        // Build involvedDepartments from assignees
+        const taskDeptId = task.departmentId;
+        const deptMap = new Map<
+          string,
+          { id: string; name: string; isActive?: boolean }
+        >();
+
+        // Get unique department IDs from assignees
+        const assigneeDepartmentIds = new Set<string>();
+        task.assignments.forEach(assignment => {
+          if (assignment.user.departmentId && assignment.user.department) {
+            assigneeDepartmentIds.add(assignment.user.departmentId);
+          }
+        });
+
+        // Check if parent department has any assignees
+        const hasParentAssignee = assigneeDepartmentIds.has(taskDeptId);
+
+        // Always include parent department
+        if (taskDeptId && task.department) {
+          deptMap.set(taskDeptId, {
+            ...task.department,
+            isActive: hasParentAssignee,
+          });
+        }
+
+        // Add all other unique departments from assignees (all active)
+        task.assignments.forEach(assignment => {
+          const deptId = assignment.user.departmentId;
+          const dept = assignment.user.department;
+          if (deptId && dept && !deptMap.has(deptId)) {
+            deptMap.set(deptId, {
+              ...dept,
+              isActive: true,
+            });
+          }
+        });
+
+        const involvedDepartments = Array.from(deptMap.values());
+
+        // Get unique department IDs from task assignees for permission check
+        const taskAssigneeDepartmentIds = [
+          ...new Set(
+            task.assignments
+              .map(a => a.user.departmentId)
+              .filter((deptId): deptId is string => deptId !== null)
+          ),
+        ];
+
         const taskCanEdit = authService.canEditTask(
           {
             departmentId: task.departmentId,
@@ -1699,10 +1897,20 @@ export class TaskService extends BaseService {
             role: user.role as 'STAFF' | 'MANAGER' | 'HR_ADMIN',
             departmentId: user.departmentId,
           },
-          departmentIds
+          departmentIds,
+          taskAssigneeDepartmentIds
         );
 
         const subtasksWithCanEdit = task.subtasks?.map(subtask => {
+          // Get unique department IDs from subtask assignees for permission check
+          const subtaskAssigneeDepartmentIds = [
+            ...new Set(
+              subtask.assignments
+                .map(a => a.user.departmentId)
+                .filter((deptId): deptId is string => deptId !== null)
+            ),
+          ];
+
           const subtaskCanEdit = authService.canEditTask(
             {
               departmentId: subtask.departmentId,
@@ -1713,7 +1921,8 @@ export class TaskService extends BaseService {
               role: user.role as 'STAFF' | 'MANAGER' | 'HR_ADMIN',
               departmentId: user.departmentId,
             },
-            departmentIds
+            departmentIds,
+            subtaskAssigneeDepartmentIds
           );
 
           return {
@@ -1745,6 +1954,7 @@ export class TaskService extends BaseService {
           priorityBucket: task.priority,
           isRecurring: task.recurringInterval !== null,
           canEdit: taskCanEdit,
+          involvedDepartments,
           subtasks: subtasksWithCanEdit,
         };
       });
@@ -1914,6 +2124,13 @@ export class TaskService extends BaseService {
                 id: true,
                 name: true,
                 email: true,
+                departmentId: true,
+                department: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
               },
             },
           },
@@ -1930,13 +2147,7 @@ export class TaskService extends BaseService {
             name: true,
           },
         },
-        owner: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
+        owner: true,
         tags: {
           include: {
             tag: {
@@ -1969,6 +2180,13 @@ export class TaskService extends BaseService {
                     id: true,
                     name: true,
                     email: true,
+                    departmentId: true,
+                    department: {
+                      select: {
+                        id: true,
+                        name: true,
+                      },
+                    },
                   },
                 },
               },
@@ -2024,6 +2242,55 @@ export class TaskService extends BaseService {
     const authService = new AuthorizationService();
 
     const tasksWithCanEdit = parentTasks.map(task => {
+      // Build involvedDepartments from assignees
+      const taskDeptId = task.departmentId;
+      const deptMap = new Map<
+        string,
+        { id: string; name: string; isActive?: boolean }
+      >();
+
+      // Get unique department IDs from assignees
+      const assigneeDepartmentIds = new Set<string>();
+      task.assignments.forEach(assignment => {
+        if (assignment.user.departmentId) {
+          assigneeDepartmentIds.add(assignment.user.departmentId);
+        }
+      });
+
+      // Check if parent department has any assignees
+      const hasParentAssignee = assigneeDepartmentIds.has(taskDeptId);
+
+      // Always include parent department
+      if (taskDeptId && task.department) {
+        deptMap.set(taskDeptId, {
+          ...task.department,
+          isActive: hasParentAssignee,
+        });
+      }
+
+      // Add all other unique departments from assignees (all active)
+      assigneeDepartmentIds.forEach(deptId => {
+        if (!deptMap.has(deptId)) {
+          // Find assignment with this department to get actual department info
+          const assignment = task.assignments.find(
+            a => a.user.departmentId === deptId
+          );
+          if (assignment?.user.department) {
+            deptMap.set(deptId, {
+              ...assignment.user.department,
+              isActive: true,
+            });
+          }
+        }
+      });
+
+      const involvedDepartments = Array.from(deptMap.values());
+
+      // Extract assignee department IDs for permission check
+      const taskAssigneeDepartmentIds = Array.from(
+        new Set(task.assignments.map(a => a.user.departmentId))
+      );
+
       const taskCanEdit = authService.canEditTask(
         {
           departmentId: task.departmentId,
@@ -2035,11 +2302,17 @@ export class TaskService extends BaseService {
           departmentId: user.departmentId,
           isHrAdmin: user.isHrAdmin,
         },
-        userDepartmentIds
+        userDepartmentIds,
+        taskAssigneeDepartmentIds
       );
 
       // Calculate canEdit for subtasks
       const subtasksWithCanEdit = task.subtasks?.map(subtask => {
+        // Extract assignee department IDs for subtask permission check
+        const subtaskAssigneeDepartmentIds = Array.from(
+          new Set(subtask.assignments.map(a => a.user.departmentId))
+        );
+
         const subtaskCanEdit = authService.canEditTask(
           {
             departmentId: subtask.departmentId,
@@ -2051,7 +2324,8 @@ export class TaskService extends BaseService {
             departmentId: user.departmentId,
             isHrAdmin: user.isHrAdmin,
           },
-          userDepartmentIds
+          userDepartmentIds,
+          subtaskAssigneeDepartmentIds
         );
 
         return {
@@ -2083,6 +2357,7 @@ export class TaskService extends BaseService {
         priorityBucket: task.priority,
         isRecurring: task.recurringInterval !== null,
         canEdit: taskCanEdit,
+        involvedDepartments,
         subtasks: subtasksWithCanEdit,
       };
     });

@@ -511,10 +511,12 @@ describe('Integration Tests - Project Creation (SCRUM-30)', () => {
     }, 300000);
 
     it('should not include archived projects by default', async () => {
+      const projectName = `To Be Archived-${Date.now()}`;
+
       // Create project
       const project = await projectService.createProject(
         {
-          name: 'To Be Archived',
+          name: projectName,
         },
         {
           userId: staffInSalesId,
@@ -542,7 +544,7 @@ describe('Integration Tests - Project Creation (SCRUM-30)', () => {
 
       // Should not include archived project
       const projectNames = projects.map(p => p.name);
-      expect(projectNames).not.toContain('To Be Archived');
+      expect(projectNames).not.toContain(projectName);
     }, 300000);
 
     it('should include archived projects when requested', async () => {
