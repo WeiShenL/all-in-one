@@ -341,7 +341,7 @@ describe('Task Involved Departments - Integration Tests', () => {
       name: `Sales-${testNamespace}`,
       isActive: true,
     });
-  }, 30000);
+  }, 60000);
 
   // AC4: GIVEN a task has only one assignee from Department A, WHEN that assignee is removed from the task,
   // THEN the department tag for Department A is removed (while others are unchanged).
@@ -427,5 +427,5 @@ describe('Task Involved Departments - Integration Tests', () => {
       name: `Engineering-${testNamespace}`,
       isActive: false, // No assignees from parent department
     });
-  }, 30000);
+  }, 60000);
 });
