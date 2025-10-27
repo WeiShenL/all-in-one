@@ -13,6 +13,8 @@ interface TaskRowProps {
   onToggleExpansion: (taskId: string) => void;
   onEditTask: (taskId: string) => void;
   onViewTask: (taskId: string) => void;
+  onArchiveTask?: (taskId: string) => void;
+  userRole?: 'STAFF' | 'MANAGER' | 'HR_ADMIN';
   isSubtask?: boolean;
 }
 
@@ -173,10 +175,15 @@ export const TaskRow = ({
   onToggleExpansion,
   onEditTask,
   onViewTask,
+  onArchiveTask,
+  userRole,
   isSubtask = false,
 }: TaskRowProps) => {
   // Check if user can edit - defaults to true if not specified (backward compatibility)
   const canEdit = task.canEdit !== undefined ? task.canEdit : true;
+
+  // Manager can archive tasks they have access to (same as canEdit permission)
+  const canArchive = userRole === 'MANAGER' && canEdit;
 
   return (
     <>
@@ -364,15 +371,38 @@ export const TaskRow = ({
           {departmentData.find(d => d.id === task.departmentId)?.name || 'N/A'}
         </td>
         <td style={styles.td}>
-          {canEdit && (
-            <button
-              data-testid={`edit-task-button-${task.id}`}
-              onClick={() => onEditTask(task.id)}
-              style={styles.button}
-            >
-              Edit
-            </button>
-          )}
+          <div
+            style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}
+          >
+            {canEdit && (
+              <button
+                data-testid={`edit-task-button-${task.id}`}
+                onClick={() => onEditTask(task.id)}
+                style={styles.button}
+              >
+                Edit
+              </button>
+            )}
+            {canArchive && onArchiveTask && (
+              <button
+                data-testid={`archive-task-button-${task.id}`}
+                onClick={() => onArchiveTask(task.id)}
+                style={{
+                  ...styles.button,
+                  backgroundColor: '#e53e3e',
+                  color: 'white',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.backgroundColor = '#c53030';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.backgroundColor = '#e53e3e';
+                }}
+              >
+                Archive
+              </button>
+            )}
+          </div>
         </td>
       </tr>
 
@@ -403,6 +433,8 @@ export const TaskRow = ({
               onToggleExpansion={() => {}}
               onEditTask={onEditTask}
               onViewTask={onViewTask}
+              onArchiveTask={onArchiveTask}
+              userRole={userRole}
               isSubtask={true}
             />
           ))}

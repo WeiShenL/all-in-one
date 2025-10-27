@@ -53,6 +53,7 @@ export function ProjectDashboard({
           showCreateButton={true}
           onTaskCreated={handleInvalidate}
           onTaskUpdated={handleInvalidate}
+          userRole={userProfile?.role}
           emptyStateConfig={emptyStateConfig}
           isLoading={isLoading}
           error={error ? new Error(error.message) : null}

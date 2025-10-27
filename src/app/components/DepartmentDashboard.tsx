@@ -64,6 +64,7 @@ export function DepartmentDashboard() {
           error={error ? new Error(error.message) : null}
           onTaskCreated={handleTaskUpdated}
           onTaskUpdated={handleTaskUpdated}
+          userRole={userProfile?.role}
         />
       }
       calendarView={
