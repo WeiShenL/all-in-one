@@ -184,6 +184,11 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
               id: u.id,
               name: u.name,
               email: u.email,
+              role: u.role,
+              isHrAdmin: u.role === 'HR_ADMIN',
+              department: u.department
+                ? { id: u.department.id, name: u.department.name }
+                : undefined,
             }))
           );
         }
@@ -528,6 +533,9 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
               border: '1px solid #ccc',
               borderRadius: '4px',
               minHeight: '120px',
+              maxHeight: '200px',
+              overflowY: 'auto',
+              maxWidth: '100%',
               backgroundColor: loadingUsers ? '#f5f5f5' : 'white',
               cursor: loadingUsers ? 'not-allowed' : 'pointer',
             }}
@@ -843,21 +851,6 @@ export function TaskCreateForm({ onSuccess, onCancel }: TaskCreateFormProps) {
           )}
         </div>
       </form>
-
-      {/* Department Info */}
-      <div
-        style={{
-          marginTop: '1.5rem',
-          padding: '1rem',
-          backgroundColor: '#f9f9f9',
-          borderRadius: '4px',
-          fontSize: '0.875rem',
-          color: '#666',
-        }}
-      >
-        <strong>Department:</strong> Task will be automatically associated with
-        your department ({userProfile.departmentId})
-      </div>
 
       {/* File Upload Note */}
       <div
