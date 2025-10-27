@@ -21,6 +21,7 @@ const mockRepository: jest.Mocked<IProjectRepository> = {
   archiveProject: jest.fn(),
   getAllProjects: jest.fn(),
   getProjectsVisibleToDepartments: jest.fn(),
+  getProjectReportData: jest.fn(),
 };
 
 // Mock dependency for getSubordinateDepartments
