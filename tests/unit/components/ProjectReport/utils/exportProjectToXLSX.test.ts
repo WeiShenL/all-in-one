@@ -81,11 +81,29 @@ describe('exportProjectToXLSX - Export Capability Tests', () => {
         description: 'Create homepage mockup',
         status: 'COMPLETED',
         priority: 9,
+        startDate: new Date('2025-10-05T00:00:00.000Z'),
         dueDate: new Date('2025-10-15T00:00:00.000Z'),
         createdAt: new Date('2025-10-05T00:00:00.000Z'),
         ownerName: 'Jane Smith',
         ownerEmail: 'jane@example.com',
         assignees: ['Alice Johnson'],
+        tags: ['UI', 'Design'],
+        departments: ['Engineering'],
+      },
+      {
+        id: 'task-2',
+        title: 'Implement Backend',
+        description: 'Create API endpoints',
+        status: 'IN_PROGRESS',
+        priority: 7,
+        startDate: new Date('2025-10-10T00:00:00.000Z'),
+        dueDate: new Date('2025-10-25T00:00:00.000Z'),
+        createdAt: new Date('2025-10-10T00:00:00.000Z'),
+        ownerName: 'Bob Wilson',
+        ownerEmail: 'bob@example.com',
+        assignees: ['Charlie Brown', 'David Lee'],
+        tags: ['Backend', 'API'],
+        departments: ['Engineering', 'Backend'],
       },
     ],
     collaborators: [
@@ -230,6 +248,155 @@ describe('exportProjectToXLSX - Export Capability Tests', () => {
       await exportProjectToXLSX(mockProjectData);
 
       expect(mockRevokeObjectURL).toHaveBeenCalledWith('blob:mock-xlsx-url');
+    });
+  });
+
+  describe('Excel Content Structure', () => {
+    it('should create 4 worksheets with correct names', async () => {
+      await exportProjectToXLSX(mockProjectData);
+
+      expect(mockAddWorksheet).toHaveBeenCalledTimes(4);
+      expect(mockAddWorksheet).toHaveBeenCalledWith('Overview');
+      expect(mockAddWorksheet).toHaveBeenCalledWith('Tasks by Status');
+      expect(mockAddWorksheet).toHaveBeenCalledWith('Schedule Overview');
+      expect(mockAddWorksheet).toHaveBeenCalledWith('Collaborators');
+    });
+
+    it('should add task headers to Tasks by Status sheet', async () => {
+      await exportProjectToXLSX(mockProjectData);
+
+      // Check that addRow was called with task headers
+      const taskHeaderCalls = mockAddRow.mock.calls.filter(
+        call => call[0] && Array.isArray(call[0]) && call[0].includes('Title')
+      );
+      expect(taskHeaderCalls.length).toBeGreaterThanOrEqual(1);
+
+      const taskHeaders = taskHeaderCalls[0][0];
+      expect(taskHeaders).toEqual([
+        'Title',
+        'Status',
+        'Priority',
+        'Due Date',
+        'Assignees',
+        'Tags',
+        'Departments',
+      ]);
+    });
+
+    it('should add task headers to Schedule Overview sheet', async () => {
+      await exportProjectToXLSX(mockProjectData);
+
+      // Check that addRow was called with schedule headers
+      const scheduleHeaderCalls = mockAddRow.mock.calls.filter(
+        call =>
+          call[0] &&
+          Array.isArray(call[0]) &&
+          call[0].includes('Title') &&
+          call[0].includes('Status')
+      );
+      expect(scheduleHeaderCalls.length).toBeGreaterThanOrEqual(1);
+
+      const scheduleHeaders = scheduleHeaderCalls[0][0];
+      expect(scheduleHeaders).toEqual([
+        'Title',
+        'Status',
+        'Priority',
+        'Due Date',
+        'Assignees',
+        'Tags',
+        'Departments',
+      ]);
+    });
+
+    it('should add collaborator headers to Collaborators sheet', async () => {
+      await exportProjectToXLSX(mockProjectData);
+
+      // Check that addRow was called with collaborator headers
+      const collabHeaderCalls = mockAddRow.mock.calls.filter(
+        call => call[0] && Array.isArray(call[0]) && call[0].includes('Name')
+      );
+      expect(collabHeaderCalls.length).toBeGreaterThanOrEqual(1);
+
+      const collabHeaders = collabHeaderCalls[0][0];
+      expect(collabHeaders).toEqual([
+        'Name',
+        'Email',
+        'Department',
+        'Added Date',
+      ]);
+    });
+
+    it('should add section headers for status groups', async () => {
+      await exportProjectToXLSX(mockProjectData);
+
+      // Check for status section headers
+      const statusSectionCalls = mockAddRow.mock.calls.filter(
+        call =>
+          call[0] &&
+          typeof call[0] === 'string' &&
+          (call[0].includes('To Do') ||
+            call[0].includes('In Progress') ||
+            call[0].includes('Completed') ||
+            call[0].includes('Blocked'))
+      );
+      expect(statusSectionCalls.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('should add section headers for time buckets', async () => {
+      await exportProjectToXLSX(mockProjectData);
+
+      // Check for schedule section headers
+      const scheduleSectionCalls = mockAddRow.mock.calls.filter(
+        call =>
+          call[0] &&
+          typeof call[0] === 'string' &&
+          (call[0].includes('Overdue') ||
+            call[0].includes('Due Today') ||
+            call[0].includes('Due This Week') ||
+            call[0].includes('Due This Month'))
+      );
+      expect(scheduleSectionCalls.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('should add task data with proper formatting', async () => {
+      await exportProjectToXLSX(mockProjectData);
+
+      // Check that task data was added with proper values
+      const taskDataCalls = mockAddRow.mock.calls.filter(
+        call =>
+          call[0] &&
+          Array.isArray(call[0]) &&
+          call[0].length === 7 &&
+          call[0][0] === 'Design Homepage'
+      );
+      expect(taskDataCalls.length).toBeGreaterThanOrEqual(1);
+
+      const taskData = taskDataCalls[0][0];
+      expect(taskData[0]).toBe('Design Homepage');
+      expect(taskData[1]).toBe('COMPLETED');
+      expect(taskData[2]).toBe(9);
+      expect(taskData[4]).toBe('Alice Johnson');
+      expect(taskData[5]).toBe('UI, Design');
+      expect(taskData[6]).toBe('Engineering');
+    });
+
+    it('should add collaborator data with proper formatting', async () => {
+      await exportProjectToXLSX(mockProjectData);
+
+      // Check that collaborator data was added
+      const collabDataCalls = mockAddRow.mock.calls.filter(
+        call =>
+          call[0] &&
+          Array.isArray(call[0]) &&
+          call[0].length === 4 &&
+          call[0][0] === 'Alice Johnson'
+      );
+      expect(collabDataCalls.length).toBeGreaterThanOrEqual(1);
+
+      const collabData = collabDataCalls[0][0];
+      expect(collabData[0]).toBe('Alice Johnson');
+      expect(collabData[1]).toBe('alice@example.com');
+      expect(collabData[2]).toBe('Engineering');
     });
   });
 
