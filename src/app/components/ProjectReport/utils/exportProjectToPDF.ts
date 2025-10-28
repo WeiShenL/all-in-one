@@ -55,6 +55,123 @@ function getStatusColor(status: string): [number, number, number] {
 }
 
 /**
+ * Insert zero-width spaces to allow breaking long unspaced tokens
+ */
+function softWrap(text: string, maxTokenLen = 24): string {
+  if (!text) {
+    return text;
+  }
+  return text
+    .split(/(\s+)/) // keep whitespace tokens
+    .map(token => {
+      if (/^\s+$/.test(token)) {
+        return token;
+      } // whitespace
+      if (token.length <= maxTokenLen) {
+        return token;
+      }
+      const chunks: string[] = [];
+      for (let i = 0; i < token.length; i += maxTokenLen) {
+        chunks.push(token.slice(i, i + maxTokenLen));
+      }
+      return chunks.join('\u200B'); // allow line break within long token
+    })
+    .join('');
+}
+
+/**
+ * Render task sections grouped by status using autoTable.
+ */
+function renderTaskSections(
+  doc: any,
+  tasks: Array<{
+    title: string;
+    status: string;
+    priority: number;
+    dueDate: Date;
+    assignees: string[];
+  }>,
+  startY: number
+): void {
+  const sections: Array<{
+    key: string;
+    title: string;
+    color: [number, number, number];
+  }> = [
+    { key: 'TO_DO', title: 'To Do', color: [156, 163, 175] },
+    { key: 'IN_PROGRESS', title: 'In Progress', color: [59, 130, 246] },
+    { key: 'COMPLETED', title: 'Completed', color: [34, 197, 94] },
+    { key: 'BLOCKED', title: 'Blocked', color: [239, 68, 68] },
+  ];
+
+  let y = startY;
+
+  sections.forEach(section => {
+    const rows = tasks
+      .filter(t => t.status === section.key)
+      .map(t => [
+        softWrap(String(t.title), 36),
+        String(t.priority),
+        new Intl.DateTimeFormat('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+        }).format(new Date(t.dueDate)),
+        t.assignees && t.assignees.length > 0
+          ? t.assignees.map(a => softWrap(a, 24)).join(',\n')
+          : '—',
+        // tags/departments provided by repository service
+        (t as any).tags && (t as any).tags.length > 0
+          ? (t as any).tags.map((x: string) => softWrap(x, 20)).join(',\n')
+          : '—',
+        (t as any).departments && (t as any).departments.length > 0
+          ? (t as any).departments
+              .map((x: string) => softWrap(x, 22))
+              .join(',\n')
+          : '—',
+      ]);
+
+    // Section heading
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(section.color[0], section.color[1], section.color[2]);
+    doc.text(section.title, 14, y);
+    y += 4;
+
+    autoTable(doc, {
+      startY: y,
+      head: [
+        ['Title', 'Priority', 'Due Date', 'Assignees', 'Tags', 'Departments'],
+      ],
+      body: rows.length > 0 ? rows : [['No tasks', '-', '-', '-', '-', '-']],
+      theme: 'striped',
+      headStyles: { fillColor: section.color, fontSize: 9, fontStyle: 'bold' },
+      styles: {
+        fontSize: 8,
+        cellPadding: 2,
+        overflow: 'linebreak',
+        valign: 'top',
+      },
+      tableWidth: 'auto',
+      columnStyles: {
+        0: { cellWidth: 62 }, // Title
+        1: { cellWidth: 16 }, // Priority
+        2: { cellWidth: 26 }, // Due Date
+        3: { cellWidth: 36 }, // Assignees
+        4: { cellWidth: 24 }, // Tags
+        5: { cellWidth: 'auto' }, // Departments
+      },
+      margin: { left: 14, right: 14 },
+    });
+
+    // Move Y below last table
+
+    const finalY = (doc as any).lastAutoTable?.finalY ?? y;
+    y = finalY + 10;
+  });
+}
+
+/**
  * Export project report to PDF
  *
  * @param data - Project report data from ProjectReportService
@@ -146,6 +263,14 @@ export function exportProjectToPDF(
     },
     margin: { left: 14, right: 14 },
   });
+
+  // ============================================
+  // SECTION 2: Tasks by Status
+  // ============================================
+  // Move Y below the overview table
+
+  const afterOverviewY = ((doc as any).lastAutoTable?.finalY || yPosition) + 12;
+  renderTaskSections(doc, data.tasks as any, afterOverviewY);
 
   // ============================================
   // DOWNLOAD: Blob Pattern (from exportToICal)
@@ -244,6 +369,11 @@ export function buildProjectReportPDFBlob(data: ProjectReportData): Blob {
     },
     margin: { left: 14, right: 14 },
   });
+
+  // Tasks by Status
+
+  const afterOverviewY = ((doc as any).lastAutoTable?.finalY || yPosition) + 12;
+  renderTaskSections(doc, (data as any).tasks, afterOverviewY);
 
   return doc.output('blob');
 }

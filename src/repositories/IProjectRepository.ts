@@ -170,6 +170,8 @@ export interface IProjectRepository {
       ownerName: string;
       ownerEmail: string;
       assignees: string[];
+      tags: string[];
+      departments: string[];
     }>;
     collaborators: Array<{
       name: string;

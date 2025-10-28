@@ -43,6 +43,8 @@ export interface ProjectReportData {
     ownerName: string;
     ownerEmail: string;
     assignees: string[]; // Array of assignee names
+    tags: string[];
+    departments: string[];
   }>;
   collaborators: Array<{
     name: string;
