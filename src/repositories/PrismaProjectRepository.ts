@@ -326,6 +326,7 @@ export class PrismaProjectRepository implements IProjectRepository {
       description: string;
       status: string;
       priority: number;
+      startDate: Date;
       dueDate: Date;
       createdAt: Date;
       ownerName: string;
@@ -424,6 +425,7 @@ export class PrismaProjectRepository implements IProjectRepository {
         description: task.description,
         status: task.status,
         priority: task.priority,
+        startDate: (task as any).startDate || task.createdAt,
         dueDate: task.dueDate,
         createdAt: task.createdAt,
         ownerName: task.owner.name,
