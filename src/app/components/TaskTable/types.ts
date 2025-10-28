@@ -81,6 +81,7 @@ export interface TaskTableProps {
   onCreateTask?: () => void;
   onTaskCreated?: () => void;
   onTaskUpdated?: () => void;
+  userRole?: 'STAFF' | 'MANAGER' | 'HR_ADMIN';
   emptyStateConfig?: {
     icon: string;
     title: string;

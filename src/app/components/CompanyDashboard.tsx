@@ -2,6 +2,7 @@
 
 import { TaskTable } from './TaskTable';
 import { trpc } from '../lib/trpc';
+import { useAuth } from '@/lib/supabase/auth-context';
 import { useNotifications } from '@/lib/context/NotificationContext';
 import { useEffect } from 'react';
 
@@ -11,6 +12,7 @@ import { useEffect } from 'react';
  * with role-based edit permissions
  */
 export function CompanyDashboard() {
+  const { userProfile } = useAuth();
   const { lastNotificationTime } = useNotifications();
 
   // Try to get utils for query invalidation (may not be available in test environment)
@@ -48,6 +50,7 @@ export function CompanyDashboard() {
         showCreateButton={true}
         onTaskCreated={handleTaskCreated}
         onTaskUpdated={handleTaskCreated}
+        userRole={userProfile?.role}
         emptyStateConfig={{
           icon: '🌐',
           title: 'No tasks found',

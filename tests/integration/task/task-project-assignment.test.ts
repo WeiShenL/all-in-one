@@ -46,6 +46,7 @@ let testUser: UserContext;
 let testDepartmentId: string;
 let testUserId: string;
 let testAssigneeId: string;
+let testManagerId: string; // Manager user for archive operations
 let testProject1Id: string;
 let testProject2Id: string;
 
@@ -138,6 +139,20 @@ describe('Task-Project Assignment Integration Tests', () => {
     );
     testAssigneeId = assigneeResult.rows[0].id;
 
+    // Create manager user (for archive operations)
+    const managerResult = await pgClient.query(
+      `INSERT INTO "user_profile" (id, email, name, role, "departmentId", "isActive", "createdAt", "updatedAt")
+       VALUES (gen_random_uuid(), $1, $2, $3, $4, true, NOW(), NOW())
+       RETURNING id`,
+      [
+        `task-project-manager@${testNamespace}.com`,
+        `Manager ${testNamespace}`,
+        'MANAGER',
+        testDepartmentId,
+      ]
+    );
+    testManagerId = managerResult.rows[0].id;
+
     // Create test projects
     testProject1Id = await createTestProject(
       `Project Alpha-${testNamespace}`,
@@ -195,6 +210,11 @@ describe('Task-Project Assignment Integration Tests', () => {
       if (testAssigneeId) {
         await pgClient.query(`DELETE FROM "user_profile" WHERE id = $1`, [
           testAssigneeId,
+        ]);
+      }
+      if (testManagerId) {
+        await pgClient.query(`DELETE FROM "user_profile" WHERE id = $1`, [
+          testManagerId,
         ]);
       }
       if (testUserId) {
@@ -570,7 +590,7 @@ describe('Task-Project Assignment Integration Tests', () => {
     }, 30000);
 
     it('should preserve project assignment through archival and unarchival', async () => {
-      // Create task with project
+      // Create task with project (as staff user)
       const result = await taskService.createTask(
         {
           title: 'Task to Archive',
@@ -586,15 +606,22 @@ describe('Task-Project Assignment Integration Tests', () => {
 
       const originalProjectId = testProject1Id;
 
-      // Archive task
-      await taskService.archiveTask(result.id, testUser);
-      let task = await taskService.getTaskById(result.id, testUser);
+      // Create manager user context (only managers can archive)
+      const managerUser: UserContext = {
+        userId: testManagerId,
+        role: 'MANAGER',
+        departmentId: testDepartmentId,
+      };
+
+      // Archive task (as manager)
+      await taskService.archiveTask(result.id, managerUser);
+      let task = await taskService.getTaskById(result.id, managerUser);
       expect(task?.getProjectId()).toBe(originalProjectId);
       expect(task?.getIsArchived()).toBe(true);
 
-      // Unarchive task
-      await taskService.unarchiveTask(result.id, testUser);
-      task = await taskService.getTaskById(result.id, testUser);
+      // Unarchive task (as manager)
+      await taskService.unarchiveTask(result.id, managerUser);
+      task = await taskService.getTaskById(result.id, managerUser);
       expect(task?.getProjectId()).toBe(originalProjectId);
       expect(task?.getIsArchived()).toBe(false);
     }, 30000);

@@ -14,7 +14,7 @@ import { useEffect } from 'react';
  * Supports both Table and Calendar views via tabs
  */
 export function PersonalDashboard() {
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const { lastNotificationTime } = useNotifications();
 
   // Try to get utils for query invalidation (may not be available in test environment)
@@ -65,6 +65,7 @@ export function PersonalDashboard() {
           error={error ? new Error(error.message) : null}
           onTaskCreated={handleTaskUpdated}
           onTaskUpdated={handleTaskUpdated}
+          userRole={userProfile?.role}
         />
       }
       calendarView={

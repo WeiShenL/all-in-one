@@ -57,6 +57,7 @@ export function TaskTable({
   onCreateTask,
   onTaskCreated,
   onTaskUpdated,
+  userRole,
   emptyStateConfig = {
     icon: '📝',
     title: 'No tasks assigned to you yet',
@@ -80,6 +81,7 @@ export function TaskTable({
   const [viewingTaskId, setViewingTaskId] = useState<string | null>(null);
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
+  const [archiveTaskId, setArchiveTaskId] = useState<string | null>(null);
   const modalContentRef = useRef<HTMLDivElement>(null);
 
   // Get all unique user IDs from task assignments
@@ -97,6 +99,33 @@ export function TaskTable({
   // Fetch user information for all assignees
   const { userMap } = useUserInfo(allUserIds);
 
+  // Archive mutation - may not be available in test environment
+  let archiveMutation;
+  try {
+    archiveMutation = trpc.task.archive.useMutation({
+      onSuccess: () => {
+        if (onTaskUpdated) {
+          onTaskUpdated();
+        }
+        setArchiveTaskId(null);
+      },
+      onError: error => {
+        console.error('Failed to archive task:', error);
+        alert(`Failed to archive task: ${error.message}`);
+        setArchiveTaskId(null);
+      },
+    });
+  } catch {
+    // Archive mutation not available (e.g., in test environment without full tRPC setup)
+    archiveMutation = null;
+  }
+
+  const handleConfirmArchive = () => {
+    if (archiveTaskId && archiveMutation) {
+      archiveMutation.mutate({ taskId: archiveTaskId });
+    }
+  };
+
   // ESC key handler to close modal
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -110,11 +139,14 @@ export function TaskTable({
         if (isCreateModalOpen) {
           setCreateModalOpen(false);
         }
+        if (archiveTaskId) {
+          setArchiveTaskId(null);
+        }
       }
     };
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
-  }, [editingTaskId, viewingTaskId, isCreateModalOpen]);
+  }, [editingTaskId, viewingTaskId, isCreateModalOpen, archiveTaskId]);
 
   const { departments, assignees, projects } = useMemo(() => {
     if (!tasks) {
@@ -734,6 +766,8 @@ export function TaskTable({
                     onToggleExpansion={toggleTaskExpansion}
                     onEditTask={setEditingTaskId}
                     onViewTask={setViewingTaskId}
+                    onArchiveTask={setArchiveTaskId}
+                    userRole={userRole}
                   />
                 ))}
               </tbody>
@@ -805,6 +839,84 @@ export function TaskTable({
             }
           }}
         />
+      )}
+
+      {/* Archive Confirmation Modal */}
+      {archiveTaskId && (
+        <div
+          style={styles.modalOverlay}
+          onClick={e => {
+            if (e.target === e.currentTarget) {
+              setArchiveTaskId(null);
+            }
+          }}
+        >
+          <div
+            style={{
+              ...styles.modalContent,
+              maxWidth: '400px',
+              padding: '2rem',
+            }}
+          >
+            <button
+              onClick={() => setArchiveTaskId(null)}
+              style={styles.closeButton}
+            >
+              ×
+            </button>
+            <h3
+              style={{ marginTop: 0, marginBottom: '1rem', color: '#2d3748' }}
+            >
+              Archive Task
+            </h3>
+            <p style={{ marginBottom: '1.5rem', color: '#4a5568' }}>
+              Are you sure you want to archive this task? This action will also
+              archive all subtasks.
+            </p>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '0.5rem',
+              }}
+            >
+              <button
+                onClick={() => setArchiveTaskId(null)}
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e0',
+                  backgroundColor: 'white',
+                  color: '#4a5568',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmArchive}
+                disabled={archiveMutation?.isPending}
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '8px',
+                  border: 'none',
+                  backgroundColor: '#e53e3e',
+                  color: 'white',
+                  cursor: archiveMutation?.isPending
+                    ? 'not-allowed'
+                    : 'pointer',
+                  fontWeight: '600',
+                  opacity: archiveMutation?.isPending ? 0.6 : 1,
+                }}
+              >
+                {archiveMutation?.isPending
+                  ? 'Archiving...'
+                  : 'Confirm archive'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
