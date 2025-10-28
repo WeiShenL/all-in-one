@@ -8,6 +8,7 @@
 import { exportProjectToPDF } from '@/app/components/ProjectReport/utils/exportProjectToPDF';
 import type { ProjectReportData } from '@/services/project/ProjectReportService';
 import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 // Mock jsPDF and autoTable
 jest.mock('jspdf', () => {
@@ -74,6 +75,8 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
         ownerName: 'Jane Smith',
         ownerEmail: 'jane@example.com',
         assignees: ['Alice Johnson'],
+        tags: ['UI', 'Design'],
+        departments: ['Engineering'],
       },
     ],
     collaborators: [
@@ -224,6 +227,74 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
       exportProjectToPDF(mockProjectData);
 
       expect(mockRevokeObjectURL).toHaveBeenCalledWith('blob:mock-pdf-url');
+    });
+  });
+
+  describe('Report Content - Sections and Columns', () => {
+    it('renders section tables with Tags and Departments with comma+newline separation', () => {
+      // Arrange: a dataset with one task in IN_PROGRESS with multiple values
+      const data: ProjectReportData = {
+        project: mockProjectData.project,
+        tasks: [
+          {
+            id: 't-1',
+            title: 'with tag',
+            description: 'd',
+            status: 'IN_PROGRESS' as any,
+            priority: 5,
+            dueDate: new Date('2025-10-28'),
+            createdAt: new Date('2025-10-20'),
+            ownerName: 'Owner',
+            ownerEmail: 'owner@example.com',
+            assignees: ['manager', 'Finance Executive Two'],
+            tags: ['appear', 'again'],
+            departments: ['Consultancy Division', 'Finance Executive'],
+          } as any,
+        ],
+        collaborators: mockProjectData.collaborators,
+      } as any;
+
+      // Act
+      (autoTable as jest.Mock).mockClear();
+      exportProjectToPDF(data);
+
+      // Assert: there should be 1 overview table + 4 section tables
+      const calls = (autoTable as jest.Mock).mock.calls as Array<any[]>;
+      expect(calls.length).toBeGreaterThanOrEqual(5);
+
+      // Collect all section tables (there are 4)
+      const sectionCalls = calls.filter(args => {
+        const opts = args[1] ?? args[0];
+        return (
+          opts &&
+          opts.head &&
+          JSON.stringify(opts.head).includes('Assignees') &&
+          JSON.stringify(opts.head).includes('Departments')
+        );
+      });
+
+      expect(sectionCalls.length).toBeGreaterThanOrEqual(1);
+
+      // Find the row for our task across any section (IN_PROGRESS)
+      const allRows: string[][] = sectionCalls.flatMap(sc => {
+        const o = (sc as any)[1] ?? (sc as any)[0];
+        return o.body as string[][];
+      });
+
+      // Titles may contain soft wrap characters \u200B, strip before matching
+      const bodyRow = allRows.find(
+        row => (row[0] || '').replace(/\u200B/g, '') === 'with tag'
+      );
+      expect(bodyRow).toBeTruthy();
+      if (!bodyRow) {
+        return;
+      } // TS narrow for following assertions
+      expect(bodyRow[3]).toContain('manager');
+      expect(bodyRow[3]).toContain(',\n');
+      expect(bodyRow[4]).toContain('appear');
+      expect(bodyRow[4]).toContain(',\n');
+      expect(bodyRow[5]).toContain('Consultancy Division');
+      expect(bodyRow[5]).toContain(',\n');
     });
   });
 
