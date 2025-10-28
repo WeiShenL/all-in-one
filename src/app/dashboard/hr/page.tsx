@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Navbar from '@/app/components/Navbar';
 import { ProjectReportExportButton } from '@/app/components/ProjectReport/ProjectReportExportButton';
+import { ProjectReportPreview } from '@/app/components/ProjectReport/ProjectReportPreview';
 import { trpc } from '@/app/lib/trpc';
 
 export default function HRDashboard() {
@@ -19,6 +20,8 @@ export default function HRDashboard() {
       enabled: !loading && !!user,
     }
   );
+
+  // Preview is now handled by ProjectReportPreview component
 
   useEffect(() => {
     if (!loading && !user) {
@@ -368,6 +371,11 @@ export default function HRDashboard() {
                     </div>
                   )}
                 </div>
+
+                {/* PDF Preview */}
+                {selectedProjectId && (
+                  <ProjectReportPreview projectId={selectedProjectId} />
+                )}
               </div>
             </div>
           </div>
