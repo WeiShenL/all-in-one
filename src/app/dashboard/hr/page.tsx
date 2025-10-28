@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Navbar from '@/app/components/Navbar';
 import { ProjectReportExportButton } from '@/app/components/ProjectReport/ProjectReportExportButton';
+import { ProjectReportPreview } from '@/app/components/ProjectReport/ProjectReportPreview';
 import { trpc } from '@/app/lib/trpc';
 
 export default function HRDashboard() {
@@ -12,13 +13,15 @@ export default function HRDashboard() {
   const router = useRouter();
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
 
-  // Fetch all projects for dropdown
-  const { data: projects } = trpc.project.getVisible.useQuery(
+  // Fetch all projects for dropdown (use ProjectService.getAllProjects)
+  const { data: projects } = trpc.project.getAll.useQuery(
     { isArchived: false },
     {
       enabled: !loading && !!user,
     }
   );
+
+  // Preview is now handled by ProjectReportPreview component
 
   useEffect(() => {
     if (!loading && !user) {
@@ -368,6 +371,11 @@ export default function HRDashboard() {
                     </div>
                   )}
                 </div>
+
+                {/* PDF Preview */}
+                {selectedProjectId && (
+                  <ProjectReportPreview projectId={selectedProjectId} />
+                )}
               </div>
             </div>
           </div>

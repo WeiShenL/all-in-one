@@ -2,13 +2,13 @@
  * XLSX Export Utility for Project Reports
  *
  * Exports project report data to Excel format using exceljs
- * Creates multi-sheet workbook with project overview data
+ * Creates multi-sheet workbook with comprehensive project data
  *
  * Sheets:
- * 1. Overview - Project details (populated)
- * 2. Tasks - Placeholder (data not included)
- * 3. Collaborators - Placeholder (data not included)
- * 4. Statistics - Placeholder (data not included)
+ * 1. Overview - Project details
+ * 2. Tasks by Status - Tasks grouped by status (To Do, In Progress, Completed, Blocked)
+ * 3. Schedule Overview - Tasks grouped by time buckets (Overdue, Due Today, Due This Week, Due This Month)
+ * 4. Collaborators - Project collaborators
  */
 
 import ExcelJS from 'exceljs';
@@ -98,22 +98,238 @@ export async function exportProjectToXLSX(
   });
 
   // ============================================
-  // SHEET 2: Tasks
+  // SHEET 2: Tasks by Status
   // ============================================
-  const tasksSheet = workbook.addWorksheet('Tasks');
-  tasksSheet.addRow(['No task data included in this export']);
+  const tasksSheet = workbook.addWorksheet('Tasks by Status');
+
+  // Add header
+  const taskHeaders = [
+    'Title',
+    'Status',
+    'Priority',
+    'Due Date',
+    'Assignees',
+    'Tags',
+    'Departments',
+  ];
+  tasksSheet.addRow(taskHeaders);
+
+  // Style header
+  const taskHeaderRow = tasksSheet.getRow(1);
+  taskHeaderRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+  taskHeaderRow.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FF4F46E5' }, // Indigo
+  };
+  taskHeaderRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+  // Group tasks by status
+  const statusGroups = [
+    { key: 'TO_DO', title: 'To Do', color: 'FF9CA3AF' },
+    { key: 'IN_PROGRESS', title: 'In Progress', color: 'FF3B82F6' },
+    { key: 'COMPLETED', title: 'Completed', color: 'FF22C55E' },
+    { key: 'BLOCKED', title: 'Blocked', color: 'FFEF4444' },
+  ];
+
+  let currentRow = 2;
+
+  statusGroups.forEach(group => {
+    const groupTasks = data.tasks.filter(task => task.status === group.key);
+
+    if (groupTasks.length > 0) {
+      // Add section header via addRow so tests can detect
+      tasksSheet.addRow(
+        `${group.title} (${groupTasks.length} ${groupTasks.length === 1 ? 'task' : 'tasks'})`
+      );
+      const sectionRow = tasksSheet.getRow(currentRow);
+      sectionRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      sectionRow.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: group.color },
+      };
+      sectionRow.alignment = { vertical: 'middle', horizontal: 'left' };
+      currentRow++;
+
+      // Add task rows via addRow so tests can detect
+      groupTasks.forEach(task => {
+        tasksSheet.addRow([
+          task.title,
+          task.status.replace('_', ' '),
+          task.priority,
+          formatDate(task.dueDate),
+          task.assignees.join(', '),
+          task.tags.join(', '),
+          task.departments.join(', '),
+        ]);
+        currentRow++;
+      });
+
+      // Add empty row for spacing
+      tasksSheet.addRow(['']);
+      currentRow++;
+    }
+  });
+
+  // Set column widths
+  tasksSheet.getColumn(1).width = 40; // Title
+  tasksSheet.getColumn(2).width = 15; // Status
+  tasksSheet.getColumn(3).width = 10; // Priority
+  tasksSheet.getColumn(4).width = 15; // Due Date
+  tasksSheet.getColumn(5).width = 30; // Assignees
+  tasksSheet.getColumn(6).width = 20; // Tags
+  tasksSheet.getColumn(7).width = 25; // Departments
 
   // ============================================
-  // SHEET 3: Collaborators
+  // SHEET 3: Schedule Overview
+  // ============================================
+  const scheduleSheet = workbook.addWorksheet('Schedule Overview');
+
+  // Add header
+  scheduleSheet.addRow(taskHeaders);
+
+  // Style header
+  const scheduleHeaderRow = scheduleSheet.getRow(1);
+  scheduleHeaderRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+  scheduleHeaderRow.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FF4F46E5' }, // Indigo
+  };
+  scheduleHeaderRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+  // Calculate time buckets
+  const now = new Date();
+  const startOfToday = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate()
+  );
+  const thirtyDaysFromNow = new Date(
+    startOfToday.getTime() + 30 * 24 * 60 * 60 * 1000
+  );
+
+  const normalize = (d: Date | string) => (d instanceof Date ? d : new Date(d));
+  const isSameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
+
+  const bucketOverdue = data.tasks.filter(
+    t => normalize(t.dueDate) < startOfToday
+  );
+  const bucketToday = data.tasks.filter(t =>
+    isSameDay(normalize(t.dueDate), startOfToday)
+  );
+  const bucketThisWeek = data.tasks.filter(t => {
+    const d = normalize(t.dueDate);
+    const weekEnd = new Date(startOfToday.getTime() + 7 * 24 * 60 * 60 * 1000);
+    return d > startOfToday && d < weekEnd;
+  });
+  const bucketThisMonth = data.tasks.filter(t => {
+    const d = normalize(t.dueDate);
+    return (
+      d >= new Date(startOfToday.getTime() + 7 * 24 * 60 * 60 * 1000) &&
+      d < thirtyDaysFromNow
+    );
+  });
+
+  const timeBuckets = [
+    { title: 'Overdue', tasks: bucketOverdue, color: 'FFEF4444' },
+    { title: 'Due Today', tasks: bucketToday, color: 'FFF59E0B' },
+    { title: 'Due This Week', tasks: bucketThisWeek, color: 'FF3B82F6' },
+    { title: 'Due This Month', tasks: bucketThisMonth, color: 'FF6B7280' },
+  ];
+
+  currentRow = 2;
+
+  timeBuckets.forEach(bucket => {
+    if (bucket.tasks.length > 0) {
+      // Add section header via addRow so tests can detect
+      scheduleSheet.addRow(
+        `${bucket.title} (${bucket.tasks.length} ${bucket.tasks.length === 1 ? 'task' : 'tasks'})`
+      );
+      const sectionRow = scheduleSheet.getRow(currentRow);
+      sectionRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      sectionRow.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: bucket.color },
+      };
+      sectionRow.alignment = { vertical: 'middle', horizontal: 'left' };
+      currentRow++;
+
+      // Sort tasks by due date
+      const sortedTasks = bucket.tasks.sort(
+        (a, b) =>
+          normalize(a.dueDate).getTime() - normalize(b.dueDate).getTime()
+      );
+
+      // Add task rows via addRow so tests can detect
+      sortedTasks.forEach(task => {
+        scheduleSheet.addRow([
+          task.title,
+          task.status.replace('_', ' '),
+          task.priority,
+          formatDate(task.dueDate),
+          task.assignees.join(', '),
+          task.tags.join(', '),
+          task.departments.join(', '),
+        ]);
+        currentRow++;
+      });
+
+      // Add empty row for spacing
+      scheduleSheet.addRow(['']);
+      currentRow++;
+    }
+  });
+
+  // Set column widths
+  scheduleSheet.getColumn(1).width = 40; // Title
+  scheduleSheet.getColumn(2).width = 15; // Status
+  scheduleSheet.getColumn(3).width = 10; // Priority
+  scheduleSheet.getColumn(4).width = 15; // Due Date
+  scheduleSheet.getColumn(5).width = 30; // Assignees
+  scheduleSheet.getColumn(6).width = 20; // Tags
+  scheduleSheet.getColumn(7).width = 25; // Departments
+
+  // ============================================
+  // SHEET 4: Collaborators
   // ============================================
   const collabsSheet = workbook.addWorksheet('Collaborators');
-  collabsSheet.addRow(['No collaborator data included in this export']);
 
-  // ============================================
-  // SHEET 4: Statistics
-  // ============================================
-  const statsSheet = workbook.addWorksheet('Statistics');
-  statsSheet.addRow(['No statistics data included in this export']);
+  if (data.collaborators.length > 0) {
+    // Add header
+    const collabHeaders = ['Name', 'Email', 'Department', 'Added Date'];
+    collabsSheet.addRow(collabHeaders);
+
+    // Style header
+    const collabHeaderRow = collabsSheet.getRow(1);
+    collabHeaderRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    collabHeaderRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF4F46E5' }, // Indigo
+    };
+    collabHeaderRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    // Add collaborator data
+    data.collaborators.forEach(collab => {
+      collabsSheet.addRow([
+        collab.name,
+        collab.email,
+        collab.departmentName,
+        formatDate(collab.addedAt),
+      ]);
+    });
+
+    // Set column widths
+    collabsSheet.getColumn(1).width = 25; // Name
+    collabsSheet.getColumn(2).width = 35; // Email
+    collabsSheet.getColumn(3).width = 25; // Department
+    collabsSheet.getColumn(4).width = 15; // Added Date
+  } else {
+    collabsSheet.addRow(['No collaborators found for this project']);
+  }
 
   // ============================================
   // DOWNLOAD: Blob Pattern

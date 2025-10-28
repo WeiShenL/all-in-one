@@ -326,11 +326,14 @@ export class PrismaProjectRepository implements IProjectRepository {
       description: string;
       status: string;
       priority: number;
+      startDate: Date;
       dueDate: Date;
       createdAt: Date;
       ownerName: string;
       ownerEmail: string;
       assignees: string[];
+      tags: string[];
+      departments: string[];
     }>;
     collaborators: Array<{
       name: string;
@@ -356,7 +359,7 @@ export class PrismaProjectRepository implements IProjectRepository {
       throw new Error('Project not found');
     }
 
-    // Fetch all active tasks with owner and assignments
+    // Fetch all active tasks with owner, assignments, tags, and assignee departments
     const tasks = await this.prisma.task.findMany({
       where: {
         projectId,
@@ -369,10 +372,17 @@ export class PrismaProjectRepository implements IProjectRepository {
         assignments: {
           include: {
             user: {
-              select: { id: true, name: true, email: true },
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                department: { select: { id: true, name: true } },
+              },
             },
           },
         },
+        tags: { include: { tag: { select: { name: true } } } },
+        department: { select: { id: true, name: true } },
       },
       orderBy: {
         createdAt: 'asc',
@@ -415,11 +425,23 @@ export class PrismaProjectRepository implements IProjectRepository {
         description: task.description,
         status: task.status,
         priority: task.priority,
+        startDate: (task as any).startDate || task.createdAt,
         dueDate: task.dueDate,
         createdAt: task.createdAt,
         ownerName: task.owner.name,
         ownerEmail: task.owner.email,
         assignees: task.assignments.map(a => a.user.name),
+        tags: (task as any).tags?.map((t: any) => t.tag.name) || [],
+        departments: Array.from(
+          new Set(
+            [
+              task.department?.name,
+              ...task.assignments
+                .map(a => a.user.department?.name)
+                .filter(Boolean),
+            ].filter(Boolean)
+          )
+        ) as string[],
       })),
       collaborators: collaborators.map(c => ({
         name: c.user.name,

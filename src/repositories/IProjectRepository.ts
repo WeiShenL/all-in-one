@@ -165,11 +165,14 @@ export interface IProjectRepository {
       description: string;
       status: string;
       priority: number;
+      startDate: Date;
       dueDate: Date;
       createdAt: Date;
       ownerName: string;
       ownerEmail: string;
       assignees: string[];
+      tags: string[];
+      departments: string[];
     }>;
     collaborators: Array<{
       name: string;

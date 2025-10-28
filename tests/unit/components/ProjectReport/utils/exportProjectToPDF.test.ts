@@ -8,6 +8,7 @@
 import { exportProjectToPDF } from '@/app/components/ProjectReport/utils/exportProjectToPDF';
 import type { ProjectReportData } from '@/services/project/ProjectReportService';
 import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 // Mock jsPDF and autoTable
 jest.mock('jspdf', () => {
@@ -69,11 +70,14 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
         description: 'Create homepage mockup',
         status: 'COMPLETED',
         priority: 9,
+        startDate: new Date('2025-10-05'),
         dueDate: new Date('2025-10-15'),
         createdAt: new Date('2025-10-05'),
         ownerName: 'Jane Smith',
         ownerEmail: 'jane@example.com',
         assignees: ['Alice Johnson'],
+        tags: ['UI', 'Design'],
+        departments: ['Engineering'],
       },
     ],
     collaborators: [
@@ -224,6 +228,254 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
       exportProjectToPDF(mockProjectData);
 
       expect(mockRevokeObjectURL).toHaveBeenCalledWith('blob:mock-pdf-url');
+    });
+  });
+
+  describe('Report Content - Sections and Columns', () => {
+    it('renders section tables with Tags and Departments with comma+newline separation', () => {
+      // Arrange: a dataset with one task in IN_PROGRESS with multiple values
+      const data: ProjectReportData = {
+        project: mockProjectData.project,
+        tasks: [
+          {
+            id: 't-1',
+            title: 'with tag',
+            description: 'd',
+            status: 'IN_PROGRESS' as any,
+            priority: 5,
+            dueDate: new Date('2025-10-28'),
+            createdAt: new Date('2025-10-20'),
+            ownerName: 'Owner',
+            ownerEmail: 'owner@example.com',
+            assignees: ['manager', 'Finance Executive Two'],
+            tags: ['appear', 'again'],
+            departments: ['Consultancy Division', 'Finance Executive'],
+          } as any,
+        ],
+        collaborators: mockProjectData.collaborators,
+      } as any;
+
+      // Act
+      (autoTable as jest.Mock).mockClear();
+      exportProjectToPDF(data);
+
+      // Assert: there should be 1 overview table + 4 section tables
+      const calls = (autoTable as jest.Mock).mock.calls as Array<any[]>;
+      expect(calls.length).toBeGreaterThanOrEqual(5);
+
+      // Collect all section tables (there are 4)
+      const sectionCalls = calls.filter(args => {
+        const opts = args[1] ?? args[0];
+        return (
+          opts &&
+          opts.head &&
+          JSON.stringify(opts.head).includes('Assignees') &&
+          JSON.stringify(opts.head).includes('Departments')
+        );
+      });
+
+      expect(sectionCalls.length).toBeGreaterThanOrEqual(1);
+
+      // Find the row for our task across any section (IN_PROGRESS)
+      const allRows: string[][] = sectionCalls.flatMap(sc => {
+        const o = (sc as any)[1] ?? (sc as any)[0];
+        return o.body as string[][];
+      });
+
+      // Titles may contain soft wrap characters \u200B, strip before matching
+      const bodyRow = allRows.find(
+        row => (row[0] || '').replace(/\u200B/g, '') === 'with tag'
+      );
+      expect(bodyRow).toBeTruthy();
+      if (!bodyRow) {
+        return;
+      } // TS narrow for following assertions
+      expect(bodyRow[3]).toContain('manager');
+      expect(bodyRow[3]).toContain(',\n');
+      expect(bodyRow[4]).toContain('appear');
+      expect(bodyRow[4]).toContain(',\n');
+      expect(bodyRow[5]).toContain('Consultancy Division');
+      expect(bodyRow[5]).toContain(',\n');
+    });
+
+    it('renders schedule section with time buckets and Status column', () => {
+      // Arrange: tasks with different due dates to test time buckets
+      const now = new Date('2025-10-20T12:00:00Z');
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+      const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+      const nextMonth = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+      const overdue = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+
+      const data: ProjectReportData = {
+        project: mockProjectData.project,
+        tasks: [
+          {
+            id: 'overdue-task',
+            title: 'Overdue Task',
+            description: 'd',
+            status: 'BLOCKED' as any,
+            priority: 8,
+            startDate: overdue,
+            dueDate: overdue,
+            createdAt: new Date('2025-10-15'),
+            ownerName: 'Owner',
+            ownerEmail: 'owner@example.com',
+            assignees: ['Alice', 'Bob'],
+            tags: ['urgent', 'critical'],
+            departments: ['Engineering', 'QA'],
+          } as any,
+          {
+            id: 'today-task',
+            title: 'Today Task',
+            description: 'd',
+            status: 'IN_PROGRESS' as any,
+            priority: 5,
+            startDate: today,
+            dueDate: today,
+            createdAt: new Date('2025-10-20'),
+            ownerName: 'Owner',
+            ownerEmail: 'owner@example.com',
+            assignees: ['Charlie'],
+            tags: ['important'],
+            departments: ['Design'],
+          } as any,
+          {
+            id: 'week-task',
+            title: 'This Week Task',
+            description: 'd',
+            status: 'TO_DO' as any,
+            priority: 3,
+            startDate: tomorrow,
+            dueDate: nextWeek,
+            createdAt: new Date('2025-10-21'),
+            ownerName: 'Owner',
+            ownerEmail: 'owner@example.com',
+            assignees: ['David', 'Eve'],
+            tags: ['feature', 'enhancement'],
+            departments: ['Product'],
+          } as any,
+          {
+            id: 'month-task',
+            title: 'This Month Task',
+            description: 'd',
+            status: 'COMPLETED' as any,
+            priority: 2,
+            startDate: nextWeek,
+            dueDate: nextMonth,
+            createdAt: new Date('2025-10-25'),
+            ownerName: 'Owner',
+            ownerEmail: 'owner@example.com',
+            assignees: ['Frank'],
+            tags: ['maintenance'],
+            departments: ['Operations'],
+          } as any,
+        ],
+        collaborators: mockProjectData.collaborators,
+      } as any;
+
+      // Mock Date.now to return our fixed date
+      const originalDateNow = Date.now;
+      Date.now = jest.fn(() => now.getTime());
+
+      try {
+        // Act
+        (autoTable as jest.Mock).mockClear();
+        exportProjectToPDF(data);
+
+        // Assert: should have overview table + 4 status sections + 4 schedule buckets
+        const calls = (autoTable as jest.Mock).mock.calls as Array<any[]>;
+        expect(calls.length).toBeGreaterThanOrEqual(9); // 1 overview + 4 status + 4 schedule
+
+        // Find schedule tables (should have Status column)
+        const scheduleCalls = calls.filter(args => {
+          const opts = args[1] ?? args[0];
+          return (
+            opts &&
+            opts.head &&
+            Array.isArray(opts.head[0]) &&
+            opts.head[0].includes('Status') &&
+            opts.head[0].includes('Due Date')
+          );
+        });
+
+        expect(scheduleCalls.length).toBe(4); // Overdue, Due Today, Due This Week, Due This Month
+
+        // Check that each schedule table has the correct columns
+        scheduleCalls.forEach(call => {
+          const opts = call[1] ?? call[0];
+          const headers = opts.head[0];
+          expect(headers).toEqual([
+            'Title',
+            'Status',
+            'Priority',
+            'Due Date',
+            'Assignees',
+            'Tags',
+            'Departments',
+          ]);
+        });
+
+        // Check that tasks are properly distributed across buckets
+        const overdueTable = scheduleCalls.find(call => {
+          const opts = call[1] ?? call[0];
+          return opts.body.some((row: any[]) =>
+            row[0]?.includes('Overdue Task')
+          );
+        });
+        expect(overdueTable).toBeTruthy();
+
+        const todayTable = scheduleCalls.find(call => {
+          const opts = call[1] ?? call[0];
+          return opts.body.some((row: any[]) => row[0]?.includes('Today Task'));
+        });
+        expect(todayTable).toBeTruthy();
+
+        const weekTable = scheduleCalls.find(call => {
+          const opts = call[1] ?? call[0];
+          return opts.body.some((row: any[]) =>
+            row[0]?.includes('This Week Task')
+          );
+        });
+        expect(weekTable).toBeTruthy();
+
+        const monthTable = scheduleCalls.find(call => {
+          const opts = call[1] ?? call[0];
+          return opts.body.some((row: any[]) =>
+            row[0]?.includes('This Month Task')
+          );
+        });
+        expect(monthTable).toBeTruthy();
+
+        // Check that Status column shows proper values
+        const allScheduleRows = scheduleCalls.flatMap(call => {
+          const opts = call[1] ?? call[0];
+          return opts.body;
+        });
+
+        const overdueRow = allScheduleRows.find(row =>
+          row[0]?.includes('Overdue Task')
+        );
+        expect(overdueRow?.[1]).toBe('BLOCKED');
+
+        const todayRow = allScheduleRows.find(row =>
+          row[0]?.includes('Today Task')
+        );
+        expect(todayRow?.[1]).toBe('IN PROGRESS');
+
+        const weekRow = allScheduleRows.find(row =>
+          row[0]?.includes('This Week Task')
+        );
+        expect(weekRow?.[1]).toBe('TO DO');
+
+        const monthRow = allScheduleRows.find(row =>
+          row[0]?.includes('This Month Task')
+        );
+        expect(monthRow?.[1]).toBe('COMPLETED');
+      } finally {
+        // Restore original Date.now
+        Date.now = originalDateNow;
+      }
     });
   });
 

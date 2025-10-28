@@ -38,11 +38,14 @@ export interface ProjectReportData {
     description: string;
     status: string;
     priority: number;
+    startDate: Date;
     dueDate: Date;
     createdAt: Date;
     ownerName: string;
     ownerEmail: string;
     assignees: string[]; // Array of assignee names
+    tags: string[];
+    departments: string[];
   }>;
   collaborators: Array<{
     name: string;
