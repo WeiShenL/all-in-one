@@ -12,8 +12,8 @@ export default function HRDashboard() {
   const router = useRouter();
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
 
-  // Fetch all projects for dropdown
-  const { data: projects } = trpc.project.getVisible.useQuery(
+  // Fetch all projects for dropdown (use ProjectService.getAllProjects)
+  const { data: projects } = trpc.project.getAll.useQuery(
     { isArchived: false },
     {
       enabled: !loading && !!user,

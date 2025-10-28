@@ -51,6 +51,13 @@ jest.mock('@/app/lib/trpc', () => {
             error: null,
           })),
         },
+        getAll: {
+          useQuery: jest.fn(() => ({
+            data: [],
+            isLoading: false,
+            error: null,
+          })),
+        },
       },
       userProfile: {
         getAll: {
