@@ -31,11 +31,19 @@ jest.mock('@/app/lib/trpc', () => ({
       getAll: {
         useQuery: jest.fn(),
       },
+      getProjectReport: {
+        useQuery: jest.fn(),
+      },
     },
   },
 }));
 
 import { trpc } from '@/app/lib/trpc';
+jest.mock('@/app/components/ProjectReport/ProjectReportPreview', () => ({
+  ProjectReportPreview: ({ projectId }: { projectId: string }) => (
+    <div data-testid='mock-preview'>Preview for {projectId}</div>
+  ),
+}));
 
 describe('HR Dashboard - Project report project source', () => {
   const mockUseQuery = trpc.project.getAll.useQuery as jest.Mock;
@@ -100,5 +108,8 @@ describe('HR Dashboard - Project report project source', () => {
 
     // Export component appears with selected id
     expect(screen.getByTestId('mock-export-button')).toHaveTextContent('p2');
+
+    // Preview appears for selected project
+    expect(screen.getByTestId('mock-preview')).toHaveTextContent('p2');
   });
 });
