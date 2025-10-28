@@ -243,14 +243,17 @@ describe('ProjectReportService - DDD Pattern', () => {
             description: 'Create homepage design',
             status: 'COMPLETED',
             priority: 9,
+            startDate: new Date('2025-10-12'),
             dueDate: new Date('2025-10-25'),
             createdAt: new Date('2025-10-10'),
             ownerName: 'Owner',
             ownerEmail: 'owner@example.com',
             assignees: ['User 1', 'User 2'],
+            tags: ['UI', 'Design'],
+            departments: ['Engineering'],
           },
         ],
-        collaborators: [],
+        collaborators: [] as any,
       };
 
       mockRepository.getProjectReportData.mockResolvedValue(mockData);
