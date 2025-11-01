@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useRef } from 'react';
+import { useMemo, useState, useRef, memo } from 'react';
 import { Calendar, dateFnsLocalizer, View } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { enUS } from 'date-fns/locale/en-US';
@@ -264,7 +264,7 @@ function CustomToolbar({
  * - TO_DO tasks (no startDate): Show from createdAt with lighter styling (opacity 0.6, gray)
  * - IN_PROGRESS/BLOCKED/COMPLETED (has startDate): Show from startDate with normal styling
  */
-export function TaskCalendar({
+const TaskCalendarComponent: React.FC<TaskCalendarProps> = ({
   tasks,
   title = 'Task Calendar',
   emptyStateConfig = {
@@ -276,7 +276,7 @@ export function TaskCalendar({
   error = null,
   onTaskUpdated,
   showDepartmentFilter = false,
-}: TaskCalendarProps) {
+}) => {
   // State for calendar view and date navigation
   const [view, setView] = useState<View>('month');
   const [date, setDate] = useState(new Date());
@@ -830,7 +830,11 @@ export function TaskCalendar({
       </div>
     </div>
   );
-}
+};
+
+// Wrap with React.memo to prevent unnecessary remounting
+// This preserves internal state (filters, view, date) across parent re-renders
+export const TaskCalendar = memo(TaskCalendarComponent);
 
 const toolbarStyles = {
   container: {

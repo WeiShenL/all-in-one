@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, cloneElement } from 'react';
 
 type TabType = 'table' | 'calendar';
 
@@ -35,6 +35,14 @@ export function DashboardTabs({
 }: DashboardTabsProps) {
   const [activeTab, setActiveTab] = useState<TabType>(defaultTab);
 
+  // Clone elements with stable keys to prevent remounting
+  const stableTableView = cloneElement(tableView as React.ReactElement, {
+    key: 'stable-table-view',
+  });
+  const stableCalendarView = cloneElement(calendarView as React.ReactElement, {
+    key: 'stable-calendar-view',
+  });
+
   return (
     <div style={styles.container}>
       {/* Tab buttons */}
@@ -66,10 +74,10 @@ export function DashboardTabs({
       {/* Tab content - both views always mounted to preserve state across re-renders */}
       <div style={styles.content}>
         <div style={{ display: activeTab === 'table' ? 'block' : 'none' }}>
-          {tableView}
+          {stableTableView}
         </div>
         <div style={{ display: activeTab === 'calendar' ? 'block' : 'none' }}>
-          {calendarView}
+          {stableCalendarView}
         </div>
       </div>
     </div>

@@ -78,6 +78,7 @@ export function ProjectDashboard({
   const calendarView = useMemo(
     () => (
       <TaskCalendar
+        key={`project-calendar-${projectId}`}
         tasks={data || []}
         title={`${title} Calendar`}
         emptyStateConfig={emptyStateConfig}
@@ -95,6 +96,7 @@ export function ProjectDashboard({
       isLoading,
       error,
       emptyStateConfig,
+      projectId,
     ]
   );
 

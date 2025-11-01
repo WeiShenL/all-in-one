@@ -16,15 +16,7 @@ import { useEffect, useMemo, useCallback } from 'react';
 export function PersonalDashboard() {
   const { user, userProfile } = useAuth();
   const { lastNotificationTime } = useNotifications();
-
-  // Try to get utils for query invalidation (may not be available in test environment)
-  let utils;
-  try {
-    utils = trpc.useUtils();
-  } catch {
-    // useUtils not available (e.g., in test environment without provider)
-    utils = null;
-  }
+  const utils = trpc.useUtils();
 
   const { data, isLoading, error, refetch } = trpc.task.getUserTasks.useQuery(
     { userId: user?.id || '', includeArchived: false },
@@ -41,10 +33,8 @@ export function PersonalDashboard() {
 
   // Memoize handleTaskUpdated to prevent unnecessary re-renders
   const handleTaskUpdated = useCallback(() => {
-    if (utils) {
-      // Invalidate the query to trigger a refetch
-      utils.task.getUserTasks.invalidate();
-    }
+    // Invalidate the query to trigger a refetch
+    utils.task.getUserTasks.invalidate();
   }, [utils]);
 
   const emptyStateConfig = useMemo(
@@ -86,6 +76,7 @@ export function PersonalDashboard() {
   const calendarView = useMemo(
     () => (
       <TaskCalendar
+        key='personal-calendar'
         tasks={data || []}
         title='Task Calendar'
         emptyStateConfig={emptyStateConfig}
