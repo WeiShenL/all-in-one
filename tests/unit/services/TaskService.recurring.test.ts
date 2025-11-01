@@ -107,6 +107,10 @@ describe('TaskService - Recurring Tasks', () => {
       // Mock creation of next instance
       mockRepository.createTask.mockResolvedValue({ id: 'task-recurring-002' });
 
+      // Mock system time to Jan 7 (completion on due date)
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2025-01-07T12:00:00.000Z'));
+
       // Execute
       await service.updateTaskStatus(taskId, TaskStatus.COMPLETED, testUser);
 
@@ -168,6 +172,8 @@ describe('TaskService - Recurring Tasks', () => {
           },
         }
       );
+
+      jest.useRealTimers();
     });
 
     it('should NOT generate next instance when task has no recurring interval', async () => {
@@ -278,6 +284,10 @@ describe('TaskService - Recurring Tasks', () => {
       });
       mockRepository.createTask.mockResolvedValue({ id: 'task-monthly-002' });
 
+      // Mock system time to Jan 15 (completion on due date)
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2025-01-15T12:00:00.000Z'));
+
       // Execute
       await service.updateTaskStatus(taskId, TaskStatus.COMPLETED, testUser);
 
@@ -289,6 +299,8 @@ describe('TaskService - Recurring Tasks', () => {
           assigneeIds: ['user-001'],
         })
       );
+
+      jest.useRealTimers();
     });
 
     it('should preserve parent task ID for recurring subtasks', async () => {
@@ -529,6 +541,10 @@ describe('TaskService - Recurring Tasks', () => {
       });
       mockRepository.createTask.mockResolvedValue({ id: 'task-daily-002' });
 
+      // Mock system time to Jan 7 (completion on due date)
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2025-01-07T12:00:00.000Z'));
+
       // Execute
       await service.updateTaskStatus(taskId, TaskStatus.COMPLETED, testUser);
 
@@ -540,6 +556,8 @@ describe('TaskService - Recurring Tasks', () => {
           assigneeIds: ['user-001'],
         })
       );
+
+      jest.useRealTimers();
     });
 
     it('should handle recurring task with large interval (yearly)', async () => {
