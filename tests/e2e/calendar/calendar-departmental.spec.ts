@@ -600,8 +600,9 @@ test.describe('Departmental Calendar - Manager Flow', () => {
     });
 
     // Verify at least one task is present in week view (may be in all-day section)
+    // Use text content since data-task-title might be on inner span
     const weekTaskCount = await page
-      .locator('[data-task-title="Alice Task - Frontend Update"]')
+      .getByText('Alice Task - Frontend Update', { exact: false })
       .count();
     // console.warn(`Week view - Alice Task count: ${weekTaskCount}`);
     expect(weekTaskCount).toBeGreaterThan(0);

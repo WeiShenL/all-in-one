@@ -63,9 +63,14 @@ export function DashboardTabs({
         </button>
       </div>
 
-      {/* Tab content */}
+      {/* Tab content - both views always mounted to preserve state across re-renders */}
       <div style={styles.content}>
-        {activeTab === 'table' ? tableView : calendarView}
+        <div style={{ display: activeTab === 'table' ? 'block' : 'none' }}>
+          {tableView}
+        </div>
+        <div style={{ display: activeTab === 'calendar' ? 'block' : 'none' }}>
+          {calendarView}
+        </div>
       </div>
     </div>
   );
