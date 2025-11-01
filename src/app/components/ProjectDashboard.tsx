@@ -57,6 +57,7 @@ export function ProjectDashboard({
           emptyStateConfig={emptyStateConfig}
           isLoading={isLoading}
           error={error ? new Error(error.message) : null}
+          projectId={projectId}
         />
       }
       calendarView={

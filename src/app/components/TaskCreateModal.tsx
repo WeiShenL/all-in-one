@@ -9,6 +9,7 @@ interface TaskCreateModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: (taskId: string) => void;
+  defaultProjectId?: string;
 }
 
 /**
@@ -27,6 +28,7 @@ export function TaskCreateModal({
   isOpen,
   onClose,
   onSuccess,
+  defaultProjectId,
 }: TaskCreateModalProps) {
   const { user, userProfile } = useAuth();
   const { addNotification } = useNotifications();
@@ -40,7 +42,7 @@ export function TaskCreateModal({
   const [assigneeEmails, setAssigneeEmails] = useState<string[]>([]); // For backward compatibility
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState('');
-  const [projectId, setProjectId] = useState('');
+  const [projectId, setProjectId] = useState(defaultProjectId || '');
   const [parentTaskId, setParentTaskId] = useState('');
   const [recurringEnabled, setRecurringEnabled] = useState(false);
   const [recurringInterval, setRecurringInterval] = useState<number | ''>('');
@@ -328,7 +330,7 @@ export function TaskCreateModal({
       setAssigneeEmails(userProfile?.email ? [userProfile.email] : []);
       setTags([]);
       setNewTag('');
-      setProjectId('');
+      setProjectId(defaultProjectId || '');
       setParentTaskId('');
       setRecurringEnabled(false);
       setRecurringInterval('');
@@ -338,7 +340,7 @@ export function TaskCreateModal({
       setError(null);
       setSuccess(null);
     }
-  }, [isOpen, userProfile?.email, userProfile?.id]);
+  }, [isOpen, userProfile?.email, userProfile?.id, defaultProjectId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
