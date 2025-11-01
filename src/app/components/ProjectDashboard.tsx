@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo, useCallback } from 'react';
 import { TaskTable } from './TaskTable';
 import { TaskCalendar } from './Calendar/TaskCalendar';
 import { DashboardTabs } from './DashboardTabs';
@@ -26,9 +26,10 @@ export function ProjectDashboard({
     });
   const utils = trpc.useUtils();
 
-  const handleInvalidate = () => {
+  // Memoize handleInvalidate to prevent unnecessary re-renders
+  const handleInvalidate = useCallback(() => {
     void utils.task.getProjectTasksForUser.invalidate({ projectId });
-  };
+  }, [utils, projectId]);
 
   // Refetch tasks when a real-time notification is received
   // (notifications are sent when tasks are assigned/updated)
@@ -38,38 +39,69 @@ export function ProjectDashboard({
     }
   }, [lastNotificationTime, refetch]);
 
-  const emptyStateConfig = {
-    icon: '📁',
-    title: 'No tasks in this project yet',
-    description: 'Create a task for this project to get started.',
-  };
+  const emptyStateConfig = useMemo(
+    () => ({
+      icon: '📁',
+      title: 'No tasks in this project yet',
+      description: 'Create a task for this project to get started.',
+    }),
+    []
+  );
+
+  // Memoize views to prevent remounting when parent re-renders
+  // This preserves calendar filter state when notifications trigger refetch
+  const tableView = useMemo(
+    () => (
+      <TaskTable
+        tasks={data || []}
+        title={title}
+        showCreateButton={true}
+        onTaskCreated={handleInvalidate}
+        onTaskUpdated={handleInvalidate}
+        userRole={userProfile?.role}
+        emptyStateConfig={emptyStateConfig}
+        isLoading={isLoading}
+        error={error ? new Error(error.message) : null}
+      />
+    ),
+    [
+      data,
+      title,
+      handleInvalidate,
+      userProfile?.role,
+      isLoading,
+      error,
+      emptyStateConfig,
+    ]
+  );
+
+  const calendarView = useMemo(
+    () => (
+      <TaskCalendar
+        tasks={data || []}
+        title={`${title} Calendar`}
+        emptyStateConfig={emptyStateConfig}
+        isLoading={isLoading}
+        error={error ? new Error(error.message) : null}
+        onTaskUpdated={handleInvalidate}
+        showDepartmentFilter={userProfile?.role === 'MANAGER'}
+      />
+    ),
+    [
+      data,
+      title,
+      handleInvalidate,
+      userProfile?.role,
+      isLoading,
+      error,
+      emptyStateConfig,
+    ]
+  );
 
   return (
     <DashboardTabs
-      tableView={
-        <TaskTable
-          tasks={data || []}
-          title={title}
-          showCreateButton={true}
-          onTaskCreated={handleInvalidate}
-          onTaskUpdated={handleInvalidate}
-          userRole={userProfile?.role}
-          emptyStateConfig={emptyStateConfig}
-          isLoading={isLoading}
-          error={error ? new Error(error.message) : null}
-        />
-      }
-      calendarView={
-        <TaskCalendar
-          tasks={data || []}
-          title={`${title} Calendar`}
-          emptyStateConfig={emptyStateConfig}
-          isLoading={isLoading}
-          error={error ? new Error(error.message) : null}
-          onTaskUpdated={handleInvalidate}
-          showDepartmentFilter={userProfile?.role === 'MANAGER'}
-        />
-      }
+      tableView={tableView}
+      calendarView={calendarView}
       defaultTab='table'
     />
   );

@@ -6,7 +6,7 @@ import { DashboardTabs } from './DashboardTabs';
 import { trpc } from '../lib/trpc';
 import { useAuth } from '@/lib/supabase/auth-context';
 import { useNotifications } from '@/lib/context/NotificationContext';
-import { useEffect } from 'react';
+import { useEffect, useMemo, useCallback } from 'react';
 
 /**
  * Department Dashboard Component
@@ -38,46 +38,76 @@ export function DepartmentDashboard() {
     }
   }, [lastNotificationTime, refetch]);
 
-  const handleTaskUpdated = utils
-    ? () => {
-        // Invalidate the query to trigger a refetch
-        utils.task.getDepartmentTasksForUser.invalidate();
-      }
-    : undefined;
+  // Memoize handleTaskUpdated to prevent unnecessary re-renders
+  const handleTaskUpdated = useCallback(() => {
+    if (utils) {
+      // Invalidate the query to trigger a refetch
+      utils.task.getDepartmentTasksForUser.invalidate();
+    }
+  }, [utils]);
 
-  const emptyStateConfig = {
-    icon: '📁',
-    title: 'No tasks in your department yet',
-    description:
-      'Create your first task or wait for tasks to be added to your department.',
-  };
+  const emptyStateConfig = useMemo(
+    () => ({
+      icon: '📁',
+      title: 'No tasks in your department yet',
+      description:
+        'Create your first task or wait for tasks to be added to your department.',
+    }),
+    []
+  );
+
+  // Memoize views to prevent remounting when parent re-renders
+  // This preserves calendar filter state when notifications trigger refetch
+  const tableView = useMemo(
+    () => (
+      <TaskTable
+        tasks={data || []}
+        title='All Tasks'
+        showCreateButton={true}
+        emptyStateConfig={emptyStateConfig}
+        isLoading={isLoading}
+        error={error ? new Error(error.message) : null}
+        onTaskCreated={handleTaskUpdated}
+        onTaskUpdated={handleTaskUpdated}
+        userRole={userProfile?.role}
+      />
+    ),
+    [
+      data,
+      isLoading,
+      error,
+      handleTaskUpdated,
+      userProfile?.role,
+      emptyStateConfig,
+    ]
+  );
+
+  const calendarView = useMemo(
+    () => (
+      <TaskCalendar
+        tasks={data || []}
+        title='Department Task Calendar'
+        emptyStateConfig={emptyStateConfig}
+        isLoading={isLoading}
+        error={error ? new Error(error.message) : null}
+        onTaskUpdated={handleTaskUpdated}
+        showDepartmentFilter={userProfile?.role === 'MANAGER'}
+      />
+    ),
+    [
+      data,
+      isLoading,
+      error,
+      handleTaskUpdated,
+      userProfile?.role,
+      emptyStateConfig,
+    ]
+  );
 
   return (
     <DashboardTabs
-      tableView={
-        <TaskTable
-          tasks={data || []}
-          title='All Tasks'
-          showCreateButton={true}
-          emptyStateConfig={emptyStateConfig}
-          isLoading={isLoading}
-          error={error ? new Error(error.message) : null}
-          onTaskCreated={handleTaskUpdated}
-          onTaskUpdated={handleTaskUpdated}
-          userRole={userProfile?.role}
-        />
-      }
-      calendarView={
-        <TaskCalendar
-          tasks={data || []}
-          title='Department Task Calendar'
-          emptyStateConfig={emptyStateConfig}
-          isLoading={isLoading}
-          error={error ? new Error(error.message) : null}
-          onTaskUpdated={handleTaskUpdated}
-          showDepartmentFilter={userProfile?.role === 'MANAGER'}
-        />
-      }
+      tableView={tableView}
+      calendarView={calendarView}
       defaultTab='table'
     />
   );
