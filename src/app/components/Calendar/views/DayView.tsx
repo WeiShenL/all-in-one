@@ -92,69 +92,94 @@ function DayView({ date, events, onSelectTask }: DayViewProps) {
               {tasks.length === 0 ? (
                 <div style={kanbanStyles.emptyColumn}>No tasks</div>
               ) : (
-                tasks.map(task => (
-                  <div
-                    key={task.id}
-                    className='kanban-card'
-                    data-task-title={task.title}
-                    data-task-id={getOriginalTaskId(task.id)}
-                    onClick={() => onSelectTask(getOriginalTaskId(task.id))}
-                    style={{
-                      ...kanbanStyles.card,
-                      borderLeftColor: getPriorityColor(task.resource.priority),
-                      backgroundColor: task.id.includes('-recur-')
-                        ? '#e5e7eb' // Forecasted recurring - gray
-                        : task.resource.parentTaskId !== null
-                          ? '#edf2f7' // Subtask - light gray
-                          : kanbanStyles.card.backgroundColor, // Default white
-                      paddingLeft:
-                        task.resource.parentTaskId !== null
+                tasks.map(task => {
+                  const isOverdue = task.resource.isOverdue;
+                  const isForecastedRecurring = task.id.includes('-recur-');
+                  const isSubtask = task.resource.parentTaskId !== null;
+
+                  // Determine background color and border styling
+                  let backgroundColor: string;
+                  let border: string;
+                  let borderLeft: string;
+
+                  if (isOverdue) {
+                    // Overdue tasks: orange background with red border (all sides)
+                    backgroundColor = '#fb923c';
+                    border = '2px solid #dc2626';
+                    borderLeft = 'none';
+                  } else {
+                    // Non-overdue tasks: use existing logic
+                    backgroundColor = isForecastedRecurring
+                      ? '#e5e7eb' // Forecasted recurring - gray
+                      : isSubtask
+                        ? '#edf2f7' // Subtask - light gray
+                        : kanbanStyles.card.backgroundColor; // Default white
+                    border = 'none';
+                    borderLeft = `4px solid ${getPriorityColor(task.resource.priority)}`;
+                  }
+
+                  return (
+                    <div
+                      key={task.id}
+                      className='kanban-card'
+                      data-task-title={task.title}
+                      data-task-id={getOriginalTaskId(task.id)}
+                      onClick={() => onSelectTask(getOriginalTaskId(task.id))}
+                      style={{
+                        ...kanbanStyles.card,
+                        backgroundColor,
+                        border,
+                        borderLeft,
+                        paddingLeft: isSubtask
                           ? '1.5rem'
                           : kanbanStyles.card.padding,
-                    }}
-                  >
-                    <div style={kanbanStyles.cardTitle}>
-                      {task.resource.parentTaskId !== null && '↳ '}
-                      {task.resource.recurringInterval &&
-                        task.resource.recurringInterval > 0 &&
-                        '🔁 '}
-                      {task.title}
+                      }}
+                    >
+                      <div style={kanbanStyles.cardTitle}>
+                        {task.resource.parentTaskId !== null && '↳ '}
+                        {task.resource.recurringInterval &&
+                          task.resource.recurringInterval > 0 &&
+                          '🔁 '}
+                        {task.title}
+                      </div>
+                      <div style={kanbanStyles.cardMeta}>
+                        <span
+                          style={{
+                            ...kanbanStyles.priorityBadge,
+                            backgroundColor: getPriorityColor(
+                              task.resource.priority
+                            ),
+                          }}
+                        >
+                          Priority: {task.resource.priority}/10
+                        </span>
+                      </div>
+                      {task.resource.ownerName && (
+                        <div style={kanbanStyles.cardInfo}>
+                          <span style={kanbanStyles.cardLabel}>Owner:</span>{' '}
+                          {task.resource.ownerName}
+                        </div>
+                      )}
+                      {task.resource.departmentName && (
+                        <div style={kanbanStyles.cardInfo}>
+                          <span style={kanbanStyles.cardLabel}>
+                            Department:
+                          </span>{' '}
+                          {task.resource.departmentName}
+                        </div>
+                      )}
+                      {task.resource.tags && task.resource.tags.length > 0 && (
+                        <div style={kanbanStyles.tags}>
+                          {task.resource.tags.slice(0, 3).map((tag, idx) => (
+                            <span key={idx} style={kanbanStyles.tag}>
+                              #{tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    <div style={kanbanStyles.cardMeta}>
-                      <span
-                        style={{
-                          ...kanbanStyles.priorityBadge,
-                          backgroundColor: getPriorityColor(
-                            task.resource.priority
-                          ),
-                        }}
-                      >
-                        Priority: {task.resource.priority}/10
-                      </span>
-                    </div>
-                    {task.resource.ownerName && (
-                      <div style={kanbanStyles.cardInfo}>
-                        <span style={kanbanStyles.cardLabel}>Owner:</span>{' '}
-                        {task.resource.ownerName}
-                      </div>
-                    )}
-                    {task.resource.departmentName && (
-                      <div style={kanbanStyles.cardInfo}>
-                        <span style={kanbanStyles.cardLabel}>Department:</span>{' '}
-                        {task.resource.departmentName}
-                      </div>
-                    )}
-                    {task.resource.tags && task.resource.tags.length > 0 && (
-                      <div style={kanbanStyles.tags}>
-                        {task.resource.tags.slice(0, 3).map((tag, idx) => (
-                          <span key={idx} style={kanbanStyles.tag}>
-                            #{tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>

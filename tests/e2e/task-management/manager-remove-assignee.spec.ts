@@ -204,7 +204,9 @@ test.describe('E2E - Manager removes assignee (happy path)', () => {
       timeout: 40000,
     });
     await expect(
-      page.getByText(`E2E Manager Remove Assignee Task ${testNamespace}`)
+      page
+        .getByText(`E2E Manager Remove Assignee Task ${testNamespace}`)
+        .first()
     ).toBeVisible({ timeout: 40000 });
 
     // 3) Open the task editor/details view where assignee controls are rendered

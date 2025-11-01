@@ -242,7 +242,7 @@ test.describe('E2E - Manager archives task with subtasks (happy path)', () => {
 
     // 3) Verify parent task is visible
     await expect(
-      page.getByText(`E2E Parent Task ${testNamespace}`)
+      page.getByText(`E2E Parent Task ${testNamespace}`).first()
     ).toBeVisible({ timeout: 40000 });
 
     // 4) Expand subtasks to verify they're visible before archiving

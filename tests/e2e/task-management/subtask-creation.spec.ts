@@ -240,7 +240,7 @@ test.describe('Subtask Creation E2E - SCRUM-65', () => {
 
     // Verify parent task appears in dashboard
     await expect(
-      page.getByText(`E2E Parent Task for Subtask ${testNamespace}`)
+      page.getByText(`E2E Parent Task for Subtask ${testNamespace}`).first()
     ).toBeVisible({
       timeout: 40000,
     });
@@ -308,7 +308,7 @@ test.describe('Subtask Creation E2E - SCRUM-65', () => {
      */
     // First verify parent task is still visible
     await expect(
-      page.getByText(`E2E Parent Task for Subtask ${testNamespace}`)
+      page.getByText(`E2E Parent Task for Subtask ${testNamespace}`).first()
     ).toBeVisible({
       timeout: 40000,
     });
