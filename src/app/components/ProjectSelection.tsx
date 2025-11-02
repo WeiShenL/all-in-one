@@ -219,9 +219,9 @@ export function ProjectSelection() {
             display: 'flex',
             flexDirection: 'column',
             gap: '0.5rem',
-            maxHeight: (projects?.length ?? 0) > 4 ? '200px' : 'none',
-            overflowY: (projects?.length ?? 0) > 4 ? 'auto' : 'visible',
-            paddingRight: (projects?.length ?? 0) > 4 ? '0.25rem' : 0,
+            maxHeight: (projects?.length ?? 0) > 8 ? '450px' : 'none',
+            overflowY: (projects?.length ?? 0) > 8 ? 'auto' : 'visible',
+            paddingRight: (projects?.length ?? 0) > 8 ? '0.25rem' : 0,
           }}
         >
           {(projects || []).map(project => (
