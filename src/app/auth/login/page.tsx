@@ -2,7 +2,6 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
 import { useAuth } from '@/lib/supabase/auth-context';
 
 function LoginForm() {
@@ -434,20 +433,6 @@ function LoginForm() {
           >
             Reset Password
           </button>
-        </div>
-
-        <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
-          <Link
-            href='/'
-            style={{
-              color: '#3182ce',
-              textDecoration: 'none',
-              fontSize: '0.875rem',
-              fontWeight: '500',
-            }}
-          >
-            ← Back to Home
-          </Link>
         </div>
       </div>
     </div>
