@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { useAuth } from '@/lib/supabase/auth-context';
 
 function LoginForm() {
@@ -91,15 +92,13 @@ function LoginForm() {
     }
   };
 
-  // COMMENTED OUT: Uncomment to re-enable Create Account button
-  // const handleCreateAccount = () => {
-  //   router.push('/auth/signup');
-  // };
+  const handleCreateAccount = () => {
+    router.push('/auth/signup');
+  };
 
-  // COMMENTED OUT: Uncomment to re-enable Reset Password button
-  // const handlePasswordReset = () => {
-  //   router.push('/auth/reset-password');
-  // };
+  const handlePasswordReset = () => {
+    router.push('/auth/reset-password');
+  };
 
   if (authLoading) {
     return (
@@ -355,9 +354,8 @@ function LoginForm() {
           </button>
         </form>
 
-        {/* COMMENTED OUT: Uncomment to re-enable Create Account and Reset Password buttons */}
         {/* Divider */}
-        {/* <div
+        <div
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -379,10 +377,10 @@ function LoginForm() {
           <div
             style={{ flex: 1, height: '1px', backgroundColor: '#e2e8f0' }}
           ></div>
-        </div> */}
+        </div>
 
         {/* Action Buttons */}
-        {/* <div
+        <div
           style={{
             display: 'flex',
             flexDirection: 'column',
@@ -436,9 +434,9 @@ function LoginForm() {
           >
             Reset Password
           </button>
-        </div> */}
+        </div>
 
-        {/* <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+        <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
           <Link
             href='/'
             style={{
@@ -450,7 +448,7 @@ function LoginForm() {
           >
             ← Back to Home
           </Link>
-        </div> */}
+        </div>
       </div>
     </div>
   );
