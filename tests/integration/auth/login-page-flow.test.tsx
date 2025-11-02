@@ -76,11 +76,12 @@ describe('LoginPage Component', () => {
       expect(passwordInput).toBeRequired();
     });
 
-    it('should render navigation links', () => {
-      render(<LoginPage />);
+    // "Back to Home" link removed.
+    // it('should render navigation links', () => {
+    //   render(<LoginPage />);
 
-      expect(screen.getByText('← Back to Home')).toBeInTheDocument();
-    });
+    //   expect(screen.getByText('← Back to Home')).toBeInTheDocument();
+    // });
   });
 
   describe('Form Validation', () => {

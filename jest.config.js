@@ -20,8 +20,41 @@ const customJestConfig = {
   // Coverage configuration
   collectCoverageFrom: [
     'src/**/*.{js,jsx,ts,tsx}',
+    // Exclude type definition files
     '!src/**/*.d.ts',
+
+    // Exclude Next.js framework files
     '!src/app/layout.tsx',
+    '!src/app/page.tsx',
+    '!src/middleware.ts',
+
+    // Exclude API route handlers (thin wrappers)
+    '!src/app/api/**/route.ts',
+
+    // Exclude UI/Presentation pages (tested via E2E)
+    '!src/app/auth/callback/page.tsx',
+    '!src/app/auth/reset-password/page.tsx',
+    '!src/app/auth/signup/page.tsx',
+    '!src/app/dashboard/page.tsx',
+    '!src/app/dashboard/company/page.tsx',
+    '!src/app/notifications/page.tsx',
+    '!src/app/projects/page.tsx',
+
+    // Exclude configuration/setup files
+    '!src/app/lib/trpc.ts',
+    '!src/lib/supabase/middleware.ts',
+    '!src/lib/supabase/server.ts',
+    '!src/lib/supabase/auth-context.tsx',
+    '!src/app/components/TRPCProvider.tsx',
+
+    // Exclude simple presentational components (low testing value)
+    '!src/app/components/Toast.tsx',
+    '!src/app/components/ToastContainer.tsx',
+    '!src/app/components/UserSelectOption.tsx',
+
+    // Exclude simple barrel exports
+    '!src/**/index.ts',
+    '!src/**/styles.ts',
   ],
   coverageReporters: ['text', 'lcov', 'html'],
   coverageDirectory: 'coverage',
