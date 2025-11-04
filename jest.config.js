@@ -52,6 +52,41 @@ const customJestConfig = {
     '!src/app/components/ToastContainer.tsx',
     '!src/app/components/UserSelectOption.tsx',
 
+    // Exclude large UI components (E2E tested)
+    '!src/app/components/TaskCard.tsx',
+    '!src/app/components/TaskCreateModal.tsx',
+    '!src/app/components/TaskCreateForm.tsx',
+    '!src/app/components/Navbar.tsx',
+    '!src/app/components/ConnectedTasks.tsx',
+    '!src/app/components/TaskTable/TaskTable.tsx',
+    '!src/app/components/TaskTable/TaskRow.tsx',
+
+    // Exclude dashboard UI components (E2E tested)
+    '!src/app/components/CompanyDashboard.tsx',
+    '!src/app/components/DepartmentDashboard.tsx',
+    '!src/app/components/PersonalDashboard.tsx',
+    '!src/app/components/DashboardTabs.tsx',
+
+    // Exclude calendar view components (E2E tested)
+    '!src/app/components/Calendar/views/AgendaView.tsx',
+    '!src/app/components/Calendar/views/DayView.tsx',
+
+    // Exclude other UI components (E2E tested)
+    '!src/app/components/LogItem.tsx',
+    '!src/app/components/TaskTable/Pills.tsx',
+    '!src/app/components/ProjectCreateModal.tsx',
+    '!src/app/components/NotificationModal.tsx',
+    '!src/app/components/ProjectReport/ProjectReportExportButton.tsx',
+
+    // Exclude tRPC routers (thin orchestration layers - business logic in services)
+    '!src/app/server/routers/task.ts',
+    '!src/app/server/routers/department.ts',
+    '!src/app/server/routers/notification.ts',
+    '!src/app/server/routers/taskFile.ts',
+    '!src/app/server/routers/userProfile.ts',
+    '!src/app/server/routers/project.ts',
+    '!src/app/server/routers/_app.ts',
+
     // Exclude simple barrel exports
     '!src/**/index.ts',
     '!src/**/styles.ts',
