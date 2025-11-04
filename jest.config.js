@@ -51,6 +51,7 @@ const customJestConfig = {
     '!src/app/components/Toast.tsx',
     '!src/app/components/ToastContainer.tsx',
     '!src/app/components/UserSelectOption.tsx',
+    '!src/app/auth/components/DepartmentSelect.tsx', // Auth UI component, E2E tested
 
     // Exclude large UI components (E2E tested)
     '!src/app/components/TaskCard.tsx',
