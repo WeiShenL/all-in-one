@@ -19,7 +19,10 @@ const prisma = new PrismaClient();
 const DEFAULT_PASSWORD = 'Password123!';
 
 // Initialize Supabase Admin Client for creating auth users
-const supabaseUrl = process.env.API_EXTERNAL_URL || 'http://localhost:8000';
+const supabaseUrl =
+  process.env.NEXT_PUBLIC_API_EXTERNAL_URL ||
+  process.env.API_EXTERNAL_URL ||
+  'http://localhost:8000';
 const supabaseServiceKey = process.env.SERVICE_ROLE_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseServiceKey, {
   auth: {
