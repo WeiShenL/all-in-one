@@ -716,6 +716,13 @@ export class TaskService {
   /**
    * Generate the next instance of a recurring task
    * Called automatically when a recurring task is marked as COMPLETED
+   *
+   * Fixed Schedule from Due Date
+   * - Next due date calculated from original due date + interval
+   * - Skips missed occurrences if completed very late (catch-up logic)
+   * - createdAt defaults to NOW (not manipulated)
+   *
+   * This matches calendar forecasting logic and prevents schedule drift.
    * @private
    */
   private async generateNextRecurringInstance(
@@ -731,24 +738,27 @@ export class TaskService {
       return;
     }
 
-    // Calculate next due date AND createdAt by adding recurring interval (in days)
-    // Use UTC methods to avoid timezone issues (SGT = UTC+8)
-    const currentDueDate = completedTask.getDueDate();
-    const currentCreatedAt = completedTask.getCreatedAt();
+    // Calculate next due date from original due date (fixed schedule)
+    // This maintains predictable cadence for teams and matches calendar forecasts
+    const originalDueDate = completedTask.getDueDate();
+    const now = new Date();
 
-    // console.log('🔄 [RECURRING] Current createdAt:', currentCreatedAt.toISOString());
-    // console.log('🔄 [RECURRING] Current due date:', currentDueDate.toISOString());
+    // console.log('🔄 [RECURRING] Original due date:', originalDueDate.toISOString());
+    // console.log('🔄 [RECURRING] Completion time (now):', now.toISOString());
 
-    // Shift BOTH createdAt and dueDate by the interval
-    const nextCreatedAt = new Date(currentCreatedAt);
-    nextCreatedAt.setUTCDate(nextCreatedAt.getUTCDate() + recurringInterval);
+    // Calculate next occurrence from original due date
+    const nextDueDate = new Date(originalDueDate);
+    nextDueDate.setUTCDate(originalDueDate.getUTCDate() + recurringInterval);
 
-    const nextDueDate = new Date(currentDueDate);
-    nextDueDate.setUTCDate(nextDueDate.getUTCDate() + recurringInterval);
+    // Skip missed occurrences if task was completed very late (catch-up logic)
+    // This prevents creating overdue tasks when user completes significantly late
+    while (nextDueDate <= now) {
+      nextDueDate.setUTCDate(nextDueDate.getUTCDate() + recurringInterval);
+    }
 
-    // console.log('🔄 [RECURRING] Next createdAt:', nextCreatedAt.toISOString());
     // console.log('🔄 [RECURRING] Next due date:', nextDueDate.toISOString());
-    // console.log('🔄 [RECURRING] Days added:', recurringInterval);
+    // console.log('🔄 [RECURRING] Skipped occurrences:', skippedCount);
+    // console.log('🔄 [RECURRING] Days from original due date:', recurringInterval * (1 + skippedCount));
 
     // Validate assignees still exist and are active
     const assigneeIds = Array.from(completedTask.getAssignees());
@@ -778,9 +788,8 @@ export class TaskService {
       tags: completedTask.getTags(),
     });
 
-    // Persist next instance
+    // Persist next instance (createdAt will default to NOW)
     // console.log('🔄 [RECURRING] Creating next task:');
-    // console.log('🔄 [RECURRING]   createdAt:', nextCreatedAt.toISOString());
     // console.log('🔄 [RECURRING]   dueDate:', nextTask.getDueDate().toISOString());
     // console.log('🔄 [RECURRING]   New task ID:', nextTask.getId());
 
@@ -790,7 +799,7 @@ export class TaskService {
       description: nextTask.getDescription(),
       priority: nextTask.getPriorityBucket(),
       dueDate: nextTask.getDueDate(),
-      createdAt: nextCreatedAt, // ✅ Set createdAt to maintain recurring schedule
+      // createdAt omitted - defaults to NOW
       ownerId: nextTask.getOwnerId(),
       departmentId: nextTask.getDepartmentId(),
       projectId: nextTask.getProjectId() ?? undefined,

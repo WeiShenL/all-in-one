@@ -4,7 +4,7 @@ import { TaskTable } from './TaskTable';
 import { trpc } from '../lib/trpc';
 import { useAuth } from '@/lib/supabase/auth-context';
 import { useNotifications } from '@/lib/context/NotificationContext';
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 
 /**
  * Company Dashboard Component
@@ -14,15 +14,7 @@ import { useEffect } from 'react';
 export function CompanyDashboard() {
   const { userProfile } = useAuth();
   const { lastNotificationTime } = useNotifications();
-
-  // Try to get utils for query invalidation (may not be available in test environment)
-  let utils;
-  try {
-    utils = trpc.useUtils();
-  } catch {
-    // useUtils not available (e.g., in test environment without provider)
-    utils = null;
-  }
+  const utils = trpc.useUtils();
 
   const { data, isLoading, error, refetch } =
     trpc.task.getCompanyTasks.useQuery({});
@@ -35,12 +27,11 @@ export function CompanyDashboard() {
     }
   }, [lastNotificationTime, refetch]);
 
-  const handleTaskCreated = utils
-    ? () => {
-        // Invalidate the query to trigger a refetch
-        utils.task.getCompanyTasks.invalidate();
-      }
-    : undefined;
+  // Memoize handleTaskCreated to prevent unnecessary re-renders
+  const handleTaskCreated = useCallback(() => {
+    // Invalidate the query to trigger a refetch
+    utils.task.getCompanyTasks.invalidate();
+  }, [utils]);
 
   return (
     <div>

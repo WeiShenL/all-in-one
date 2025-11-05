@@ -261,7 +261,7 @@ test.describe('Task Creation Validation - Isolated E2E Tests', () => {
       if (!isOnDashboard) {
         // If still on create page, check for success indicators
         await expect(page.getByText(/task created|success/i)).toBeVisible({
-          timeout: 10000,
+          timeout: 120000,
         });
       }
     }

@@ -11,6 +11,8 @@ import { NotificationModal } from './NotificationModal';
 import { UserDetailsModal } from './UserDetailsModal';
 import { ProjectSelection } from './ProjectSelection';
 import { Bell, Home, Users, Building2, Shield, User } from 'lucide-react';
+import { trpc } from '../lib/trpc';
+import { useDashboard } from '@/lib/context/DashboardContext';
 
 export default function Navbar() {
   const { user, userProfile } = useAuth();
@@ -21,6 +23,30 @@ export default function Navbar() {
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
+  const utils = trpc.useUtils();
+
+  // Use dashboard context (will be null if not inside DashboardProvider)
+  const dashboardContext = useDashboard();
+  const activeView = dashboardContext?.activeView;
+  const setActiveView = dashboardContext?.setActiveView;
+
+  // Prefetch functions for dashboard data
+  const prefetchPersonalTasks = () => {
+    if (user?.id) {
+      utils.task.getUserTasks.prefetch({
+        userId: user.id,
+        includeArchived: false,
+      });
+    }
+  };
+
+  const prefetchDepartmentTasks = () => {
+    utils.task.getDepartmentTasksForUser.prefetch();
+  };
+
+  const prefetchCompanyTasks = () => {
+    utils.task.getCompanyTasks.prefetch({});
+  };
 
   // Get dashboard route - all users go to personal dashboard by default
   const getDashboardRoute = () => {
@@ -29,7 +55,19 @@ export default function Navbar() {
   };
 
   // Helper function to determine if a link is active
-  const isActive = (href: string) => {
+  const isActive = (view: string) => {
+    // If inside dashboard SPA, use activeView from context
+    if (activeView !== undefined) {
+      return activeView === view;
+    }
+    // Fallback to pathname for other pages
+    const viewToPath: Record<string, string> = {
+      personal: '/dashboard/personal',
+      department: '/dashboard/department',
+      company: '/dashboard/company',
+      hr: '/dashboard/hr',
+    };
+    const href = viewToPath[view] || view;
     if (href === '/dashboard/personal') {
       return pathname === '/dashboard/personal' || pathname === '/dashboard';
     }
@@ -222,9 +260,18 @@ export default function Navbar() {
         >
           <Link
             href={getDashboardRoute()}
-            style={getLinkStyles(getDashboardRoute())}
+            onClick={e => {
+              if (setActiveView) {
+                e.preventDefault();
+                setActiveView('personal');
+              }
+            }}
+            style={getLinkStyles('personal')}
             onMouseEnter={e => {
-              if (!isActive(getDashboardRoute())) {
+              // Prefetch personal tasks on hover
+              prefetchPersonalTasks();
+
+              if (!isActive('personal')) {
                 e.currentTarget.style.backgroundColor = '#e3f2fd';
                 e.currentTarget.style.color = '#1976d2';
                 e.currentTarget.style.transform = 'translateX(4px)';
@@ -233,7 +280,7 @@ export default function Navbar() {
               }
             }}
             onMouseLeave={e => {
-              if (!isActive(getDashboardRoute())) {
+              if (!isActive('personal')) {
                 e.currentTarget.style.backgroundColor = 'transparent';
                 e.currentTarget.style.color = '#495057';
                 e.currentTarget.style.transform = 'translateX(0)';
@@ -251,9 +298,18 @@ export default function Navbar() {
 
           <Link
             href='/dashboard/department'
-            style={getLinkStyles('/dashboard/department')}
+            onClick={e => {
+              if (setActiveView) {
+                e.preventDefault();
+                setActiveView('department');
+              }
+            }}
+            style={getLinkStyles('department')}
             onMouseEnter={e => {
-              if (!isActive('/dashboard/department')) {
+              // Prefetch department tasks on hover
+              prefetchDepartmentTasks();
+
+              if (!isActive('department')) {
                 e.currentTarget.style.backgroundColor = '#e3f2fd';
                 e.currentTarget.style.color = '#1976d2';
                 e.currentTarget.style.transform = 'translateX(4px)';
@@ -262,7 +318,7 @@ export default function Navbar() {
               }
             }}
             onMouseLeave={e => {
-              if (!isActive('/dashboard/department')) {
+              if (!isActive('department')) {
                 e.currentTarget.style.backgroundColor = 'transparent';
                 e.currentTarget.style.color = '#495057';
                 e.currentTarget.style.transform = 'translateX(0)';
@@ -283,9 +339,18 @@ export default function Navbar() {
             (userProfile.isHrAdmin || userProfile.role === 'HR_ADMIN') && (
               <Link
                 href='/dashboard/company'
-                style={getLinkStyles('/dashboard/company')}
+                onClick={e => {
+                  if (setActiveView) {
+                    e.preventDefault();
+                    setActiveView('company');
+                  }
+                }}
+                style={getLinkStyles('company')}
                 onMouseEnter={e => {
-                  if (!isActive('/dashboard/company')) {
+                  // Prefetch company tasks on hover
+                  prefetchCompanyTasks();
+
+                  if (!isActive('company')) {
                     e.currentTarget.style.backgroundColor = '#e3f2fd';
                     e.currentTarget.style.color = '#1976d2';
                     e.currentTarget.style.transform = 'translateX(4px)';
@@ -294,7 +359,7 @@ export default function Navbar() {
                   }
                 }}
                 onMouseLeave={e => {
-                  if (!isActive('/dashboard/company')) {
+                  if (!isActive('company')) {
                     e.currentTarget.style.backgroundColor = 'transparent';
                     e.currentTarget.style.color = '#495057';
                     e.currentTarget.style.transform = 'translateX(0)';
