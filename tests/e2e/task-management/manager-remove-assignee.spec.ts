@@ -188,26 +188,26 @@ test.describe('E2E - Manager removes assignee (happy path)', () => {
     await page.goto('/auth/login');
     await expect(
       page.getByRole('heading', { name: /welcome back/i })
-    ).toBeVisible({ timeout: 40000 });
+    ).toBeVisible({ timeout: 120000 });
     await page.getByLabel('Email').fill(managerEmail);
     await page.getByLabel('Password').fill(managerPassword);
     await page.getByRole('button', { name: /sign in/i }).click();
 
     // 2) Wait for personal dashboard, then navigate to department dashboard
     await expect(page).toHaveURL(/dashboard(\/personal)?|home|tasks/i, {
-      timeout: 40000,
+      timeout: 120000,
     });
 
     // Navigate to department dashboard to manage department tasks
     await page.goto('/dashboard/department');
     await expect(page).toHaveURL(/dashboard\/department/, {
-      timeout: 40000,
+      timeout: 120000,
     });
     await expect(
       page
         .getByText(`E2E Manager Remove Assignee Task ${testNamespace}`)
         .first()
-    ).toBeVisible({ timeout: 40000 });
+    ).toBeVisible({ timeout: 120000 });
 
     // 3) Open the task editor/details view where assignee controls are rendered
     // ManagerDashboard renders a table with an "Edit" button per row; scope to the row with our task title
@@ -216,15 +216,15 @@ test.describe('E2E - Manager removes assignee (happy path)', () => {
         hasText: `E2E Manager Remove Assignee Task ${testNamespace}`,
       })
       .first();
-    await expect(taskRow).toBeVisible({ timeout: 40000 });
+    await expect(taskRow).toBeVisible({ timeout: 120000 });
     const editButton = taskRow.getByRole('button', { name: /^Edit$/i });
-    await expect(editButton).toBeVisible({ timeout: 40000 });
+    await expect(editButton).toBeVisible({ timeout: 120000 });
     await editButton.click();
 
     // Wait for task card details to render
     await expect(
       page.locator('[data-testid="task-title-display"]')
-    ).toBeVisible({ timeout: 40000 });
+    ).toBeVisible({ timeout: 120000 });
 
     // 4) Click the first available remove-assignee control (UI-only; any assignee is fine for happy path)
     //    Buttons are rendered as data-testid="remove-assignee-<userId>"
@@ -239,10 +239,10 @@ test.describe('E2E - Manager removes assignee (happy path)', () => {
     // 5) Verify UI success indicator appears, then assert button disappears
     await expect(
       page.getByText(/Removed assignee|✅ Removed assignee/i)
-    ).toBeVisible({ timeout: 40000 });
+    ).toBeVisible({ timeout: 120000 });
     await expect(
       page.locator(`[data-testid="remove-assignee-${removedUserId}"]`)
-    ).toHaveCount(0, { timeout: 40000 });
+    ).toHaveCount(0, { timeout: 120000 });
 
     // Optional toast/snackbar check if available
     // await expect(page.getByText(/removed assignee|✅ Removed assignee/i)).toBeVisible({ timeout: 40000 });

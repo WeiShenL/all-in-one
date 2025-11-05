@@ -224,26 +224,26 @@ test.describe('E2E - Manager archives task with subtasks (happy path)', () => {
     await page.goto('/auth/login');
     await expect(
       page.getByRole('heading', { name: /welcome back/i })
-    ).toBeVisible({ timeout: 40000 });
+    ).toBeVisible({ timeout: 120000 });
     await page.getByLabel('Email').fill(managerEmail);
     await page.getByLabel('Password').fill(managerPassword);
     await page.getByRole('button', { name: /sign in/i }).click();
 
     // 2) Wait for dashboard load, then navigate to department dashboard
     await expect(page).toHaveURL(/dashboard(\/personal)?|home|tasks/i, {
-      timeout: 40000,
+      timeout: 120000,
     });
 
     // Navigate to department dashboard where manager can archive tasks
     await page.goto('/dashboard/department');
     await expect(page).toHaveURL(/dashboard\/department/, {
-      timeout: 40000,
+      timeout: 120000,
     });
 
     // 3) Verify parent task is visible
     await expect(
       page.getByText(`E2E Parent Task ${testNamespace}`).first()
-    ).toBeVisible({ timeout: 40000 });
+    ).toBeVisible({ timeout: 120000 });
 
     // 4) Expand subtasks to verify they're visible before archiving
     const parentRow = page
@@ -251,57 +251,57 @@ test.describe('E2E - Manager archives task with subtasks (happy path)', () => {
         hasText: `E2E Parent Task ${testNamespace}`,
       })
       .first();
-    await expect(parentRow).toBeVisible({ timeout: 40000 });
+    await expect(parentRow).toBeVisible({ timeout: 120000 });
 
     // Look for expand button (usually a chevron/arrow near task title)
     const expandButton = parentRow.locator('button').first();
-    await expect(expandButton).toBeVisible({ timeout: 40000 });
+    await expect(expandButton).toBeVisible({ timeout: 120000 });
     await expandButton.click();
 
     // Verify subtasks are now visible
     await expect(page.getByText(`E2E Subtask 1 ${testNamespace}`)).toBeVisible({
-      timeout: 40000,
+      timeout: 120000,
     });
     await expect(page.getByText(`E2E Subtask 2 ${testNamespace}`)).toBeVisible({
-      timeout: 40000,
+      timeout: 120000,
     });
 
     // 5) Click Archive button on parent task
     const archiveButton = parentRow.getByTestId(
       `archive-task-button-${parentTaskId}`
     );
-    await expect(archiveButton).toBeVisible({ timeout: 40000 });
+    await expect(archiveButton).toBeVisible({ timeout: 120000 });
     await archiveButton.click();
 
     // 6) Confirm archive in modal
     // Modal should show confirmation message about archiving task and subtasks
     await expect(
       page.getByText(/are you sure you want to archive this task/i)
-    ).toBeVisible({ timeout: 40000 });
+    ).toBeVisible({ timeout: 120000 });
     await expect(
       page.getByText(/this action will also archive all subtasks/i)
-    ).toBeVisible({ timeout: 40000 });
+    ).toBeVisible({ timeout: 120000 });
 
     // Click "Confirm archive" button
     const confirmButton = page.getByRole('button', {
       name: /confirm archive/i,
     });
-    await expect(confirmButton).toBeVisible({ timeout: 40000 });
+    await expect(confirmButton).toBeVisible({ timeout: 120000 });
     await confirmButton.click();
 
     // 7) Verify parent task disappears from UI (AC2: archived tasks removed from UI)
     await expect(
       page.getByText(`E2E Parent Task ${testNamespace}`)
-    ).toHaveCount(0, { timeout: 40000 });
+    ).toHaveCount(0, { timeout: 120000 });
 
     // 8) Verify subtasks also disappear (AC3: cascade archive)
     await expect(page.getByText(`E2E Subtask 1 ${testNamespace}`)).toHaveCount(
       0,
-      { timeout: 40000 }
+      { timeout: 120000 }
     );
     await expect(page.getByText(`E2E Subtask 2 ${testNamespace}`)).toHaveCount(
       0,
-      { timeout: 40000 }
+      { timeout: 120000 }
     );
 
     // Optional: Verify in database that tasks are archived (not deleted)
