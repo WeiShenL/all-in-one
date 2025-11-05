@@ -489,8 +489,12 @@ export const taskRouter = router({
 
   /**
    * Assign project to task (SCRUM-31)
-   * Can only be done if task doesn't already have a project
-   * Once assigned, cannot be changed
+   *
+   * AC:
+   * - Can only be done if task doesn't already have a project
+   * - Once assigned, cannot be changed (immutability)
+   * - All existing assignees become project collaborators
+   * - Sends notifications to all assignees
    */
   assignProject: publicProcedure
     .input(
@@ -502,21 +506,7 @@ export const taskRouter = router({
     .mutation(async ({ ctx, input }) => {
       const user = await getUserContext(ctx);
 
-      // Check if task already has a project
-      const existingTask = await ctx.prisma.task.findUnique({
-        where: { id: input.taskId },
-        select: { projectId: true },
-      });
-
-      if (!existingTask) {
-        throw new Error('Task not found');
-      }
-
-      if (existingTask.projectId) {
-        throw new Error('Task already has a project and cannot be reassigned');
-      }
-
-      // If projectId is null, just update to null (unassign)
+      // Handle unassign case (projectId = null)
       if (!input.projectId) {
         await ctx.prisma.task.update({
           where: { id: input.taskId },
@@ -525,63 +515,19 @@ export const taskRouter = router({
         return { success: true, message: 'Project removed from task' };
       }
 
-      // Validate project exists
-      const project = await ctx.prisma.project.findUnique({
-        where: { id: input.projectId },
-      });
-
-      if (!project) {
-        throw new Error('Project not found');
-      }
-
-      // Update task with project
-      await ctx.prisma.task.update({
-        where: { id: input.taskId },
-        data: { projectId: input.projectId },
-        include: {
-          assignments: {
-            include: {
-              user: {
-                select: { id: true, name: true, email: true },
-              },
-            },
-          },
-          tags: {
-            include: {
-              tag: true,
-            },
-          },
-          comments: true,
-          files: true,
-        },
-      });
-
-      // Log the action
-      await ctx.prisma.taskLog.create({
-        data: {
-          taskId: input.taskId,
-          userId: user.userId,
-          action: 'UPDATED',
-          field: 'Project',
-          changes: {
-            from: null,
-            to: input.projectId,
-          },
-          metadata: {
-            source: 'web_ui',
-            projectName: project.name,
-          },
-        },
-      });
-
-      // Return serialized task
+      // Assign project via service layer (handles all logic)
       const repository = new PrismaTaskRepository(ctx.prisma);
-      const service = new TaskService(repository);
-      const task = await service.getTaskById(input.taskId, user);
+      const service = new TaskService(
+        repository,
+        ctx.prisma,
+        new RealtimeService()
+      );
 
-      if (!task) {
-        throw new Error('Failed to retrieve updated task');
-      }
+      const task = await service.assignTaskToProject(
+        input.taskId,
+        input.projectId,
+        user
+      );
 
       return serializeTask(task);
     }),
