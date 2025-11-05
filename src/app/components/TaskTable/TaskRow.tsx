@@ -474,6 +474,7 @@ export const TaskRow = ({
                 e.currentTarget.style.borderRadius = '0';
               }}
             >
+              {task.recurringInterval && task.recurringInterval > 0 && '🔁 '}
               {task.title}
             </button>
 

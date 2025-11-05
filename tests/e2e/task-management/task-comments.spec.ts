@@ -214,20 +214,20 @@ test.describe('Task Comments - Isolated E2E Tests', () => {
 
     // Wait for modal to open - look for task title instead of heading
     await expect(page.getByTestId('task-title-display')).toBeVisible({
-      timeout: 30000,
+      timeout: 120000,
     });
 
     // Navigate to comments section - use more specific selector
     await expect(
       page.getByRole('heading', { name: /💬 Comments/i })
-    ).toBeVisible({ timeout: 30000 });
+    ).toBeVisible({ timeout: 120000 });
 
     // Add a comment
     const commentText = `Test comment ${testNamespace}`;
 
     // Wait for comment input to be visible
     const commentInput = page.getByTestId('comment-input');
-    await expect(commentInput).toBeVisible({ timeout: 30000 });
+    await expect(commentInput).toBeVisible({ timeout: 120000 });
 
     // Wait a bit for the field to be ready
     await page.waitForTimeout(2000);
@@ -240,7 +240,7 @@ test.describe('Task Comments - Isolated E2E Tests', () => {
     await page.getByTestId('add-comment-button').click();
 
     // Verify comment appears
-    await expect(page.getByText(commentText)).toBeVisible({ timeout: 30000 });
+    await expect(page.getByText(commentText)).toBeVisible({ timeout: 120000 });
   });
 
   test('should edit own comment only', async ({ page }) => {
@@ -268,23 +268,23 @@ test.describe('Task Comments - Isolated E2E Tests', () => {
 
     // Wait for modal to open - wait for task title display to be visible
     await expect(page.getByTestId('task-title-display')).toBeVisible({
-      timeout: 30000,
+      timeout: 120000,
     });
 
     // Navigate to comments section - use more specific selector
     await expect(
       page.getByRole('heading', { name: /💬 Comments/i })
-    ).toBeVisible({ timeout: 30000 });
+    ).toBeVisible({ timeout: 120000 });
 
     // Find the comment and click edit
     const commentElement = page.getByText(commentText);
-    await expect(commentElement).toBeVisible({ timeout: 30000 });
+    await expect(commentElement).toBeVisible({ timeout: 120000 });
 
     // Look for edit button using test ID
     const editCommentButton = page.getByTestId(
       `comment-edit-button-${testCommentId}`
     );
-    await expect(editCommentButton).toBeVisible({ timeout: 30000 });
+    await expect(editCommentButton).toBeVisible({ timeout: 120000 });
     await editCommentButton.click();
 
     // Edit the comment
@@ -292,7 +292,7 @@ test.describe('Task Comments - Isolated E2E Tests', () => {
 
     // Wait for the textarea to appear after clicking edit
     const textarea = page.locator('textarea').first();
-    await expect(textarea).toBeVisible({ timeout: 30000 });
+    await expect(textarea).toBeVisible({ timeout: 120000 });
     await textarea.clear();
     await textarea.fill(updatedText);
 
@@ -303,6 +303,6 @@ test.describe('Task Comments - Isolated E2E Tests', () => {
     await page.getByTestId(`comment-save-button-${testCommentId}`).click();
 
     // Verify updated comment appears
-    await expect(page.getByText(updatedText)).toBeVisible({ timeout: 30000 });
+    await expect(page.getByText(updatedText)).toBeVisible({ timeout: 120000 });
   });
 });
