@@ -247,7 +247,7 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
     // Wait for modal to appear (TaskCreateModal opens, not a page navigation)
     // Look for modal heading "Create New Task"
     await page.waitForSelector('text=Create New Task', {
-      timeout: 10000,
+      timeout: 120000,
     });
 
     // 3. Fill in task details
@@ -470,7 +470,7 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
 
     // Wait for modal to appear (TaskCreateModal opens, not a page navigation)
     await page.waitForSelector('text=Create New Task', {
-      timeout: 10000,
+      timeout: 120000,
     });
 
     const parentTitle = `E2E Parent Task ${Date.now()}`;

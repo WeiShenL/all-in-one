@@ -10,6 +10,7 @@ This document covers development practices, guidelines, and advanced topics for 
 - [Authentication System](#-authentication-system)
 - [Real-time Notification System](#-real-time-notification-system)
 - [Email System](#-email-system)
+- [Task Deadline Cron Job](#-task-deadline-cron-job)
 - [File Upload & Storage System](#-file-upload--storage-system)
 - [Project Report Export](#-project-report-export)
 - [Reusable Components](#-reusable-components)
@@ -1095,6 +1096,112 @@ Email sending logic is implemented in:
 - [EmailService.ts](src/app/server/services/EmailService.ts) - Email sending with test mode override
 - [NotificationService.ts](src/app/server/services/NotificationService.ts) - Integrates email with notifications
 - [TaskService.ts](src/services/task/TaskService.ts) - Triggers notifications on task updates
+
+## ⏰ Task Deadline Cron Job
+
+### Overview
+
+The application includes an automated cron job that sends deadline reminders and overdue notifications to task assignees. The cron job runs daily and sends both email and in-app notifications.
+
+### Schedule
+
+**Production & Staging (Vercel):**
+
+- ✅ **Auto-runs daily** at **midnight UTC** (8:00 AM Singapore Time)
+- Configured in [vercel.json](vercel.json) as a Vercel Cron Job
+- Requires `CRON_SECRET` environment variable for authentication
+
+**Local Development:**
+
+- ❌ **Does NOT auto-run** (Vercel Cron Jobs only work in deployed environments)
+- Must be **manually triggered** by visiting the endpoint
+
+### Manual Trigger (Development)
+
+To test the cron job locally:
+
+1. **Start your development server:**
+
+   ```bash
+   npm run dev
+   ```
+
+2. **Trigger the cron job manually:**
+   - **Option 1 (Browser):** Visit `http://localhost:3000/api/cron`
+   - **Option 2 (Terminal):**
+     ```bash
+     curl http://localhost:3000/api/cron
+     ```
+
+3. **Check the output:**
+   - Browser: You'll see a JSON response with timestamp
+   - Terminal: Console logs will show "⏰ Cron job started" and "✅ Cron job completed successfully"
+
+**Note:** Authentication is automatically **skipped in development** mode, so you don't need to provide a `CRON_SECRET` when testing locally.
+
+### What the Cron Job Does
+
+The cron job queries tasks and sends notifications based on the following criteria:
+
+**Deadline Reminders (`DEADLINE_REMINDER`):**
+
+- Tasks due in **less than 24 hours** (upcoming deadline)
+- Tasks due **today** (same day as cron run)
+
+**Overdue Notifications (`TASK_OVERDUE`):**
+
+- Tasks overdue by **1 day** (missed yesterday's deadline)
+
+**Notification Types Sent:**
+
+1. **In-app notification** - Stored in database, visible in notification center
+2. **Real-time notification** - Pushed via Supabase Realtime (if user is online)
+3. **Email notification** - Sent to assignee email addresses (or `TEST_EMAIL_RECIPIENT` in development)
+
+### Implementation Details
+
+**Cron Configuration:**
+
+- **Path:** `/api/cron`
+- **Schedule:** `0 0 * * *` (cron syntax: daily at midnight UTC)
+- **Handler:** [src/app/api/cron/route.ts](src/app/api/cron/route.ts)
+
+**Business Logic:**
+
+- **Service:** [TaskNotificationService.ts](src/app/server/services/TaskNotificationService.ts)
+- **Method:** `sendDeadlineReminders()`
+- **Query Logic:** Checks tasks with `dueDate` between `-48 hours` and `+24 hours` from current time
+- **Excluded Tasks:** Tasks with status `COMPLETED` are skipped
+
+**Security:**
+
+- Production/staging requires `Authorization: Bearer <CRON_SECRET>` header
+- Development mode skips authentication for easy local testing
+- Unauthorized attempts are logged with timestamp and user-agent
+
+### Environment Variables
+
+Required for production/staging:
+
+```bash
+# Cron Job Authentication
+CRON_SECRET=your-secret-key-here
+
+# Email Configuration (used by cron job)
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxx
+RESEND_EMAIL_FROM=onboarding@resend.dev
+
+# Optional: Redirect all emails to test address during development
+TEST_EMAIL_RECIPIENT=your-verified-email@gmail.com
+```
+
+### Code Reference
+
+Cron job implementation:
+
+- [route.ts](src/app/api/cron/route.ts) - Cron endpoint handler with authentication
+- [TaskNotificationService.ts](src/app/server/services/TaskNotificationService.ts) - Notification sending logic
+- [vercel.json](vercel.json) - Vercel Cron Job configuration
 
 ## 📁 File Upload & Storage System
 

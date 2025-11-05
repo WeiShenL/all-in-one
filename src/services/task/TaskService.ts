@@ -193,30 +193,11 @@ export class TaskService {
     // Auto-create ProjectCollaborator for each assignee if task belongs to a project
     if (data.projectId && data.assigneeIds && data.assigneeIds.length > 0) {
       for (const assigneeId of data.assigneeIds) {
-        const userProfile =
-          await this.taskRepository.getUserProfile(assigneeId);
-        if (userProfile) {
-          // Check if already a collaborator to avoid duplicates
-          const isCollaborator =
-            await this.taskRepository.isUserProjectCollaborator(
-              data.projectId,
-              assigneeId
-            );
-          if (!isCollaborator) {
-            await this.taskRepository.createProjectCollaborator(
-              data.projectId,
-              assigneeId,
-              userProfile.departmentId
-            );
-
-            // Send project collaboration notification
-            await this.sendProjectCollaborationNotification(
-              data.projectId,
-              assigneeId,
-              result.id
-            );
-          }
-        }
+        await this.ensureProjectCollaborator(
+          data.projectId,
+          assigneeId,
+          result.id
+        );
       }
     }
 
@@ -735,6 +716,13 @@ export class TaskService {
   /**
    * Generate the next instance of a recurring task
    * Called automatically when a recurring task is marked as COMPLETED
+   *
+   * Fixed Schedule from Due Date
+   * - Next due date calculated from original due date + interval
+   * - Skips missed occurrences if completed very late (catch-up logic)
+   * - createdAt defaults to NOW (not manipulated)
+   *
+   * This matches calendar forecasting logic and prevents schedule drift.
    * @private
    */
   private async generateNextRecurringInstance(
@@ -750,24 +738,27 @@ export class TaskService {
       return;
     }
 
-    // Calculate next due date AND createdAt by adding recurring interval (in days)
-    // Use UTC methods to avoid timezone issues (SGT = UTC+8)
-    const currentDueDate = completedTask.getDueDate();
-    const currentCreatedAt = completedTask.getCreatedAt();
+    // Calculate next due date from original due date (fixed schedule)
+    // This maintains predictable cadence for teams and matches calendar forecasts
+    const originalDueDate = completedTask.getDueDate();
+    const now = new Date();
 
-    // console.log('🔄 [RECURRING] Current createdAt:', currentCreatedAt.toISOString());
-    // console.log('🔄 [RECURRING] Current due date:', currentDueDate.toISOString());
+    // console.log('🔄 [RECURRING] Original due date:', originalDueDate.toISOString());
+    // console.log('🔄 [RECURRING] Completion time (now):', now.toISOString());
 
-    // Shift BOTH createdAt and dueDate by the interval
-    const nextCreatedAt = new Date(currentCreatedAt);
-    nextCreatedAt.setUTCDate(nextCreatedAt.getUTCDate() + recurringInterval);
+    // Calculate next occurrence from original due date
+    const nextDueDate = new Date(originalDueDate);
+    nextDueDate.setUTCDate(originalDueDate.getUTCDate() + recurringInterval);
 
-    const nextDueDate = new Date(currentDueDate);
-    nextDueDate.setUTCDate(nextDueDate.getUTCDate() + recurringInterval);
+    // Skip missed occurrences if task was completed very late (catch-up logic)
+    // This prevents creating overdue tasks when user completes significantly late
+    while (nextDueDate <= now) {
+      nextDueDate.setUTCDate(nextDueDate.getUTCDate() + recurringInterval);
+    }
 
-    // console.log('🔄 [RECURRING] Next createdAt:', nextCreatedAt.toISOString());
     // console.log('🔄 [RECURRING] Next due date:', nextDueDate.toISOString());
-    // console.log('🔄 [RECURRING] Days added:', recurringInterval);
+    // console.log('🔄 [RECURRING] Skipped occurrences:', skippedCount);
+    // console.log('🔄 [RECURRING] Days from original due date:', recurringInterval * (1 + skippedCount));
 
     // Validate assignees still exist and are active
     const assigneeIds = Array.from(completedTask.getAssignees());
@@ -797,9 +788,8 @@ export class TaskService {
       tags: completedTask.getTags(),
     });
 
-    // Persist next instance
+    // Persist next instance (createdAt will default to NOW)
     // console.log('🔄 [RECURRING] Creating next task:');
-    // console.log('🔄 [RECURRING]   createdAt:', nextCreatedAt.toISOString());
     // console.log('🔄 [RECURRING]   dueDate:', nextTask.getDueDate().toISOString());
     // console.log('🔄 [RECURRING]   New task ID:', nextTask.getId());
 
@@ -809,7 +799,7 @@ export class TaskService {
       description: nextTask.getDescription(),
       priority: nextTask.getPriorityBucket(),
       dueDate: nextTask.getDueDate(),
-      createdAt: nextCreatedAt, // ✅ Set createdAt to maintain recurring schedule
+      // createdAt omitted - defaults to NOW
       ownerId: nextTask.getOwnerId(),
       departmentId: nextTask.getDepartmentId(),
       projectId: nextTask.getProjectId() ?? undefined,
@@ -1014,26 +1004,7 @@ export class TaskService {
     // Auto-create ProjectCollaborator if task belongs to a project
     const projectId = task.getProjectId();
     if (projectId) {
-      // Only create if user is not already a collaborator
-      const isCollaborator =
-        await this.taskRepository.isUserProjectCollaborator(
-          projectId,
-          newUserId
-        );
-      if (!isCollaborator) {
-        await this.taskRepository.createProjectCollaborator(
-          projectId,
-          newUserId,
-          userProfile.departmentId
-        );
-
-        // Send project collaboration notification
-        await this.sendProjectCollaborationNotification(
-          projectId,
-          newUserId,
-          taskId
-        );
-      }
+      await this.ensureProjectCollaborator(projectId, newUserId, taskId);
     }
 
     await this.taskRepository.logTaskAction(
@@ -1767,6 +1738,103 @@ export class TaskService {
   }
 
   /**
+   * Assign a project to an existing standalone task
+   * Creates ProjectCollaborator entries for all existing assignees
+   *
+   * Business Rules:
+   * - Task must not already have a project (immutability rule - AC3)
+   * - Project must exist and be valid
+   * - All existing assignees automatically become project collaborators
+   * - Each assignee receives PROJECT_COLLABORATION_ADDED notification
+   *
+   * Acceptance Criteria (SCRUM-31):
+   * - AC1: Staff can add existing tasks to projects
+   * - AC2: Tasks can only belong to 0 or 1 projects at any time
+   * - AC3: Tasks cannot be reassigned to another project after creation
+   * - AC4: System shows confirmation message after successful assignment
+   *
+   * @param taskId - Task ID to assign project to
+   * @param projectId - Project ID to assign
+   * @param user - User making the change (for authorization and logging)
+   * @returns Updated task with project assignment
+   * @throws Error if task not found, already has project, or project doesn't exist
+   */
+  async assignTaskToProject(
+    taskId: string,
+    projectId: string,
+    user: UserContext
+  ): Promise<Task> {
+    // 1. Get task and verify authorization + no existing project (AC2, AC3)
+    const task = await this.getTaskById(taskId, user);
+    if (!task) {
+      throw new Error('Task not found');
+    }
+
+    if (task.getProjectId()) {
+      throw new Error('Task already has a project and cannot be reassigned');
+    }
+
+    // 2. Validate project exists
+    const projectExists =
+      await this.taskRepository.validateProjectExists(projectId);
+    if (!projectExists) {
+      throw new Error('Project not found');
+    }
+
+    // 3. Update task with projectId
+    await this.taskRepository.updateTask(taskId, {
+      projectId: projectId,
+      updatedAt: new Date(),
+    });
+
+    // 4. Get all current assignees
+    const assigneeIds = Array.from(task.getAssignees());
+
+    // 5. Create ProjectCollaborator for each assignee (AC1)
+    // Each assignee receives notification via ensureProjectCollaborator()
+    for (const assigneeId of assigneeIds) {
+      await this.ensureProjectCollaborator(projectId, assigneeId, taskId);
+    }
+
+    // 6. Get project name for logging
+    let projectName = 'Unknown Project';
+    if (this.prisma) {
+      const project = await this.prisma.project.findUnique({
+        where: { id: projectId },
+        select: { name: true },
+      });
+      projectName = project?.name || projectName;
+    }
+
+    // 7. Log the action with metadata
+    await this.taskRepository.logTaskAction(
+      taskId,
+      user.userId,
+      'UPDATED',
+      'Project',
+      {
+        changes: {
+          from: null,
+          to: projectId,
+        },
+        metadata: {
+          source: 'web_ui',
+          projectName: projectName,
+          existingAssigneesAddedAsCollaborators: assigneeIds.length,
+        },
+      }
+    );
+
+    // 8. Return updated task (AC4 - confirmation via successful return)
+    const updatedTask = await this.getTaskById(taskId, user);
+    if (!updatedTask) {
+      throw new Error('Failed to retrieve updated task');
+    }
+
+    return updatedTask;
+  }
+
+  /**
    * Delete a task (hard delete)
    * Authorization: Only assigned users can delete
    * Business rule: Cannot delete task with subtasks (must archive instead)
@@ -2201,6 +2269,59 @@ export class TaskService {
         error
       );
       // Don't throw - real-time notification is non-critical
+    }
+  }
+
+  /**
+   * Ensure user is added as project collaborator
+   * Reusable helper for all task-project operations
+   *
+   * Flow:
+   * 1. Get user profile (for departmentId)
+   * 2. Check if already a collaborator (avoid duplicates)
+   * 3. Create ProjectCollaborator entry if needed
+   * 4. Send PROJECT_COLLABORATION_ADDED notification (DB + Email + Real-time Toast)
+   *
+   * @param projectId - Project ID
+   * @param userId - User ID to add as collaborator
+   * @param taskId - Task ID that triggered the collaboration
+   * @private
+   */
+  private async ensureProjectCollaborator(
+    projectId: string,
+    userId: string,
+    taskId: string
+  ): Promise<void> {
+    // 1. Get user profile for departmentId
+    const userProfile = await this.taskRepository.getUserProfile(userId);
+    if (!userProfile) {
+      // Skip if user profile not found (defensive - shouldn't happen after validation)
+      console.warn(
+        `[ensureProjectCollaborator] User profile not found for userId=${userId}, skipping`
+      );
+      return;
+    }
+
+    // 2. Check if already a collaborator to avoid duplicates
+    const isCollaborator = await this.taskRepository.isUserProjectCollaborator(
+      projectId,
+      userId
+    );
+
+    if (!isCollaborator) {
+      // 3. Create ProjectCollaborator entry
+      await this.taskRepository.createProjectCollaborator(
+        projectId,
+        userId,
+        userProfile.departmentId
+      );
+
+      // 4. Send project collaboration notification (DB + Email + Real-time)
+      await this.sendProjectCollaborationNotification(
+        projectId,
+        userId,
+        taskId
+      );
     }
   }
 

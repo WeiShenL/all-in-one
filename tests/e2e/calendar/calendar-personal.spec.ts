@@ -162,7 +162,6 @@ test.describe('Personal Calendar - UI Flow', () => {
     const in10Days = new Date(today.getTime() + 10 * 24 * 60 * 60 * 1000);
     const in3Days = new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000);
     const ago5Days = new Date(today.getTime() - 5 * 24 * 60 * 60 * 1000);
-    const ago20Days = new Date(today.getTime() - 20 * 24 * 60 * 60 * 1000);
 
     // Task 1: TO_DO task (due in 7 days - always visible)
     const task1Result = await pgClient.query(
@@ -205,18 +204,20 @@ test.describe('Personal Calendar - UI Flow', () => {
       [task2Id, testUserId, testUserId]
     );
 
-    // Task 3: COMPLETED task (due 5 days ago, started 20 days ago)
+    // Task 3: COMPLETED task (due in 2 days, started 2 days ago - always visible in current month/week)
+    const in2Days = new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000);
+    const ago2Days = new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000);
     const task3Result = await pgClient.query(
       'INSERT INTO "task" (id, title, description, priority, "dueDate", "ownerId", "departmentId", status, "startDate", "createdAt", "updatedAt") VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW()) RETURNING id',
       [
         'E2E Personal Task - COMPLETED',
         'Task to test COMPLETED status',
         6,
-        ago5Days,
+        in2Days,
         testUserId,
         testDepartmentId,
         'COMPLETED',
-        ago20Days,
+        ago2Days,
       ]
     );
     const task3Id = task3Result.rows[0].id;
@@ -515,8 +516,9 @@ test.describe('Personal Calendar - UI Flow', () => {
     });
 
     // Verify at least one task is present in week view (may be in all-day section)
+    // Use text content since data-task-title might be on inner span
     const weekTaskCount = await page
-      .locator('[data-task-title="E2E Personal Task - TO_DO"]')
+      .getByText('E2E Personal Task - TO_DO', { exact: false })
       .count();
     // console.warn(
     //   `Week view - E2E Personal Task - TO_DO count: ${weekTaskCount}`
@@ -573,7 +575,7 @@ test.describe('Personal Calendar - UI Flow', () => {
     });
 
     const finalMonthTaskCount = await page
-      .locator('[data-task-title="E2E Personal Task - TO_DO"]')
+      .getByText('E2E Personal Task - TO_DO', { exact: false })
       .count();
     // console.warn(
     //   `Back to Month view - E2E Personal Task - TO_DO count: ${finalMonthTaskCount}`
@@ -598,8 +600,10 @@ test.describe('Personal Calendar - UI Flow', () => {
     // console.warn(`E2E Personal Task - COMPLETED count: ${completedTaskCount}`);
     expect(completedTaskCount).toBeGreaterThan(0);
 
-    // Verify legend shows COMPLETED status color (use .first() to avoid strict mode violation)
-    const legend = page.getByText(/COMPLETED/i).first();
+    // Verify legend shows COMPLETED status color
+    // Scope to calendar to avoid finding the hidden table view's status dropdown
+    const calendar = page.getByTestId('task-calendar');
+    const legend = calendar.getByText(/COMPLETED/i).first();
     await expect(legend).toBeVisible({ timeout: 65000 });
   });
 

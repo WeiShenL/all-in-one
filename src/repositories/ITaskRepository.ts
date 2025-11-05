@@ -328,6 +328,7 @@ export interface ITaskRepository {
       status: string;
       startDate: Date | null;
       recurringInterval: number | null;
+      projectId: string | null;
       updatedAt: Date;
     }>
   ): Promise<void>;
