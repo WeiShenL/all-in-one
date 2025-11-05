@@ -7,6 +7,7 @@ import { ConnectedTasks } from './ConnectedTasks';
 import { TaskDatePill } from './TaskTable/TaskDatePill';
 import { UserSelectOption } from './UserSelectOption';
 import { DepartmentPill } from './TaskTable/DepartmentPill';
+import { trpc } from '../lib/trpc';
 
 interface Task {
   id: string;
@@ -58,6 +59,7 @@ export function TaskCard({
   onTaskUpdated?: () => void;
 }) {
   const { userProfile } = useAuth();
+  const utils = trpc.useUtils();
   const [task, setTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -159,15 +161,164 @@ export function TaskCard({
   >([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
 
+  // Task hierarchy state
+  const [taskHierarchy, setTaskHierarchy] = useState<any>(null);
+
   useEffect(() => {
-    fetchTask();
-    fetchFiles();
-    fetchDepartmentUsers();
-    fetchTaskLogs();
-    fetchProjects();
-    fetchAllUsers();
+    const abortController = new AbortController();
+
+    const fetchAllTaskData = async () => {
+      if (!userProfile) {
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `/api/trpc/task.getTaskEditingData?input=${encodeURIComponent(
+            JSON.stringify({ taskId })
+          )}`,
+          {
+            signal: abortController.signal, // Cancel request if effect cleanup runs
+          }
+        );
+        const data = await response.json();
+
+        // Check if request was aborted
+        if (abortController.signal.aborted) {
+          return;
+        }
+
+        if (data.result?.data) {
+          const {
+            task: taskData,
+            files: filesData,
+            logs,
+            departmentUsers,
+            allUsers,
+            projects,
+            hierarchy,
+          } = data.result.data;
+
+          // Set task data
+          setTask(taskData);
+          setTitleValue(taskData.title);
+          setDescriptionValue(taskData.description);
+          setPriorityValue(taskData.priorityBucket);
+          setDeadlineValue(taskData.dueDate.split('T')[0]);
+          setStatusValue(taskData.status);
+          setRecurringEnabled(taskData.isRecurring);
+          setRecurringInterval(taskData.recurringInterval);
+          setProjectValue(taskData.projectId || '');
+
+          // Set files data
+          setUploadedFiles(filesData.files);
+          setTotalSize(filesData.totalSize || 0);
+          setLoadingFiles(false);
+
+          // Set logs
+          setTaskLogs(logs);
+          setLoadingLogs(false);
+
+          // Set hierarchy
+          setTaskHierarchy(hierarchy);
+
+          // Set department users
+          const userMap = new Map<
+            string,
+            {
+              name: string;
+              email: string;
+              role?: string;
+              isHrAdmin?: boolean;
+              department?: { id: string; name: string };
+            }
+          >();
+          departmentUsers.forEach(
+            (user: {
+              id: string;
+              name: string;
+              email: string;
+              role?: string;
+              isHrAdmin?: boolean;
+              department?: { id: string; name: string };
+            }) => {
+              userMap.set(user.id, {
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                isHrAdmin: user.isHrAdmin,
+                department: user.department,
+              });
+            }
+          );
+
+          // Set all users
+          setAvailableUsers(allUsers);
+          setLoadingUsers(false);
+
+          // Set projects
+          setAvailableProjects(
+            projects.map((p: any) => ({
+              id: p.id,
+              name: p.name,
+            }))
+          );
+          setLoadingProjects(false);
+
+          // Populate user details map from allUsers (no additional API calls needed!)
+          // Collect all user IDs we need (assignees + comment authors)
+          const neededUserIds = new Set<string>();
+
+          if (taskData.assignments && taskData.assignments.length > 0) {
+            taskData.assignments.forEach((assignment: any) =>
+              neededUserIds.add(assignment.userId)
+            );
+          }
+
+          if (taskData.comments && taskData.comments.length > 0) {
+            taskData.comments.forEach((comment: any) =>
+              neededUserIds.add(comment.authorId)
+            );
+          }
+
+          // Build complete user details map from allUsers data we already have
+          allUsers.forEach((user: any) => {
+            if (neededUserIds.has(user.id)) {
+              userMap.set(user.id, {
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                isHrAdmin: user.isHrAdmin,
+                department: user.department,
+              });
+            }
+          });
+
+          setUserDetailsMap(userMap);
+        }
+      } catch (err: any) {
+        // Ignore abort errors (expected when component unmounts)
+        if (err.name === 'AbortError') {
+          return;
+        }
+        if (!abortController.signal.aborted) {
+          setError('Failed to load task');
+        }
+      } finally {
+        if (!abortController.signal.aborted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchAllTaskData();
+
+    // Cleanup function to abort pending request on unmount/re-render
+    return () => {
+      abortController.abort();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [taskId]);
+  }, [taskId, userProfile?.id]);
 
   const fetchTask = async () => {
     if (!userProfile) {
@@ -248,55 +399,6 @@ export function TaskCard({
       console.error('Failed to fetch files:', err);
     } finally {
       setLoadingFiles(false);
-    }
-  };
-
-  const fetchDepartmentUsers = async () => {
-    if (!userProfile) {
-      return;
-    }
-
-    try {
-      const response = await fetch(
-        `/api/trpc/userProfile.getByDepartment?input=${encodeURIComponent(
-          JSON.stringify({ departmentId: userProfile.departmentId })
-        )}`
-      );
-      const data = await response.json();
-
-      if (data.result?.data) {
-        const userMap = new Map<
-          string,
-          {
-            name: string;
-            email: string;
-            role?: string;
-            isHrAdmin?: boolean;
-            department?: { id: string; name: string };
-          }
-        >();
-        data.result.data.forEach(
-          (user: {
-            id: string;
-            name: string;
-            email: string;
-            role?: string;
-            isHrAdmin?: boolean;
-            department?: { id: string; name: string };
-          }) => {
-            userMap.set(user.id, {
-              name: user.name,
-              email: user.email,
-              role: user.role,
-              isHrAdmin: user.isHrAdmin,
-              department: user.department,
-            });
-          }
-        );
-        setUserDetailsMap(userMap);
-      }
-    } catch (err) {
-      console.error('Failed to fetch department users:', err);
     }
   };
 
@@ -417,54 +519,6 @@ export function TaskCard({
     }
   };
 
-  const fetchProjects = async () => {
-    if (!userProfile) {
-      return;
-    }
-
-    setLoadingProjects(true);
-    try {
-      const response = await fetch(
-        `/api/trpc/project.getAll?input=${encodeURIComponent(JSON.stringify({ isArchived: false }))}`
-      );
-      const data = await response.json();
-
-      if (data.result?.data) {
-        setAvailableProjects(
-          data.result.data.map((p: any) => ({
-            id: p.id,
-            name: p.name,
-          }))
-        );
-      }
-    } catch (err) {
-      console.error('Failed to fetch projects:', err);
-    } finally {
-      setLoadingProjects(false);
-    }
-  };
-
-  const fetchAllUsers = async () => {
-    if (!userProfile) {
-      return;
-    }
-
-    setLoadingUsers(true);
-    try {
-      const response = await fetch('/api/trpc/userProfile.getAll');
-      const data = await response.json();
-
-      if (data.result?.data) {
-        // Set all users - the API should already filter for active users
-        setAvailableUsers(data.result.data);
-      }
-    } catch (err) {
-      console.error('Failed to fetch users:', err);
-    } finally {
-      setLoadingUsers(false);
-    }
-  };
-
   const updateTask = async (
     endpoint: string,
     payload: any,
@@ -488,6 +542,13 @@ export function TaskCard({
 
       await fetchTask();
       await fetchTaskLogs();
+
+      // Invalidate all task-related caches to ensure fresh data everywhere
+      utils.task.getUserTasks.invalidate();
+      utils.task.getDepartmentTasksForUser.invalidate();
+      utils.task.getCompanyTasks.invalidate();
+      utils.task.getTaskEditingData.invalidate({ taskId });
+
       onTaskUpdated?.(); // Notify parent to refresh dashboard
       setSuccess(successMsg);
       setTimeout(() => setSuccess(null), 3000);
@@ -1624,7 +1685,11 @@ export function TaskCard({
       </div>
 
       {/* Connected Tasks */}
-      <ConnectedTasks taskId={taskId} onTaskClick={onTaskChange} />
+      <ConnectedTasks
+        taskId={taskId}
+        onTaskClick={onTaskChange}
+        initialHierarchy={taskHierarchy}
+      />
 
       {/* Assignees - AC7 (TM015: can add but NOT remove) */}
       <div

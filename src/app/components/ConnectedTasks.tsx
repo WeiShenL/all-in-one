@@ -129,13 +129,17 @@ interface TaskHierarchy {
 export function ConnectedTasks({
   taskId,
   onTaskClick,
+  initialHierarchy,
 }: {
   taskId: string;
   onTaskClick?: (newTaskId: string) => void;
+  initialHierarchy?: TaskHierarchy | null;
 }) {
   const { userProfile } = useAuth();
-  const [hierarchy, setHierarchy] = useState<TaskHierarchy | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [hierarchy, setHierarchy] = useState<TaskHierarchy | null>(
+    initialHierarchy || null
+  );
+  const [loading, setLoading] = useState(!initialHierarchy);
   const [error, setError] = useState<string | null>(null);
 
   const fetchHierarchy = useCallback(async () => {
@@ -167,8 +171,11 @@ export function ConnectedTasks({
   }, [userProfile, taskId]);
 
   useEffect(() => {
-    fetchHierarchy();
-  }, [fetchHierarchy]);
+    // Only fetch if we don't have initial hierarchy
+    if (!initialHierarchy) {
+      fetchHierarchy();
+    }
+  }, [fetchHierarchy, initialHierarchy]);
 
   if (loading) {
     return (
