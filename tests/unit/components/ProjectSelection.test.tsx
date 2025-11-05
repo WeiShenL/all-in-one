@@ -89,7 +89,7 @@ describe('ProjectSelection', () => {
     },
   ];
 
-  const sixProjects = Array.from({ length: 6 }).map((_, i) => ({
+  const nineProjects = Array.from({ length: 9 }).map((_, i) => ({
     id: `p-${i + 1}`,
     name: `Project ${i + 1}`,
     description: '',
@@ -203,7 +203,7 @@ describe('ProjectSelection', () => {
 
     it('shows only four visible items and enables scroll when more than 4 projects', () => {
       mockUseQuery.mockReturnValue({
-        data: sixProjects,
+        data: nineProjects,
         isLoading: false,
         error: null,
       });
@@ -215,7 +215,7 @@ describe('ProjectSelection', () => {
         .parentElement as HTMLDivElement;
 
       expect(listContainer).toHaveStyle({
-        maxHeight: '200px',
+        maxHeight: '450px',
         overflowY: 'auto',
       });
 
@@ -227,6 +227,9 @@ describe('ProjectSelection', () => {
         'Project 4',
         'Project 5',
         'Project 6',
+        'Project 7',
+        'Project 8',
+        'Project 9',
       ].forEach(name => {
         expect(screen.getByText(name)).toBeInTheDocument();
       });
