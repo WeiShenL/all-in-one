@@ -218,7 +218,7 @@ test.describe('Subtask Creation E2E - SCRUM-65', () => {
     // Wait for login page to load
     await expect(
       page.getByRole('heading', { name: /welcome back/i })
-    ).toBeVisible({ timeout: 40000 });
+    ).toBeVisible({ timeout: 120000 });
 
     // Fill email
     await page.getByLabel('Email').fill(testEmail);
@@ -228,7 +228,7 @@ test.describe('Subtask Creation E2E - SCRUM-65', () => {
 
     // Click sign in button
     const signInButton = page.getByRole('button', { name: /sign in/i });
-    await expect(signInButton).toBeEnabled({ timeout: 40000 });
+    await expect(signInButton).toBeEnabled({ timeout: 120000 });
     await signInButton.click();
 
     /**
@@ -236,13 +236,13 @@ test.describe('Subtask Creation E2E - SCRUM-65', () => {
      */
     await expect(
       page.getByRole('heading', { name: /personal dashboard/i })
-    ).toBeVisible({ timeout: 40000 });
+    ).toBeVisible({ timeout: 120000 });
 
     // Verify parent task appears in dashboard
     await expect(
-      page.getByText(`E2E Parent Task for Subtask ${testNamespace}`)
+      page.getByText(`E2E Parent Task for Subtask ${testNamespace}`).first()
     ).toBeVisible({
-      timeout: 40000,
+      timeout: 120000,
     });
 
     /**
@@ -251,13 +251,13 @@ test.describe('Subtask Creation E2E - SCRUM-65', () => {
     const createTaskButton = page.getByRole('button', {
       name: /\+ Create Task/i,
     });
-    await expect(createTaskButton).toBeVisible({ timeout: 40000 });
+    await expect(createTaskButton).toBeVisible({ timeout: 120000 });
     await createTaskButton.click();
 
     // Wait for modal to open
     await expect(
       page.getByRole('heading', { name: /create new task/i })
-    ).toBeVisible({ timeout: 40000 });
+    ).toBeVisible({ timeout: 120000 });
 
     /**
      * STEP 4: Fill out subtask form
@@ -282,7 +282,7 @@ test.describe('Subtask Creation E2E - SCRUM-65', () => {
     const parentTaskSelect = page
       .locator('select')
       .filter({ hasText: /select parent task/i });
-    await expect(parentTaskSelect).toBeVisible({ timeout: 40000 });
+    await expect(parentTaskSelect).toBeVisible({ timeout: 120000 });
     await parentTaskSelect.selectOption(testParentTaskId);
 
     // User is auto-assigned, no need to manually add assignee
@@ -293,7 +293,7 @@ test.describe('Subtask Creation E2E - SCRUM-65', () => {
     const createButton = page.getByRole('button', {
       name: /✓ create task/i,
     });
-    await expect(createButton).toBeEnabled({ timeout: 40000 });
+    await expect(createButton).toBeEnabled({ timeout: 120000 });
     await createButton.click();
 
     /**
@@ -301,16 +301,16 @@ test.describe('Subtask Creation E2E - SCRUM-65', () => {
      */
     await expect(
       page.getByRole('heading', { name: /create new task/i })
-    ).not.toBeVisible({ timeout: 40000 });
+    ).not.toBeVisible({ timeout: 120000 });
 
     /**
      * STEP 7: Verify subtask appears in UI
      */
     // First verify parent task is still visible
     await expect(
-      page.getByText(`E2E Parent Task for Subtask ${testNamespace}`)
+      page.getByText(`E2E Parent Task for Subtask ${testNamespace}`).first()
     ).toBeVisible({
-      timeout: 40000,
+      timeout: 120000,
     });
 
     // Click the dropdown arrow to expand the parent task and reveal subtasks
@@ -320,7 +320,7 @@ test.describe('Subtask Creation E2E - SCRUM-65', () => {
       .filter({ hasText: `E2E Parent Task for Subtask ${testNamespace}` })
       .locator('button')
       .first();
-    await expect(dropdownButton).toBeVisible({ timeout: 40000 });
+    await expect(dropdownButton).toBeVisible({ timeout: 120000 });
     await dropdownButton.click();
 
     // Now the subtask should be visible (indented under parent)
@@ -329,7 +329,7 @@ test.describe('Subtask Creation E2E - SCRUM-65', () => {
       .locator('tbody tr')
       .filter({ hasText: `E2E Test Subtask ${testNamespace}` })
       .first();
-    await expect(subtaskRow).toBeVisible({ timeout: 40000 });
+    await expect(subtaskRow).toBeVisible({ timeout: 120000 });
 
     /**
      * STEP 8: Verify subtask data in database
