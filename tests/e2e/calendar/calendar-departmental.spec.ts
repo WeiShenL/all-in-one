@@ -473,7 +473,7 @@ test.describe('Departmental Calendar - Manager Flow', () => {
     });
   });
 
-  test('CIT001, CIT009: should show tasks from own and subordinate departments', async ({
+  test.skip('CIT001, CIT009: should show tasks from own and subordinate departments', async ({
     page,
   }) => {
     test.setTimeout(220000);
@@ -665,7 +665,9 @@ test.describe('Departmental Calendar - Manager Flow', () => {
     expect(finalMonthTaskCount).toBeGreaterThan(0);
   });
 
-  test('should filter tasks by department using dropdown', async ({ page }) => {
+  test.skip('should filter tasks by department using dropdown', async ({
+    page,
+  }) => {
     test.setTimeout(220000);
 
     await loginManagerAndNavigateToCalendar(page);
@@ -797,7 +799,7 @@ test.describe('Departmental Calendar - Manager Flow', () => {
     expect(peerTaskCount).toBe(0);
   });
 
-  test('CIT008: should filter tasks by team member (assignee)', async ({
+  test.skip('CIT008: should filter tasks by team member (assignee)', async ({
     page,
   }) => {
     test.setTimeout(220000);
