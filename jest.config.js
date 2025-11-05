@@ -44,10 +44,10 @@ const customJestConfig = {
     '!src/app/lib/trpc.ts',
     '!src/lib/supabase/middleware.ts',
     '!src/lib/supabase/server.ts',
-    '!src/lib/supabase/auth-context.tsx',
+    '!src/lib/context/DashboardContext.tsx', // UI state context, E2E tested
     '!src/app/components/TRPCProvider.tsx',
 
-    // Exclude simple presentational components (low testing value)
+    // Exclude simple presentational components Its in E2E
     '!src/app/components/Toast.tsx',
     '!src/app/components/ToastContainer.tsx',
     '!src/app/components/UserSelectOption.tsx',
@@ -56,7 +56,6 @@ const customJestConfig = {
     // Exclude large UI components (E2E tested)
     '!src/app/components/TaskCard.tsx',
     '!src/app/components/TaskCreateModal.tsx',
-    '!src/app/components/TaskCreateForm.tsx',
     '!src/app/components/Navbar.tsx',
     '!src/app/components/ConnectedTasks.tsx',
     '!src/app/components/TaskTable/TaskTable.tsx',
@@ -74,22 +73,19 @@ const customJestConfig = {
 
     // Exclude other UI components (E2E tested)
     '!src/app/components/LogItem.tsx',
-    '!src/app/components/TaskTable/Pills.tsx',
     '!src/app/components/ProjectCreateModal.tsx',
     '!src/app/components/NotificationModal.tsx',
     '!src/app/components/ProjectReport/ProjectReportExportButton.tsx',
     '!src/app/components/UnifiedDashboard.tsx',
     '!src/app/components/TaskFileUpload.tsx',
     '!src/app/components/ProjectDashboard.tsx',
-    '!src/app/components/TaskCalendar.tsx',
+    '!src/app/components/Calendar/TaskCalendar.tsx',
+    '!src/app/components/TaskComments.tsx',
+    '!src/app/auth/login/page.tsx',
 
     // Exclude tRPC routers (thin orchestration layers - business logic in services)
-    '!src/app/server/routers/task.ts',
     '!src/app/server/routers/department.ts',
-    '!src/app/server/routers/notification.ts',
-    '!src/app/server/routers/taskFile.ts',
     '!src/app/server/routers/userProfile.ts',
-    '!src/app/server/routers/project.ts',
     '!src/app/server/routers/_app.ts',
 
     // Exclude simple barrel exports

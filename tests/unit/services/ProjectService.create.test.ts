@@ -357,4 +357,154 @@ describe('ProjectService.createProject() - Service Orchestration', () => {
       expect(mockProjectRepository.createProject).not.toHaveBeenCalled();
     });
   });
+
+  describe('Edge Cases and Priority Handling', () => {
+    it('should handle priority 1 (lowest)', async () => {
+      const input = {
+        name: 'Low Priority Project',
+        priority: 1,
+      };
+
+      mockProjectRepository.isProjectNameUnique.mockResolvedValue(true);
+      mockProjectRepository.createProject.mockResolvedValue({
+        id: 'project-123',
+      });
+
+      await projectService.createProject(input, testUser);
+
+      const createdProject = mockProjectRepository.createProject.mock
+        .calls[0][0] as Project;
+      expect(createdProject.getPriority()).toBe(1);
+    });
+
+    it('should handle priority 10 (highest)', async () => {
+      const input = {
+        name: 'High Priority Project',
+        priority: 10,
+      };
+
+      mockProjectRepository.isProjectNameUnique.mockResolvedValue(true);
+      mockProjectRepository.createProject.mockResolvedValue({
+        id: 'project-123',
+      });
+
+      await projectService.createProject(input, testUser);
+
+      const createdProject = mockProjectRepository.createProject.mock
+        .calls[0][0] as Project;
+      expect(createdProject.getPriority()).toBe(10);
+    });
+
+    it('should handle project with description', async () => {
+      const input = {
+        name: 'Described Project',
+        description:
+          'This project has a detailed description explaining its purpose.',
+      };
+
+      mockProjectRepository.isProjectNameUnique.mockResolvedValue(true);
+      mockProjectRepository.createProject.mockResolvedValue({
+        id: 'project-123',
+      });
+
+      await projectService.createProject(input, testUser);
+
+      const createdProject = mockProjectRepository.createProject.mock
+        .calls[0][0] as Project;
+      expect(createdProject.getDescription()).toBe(
+        'This project has a detailed description explaining its purpose.'
+      );
+    });
+
+    it('should handle project without description', async () => {
+      const input = {
+        name: 'Simple Project',
+      };
+
+      mockProjectRepository.isProjectNameUnique.mockResolvedValue(true);
+      mockProjectRepository.createProject.mockResolvedValue({
+        id: 'project-123',
+      });
+
+      await projectService.createProject(input, testUser);
+
+      const createdProject = mockProjectRepository.createProject.mock
+        .calls[0][0] as Project;
+      // Description can be null or undefined when not provided
+      expect(
+        createdProject.getDescription() === null ||
+          createdProject.getDescription() === undefined
+      ).toBe(true);
+    });
+  });
+
+  describe('Complex Validation Scenarios', () => {
+    it('should handle multiple whitespace in name correctly', async () => {
+      const input = {
+        name: '  Project   With   Spaces  ',
+      };
+
+      mockProjectRepository.isProjectNameUnique.mockResolvedValue(true);
+      mockProjectRepository.createProject.mockResolvedValue({
+        id: 'project-123',
+      });
+
+      await projectService.createProject(input, testUser);
+
+      // Should check with trimmed name
+      expect(mockProjectRepository.isProjectNameUnique).toHaveBeenCalledWith(
+        'Project   With   Spaces'
+      );
+    });
+
+    it('should accept name at exactly 100 characters', async () => {
+      const exactLength = 'A'.repeat(100);
+      const input = {
+        name: exactLength,
+      };
+
+      mockProjectRepository.isProjectNameUnique.mockResolvedValue(true);
+      mockProjectRepository.createProject.mockResolvedValue({
+        id: 'project-123',
+      });
+
+      await projectService.createProject(input, testUser);
+
+      const createdProject = mockProjectRepository.createProject.mock
+        .calls[0][0] as Project;
+      expect(createdProject.getName()).toBe(exactLength);
+    });
+
+    it('should handle repository errors gracefully', async () => {
+      const input = {
+        name: 'Test Project',
+      };
+
+      mockProjectRepository.isProjectNameUnique.mockResolvedValue(true);
+      mockProjectRepository.createProject.mockRejectedValue(
+        new Error('Database connection failed')
+      );
+
+      await expect(
+        projectService.createProject(input, testUser)
+      ).rejects.toThrow('Database connection failed');
+    });
+
+    it('should handle uniqueness check errors gracefully', async () => {
+      const input = {
+        name: 'Test Project',
+      };
+
+      mockProjectRepository.isProjectNameUnique.mockRejectedValue(
+        new Error('Database timeout')
+      );
+
+      await expect(
+        projectService.createProject(input, testUser)
+      ).rejects.toThrow('Database timeout');
+
+      // Should not proceed to creation
+      expect(mockProjectRepository.createProject).not.toHaveBeenCalled();
+    });
+  });
 });

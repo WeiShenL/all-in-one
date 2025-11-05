@@ -5,7 +5,10 @@
  * Focus: Can we export?
  */
 
-import { exportProjectToPDF } from '@/app/components/ProjectReport/utils/exportProjectToPDF';
+import {
+  exportProjectToPDF,
+  buildProjectReportPDFBlob,
+} from '@/app/components/ProjectReport/utils/exportProjectToPDF';
 import type { ProjectReportData } from '@/services/project/ProjectReportService';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -532,6 +535,509 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
       };
 
       expect(() => exportProjectToPDF(dataWithSpecialChars)).not.toThrow();
+    });
+
+    it('should handle tasks with null dates', () => {
+      const dataWithNullDates: ProjectReportData = {
+        ...mockProjectData,
+        tasks: [
+          {
+            id: 'task-1',
+            title: 'Task without dates',
+            description: 'Description',
+            status: 'TO_DO',
+            priority: 5,
+            startDate: null as any,
+            dueDate: null as any,
+            createdAt: new Date(),
+            ownerName: 'Owner',
+            ownerEmail: 'owner@example.com',
+            assignees: [],
+            tags: [],
+            departments: [],
+          },
+        ],
+      };
+
+      expect(() => exportProjectToPDF(dataWithNullDates)).not.toThrow();
+    });
+
+    it('should handle tasks with empty arrays', () => {
+      const dataWithEmptyArrays: ProjectReportData = {
+        ...mockProjectData,
+        tasks: [
+          {
+            id: 'task-1',
+            title: 'Minimal Task',
+            description: 'Description',
+            status: 'TO_DO',
+            priority: 5,
+            startDate: new Date(),
+            dueDate: new Date(),
+            createdAt: new Date(),
+            ownerName: 'Owner',
+            ownerEmail: 'owner@example.com',
+            assignees: [],
+            tags: [],
+            departments: [],
+          },
+        ],
+      };
+
+      expect(() => exportProjectToPDF(dataWithEmptyArrays)).not.toThrow();
+    });
+
+    it('should handle tasks with very long titles', () => {
+      const longTitle = 'A'.repeat(200);
+      const dataWithLongTitle: ProjectReportData = {
+        ...mockProjectData,
+        tasks: [
+          {
+            id: 'task-1',
+            title: longTitle,
+            description: 'Description',
+            status: 'IN_PROGRESS',
+            priority: 5,
+            startDate: new Date(),
+            dueDate: new Date(),
+            createdAt: new Date(),
+            ownerName: 'Owner',
+            ownerEmail: 'owner@example.com',
+            assignees: ['Assignee'],
+            tags: ['Tag'],
+            departments: ['Dept'],
+          },
+        ],
+      };
+
+      expect(() => exportProjectToPDF(dataWithLongTitle)).not.toThrow();
+    });
+
+    it('should handle multiple tasks across all statuses', () => {
+      const multiStatusData: ProjectReportData = {
+        ...mockProjectData,
+        tasks: [
+          {
+            id: 'task-1',
+            title: 'To Do Task',
+            description: 'Description',
+            status: 'TO_DO',
+            priority: 3,
+            startDate: new Date(),
+            dueDate: new Date(),
+            createdAt: new Date(),
+            ownerName: 'Owner 1',
+            ownerEmail: 'owner1@example.com',
+            assignees: ['Alice'],
+            tags: ['Feature'],
+            departments: ['Engineering'],
+          },
+          {
+            id: 'task-2',
+            title: 'In Progress Task',
+            description: 'Description',
+            status: 'IN_PROGRESS',
+            priority: 7,
+            startDate: new Date(),
+            dueDate: new Date(),
+            createdAt: new Date(),
+            ownerName: 'Owner 2',
+            ownerEmail: 'owner2@example.com',
+            assignees: ['Bob'],
+            tags: ['Bug'],
+            departments: ['QA'],
+          },
+          {
+            id: 'task-3',
+            title: 'Blocked Task',
+            description: 'Description',
+            status: 'BLOCKED',
+            priority: 9,
+            startDate: new Date(),
+            dueDate: new Date(),
+            createdAt: new Date(),
+            ownerName: 'Owner 3',
+            ownerEmail: 'owner3@example.com',
+            assignees: ['Charlie'],
+            tags: ['Critical'],
+            departments: ['DevOps'],
+          },
+          {
+            id: 'task-4',
+            title: 'Completed Task',
+            description: 'Description',
+            status: 'COMPLETED',
+            priority: 5,
+            startDate: new Date(),
+            dueDate: new Date(),
+            createdAt: new Date(),
+            ownerName: 'Owner 4',
+            ownerEmail: 'owner4@example.com',
+            assignees: ['Diana'],
+            tags: ['Enhancement'],
+            departments: ['Product'],
+          },
+        ],
+      };
+
+      expect(() => exportProjectToPDF(multiStatusData)).not.toThrow();
+    });
+
+    it('should handle tasks with multiple assignees, tags, and departments', () => {
+      const dataWithMultiples: ProjectReportData = {
+        ...mockProjectData,
+        tasks: [
+          {
+            id: 'task-1',
+            title: 'Complex Task',
+            description: 'Description',
+            status: 'IN_PROGRESS',
+            priority: 8,
+            startDate: new Date(),
+            dueDate: new Date(),
+            createdAt: new Date(),
+            ownerName: 'Owner',
+            ownerEmail: 'owner@example.com',
+            assignees: ['Alice', 'Bob', 'Charlie', 'Diana', 'Eve'],
+            tags: ['Feature', 'Critical', 'UI', 'Backend', 'Testing'],
+            departments: ['Engineering', 'Design', 'QA', 'Product', 'DevOps'],
+          },
+        ],
+      };
+
+      expect(() => exportProjectToPDF(dataWithMultiples)).not.toThrow();
+    });
+
+    it('should handle empty project name gracefully', () => {
+      const dataWithEmptyName: ProjectReportData = {
+        ...mockProjectData,
+        project: {
+          ...mockProjectData.project,
+          name: '',
+        },
+      };
+
+      expect(() => exportProjectToPDF(dataWithEmptyName)).not.toThrow();
+    });
+
+    it('should handle project with all statuses ACTIVE', () => {
+      const dataWithActiveStatus: ProjectReportData = {
+        ...mockProjectData,
+        project: {
+          ...mockProjectData.project,
+          status: 'ACTIVE',
+        },
+      };
+
+      expect(() => exportProjectToPDF(dataWithActiveStatus)).not.toThrow();
+    });
+
+    it('should handle project with COMPLETED status', () => {
+      const dataWithCompletedStatus: ProjectReportData = {
+        ...mockProjectData,
+        project: {
+          ...mockProjectData.project,
+          status: 'COMPLETED',
+        },
+      };
+
+      expect(() => exportProjectToPDF(dataWithCompletedStatus)).not.toThrow();
+    });
+
+    it('should handle collaborators with long names', () => {
+      const dataWithLongCollabName: ProjectReportData = {
+        ...mockProjectData,
+        collaborators: [
+          {
+            name: 'Very Long Collaborator Name That Exceeds Normal Length',
+            email: 'longname@example.com',
+            departmentName: 'Engineering',
+            addedAt: new Date(),
+          },
+        ],
+      };
+
+      expect(() => exportProjectToPDF(dataWithLongCollabName)).not.toThrow();
+    });
+
+    it('should sanitize filename with multiple special characters', () => {
+      const mockLink = {
+        href: '',
+        download: '',
+        click: jest.fn(),
+        style: {},
+      };
+
+      jest.spyOn(document, 'createElement').mockImplementation(tagName => {
+        if (tagName === 'a') {
+          return mockLink as any;
+        }
+        return {} as any;
+      });
+
+      const dataWithSpecialChars: ProjectReportData = {
+        ...mockProjectData,
+        project: {
+          ...mockProjectData.project,
+          name: 'Project: Test & "Demo" <2025> | Final',
+        },
+      };
+
+      exportProjectToPDF(dataWithSpecialChars);
+
+      // Should remove/replace special characters in filename
+      expect(mockLink.download).not.toContain(':');
+      expect(mockLink.download).not.toContain('"');
+      expect(mockLink.download).not.toContain('<');
+      expect(mockLink.download).not.toContain('>');
+      expect(mockLink.download).not.toContain('&');
+    });
+  });
+
+  describe('Edge Cases and Helper Functions', () => {
+    it('should handle status with default color case', () => {
+      const dataWithUnknownStatus: ProjectReportData = {
+        ...mockProjectData,
+        project: {
+          ...mockProjectData.project,
+          status: 'UNKNOWN_STATUS' as any,
+        },
+      };
+
+      // Should not throw and use default gray color
+      expect(() => exportProjectToPDF(dataWithUnknownStatus)).not.toThrow();
+    });
+
+    it('should handle tasks with unknown status in task list', () => {
+      const dataWithUnknownTaskStatus: ProjectReportData = {
+        ...mockProjectData,
+        tasks: [
+          {
+            ...mockProjectData.tasks[0],
+            status: 'CUSTOM_STATUS' as any,
+          },
+        ],
+      };
+
+      expect(() => exportProjectToPDF(dataWithUnknownTaskStatus)).not.toThrow();
+    });
+
+    it('should handle empty/null text in content', () => {
+      const dataWithEmptyFields: ProjectReportData = {
+        ...mockProjectData,
+        project: {
+          ...mockProjectData.project,
+          description: '',
+        },
+        tasks: [
+          {
+            ...mockProjectData.tasks[0],
+            description: '',
+            title: '',
+          },
+        ],
+      };
+
+      expect(() => exportProjectToPDF(dataWithEmptyFields)).not.toThrow();
+    });
+
+    it('should handle tasks with very long titles for text wrapping', () => {
+      const dataWithLongTitle: ProjectReportData = {
+        ...mockProjectData,
+        tasks: [
+          {
+            ...mockProjectData.tasks[0],
+            title: 'A'.repeat(200), // Very long title to trigger soft wrap
+            description: 'B'.repeat(500), // Very long description
+          },
+        ],
+      };
+
+      expect(() => exportProjectToPDF(dataWithLongTitle)).not.toThrow();
+    });
+  });
+
+  describe('buildProjectReportPDFBlob', () => {
+    it('should generate a PDF blob without triggering download', () => {
+      const blob = buildProjectReportPDFBlob(mockProjectData);
+
+      expect(blob).toBeDefined();
+      expect(blob).toBeInstanceOf(Blob);
+      expect(blob.type).toBe('application/pdf');
+    });
+
+    it('should generate blob with project title and status', () => {
+      const blob = buildProjectReportPDFBlob(mockProjectData);
+
+      // Should create jsPDF instance
+      expect(jsPDF).toHaveBeenCalled();
+      expect(blob).toBeDefined();
+    });
+
+    it('should generate blob with all project statuses', () => {
+      const statuses = [
+        'ACTIVE',
+        'COMPLETED',
+        'IN_PROGRESS',
+        'BLOCKED',
+        'TO_DO',
+      ];
+
+      statuses.forEach(status => {
+        const dataWithStatus: ProjectReportData = {
+          ...mockProjectData,
+          project: {
+            ...mockProjectData.project,
+            status: status as any,
+          },
+        };
+
+        const blob = buildProjectReportPDFBlob(dataWithStatus);
+        expect(blob).toBeInstanceOf(Blob);
+      });
+    });
+
+    it('should generate blob with project overview table', () => {
+      (autoTable as jest.Mock).mockClear();
+
+      buildProjectReportPDFBlob(mockProjectData);
+
+      // Should call autoTable for overview
+      expect(autoTable).toHaveBeenCalled();
+
+      const calls = (autoTable as jest.Mock).mock.calls;
+      const overviewCall = calls.find((args: any[]) => {
+        const opts = args[1] ?? args[0];
+        return opts?.head?.[0]?.includes('Field');
+      });
+
+      expect(overviewCall).toBeDefined();
+    });
+
+    it('should generate blob with task sections', () => {
+      const dataWithMultipleTasks: ProjectReportData = {
+        ...mockProjectData,
+        tasks: [
+          {
+            ...mockProjectData.tasks[0],
+            status: 'COMPLETED',
+          },
+          {
+            ...mockProjectData.tasks[0],
+            id: 'task-2',
+            title: 'In Progress Task',
+            status: 'IN_PROGRESS',
+          },
+          {
+            ...mockProjectData.tasks[0],
+            id: 'task-3',
+            title: 'Blocked Task',
+            status: 'BLOCKED',
+          },
+        ] as any,
+      };
+
+      const blob = buildProjectReportPDFBlob(dataWithMultipleTasks);
+      expect(blob).toBeInstanceOf(Blob);
+    });
+
+    it('should generate blob with schedule timeline', () => {
+      const dataWithDatedTasks: ProjectReportData = {
+        ...mockProjectData,
+        tasks: [
+          {
+            ...mockProjectData.tasks[0],
+            startDate: new Date('2025-10-01'),
+            dueDate: new Date('2025-10-15'),
+          },
+          {
+            ...mockProjectData.tasks[0],
+            id: 'task-2',
+            title: 'Second Task',
+            startDate: new Date('2025-10-10'),
+            dueDate: new Date('2025-10-20'),
+          },
+        ] as any,
+      };
+
+      const blob = buildProjectReportPDFBlob(dataWithDatedTasks);
+      expect(blob).toBeInstanceOf(Blob);
+    });
+
+    it('should generate blob with empty tasks array', () => {
+      const dataWithNoTasks: ProjectReportData = {
+        ...mockProjectData,
+        tasks: [],
+      };
+
+      const blob = buildProjectReportPDFBlob(dataWithNoTasks);
+      expect(blob).toBeInstanceOf(Blob);
+    });
+
+    it('should not trigger download when generating blob', () => {
+      const mockClick = jest.fn();
+      jest.spyOn(document, 'createElement').mockImplementation(tagName => {
+        if (tagName === 'a') {
+          return {
+            href: '',
+            download: '',
+            click: mockClick,
+            style: {},
+          } as unknown as HTMLAnchorElement;
+        }
+        return {} as any;
+      });
+
+      buildProjectReportPDFBlob(mockProjectData);
+
+      // Click should NOT be called (no download)
+      expect(mockClick).not.toHaveBeenCalled();
+    });
+
+    it('should handle project with all field types filled', () => {
+      const completeData: ProjectReportData = {
+        project: {
+          id: 'proj-complete',
+          name: 'Complete Project',
+          description: 'Full description here',
+          priority: 10,
+          status: 'ACTIVE',
+          departmentName: 'Engineering Department',
+          creatorName: 'Jane Doe',
+          creatorEmail: 'jane.doe@example.com',
+          createdAt: new Date('2025-01-01'),
+          updatedAt: new Date('2025-11-06'),
+        },
+        tasks: [
+          {
+            id: 'task-complete',
+            title: 'Complete Task',
+            description: 'Full task description',
+            status: 'IN_PROGRESS',
+            priority: 8,
+            startDate: new Date('2025-02-01'),
+            dueDate: new Date('2025-03-01'),
+            createdAt: new Date('2025-01-15'),
+            ownerName: 'John Smith',
+            ownerEmail: 'john.smith@example.com',
+            assignees: ['Alice Brown', 'Bob Green'],
+            tags: ['Frontend', 'UI', 'Critical'],
+            departments: ['Engineering', 'Design'],
+          },
+        ],
+        collaborators: [
+          {
+            name: 'Carol White',
+            email: 'carol.white@example.com',
+            departmentName: 'Product',
+            addedAt: new Date('2025-01-20'),
+          },
+        ],
+      };
+
+      const blob = buildProjectReportPDFBlob(completeData);
+      expect(blob).toBeInstanceOf(Blob);
+      expect(blob.size).toBeGreaterThan(0);
     });
   });
 });
