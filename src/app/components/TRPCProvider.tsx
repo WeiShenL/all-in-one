@@ -19,7 +19,26 @@ function getBaseUrl() {
 }
 
 export function TRPCProvider({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(() => new QueryClient());
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            // Cache configuration for optimal performance
+            staleTime: 30_000, // Data is fresh for 30 seconds
+            gcTime: 5 * 60_000, // Keep unused data in cache for 5 minutes (formerly cacheTime)
+            refetchOnWindowFocus: true, // Refetch when user returns to tab
+            refetchOnReconnect: true, // Refetch when internet reconnects
+            retry: 1, // Retry failed requests once
+            retryDelay: 1000, // Wait 1s before retry
+          },
+          mutations: {
+            retry: 1,
+            retryDelay: 1000,
+          },
+        },
+      })
+  );
   const [trpcClient] = useState(() =>
     trpc.createClient({
       links: [

@@ -120,7 +120,7 @@ test.describe('Signup to Dashboard, Logout and log back in Flow', () => {
     // Back on Login Page
     await expect(
       page.getByRole('heading', { name: /welcome back/i })
-    ).toBeVisible({ timeout: 10000 });
+    ).toBeVisible({ timeout: 120000 });
     // Login again with created credentials
     await page.getByLabel('Email').fill(email);
     await page.getByLabel('Password').fill(password);

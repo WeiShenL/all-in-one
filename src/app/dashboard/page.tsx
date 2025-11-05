@@ -1,9 +1,27 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/supabase/auth-context';
+import { DashboardProvider } from '@/lib/context/DashboardContext';
 import Navbar from '../components/Navbar';
+import { UnifiedDashboard } from '../components/UnifiedDashboard';
+
+function DashboardContent() {
+  return (
+    <DashboardProvider>
+      <div
+        style={{
+          minHeight: '100vh',
+          backgroundColor: '#f7fafc',
+        }}
+      >
+        <Navbar />
+        <UnifiedDashboard />
+      </div>
+    </DashboardProvider>
+  );
+}
 
 export default function DashboardPage() {
   const { user, loading } = useAuth();
@@ -23,9 +41,10 @@ export default function DashboardPage() {
           justifyContent: 'center',
           alignItems: 'center',
           height: '100vh',
+          backgroundColor: '#f7fafc',
         }}
       >
-        Loading...
+        <p style={{ color: '#718096' }}>Loading...</p>
       </div>
     );
   }
@@ -35,33 +54,8 @@ export default function DashboardPage() {
   }
 
   return (
-    <div>
-      <Navbar />
-      <main
-        style={{
-          padding: '2rem',
-          marginLeft: '280px', // Account for sidebar width
-        }}
-        className='main-content'
-      >
-        <h1
-          style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '1rem' }}
-        >
-          Task Management Dashboard
-        </h1>
-        <p style={{ color: '#666', fontSize: '1.125rem' }}>
-          Dashboard will be implemented here. Welcome, {user.email}!
-        </p>
-      </main>
-
-      {/* CSS for responsive behavior */}
-      <style jsx>{`
-        @media (max-width: 768px) {
-          .main-content {
-            margin-left: 0 !important;
-          }
-        }
-      `}</style>
-    </div>
+    <Suspense fallback={<div>Loading...</div>}>
+      <DashboardContent />
+    </Suspense>
   );
 }
