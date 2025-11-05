@@ -66,6 +66,7 @@ export function TaskTable({
   },
   isLoading = false,
   error = null,
+  projectId,
 }: TaskTableProps) {
   const [filters, setFilters] = useState<Filters>({
     title: '',
@@ -838,6 +839,7 @@ export function TaskTable({
               onTaskCreated();
             }
           }}
+          defaultProjectId={projectId}
         />
       )}
 
