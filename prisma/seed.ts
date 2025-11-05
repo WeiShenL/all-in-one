@@ -1,10 +1,5 @@
 /* eslint-disable no-console */
-import {
-  PrismaClient,
-  UserRole,
-  TaskPriority,
-  TaskStatus,
-} from '@prisma/client';
+import { PrismaClient, TaskPriority, TaskStatus } from '@prisma/client';
 import { createClient } from '@supabase/supabase-js';
 
 import departments from './data/1_departments.json' assert { type: 'json' };
@@ -71,19 +66,18 @@ async function main() {
 
       // Create new auth user with the same UUID from JSON
       // The trigger will auto-create the user profile from user_metadata
-      const { data: authData, error: authError } =
-        await supabase.auth.admin.createUser({
-          id: user.id, // Use the same UUID as in the JSON
-          email: user.email,
-          password: DEFAULT_PASSWORD,
-          email_confirm: true, // Auto-confirm email
-          user_metadata: {
-            name: user.name,
-            role: user.role,
-            departmentId: user.departmentId,
-            isHrAdmin: user.isHrAdmin || false,
-          },
-        });
+      const { error: authError } = await supabase.auth.admin.createUser({
+        id: user.id, // Use the same UUID as in the JSON
+        email: user.email,
+        password: DEFAULT_PASSWORD,
+        email_confirm: true, // Auto-confirm email
+        user_metadata: {
+          name: user.name,
+          role: user.role,
+          departmentId: user.departmentId,
+          isHrAdmin: user.isHrAdmin || false,
+        },
+      });
 
       if (authError) {
         console.error(

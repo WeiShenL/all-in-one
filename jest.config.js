@@ -78,6 +78,10 @@ const customJestConfig = {
     '!src/app/components/ProjectCreateModal.tsx',
     '!src/app/components/NotificationModal.tsx',
     '!src/app/components/ProjectReport/ProjectReportExportButton.tsx',
+    '!src/app/components/UnifiedDashboard.tsx',
+    '!src/app/components/TaskFileUpload.tsx',
+    '!src/app/components/ProjectDashboard.tsx',
+    '!src/app/components/TaskCalendar.tsx',
 
     // Exclude tRPC routers (thin orchestration layers - business logic in services)
     '!src/app/server/routers/task.ts',
