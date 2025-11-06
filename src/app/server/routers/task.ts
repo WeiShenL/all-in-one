@@ -6,7 +6,6 @@ import { RealtimeService } from '../services/RealtimeService';
 import { z } from 'zod';
 import { TaskStatus, Task } from '../../../domain/task/Task';
 import { UserContext } from '../../../services/task/TaskService';
-import { DashboardTaskService } from '../services/TaskService';
 
 /**
  * Task Router - UPDATE Operations
@@ -1339,8 +1338,9 @@ export const taskRouter = router({
   getDashboardTasks: protectedProcedure.query(async ({ ctx }) => {
     // ctx.session.user.id is now available and trustworthy from the authenticated session
     const managerId = ctx.session.user.id;
-    const taskService = new DashboardTaskService(ctx.prisma);
-    return await taskService.getManagerDashboardTasks(managerId);
+    const { getDashboardTaskService } = buildServices(ctx);
+    const dashboardTaskService = getDashboardTaskService();
+    return await dashboardTaskService.getManagerDashboardTasks(managerId);
   }),
 
   /**
@@ -1351,8 +1351,9 @@ export const taskRouter = router({
   getDepartmentTasksForUser: protectedProcedure.query(async ({ ctx }) => {
     // ctx.session.user.id is available from authenticated session
     const userId = ctx.session.user.id;
-    const taskService = new DashboardTaskService(ctx.prisma);
-    return await taskService.getDepartmentTasksForUser(userId);
+    const { getDashboardTaskService } = buildServices(ctx);
+    const dashboardTaskService = getDashboardTaskService();
+    return await dashboardTaskService.getDepartmentTasksForUser(userId);
   }),
 
   /**
@@ -1362,8 +1363,9 @@ export const taskRouter = router({
    */
   getAvailableParentTasks: protectedProcedure.query(async ({ ctx }) => {
     const userId = ctx.session.user.id;
-    const taskService = new DashboardTaskService(ctx.prisma);
-    return await taskService.getAvailableParentTasks(userId);
+    const { getDashboardTaskService } = buildServices(ctx);
+    const dashboardTaskService = getDashboardTaskService();
+    return await dashboardTaskService.getAvailableParentTasks(userId);
   }),
 
   /**
@@ -1373,8 +1375,12 @@ export const taskRouter = router({
     .input(z.object({ projectId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       const userId = ctx.session.user.id;
-      const taskService = new DashboardTaskService(ctx.prisma);
-      return await taskService.getProjectTasksForUser(userId, input.projectId);
+      const { getDashboardTaskService } = buildServices(ctx);
+      const dashboardTaskService = getDashboardTaskService();
+      return await dashboardTaskService.getProjectTasksForUser(
+        userId,
+        input.projectId
+      );
     }),
 
   /**
@@ -1384,8 +1390,9 @@ export const taskRouter = router({
     .input(z.object({ projectId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       const managerId = ctx.session.user.id;
-      const taskService = new DashboardTaskService(ctx.prisma);
-      return await taskService.getManagerProjectTasks(
+      const { getDashboardTaskService } = buildServices(ctx);
+      const dashboardTaskService = getDashboardTaskService();
+      return await dashboardTaskService.getManagerProjectTasks(
         managerId,
         input.projectId
       );
@@ -1413,8 +1420,9 @@ export const taskRouter = router({
     .query(async ({ ctx, input }) => {
       // ctx.session.user.id is available from authenticated session
       const userId = ctx.session.user.id;
-      const taskService = new DashboardTaskService(ctx.prisma);
-      return await taskService.getCompanyTasks(userId, input);
+      const { getDashboardTaskService } = buildServices(ctx);
+      const dashboardTaskService = getDashboardTaskService();
+      return await dashboardTaskService.getCompanyTasks(userId, input);
     }),
 
   // ============================================
