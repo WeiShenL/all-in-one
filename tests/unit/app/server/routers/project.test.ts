@@ -435,4 +435,72 @@ describe('Project Router', () => {
       ).rejects.toThrow();
     });
   });
+  describe('delete', () => {
+    it('should delete a project', async () => {
+      mockProjectService.deleteProject.mockResolvedValue(undefined);
+
+      const caller = projectRouter.createCaller({
+        prisma: mockPrisma,
+        userId: undefined,
+      });
+
+      const result = await caller.delete({ id: 'proj-1' });
+
+      expect(result).toEqual({ success: true });
+      expect(mockProjectService.deleteProject).toHaveBeenCalledWith('proj-1');
+    });
+
+    it('should handle deleting multiple projects', async () => {
+      mockProjectService.deleteProject.mockResolvedValue(undefined);
+
+      const caller = projectRouter.createCaller({
+        prisma: mockPrisma,
+        userId: undefined,
+      });
+
+      await caller.delete({ id: 'proj-1' });
+      await caller.delete({ id: 'proj-2' });
+
+      expect(mockProjectService.deleteProject).toHaveBeenCalledTimes(2);
+      expect(mockProjectService.deleteProject).toHaveBeenCalledWith('proj-1');
+      expect(mockProjectService.deleteProject).toHaveBeenCalledWith('proj-2');
+    });
+  });
+  describe('unarchive', () => {
+    it('should unarchive a project', async () => {
+      mockProjectService.unarchiveProject.mockResolvedValue(undefined);
+
+      const caller = projectRouter.createCaller({
+        prisma: mockPrisma,
+        userId: undefined,
+      });
+
+      const result = await caller.unarchive({ id: 'proj-1' });
+
+      expect(result).toEqual({ success: true });
+      expect(mockProjectService.unarchiveProject).toHaveBeenCalledWith(
+        'proj-1'
+      );
+    });
+
+    it('should handle unarchiving multiple projects', async () => {
+      mockProjectService.unarchiveProject.mockResolvedValue(undefined);
+
+      const caller = projectRouter.createCaller({
+        prisma: mockPrisma,
+        userId: undefined,
+      });
+
+      await caller.unarchive({ id: 'proj-1' });
+      await caller.unarchive({ id: 'proj-2' });
+
+      expect(mockProjectService.unarchiveProject).toHaveBeenCalledTimes(2);
+      expect(mockProjectService.unarchiveProject).toHaveBeenCalledWith(
+        'proj-1'
+      );
+      expect(mockProjectService.unarchiveProject).toHaveBeenCalledWith(
+        'proj-2'
+      );
+    });
+  });
 });

@@ -52,9 +52,7 @@ const customJestConfig = {
     // Dashboard pages (extensively E2E tested)
     '!src/app/dashboard/page.tsx',
     '!src/app/dashboard/personal/page.tsx',
-    '!src/app/dashboard/hr/page.tsx',
     '!src/app/dashboard/company/page.tsx',
-    '!src/app/dashboard/department/page.tsx',
     '!src/app/dashboard/projects/page.tsx',
 
     // Other pages
