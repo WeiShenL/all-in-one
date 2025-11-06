@@ -80,6 +80,32 @@ export function UserDetailsModal({ isOpen, onClose }: UserDetailsModalProps) {
           <div style={{ color: '#212529', textTransform: 'capitalize' }}>
             {(userProfile?.role || 'staff').toLowerCase()}
           </div>
+          <div
+            style={{
+              color: '#6c757d',
+              fontSize: '0.9rem',
+              marginTop: '0.5rem',
+            }}
+          >
+            Department:
+          </div>
+          <div style={{ color: '#212529' }}>
+            {userProfile?.department?.name || '-'}
+          </div>
+          <div
+            style={{
+              color: '#6c757d',
+              fontSize: '0.9rem',
+              marginTop: '0.5rem',
+            }}
+          >
+            Admin Status:
+          </div>
+          <div style={{ color: '#212529', fontWeight: 600 }}>
+            {userProfile?.isHrAdmin || userProfile?.role === 'HR_ADMIN'
+              ? 'Yes'
+              : 'No'}
+          </div>
         </div>
         <div
           style={{

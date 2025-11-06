@@ -713,23 +713,27 @@ export default function Navbar() {
                   </Link>
                 </>
               )}
+
+            {/* Project Selection (Mobile) */}
             <div
               style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.5rem',
+                marginTop: '0.5rem',
+                padding: '0.5rem',
+                backgroundColor: '#fff',
+                borderRadius: '4px',
+                border: '1px solid #dee2e6',
+              }}
+            >
+              <ProjectSelection />
+            </div>
+            <div
+              style={{
                 padding: '0.75rem',
                 backgroundColor: '#fff',
                 borderRadius: '4px',
                 border: '1px solid #dee2e6',
               }}
-              onClick={() => setIsUserModalOpen(true)}
-              role='button'
-              aria-label='Open user details'
             >
-              <span style={{ color: '#6c757d', fontSize: '0.875rem' }}>
-                {userProfile?.name || user?.email}
-              </span>
               <button
                 onClick={handleSecureLogout}
                 disabled={isLoggingOut}
@@ -743,6 +747,7 @@ export default function Navbar() {
                   fontSize: '0.875rem',
                   fontWeight: '500',
                   opacity: isLoggingOut ? 0.7 : 1,
+                  width: '100%',
                 }}
               >
                 {isLoggingOut ? 'Signing Out...' : 'Sign Out'}
