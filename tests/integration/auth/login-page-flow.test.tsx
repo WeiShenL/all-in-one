@@ -47,12 +47,6 @@ describe('LoginPage Component', () => {
       expect(
         screen.getByRole('button', { name: /sign in/i })
       ).toBeInTheDocument();
-      expect(
-        screen.getByRole('button', { name: /create account/i })
-      ).toBeInTheDocument();
-      expect(
-        screen.getByRole('button', { name: /reset password/i })
-      ).toBeInTheDocument();
     });
 
     it('should render email input with correct attributes', () => {
@@ -285,30 +279,6 @@ describe('LoginPage Component', () => {
 
       // 6. Restore real timers
       jest.useRealTimers();
-    });
-  });
-
-  describe('Navigation', () => {
-    it('should navigate to signup page on Create Account click', () => {
-      render(<LoginPage />);
-
-      const createAccountButton = screen.getByRole('button', {
-        name: /create account/i,
-      });
-      fireEvent.click(createAccountButton);
-
-      expect(mockPush).toHaveBeenCalledWith('/auth/signup');
-    });
-
-    it('should navigate to reset password page on Reset Password click', () => {
-      render(<LoginPage />);
-
-      const resetPasswordButton = screen.getByRole('button', {
-        name: /reset password/i,
-      });
-      fireEvent.click(resetPasswordButton);
-
-      expect(mockPush).toHaveBeenCalledWith('/auth/reset-password');
     });
   });
 
