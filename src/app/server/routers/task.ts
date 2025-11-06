@@ -1,6 +1,6 @@
 import { router, publicProcedure, protectedProcedure, Context } from '../trpc';
 import { TaskService } from '../../../services/task/TaskService';
-import { SubtaskService } from '../services/SubtaskService';
+import { buildServices } from '../composition/serviceFactory';
 import { PrismaTaskRepository } from '../../../repositories/PrismaTaskRepository';
 import { RealtimeService } from '../services/RealtimeService';
 import { z } from 'zod';
@@ -161,12 +161,7 @@ export const taskRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const repository = new PrismaTaskRepository(ctx.prisma);
-      const service = new TaskService(
-        repository,
-        ctx.prisma,
-        new RealtimeService()
-      ); // Inject PrismaClient + RealtimeService for notifications
+      const { taskService: service } = buildServices(ctx);
       const user = await getUserContext(ctx);
 
       const result = await service.createTask(
@@ -211,8 +206,7 @@ export const taskRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const repository = new PrismaTaskRepository(ctx.prisma);
-      const service = new SubtaskService(repository);
+      const { subtaskService: service } = buildServices(ctx);
       const user = await getUserContext(ctx);
 
       const result = await service.createSubtask(
@@ -241,8 +235,7 @@ export const taskRouter = router({
   updateTitle: publicProcedure
     .input(updateTitleSchema)
     .mutation(async ({ ctx, input }) => {
-      const repository = new PrismaTaskRepository(ctx.prisma);
-      const service = new TaskService(repository);
+      const { taskService: service } = buildServices(ctx);
       const user = await getUserContext(ctx);
 
       const task = await service.updateTaskTitle(
@@ -259,8 +252,7 @@ export const taskRouter = router({
   updateDescription: publicProcedure
     .input(updateDescriptionSchema)
     .mutation(async ({ ctx, input }) => {
-      const repository = new PrismaTaskRepository(ctx.prisma);
-      const service = new TaskService(repository);
+      const { taskService: service } = buildServices(ctx);
 
       const user = await getUserContext(ctx);
 
@@ -278,8 +270,7 @@ export const taskRouter = router({
   updatePriority: publicProcedure
     .input(updatePrioritySchema)
     .mutation(async ({ ctx, input }) => {
-      const repository = new PrismaTaskRepository(ctx.prisma);
-      const service = new TaskService(repository);
+      const { taskService: service } = buildServices(ctx);
 
       const user = await getUserContext(ctx);
 
@@ -297,8 +288,7 @@ export const taskRouter = router({
   updateDeadline: publicProcedure
     .input(updateDeadlineSchema)
     .mutation(async ({ ctx, input }) => {
-      const repository = new PrismaTaskRepository(ctx.prisma);
-      const service = new TaskService(repository);
+      const { taskService: service } = buildServices(ctx);
 
       const user = await getUserContext(ctx);
 
@@ -316,8 +306,7 @@ export const taskRouter = router({
   updateStatus: publicProcedure
     .input(updateStatusSchema)
     .mutation(async ({ ctx, input }) => {
-      const repository = new PrismaTaskRepository(ctx.prisma);
-      const service = new TaskService(repository);
+      const { taskService: service } = buildServices(ctx);
 
       const user = await getUserContext(ctx);
 
@@ -335,8 +324,7 @@ export const taskRouter = router({
   updateRecurring: publicProcedure
     .input(updateRecurringSchema)
     .mutation(async ({ ctx, input }) => {
-      const repository = new PrismaTaskRepository(ctx.prisma);
-      const service = new TaskService(repository);
+      const { taskService: service } = buildServices(ctx);
 
       const user = await getUserContext(ctx);
 
@@ -355,8 +343,7 @@ export const taskRouter = router({
   addTag: publicProcedure
     .input(addTagSchema)
     .mutation(async ({ ctx, input }) => {
-      const repository = new PrismaTaskRepository(ctx.prisma);
-      const service = new TaskService(repository);
+      const { taskService: service } = buildServices(ctx);
 
       const user = await getUserContext(ctx);
 
@@ -389,12 +376,7 @@ export const taskRouter = router({
   addAssignee: publicProcedure
     .input(addAssigneeSchema)
     .mutation(async ({ ctx, input }) => {
-      const repository = new PrismaTaskRepository(ctx.prisma);
-      const service = new TaskService(
-        repository,
-        ctx.prisma,
-        new RealtimeService()
-      ); // Inject PrismaClient + RealtimeService for notifications
+      const { taskService: service } = buildServices(ctx);
 
       const user = await getUserContext(ctx);
 
@@ -423,12 +405,7 @@ export const taskRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const repository = new PrismaTaskRepository(ctx.prisma);
-      const service = new TaskService(
-        repository,
-        ctx.prisma,
-        new RealtimeService()
-      ); // Inject PrismaClient + RealtimeService for notifications
+      const { taskService: service } = buildServices(ctx);
 
       const user = await getUserContext(ctx);
 
@@ -446,12 +423,7 @@ export const taskRouter = router({
   addComment: publicProcedure
     .input(addCommentSchema)
     .mutation(async ({ ctx, input }) => {
-      const repository = new PrismaTaskRepository(ctx.prisma);
-      const service = new TaskService(
-        repository,
-        ctx.prisma,
-        new RealtimeService()
-      ); // Inject PrismaClient + RealtimeService for notifications
+      const { taskService: service } = buildServices(ctx);
 
       const user = await getUserContext(ctx);
 
@@ -599,9 +571,9 @@ export const taskRouter = router({
     .input(z.object({ taskId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       const user = await getUserContext(ctx);
-      const repository = new PrismaTaskRepository(ctx.prisma);
-      const service = new TaskService(repository);
-      const dashboardService = new DashboardTaskService(ctx.prisma);
+      const { taskService: service, getDashboardTaskService } =
+        buildServices(ctx);
+      const dashboardTaskService = getDashboardTaskService();
 
       const task = await service.getTaskById(input.taskId, user);
       if (!task) {
@@ -609,9 +581,8 @@ export const taskRouter = router({
       }
 
       // Get department hierarchy for authorization check
-      const departmentIds = await dashboardService.getSubordinateDepartments(
-        user.departmentId
-      );
+      const departmentIds =
+        await dashboardTaskService.getSubordinateDepartments(user.departmentId);
 
       // Fetch user details for assignments
       const assigneeIds = Array.from(task.getAssignees());
@@ -734,9 +705,9 @@ export const taskRouter = router({
     .input(z.object({ taskId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       const user = await getUserContext(ctx);
-      const repository = new PrismaTaskRepository(ctx.prisma);
-      const service = new TaskService(repository);
-      const dashboardService = new DashboardTaskService(ctx.prisma);
+      const { taskService: service, getDashboardTaskService } =
+        buildServices(ctx);
+      const dashboardTaskService = getDashboardTaskService();
 
       // 1. Get task details (reuse existing logic from getById)
       const task = await service.getTaskById(input.taskId, user);
@@ -745,9 +716,8 @@ export const taskRouter = router({
       }
 
       // Get department hierarchy for authorization check
-      const departmentIds = await dashboardService.getSubordinateDepartments(
-        user.departmentId
-      );
+      const departmentIds =
+        await dashboardTaskService.getSubordinateDepartments(user.departmentId);
 
       // Fetch user details for assignments
       const assigneeIds = Array.from(task.getAssignees());
@@ -957,8 +927,7 @@ export const taskRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const user = await getUserContext(ctx);
-      const repository = new PrismaTaskRepository(ctx.prisma);
-      const service = new TaskService(repository);
+      const { taskService: service } = buildServices(ctx);
       const tasks = await service.getAllTasks(input, user);
       return tasks.map(serializeTask);
     }),
@@ -1009,8 +978,7 @@ export const taskRouter = router({
       })
     )
     .query(async ({ ctx, input }) => {
-      const repository = new PrismaTaskRepository(ctx.prisma);
-      const service = new TaskService(repository);
+      const { taskService: service } = buildServices(ctx);
       const tasks = await service.getOwnerTasks(
         input.ownerId,
         input.includeArchived
