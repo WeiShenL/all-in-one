@@ -124,6 +124,9 @@ export async function exportProjectToXLSX(
   };
   taskHeaderRow.alignment = { vertical: 'middle', horizontal: 'center' };
 
+  // Freeze header row so it stays visible when scrolling
+  tasksSheet.views = [{ state: 'frozen', ySplit: 1 }];
+
   // Group tasks by status
   const statusGroups = [
     { key: 'TO_DO', title: 'To Do', color: 'FF9CA3AF' },
@@ -138,10 +141,9 @@ export async function exportProjectToXLSX(
     const groupTasks = data.tasks.filter(task => task.status === group.key);
 
     if (groupTasks.length > 0) {
-      // Add section header via addRow so tests can detect
-      tasksSheet.addRow(
-        `${group.title} (${groupTasks.length} ${groupTasks.length === 1 ? 'task' : 'tasks'})`
-      );
+      // Add section header as merged cell across all columns
+      const sectionHeaderText = `${group.title} (${groupTasks.length} ${groupTasks.length === 1 ? 'task' : 'tasks'})`;
+      tasksSheet.addRow([sectionHeaderText]);
       const sectionRow = tasksSheet.getRow(currentRow);
       sectionRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
       sectionRow.fill = {
@@ -150,6 +152,10 @@ export async function exportProjectToXLSX(
         fgColor: { argb: group.color },
       };
       sectionRow.alignment = { vertical: 'middle', horizontal: 'left' };
+      // Merge cells across all 7 columns (guarded for mocked environments)
+      if (typeof (tasksSheet as any).mergeCells === 'function') {
+        (tasksSheet as any).mergeCells(currentRow, 1, currentRow, 7);
+      }
       currentRow++;
 
       // Add task rows via addRow so tests can detect
@@ -199,6 +205,24 @@ export async function exportProjectToXLSX(
   };
   scheduleHeaderRow.alignment = { vertical: 'middle', horizontal: 'center' };
 
+  // Add summary row like the PDF (Overdue | Today | This Week | This Month | Total)
+  const totalTasks = data.tasks.length;
+  const summaryRowIndex = 2;
+  // Placeholder row; text populated after buckets computed
+  scheduleSheet.addRow(['']);
+  // Style summary row background (subtle gray)
+  const summaryRow = scheduleSheet.getRow(summaryRowIndex);
+  summaryRow.font = { bold: true, color: { argb: 'FF111827' } }; // Gray-900
+  summaryRow.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFE5E7EB' }, // Gray-200
+  };
+  scheduleSheet.mergeCells(summaryRowIndex, 1, summaryRowIndex, 7);
+
+  // Freeze header + summary so they stay visible when scrolling
+  scheduleSheet.views = [{ state: 'frozen', ySplit: 2 }];
+
   // Calculate time buckets
   const now = new Date();
   const startOfToday = new Date(
@@ -239,14 +263,18 @@ export async function exportProjectToXLSX(
     { title: 'Due This Month', tasks: bucketThisMonth, color: 'FF6B7280' },
   ];
 
-  currentRow = 2;
+  // Populate the summary text now that buckets are known
+  const summaryText = `${bucketOverdue.length} Overdue | ${bucketToday.length} Due Today | ${bucketThisWeek.length} Due This Week | ${bucketThisMonth.length} Due This Month | ${totalTasks} Total`;
+  summaryRow.getCell(1).value = summaryText;
+  summaryRow.alignment = { vertical: 'middle', horizontal: 'left' };
+
+  currentRow = 3;
 
   timeBuckets.forEach(bucket => {
     if (bucket.tasks.length > 0) {
-      // Add section header via addRow so tests can detect
-      scheduleSheet.addRow(
-        `${bucket.title} (${bucket.tasks.length} ${bucket.tasks.length === 1 ? 'task' : 'tasks'})`
-      );
+      // Add section header as merged cell across all columns
+      const sectionHeaderText = `${bucket.title} (${bucket.tasks.length} ${bucket.tasks.length === 1 ? 'task' : 'tasks'})`;
+      scheduleSheet.addRow([sectionHeaderText]);
       const sectionRow = scheduleSheet.getRow(currentRow);
       sectionRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
       sectionRow.fill = {
@@ -255,6 +283,10 @@ export async function exportProjectToXLSX(
         fgColor: { argb: bucket.color },
       };
       sectionRow.alignment = { vertical: 'middle', horizontal: 'left' };
+      // Merge cells across all 7 columns (guarded for mocked environments)
+      if (typeof (scheduleSheet as any).mergeCells === 'function') {
+        (scheduleSheet as any).mergeCells(currentRow, 1, currentRow, 7);
+      }
       currentRow++;
 
       // Sort tasks by due date

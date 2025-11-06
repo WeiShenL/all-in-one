@@ -35,6 +35,7 @@ const mockWorksheet = {
   getColumn: mockGetColumn,
   eachRow: mockEachRow,
   columns: [],
+  mergeCells: jest.fn(),
 };
 
 const mockWriteBuffer = jest.fn(() =>
@@ -329,15 +330,17 @@ describe('exportProjectToXLSX - Export Capability Tests', () => {
     it('should add section headers for status groups', async () => {
       await exportProjectToXLSX(mockProjectData);
 
-      // Check for status section headers
+      // Check for status section headers (now arrays with single string element)
       const statusSectionCalls = mockAddRow.mock.calls.filter(
         call =>
           call[0] &&
-          typeof call[0] === 'string' &&
-          (call[0].includes('To Do') ||
-            call[0].includes('In Progress') ||
-            call[0].includes('Completed') ||
-            call[0].includes('Blocked'))
+          Array.isArray(call[0]) &&
+          call[0].length === 1 &&
+          typeof call[0][0] === 'string' &&
+          (call[0][0].includes('To Do') ||
+            call[0][0].includes('In Progress') ||
+            call[0][0].includes('Completed') ||
+            call[0][0].includes('Blocked'))
       );
       expect(statusSectionCalls.length).toBeGreaterThanOrEqual(1);
     });
@@ -345,15 +348,17 @@ describe('exportProjectToXLSX - Export Capability Tests', () => {
     it('should add section headers for time buckets', async () => {
       await exportProjectToXLSX(mockProjectData);
 
-      // Check for schedule section headers
+      // Check for schedule section headers (now arrays with single string element)
       const scheduleSectionCalls = mockAddRow.mock.calls.filter(
         call =>
           call[0] &&
-          typeof call[0] === 'string' &&
-          (call[0].includes('Overdue') ||
-            call[0].includes('Due Today') ||
-            call[0].includes('Due This Week') ||
-            call[0].includes('Due This Month'))
+          Array.isArray(call[0]) &&
+          call[0].length === 1 &&
+          typeof call[0][0] === 'string' &&
+          (call[0][0].includes('Overdue') ||
+            call[0][0].includes('Due Today') ||
+            call[0][0].includes('Due This Week') ||
+            call[0][0].includes('Due This Month'))
       );
       expect(scheduleSectionCalls.length).toBeGreaterThanOrEqual(1);
     });
