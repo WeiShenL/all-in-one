@@ -7,7 +7,7 @@ import { projectRouter } from '@/app/server/routers/project';
 import { PrismaProjectRepository } from '@/repositories/PrismaProjectRepository';
 import { ProjectService } from '@/services/project/ProjectService';
 import type { PrismaClient } from '@prisma/client';
-import { ProjectStatus } from '@prisma/client';
+import { ProjectStatus } from '@/domain/project/Project';
 
 // Mock dependencies
 jest.mock('@/repositories/PrismaProjectRepository');

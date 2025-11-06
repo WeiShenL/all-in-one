@@ -43,12 +43,21 @@ const customJestConfig = {
     // ============================================
     // PAGE COMPONENTS (E2E TESTED)
     // ============================================
+    // Auth pages
     '!src/app/auth/callback/page.tsx',
     '!src/app/auth/reset-password/page.tsx',
     '!src/app/auth/signup/page.tsx',
     '!src/app/auth/login/page.tsx',
+
+    // Dashboard pages (extensively E2E tested)
     '!src/app/dashboard/page.tsx',
+    '!src/app/dashboard/personal/page.tsx',
+    '!src/app/dashboard/hr/page.tsx',
     '!src/app/dashboard/company/page.tsx',
+    '!src/app/dashboard/department/page.tsx',
+    '!src/app/dashboard/projects/page.tsx',
+
+    // Other pages
     '!src/app/notifications/page.tsx',
     '!src/app/projects/page.tsx',
 
