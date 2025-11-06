@@ -415,32 +415,56 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
 
     expect(verifyResult.rows[0].projectId).toBe(testProjectId);
 
-    // 12. Navigate to project view and verify task appears there
-    await page.goto('/dashboard');
+    // Close all modals before navigating (required for SPA navigation)
+    // Click the X button to close modal reliably
+    const closeButton = page.locator('button').filter({ hasText: '×' }).first();
+    if (await closeButton.isVisible({ timeout: 10000 })) {
+      await closeButton.click();
+      await page.waitForTimeout(1000);
+    }
+    // Press Escape as backup
+    await page.keyboard.press('Escape');
     await page.waitForTimeout(1000);
 
-    // Look for projects section or navigation
-    const projectsLink = page
-      .locator('a[href*="project"], button', {
-        hasText: /project/i,
-      })
+    // 12. Navigate to project view and verify task appears there
+    // In the new SPA structure, projects are accessed via sidebar divs, not links
+    // Navigate to dashboard first
+    await page.goto('/dashboard');
+    await page.waitForTimeout(3000);
+
+    // Wait for sidebar to be fully rendered (look for "PROJECTS" header)
+    await page.waitForSelector('text=/projects/i', { timeout: 30000 });
+
+    // Wait for projects to actually load via tRPC (state-based, not fixed timeout)
+    await page.waitForFunction(
+      () => {
+        const clickableDivs = document.querySelectorAll(
+          'div[style*="cursor: pointer"]'
+        );
+        return clickableDivs.length > 0;
+      },
+      { timeout: 30000 }
+    );
+
+    // Look for the test project in the sidebar (ProjectSelection component)
+    // Projects are rendered as clickable divs with cursor:pointer and the project name
+    const sidebarProject = page
+      .locator('div[style*="cursor: pointer"]')
+      .filter({ hasText: testProjectName })
       .first();
 
-    if (await projectsLink.isVisible()) {
-      await projectsLink.click();
-      await page.waitForTimeout(1000);
+    // Wait for project to be visible in sidebar
+    await expect(sidebarProject).toBeVisible({ timeout: 120000 });
 
-      // Find and click on the test project
-      const projectLink = page.locator(`text=${testProjectName}`).first();
-      if (await projectLink.isVisible()) {
-        await projectLink.click();
-        await page.waitForTimeout(1000);
+    // Click on the project in sidebar to navigate to /dashboard/projects
+    await sidebarProject.click();
 
-        // Verify task appears in project's task list
-        const taskInProject = page.locator(`text=${taskTitle}`).first();
-        await expect(taskInProject).toBeVisible({ timeout: 65000 });
-      }
-    }
+    // Wait for navigation to /dashboard/projects (no fixed timeout needed, waitForURL handles it)
+    await page.waitForURL(/\/dashboard\/projects/, { timeout: 30000 });
+
+    // Verify task appears in project's task list
+    const taskInProject = page.locator(`text=${taskTitle}`).first();
+    await expect(taskInProject).toBeVisible({ timeout: 65000 });
   });
 
   // ============================================
