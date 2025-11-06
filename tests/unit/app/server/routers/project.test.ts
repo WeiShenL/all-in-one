@@ -17,6 +17,9 @@ jest.mock('@/app/server/services/DashboardTaskService', () => ({
     getSubordinateDepartments: jest.fn().mockResolvedValue([]),
   })),
 }));
+jest.mock('@/app/server/composition/serviceFactory', () => ({
+  buildServices: jest.fn(),
+}));
 
 const MockPrismaProjectRepository = PrismaProjectRepository as jest.MockedClass<
   typeof PrismaProjectRepository
@@ -29,6 +32,7 @@ describe('Project Router', () => {
   let mockPrisma: jest.Mocked<PrismaClient>;
   let mockProjectService: jest.Mocked<ProjectService>;
   let mockRepo: jest.Mocked<PrismaProjectRepository>;
+  let mockBuildServices: jest.Mock;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -62,6 +66,24 @@ describe('Project Router', () => {
     } as any;
 
     mockRepo = {} as any;
+
+    // Mock buildServices
+    mockBuildServices = jest.fn().mockReturnValue({
+      projectService: mockProjectService,
+      taskService: {
+        // Add minimal taskService mock if needed
+      },
+      subtaskService: {
+        // Add minimal subtaskService mock if needed
+      },
+      getDashboardTaskService: jest.fn().mockReturnValue({
+        getSubordinateDepartments: jest.fn().mockResolvedValue([]),
+      }),
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const serviceFactory = require('@/app/server/composition/serviceFactory');
+    serviceFactory.buildServices = mockBuildServices;
 
     MockPrismaProjectRepository.mockImplementation(() => mockRepo);
     MockProjectService.mockImplementation(() => mockProjectService);
