@@ -869,15 +869,25 @@ export const taskRouter = router({
             },
           }),
 
-          // 6. Get all active projects
-          ctx.prisma.project.findMany({
-            where: { isArchived: false },
-            select: {
-              id: true,
-              name: true,
-              departmentId: true,
-            },
-          }),
+          // 6. Get visible projects for current user (active only)
+          (async () => {
+            const { projectService, getDashboardTaskService } =
+              buildServices(ctx);
+            const dashboardTaskService = getDashboardTaskService();
+            const visible = await projectService.getVisibleProjectsForUser(
+              user,
+              {
+                getSubordinateDepartments: (id: string) =>
+                  dashboardTaskService.getSubordinateDepartments(id),
+              },
+              { isArchived: false }
+            );
+            return visible.map(p => ({
+              id: p.id,
+              name: p.name,
+              departmentId: p.departmentId,
+            }));
+          })(),
 
           // 7. Get task hierarchy (parent chain and subtasks)
           service.getTaskHierarchy(input.taskId, user),
