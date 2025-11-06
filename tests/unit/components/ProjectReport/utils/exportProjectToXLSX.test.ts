@@ -35,6 +35,7 @@ const mockWorksheet = {
   getColumn: mockGetColumn,
   eachRow: mockEachRow,
   columns: [],
+  mergeCells: jest.fn(),
 };
 
 const mockWriteBuffer = jest.fn(() =>

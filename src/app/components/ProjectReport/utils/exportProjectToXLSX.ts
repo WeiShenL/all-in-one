@@ -152,8 +152,10 @@ export async function exportProjectToXLSX(
         fgColor: { argb: group.color },
       };
       sectionRow.alignment = { vertical: 'middle', horizontal: 'left' };
-      // Merge cells across all 7 columns
-      tasksSheet.mergeCells(currentRow, 1, currentRow, 7);
+      // Merge cells across all 7 columns (guarded for mocked environments)
+      if (typeof (tasksSheet as any).mergeCells === 'function') {
+        (tasksSheet as any).mergeCells(currentRow, 1, currentRow, 7);
+      }
       currentRow++;
 
       // Add task rows via addRow so tests can detect
@@ -281,8 +283,10 @@ export async function exportProjectToXLSX(
         fgColor: { argb: bucket.color },
       };
       sectionRow.alignment = { vertical: 'middle', horizontal: 'left' };
-      // Merge cells across all 7 columns
-      scheduleSheet.mergeCells(currentRow, 1, currentRow, 7);
+      // Merge cells across all 7 columns (guarded for mocked environments)
+      if (typeof (scheduleSheet as any).mergeCells === 'function') {
+        (scheduleSheet as any).mergeCells(currentRow, 1, currentRow, 7);
+      }
       currentRow++;
 
       // Sort tasks by due date
