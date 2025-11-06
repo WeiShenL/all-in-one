@@ -8,6 +8,22 @@ jest.mock('@/lib/supabase/auth-context', () => ({
   useAuth: jest.fn(),
 }));
 
+// Mock tRPC with a factory function
+let mockDepartmentData: any = { id: 'dep-1', name: 'Engineering' };
+
+jest.mock('@/app/lib/trpc', () => ({
+  trpc: {
+    department: {
+      getById: {
+        useQuery: jest.fn(() => ({
+          data: mockDepartmentData,
+          isLoading: false,
+        })),
+      },
+    },
+  },
+}));
+
 describe('UserDetailsModal', () => {
   const mockOnClose = jest.fn();
 
@@ -21,18 +37,20 @@ describe('UserDetailsModal', () => {
     name: 'John Doe',
     role: 'MANAGER',
     isHrAdmin: false,
-    department: { id: 'dep-1', name: 'Engineering' },
+    departmentId: 'dep-1',
   };
 
   const mockHrAdminProfile = {
     name: 'Jane Admin',
     role: 'HR_ADMIN',
     isHrAdmin: true,
-    department: { id: 'dep-2', name: 'HR' },
+    departmentId: 'dep-2',
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Reset to default department mock
+    mockDepartmentData = { id: 'dep-1', name: 'Engineering' };
   });
 
   describe('Rendering', () => {
@@ -80,6 +98,9 @@ describe('UserDetailsModal', () => {
     });
 
     it('should display fallback values when userProfile is missing', () => {
+      // Mock department query to return null when no departmentId
+      mockDepartmentData = null;
+
       (useAuth as jest.Mock).mockReturnValue({
         user: mockUser,
         userProfile: null,
@@ -124,6 +145,9 @@ describe('UserDetailsModal', () => {
     });
 
     it('should handle HR_ADMIN role correctly', () => {
+      // Mock HR department for HR admin user
+      mockDepartmentData = { id: 'dep-2', name: 'HR' };
+
       (useAuth as jest.Mock).mockReturnValue({
         user: mockUser,
         userProfile: mockHrAdminProfile,

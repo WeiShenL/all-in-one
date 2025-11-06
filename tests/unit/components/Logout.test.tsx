@@ -53,6 +53,14 @@ jest.mock('@/app/lib/trpc', () => ({
         },
       },
     })),
+    department: {
+      getById: {
+        useQuery: jest.fn(() => ({
+          data: { id: 'dep-1', name: 'Engineering' },
+          isLoading: false,
+        })),
+      },
+    },
     project: {
       getVisible: {
         useQuery: jest.fn(() => ({

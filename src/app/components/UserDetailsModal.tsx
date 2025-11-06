@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@/lib/supabase/auth-context';
+import { trpc } from '@/app/lib/trpc';
 
 interface UserDetailsModalProps {
   isOpen: boolean;
@@ -9,6 +10,12 @@ interface UserDetailsModalProps {
 
 export function UserDetailsModal({ isOpen, onClose }: UserDetailsModalProps) {
   const { user, userProfile } = useAuth();
+
+  // Fetch department name if user has a departmentId
+  const { data: department } = trpc.department.getById.useQuery(
+    { id: userProfile?.departmentId ?? '' },
+    { enabled: !!userProfile?.departmentId }
+  );
 
   if (!isOpen) {
     return null;
@@ -89,9 +96,7 @@ export function UserDetailsModal({ isOpen, onClose }: UserDetailsModalProps) {
           >
             Department:
           </div>
-          <div style={{ color: '#212529' }}>
-            {userProfile?.department?.name || '-'}
-          </div>
+          <div style={{ color: '#212529' }}>{department?.name || '-'}</div>
           <div
             style={{
               color: '#6c757d',

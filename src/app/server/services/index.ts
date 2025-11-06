@@ -9,7 +9,7 @@ export { BaseService } from './BaseService';
 export { DepartmentService } from './DepartmentService';
 export { UserProfileService } from './UserProfileService';
 export { TeamService } from './TeamService';
-export { ProjectService } from './ProjectService';
+export { ProjectService } from '@/services/project/ProjectService';
 export { CommentService } from './CommentService';
 export { NotificationService } from './NotificationService';
 export { EmailService } from './EmailService';
