@@ -115,8 +115,8 @@ export const projectRouter = router({
       const user = await getUserContext(ctx);
 
       // Reuse department hierarchy logic from TaskService via ctx-bound helper
-      const { TaskService } = await import('../services/TaskService');
-      const taskService = new TaskService(ctx.prisma);
+      const { DashboardTaskService } = await import('../services/TaskService');
+      const taskService = new DashboardTaskService(ctx.prisma);
 
       return service.getVisibleProjectsForUser(
         user,

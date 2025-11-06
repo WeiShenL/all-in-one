@@ -1,4 +1,4 @@
-import { TaskService } from '@/app/server/services/TaskService';
+import { DashboardTaskService as TaskService } from '@/app/server/services/TaskService';
 import { PrismaClient } from '@prisma/client';
 
 // Mock Prisma Client

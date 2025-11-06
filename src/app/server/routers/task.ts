@@ -6,7 +6,7 @@ import { RealtimeService } from '../services/RealtimeService';
 import { z } from 'zod';
 import { TaskStatus, Task } from '../../../domain/task/Task';
 import { UserContext } from '../../../services/task/TaskService';
-import { TaskService as DashboardTaskService } from '../services/TaskService';
+import { DashboardTaskService } from '../services/TaskService';
 
 /**
  * Task Router - UPDATE Operations

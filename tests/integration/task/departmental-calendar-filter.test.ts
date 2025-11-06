@@ -13,7 +13,7 @@
  */
 
 import { Client } from 'pg';
-import { TaskService } from '@/app/server/services/TaskService';
+import { DashboardTaskService as TaskService } from '@/app/server/services/TaskService';
 import { PrismaClient } from '@prisma/client';
 
 describe('Integration Test - Departmental Calendar Filtering', () => {

@@ -20,7 +20,7 @@ import { Client } from 'pg';
 import { ProjectService } from '@/services/project/ProjectService';
 import { PrismaClient } from '@prisma/client';
 import { PrismaProjectRepository } from '@/repositories/PrismaProjectRepository';
-import { TaskService } from '@/app/server/services/TaskService';
+import { DashboardTaskService as TaskService } from '@/app/server/services/TaskService';
 
 describe('Integration Tests - Project Visibility and Department Access', () => {
   let pgClient: Client;

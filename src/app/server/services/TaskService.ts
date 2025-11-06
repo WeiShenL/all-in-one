@@ -30,7 +30,7 @@ type TaskHierarchyNode = TaskWithOwner & {
  * - Task status management
  * - Task filtering and queries
  */
-export class TaskService extends BaseService {
+export class DashboardTaskService extends BaseService {
   /**
    * Derive unique departments from task assignees
    * @param assignments - Task assignments with user department info
