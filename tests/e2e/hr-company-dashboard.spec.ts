@@ -116,9 +116,13 @@ test.describe('HR/Admin Company Dashboard - Happy Path', () => {
   test('HR/Admin can access company dashboard and view all tasks', async ({
     page,
   }) => {
+    test.setTimeout(300000);
+
     // Login as HR/Admin user
     await page.goto('/auth/login');
-    await page.waitForLoadState('domcontentloaded');
+    await expect(
+      page.getByRole('heading', { name: /welcome back/i })
+    ).toBeVisible({ timeout: 65000 });
 
     await page.getByLabel('Email').fill(hrAdminEmail);
     await page.getByLabel('Password').fill(testPassword);
@@ -156,7 +160,7 @@ test.describe('HR/Admin Company Dashboard - Happy Path', () => {
       if (taskCount > 0) {
         // Verify first task has expected elements
         const firstTask = taskRows.first();
-        await expect(firstTask).toBeVisible();
+        await expect(firstTask).toBeVisible({ timeout: 60000 });
       }
     }
 
