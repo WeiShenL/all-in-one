@@ -21,12 +21,14 @@ describe('UserDetailsModal', () => {
     name: 'John Doe',
     role: 'MANAGER',
     isHrAdmin: false,
+    department: { id: 'dep-1', name: 'Engineering' },
   };
 
   const mockHrAdminProfile = {
     name: 'Jane Admin',
     role: 'HR_ADMIN',
     isHrAdmin: true,
+    department: { id: 'dep-2', name: 'HR' },
   };
 
   beforeEach(() => {
@@ -71,6 +73,10 @@ describe('UserDetailsModal', () => {
       expect(screen.getByText('test@example.com')).toBeInTheDocument();
       expect(screen.getByText('Role:')).toBeInTheDocument();
       expect(screen.getByText('manager')).toBeInTheDocument();
+      expect(screen.getByText('Department:')).toBeInTheDocument();
+      expect(screen.getByText('Engineering')).toBeInTheDocument();
+      expect(screen.getByText('Admin Status:')).toBeInTheDocument();
+      expect(screen.getByText('No')).toBeInTheDocument();
     });
 
     it('should display fallback values when userProfile is missing', () => {
@@ -82,11 +88,17 @@ describe('UserDetailsModal', () => {
       render(<UserDetailsModal isOpen={true} onClose={mockOnClose} />);
 
       expect(screen.getByText('Name:')).toBeInTheDocument();
-      expect(screen.getByText('-')).toBeInTheDocument();
+      const nameField = screen.getByText('Name:').nextSibling;
+      expect(nameField).toHaveTextContent('-');
       expect(screen.getByText('Email:')).toBeInTheDocument();
       expect(screen.getByText('test@example.com')).toBeInTheDocument();
       expect(screen.getByText('Role:')).toBeInTheDocument();
       expect(screen.getByText('staff')).toBeInTheDocument();
+      expect(screen.getByText('Department:')).toBeInTheDocument();
+      const departmentField = screen.getByText('Department:').nextSibling;
+      expect(departmentField).toHaveTextContent('-');
+      expect(screen.getByText('Admin Status:')).toBeInTheDocument();
+      expect(screen.getByText('No')).toBeInTheDocument();
     });
 
     it('should display fallback values when user is missing', () => {
@@ -105,6 +117,10 @@ describe('UserDetailsModal', () => {
       expect(emailField).toHaveTextContent('');
       expect(screen.getByText('Role:')).toBeInTheDocument();
       expect(screen.getByText('manager')).toBeInTheDocument();
+      expect(screen.getByText('Department:')).toBeInTheDocument();
+      expect(screen.getByText('Engineering')).toBeInTheDocument();
+      expect(screen.getByText('Admin Status:')).toBeInTheDocument();
+      expect(screen.getByText('No')).toBeInTheDocument();
     });
 
     it('should handle HR_ADMIN role correctly', () => {
@@ -117,6 +133,10 @@ describe('UserDetailsModal', () => {
 
       expect(screen.getByText('Jane Admin')).toBeInTheDocument();
       expect(screen.getByText('hr_admin')).toBeInTheDocument();
+      expect(screen.getByText('Department:')).toBeInTheDocument();
+      expect(screen.getByText('HR')).toBeInTheDocument();
+      expect(screen.getByText('Admin Status:')).toBeInTheDocument();
+      expect(screen.getByText('Yes')).toBeInTheDocument();
     });
   });
 
@@ -258,13 +278,14 @@ describe('UserDetailsModal', () => {
     it('should handle undefined userProfile name', () => {
       (useAuth as jest.Mock).mockReturnValue({
         user: mockUser,
-        userProfile: { name: undefined, role: 'STAFF' },
+        userProfile: { name: undefined, role: 'STAFF', isHrAdmin: false },
       });
 
       render(<UserDetailsModal isOpen={true} onClose={mockOnClose} />);
 
       expect(screen.getByText('Name:')).toBeInTheDocument();
-      expect(screen.getByText('-')).toBeInTheDocument();
+      const nameField = screen.getByText('Name:').nextSibling;
+      expect(nameField).toHaveTextContent('-');
     });
 
     it('should handle undefined userProfile role', () => {
