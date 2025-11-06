@@ -416,5 +416,353 @@ describe('UserProfileService', () => {
         service.assignToDepartment('user1', 'nonexistent')
       ).rejects.toThrow('Department not found');
     });
+
+    it('should throw error when userId is empty', async () => {
+      await expect(service.assignToDepartment('', 'dept1')).rejects.toThrow(
+        'User ID'
+      );
+    });
+
+    it('should throw error when departmentId is empty', async () => {
+      await expect(service.assignToDepartment('user1', '')).rejects.toThrow(
+        'Department ID'
+      );
+    });
+  });
+
+  describe('getAll', () => {
+    it('should get all active users', async () => {
+      const mockUsers = [
+        {
+          id: 'user1',
+          email: 'user1@example.com',
+          name: 'User 1',
+          role: 'STAFF' as const,
+          departmentId: 'dept1',
+          isActive: true,
+          isHrAdmin: false,
+          createdAt: new Date('2025-10-01'),
+          department: {
+            id: 'dept1',
+            name: 'Engineering',
+          },
+        },
+        {
+          id: 'user2',
+          email: 'user2@example.com',
+          name: 'User 2',
+          role: 'MANAGER' as const,
+          departmentId: 'dept2',
+          isActive: true,
+          isHrAdmin: true,
+          createdAt: new Date('2025-10-02'),
+          department: {
+            id: 'dept2',
+            name: 'Sales',
+          },
+        },
+      ];
+
+      (mockPrisma.userProfile.findMany as jest.Mock).mockResolvedValue(
+        mockUsers
+      );
+
+      const result = await service.getAll();
+
+      expect(mockPrisma.userProfile.findMany).toHaveBeenCalledWith({
+        where: {
+          isActive: true,
+        },
+        select: expect.any(Object),
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+
+      expect(result).toHaveLength(2);
+      expect(result![0].email).toBe('user1@example.com');
+    });
+
+    it('should return empty array when no users exist', async () => {
+      (mockPrisma.userProfile.findMany as jest.Mock).mockResolvedValue([]);
+
+      const result = await service.getAll();
+
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('update - Additional Edge Cases', () => {
+    it('should allow updating email to unique value', async () => {
+      const existingUser = {
+        id: 'user1',
+        email: 'old@example.com',
+        name: 'User',
+        role: 'STAFF' as const,
+        departmentId: 'dept1',
+      };
+
+      (mockPrisma.userProfile.findUnique as jest.Mock)
+        .mockResolvedValueOnce(existingUser) // First call - check user exists
+        .mockResolvedValueOnce(null); // Second call - check new email doesn't exist
+
+      const mockUpdated = {
+        ...existingUser,
+        email: 'new@example.com',
+      };
+
+      (mockPrisma.userProfile.update as jest.Mock).mockResolvedValue(
+        mockUpdated
+      );
+
+      const result = await service.update('user1', {
+        email: 'new@example.com',
+      });
+
+      expect(result!.email).toBe('new@example.com');
+    });
+
+    it('should throw error when updating email to existing email', async () => {
+      const existingUser = {
+        id: 'user1',
+        email: 'user1@example.com',
+        name: 'User 1',
+      };
+
+      const otherUser = {
+        id: 'user2',
+        email: 'taken@example.com',
+        name: 'User 2',
+      };
+
+      (mockPrisma.userProfile.findUnique as jest.Mock)
+        .mockResolvedValueOnce(existingUser) // First call - check user exists
+        .mockResolvedValueOnce(otherUser); // Second call - email already taken
+
+      await expect(
+        service.update('user1', { email: 'taken@example.com' })
+      ).rejects.toThrow('User with this email already exists');
+    });
+
+    it('should allow updating department', async () => {
+      const existingUser = {
+        id: 'user1',
+        email: 'user@example.com',
+        name: 'User',
+        role: 'STAFF' as const,
+        departmentId: 'dept1',
+      };
+
+      (mockPrisma.userProfile.findUnique as jest.Mock).mockResolvedValue(
+        existingUser
+      );
+
+      (mockPrisma.department.findUnique as jest.Mock).mockResolvedValue({
+        id: 'dept2',
+        name: 'New Department',
+      });
+
+      const mockUpdated = {
+        ...existingUser,
+        departmentId: 'dept2',
+      };
+
+      (mockPrisma.userProfile.update as jest.Mock).mockResolvedValue(
+        mockUpdated
+      );
+
+      const result = await service.update('user1', { departmentId: 'dept2' });
+
+      expect(result!.departmentId).toBe('dept2');
+    });
+
+    it('should throw error when updating to non-existent department', async () => {
+      const existingUser = {
+        id: 'user1',
+        email: 'user@example.com',
+        name: 'User',
+        departmentId: 'dept1',
+      };
+
+      (mockPrisma.userProfile.findUnique as jest.Mock).mockResolvedValue(
+        existingUser
+      );
+
+      (mockPrisma.department.findUnique as jest.Mock).mockResolvedValue(null);
+
+      await expect(
+        service.update('user1', { departmentId: 'nonexistent' })
+      ).rejects.toThrow('Department not found');
+    });
+
+    it('should allow updating role', async () => {
+      const existingUser = {
+        id: 'user1',
+        email: 'user@example.com',
+        name: 'User',
+        role: 'STAFF' as const,
+        departmentId: 'dept1',
+      };
+
+      (mockPrisma.userProfile.findUnique as jest.Mock).mockResolvedValue(
+        existingUser
+      );
+
+      const mockUpdated = {
+        ...existingUser,
+        role: 'MANAGER' as const,
+      };
+
+      (mockPrisma.userProfile.update as jest.Mock).mockResolvedValue(
+        mockUpdated
+      );
+
+      const result = await service.update('user1', { role: 'MANAGER' });
+
+      expect(result!.role).toBe('MANAGER');
+    });
+
+    it('should allow updating isHrAdmin', async () => {
+      const existingUser = {
+        id: 'user1',
+        email: 'user@example.com',
+        name: 'User',
+        role: 'STAFF' as const,
+        departmentId: 'dept1',
+        isHrAdmin: false,
+      };
+
+      (mockPrisma.userProfile.findUnique as jest.Mock).mockResolvedValue(
+        existingUser
+      );
+
+      const mockUpdated = {
+        ...existingUser,
+        isHrAdmin: true,
+      };
+
+      (mockPrisma.userProfile.update as jest.Mock).mockResolvedValue(
+        mockUpdated
+      );
+
+      const result = await service.update('user1', { isHrAdmin: true });
+
+      expect(result!.isHrAdmin).toBe(true);
+    });
+
+    it('should throw error when updating with empty ID', async () => {
+      await expect(service.update('', { name: 'New Name' })).rejects.toThrow(
+        'User ID'
+      );
+    });
+  });
+
+  describe('create - Additional Edge Cases', () => {
+    it('should create user with isHrAdmin true when specified', async () => {
+      const input = {
+        email: 'hr@example.com',
+        name: 'HR Admin',
+        role: 'HR_ADMIN' as const,
+        departmentId: 'dept1',
+        isHrAdmin: true,
+      };
+
+      (mockPrisma.department.findUnique as jest.Mock).mockResolvedValue({
+        id: 'dept1',
+        name: 'HR',
+      });
+
+      (mockPrisma.userProfile.findUnique as jest.Mock).mockResolvedValue(null);
+
+      const mockCreated = {
+        id: 'hr-user-id',
+        ...input,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      (mockPrisma.userProfile.create as jest.Mock).mockResolvedValue(
+        mockCreated
+      );
+
+      const result = await service.create(input);
+
+      expect(result!.isHrAdmin).toBe(true);
+      expect(mockPrisma.userProfile.create).toHaveBeenCalledWith({
+        data: {
+          email: input.email,
+          name: input.name,
+          role: input.role,
+          departmentId: input.departmentId,
+          isHrAdmin: true,
+        },
+        select: expect.any(Object),
+      });
+    });
+
+    it('should create user with MANAGER role when specified', async () => {
+      const input = {
+        email: 'manager@example.com',
+        name: 'Manager User',
+        role: 'MANAGER' as const,
+        departmentId: 'dept1',
+      };
+
+      (mockPrisma.department.findUnique as jest.Mock).mockResolvedValue({
+        id: 'dept1',
+      });
+
+      (mockPrisma.userProfile.findUnique as jest.Mock).mockResolvedValue(null);
+
+      const mockCreated = {
+        id: 'manager-id',
+        ...input,
+        isHrAdmin: false,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      (mockPrisma.userProfile.create as jest.Mock).mockResolvedValue(
+        mockCreated
+      );
+
+      const result = await service.create(input);
+
+      expect(result!.role).toBe('MANAGER');
+    });
+  });
+
+  describe('getById - Edge Cases', () => {
+    it('should throw error when ID is empty', async () => {
+      await expect(service.getById('')).rejects.toThrow('User ID');
+    });
+
+    it('should throw error when ID is null', async () => {
+      await expect(service.getById(null as any)).rejects.toThrow();
+    });
+  });
+
+  describe('getByDepartment - Edge Cases', () => {
+    it('should return empty array when department has no users', async () => {
+      (mockPrisma.userProfile.findMany as jest.Mock).mockResolvedValue([]);
+
+      const result = await service.getByDepartment('empty-dept');
+
+      expect(result).toEqual([]);
+    });
+
+    it('should throw error when departmentId is empty', async () => {
+      await expect(service.getByDepartment('')).rejects.toThrow(
+        'Department ID'
+      );
+    });
+  });
+
+  describe('deactivate - Edge Cases', () => {
+    it('should throw error when user ID is empty', async () => {
+      await expect(service.deactivate('')).rejects.toThrow('User ID');
+    });
   });
 });

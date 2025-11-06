@@ -9,6 +9,15 @@
     "updatedAt": "2025-01-01T00:00:00.000Z"
   },
   {
+    "id": "997a74f8-66e8-492b-aa42-ab62a0d821c4",
+    "email": "james626629@gmail.com",
+    "name": "James",
+    "role": "MANAGER",
+    "departmentId": "ce21d5ea-02b0-4f21-8cc3-a8220d53c738",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
     "id": "0eebd24c-0df5-4329-904a-563db7aebd09",
     "email": "derek.tan@allinone.com",
     "name": "Derek Tan",
@@ -48,7 +57,7 @@
     "id": "1f2636b6-57af-4e5e-9eab-3985620aa910",
     "email": "sally.loh@allinone.com",
     "name": "Sally Loh",
-    "role": "STAFF",
+    "role": "MANAGER",
     "isHrAdmin": true,
     "departmentId": "60e6fc6e-b46c-4b78-9687-40e45546599f",
     "createdAt": "2025-01-01T00:00:00.000Z",

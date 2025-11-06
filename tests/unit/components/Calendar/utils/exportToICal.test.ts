@@ -465,4 +465,244 @@ describe('exportToICal', () => {
       expect(mockLink.download).toBe('tasks.ics');
     });
   });
+
+  describe('Branch coverage - Tags, Attendees, and Recurring', () => {
+    it('should include tags in description when tags exist', async () => {
+      const eventWithTags: CalendarEvent[] = [
+        {
+          id: 'task-with-tags',
+          title: 'Task with tags',
+          start: new Date('2025-10-20T10:00:00.000Z'),
+          end: new Date('2025-10-20T10:00:00.000Z'),
+          resource: {
+            taskId: 'task-with-tags',
+            status: 'TO_DO',
+            priority: 5,
+            isCompleted: false,
+            isStarted: false,
+            isOverdue: false,
+            description: 'Task with multiple tags',
+            createdAt: new Date('2025-10-15T00:00:00.000Z'),
+            departmentName: 'Engineering',
+            ownerName: 'John Doe',
+            ownerEmail: 'john@example.com',
+            assigneeDetails: [{ name: 'User 1', email: 'user1@example.com' }],
+            tags: ['urgent', 'frontend', 'bug-fix'],
+            recurringInterval: null,
+            parentTaskId: null,
+          },
+        },
+      ];
+
+      exportToICal(eventWithTags);
+
+      const blob = mockCreateObjectURL.mock.calls[0][0] as Blob;
+      const text = await readBlobAsText(blob);
+
+      // Description should contain tags with # prefix (may be line-wrapped)
+      expect(text).toContain('Tags:');
+      expect(text).toContain('urgent');
+      expect(text).toContain('frontend');
+      expect(text).toContain('bug');
+      // Categories should be present in iCal format
+      expect(text).toContain('CATEGORIES');
+      expect(text).toContain('urgent,frontend,bug-fix');
+    });
+
+    it('should handle events with valid attendees (emails present)', async () => {
+      const eventWithAttendees: CalendarEvent[] = [
+        {
+          id: 'task-attendees',
+          title: 'Task with multiple attendees',
+          start: new Date('2025-10-20T10:00:00.000Z'),
+          end: new Date('2025-10-20T10:00:00.000Z'),
+          resource: {
+            taskId: 'task-attendees',
+            status: 'IN_PROGRESS',
+            priority: 8,
+            isCompleted: false,
+            isStarted: true,
+            isOverdue: false,
+            description: 'Task with valid attendees',
+            createdAt: new Date('2025-10-15T00:00:00.000Z'),
+            departmentName: 'Engineering',
+            ownerName: 'John Doe',
+            ownerEmail: 'john@example.com',
+            assigneeDetails: [
+              { name: 'Alice Brown', email: 'alice@example.com' },
+              { name: 'Bob Green', email: 'bob@example.com' },
+            ],
+            tags: [],
+            recurringInterval: null,
+            parentTaskId: null,
+          },
+        },
+      ];
+
+      exportToICal(eventWithAttendees);
+
+      const blob = mockCreateObjectURL.mock.calls[0][0] as Blob;
+      const text = await readBlobAsText(blob);
+
+      // Should include attendees
+      expect(text).toContain('ATTENDEE');
+      expect(text).toContain('alice@example.com');
+      expect(text).toContain('bob@example.com');
+    });
+
+    it('should filter out attendees without emails', async () => {
+      const eventWithMixedAttendees: CalendarEvent[] = [
+        {
+          id: 'task-mixed-attendees',
+          title: 'Task with mixed attendees',
+          start: new Date('2025-10-20T10:00:00.000Z'),
+          end: new Date('2025-10-20T10:00:00.000Z'),
+          resource: {
+            taskId: 'task-mixed-attendees',
+            status: 'TO_DO',
+            priority: 5,
+            isCompleted: false,
+            isStarted: false,
+            isOverdue: false,
+            description: 'Some attendees without emails',
+            createdAt: new Date('2025-10-15T00:00:00.000Z'),
+            departmentName: 'Engineering',
+            ownerName: 'John Doe',
+            ownerEmail: 'john@example.com',
+            assigneeDetails: [
+              { name: 'Valid User', email: 'valid@example.com' },
+              { name: 'No Email User', email: '' }, // Empty email - should be filtered
+            ],
+            tags: [],
+            recurringInterval: null,
+            parentTaskId: null,
+          },
+        },
+      ];
+
+      exportToICal(eventWithMixedAttendees);
+
+      const blob = mockCreateObjectURL.mock.calls[0][0] as Blob;
+      const text = await readBlobAsText(blob);
+
+      // Should only include valid attendee in ATTENDEE field
+      expect(text).toContain('valid@example.com');
+      // No Email User will be in description (assigned list) but not as ATTENDEE
+      // The ATTENDEE section should only have emails
+      const attendeeMatches = text.match(/ATTENDEE.*No Email User/);
+      expect(attendeeMatches).toBeNull();
+    });
+
+    it('should handle recurring tasks with interval', async () => {
+      const recurringEvent: CalendarEvent[] = [
+        {
+          id: 'task-recurring',
+          title: 'Daily recurring task',
+          start: new Date('2025-10-20T10:00:00.000Z'),
+          end: new Date('2025-10-20T10:00:00.000Z'),
+          resource: {
+            taskId: 'task-recurring',
+            status: 'IN_PROGRESS',
+            priority: 7,
+            isCompleted: false,
+            isStarted: true,
+            isOverdue: false,
+            description: 'Task that repeats every 2 days',
+            createdAt: new Date('2025-10-15T00:00:00.000Z'),
+            departmentName: 'Operations',
+            ownerName: 'Jane Smith',
+            ownerEmail: 'jane@example.com',
+            assigneeDetails: [{ name: 'User 1', email: 'user1@example.com' }],
+            tags: [],
+            recurringInterval: 2,
+            parentTaskId: null,
+          },
+        },
+      ];
+
+      exportToICal(recurringEvent);
+
+      const blob = mockCreateObjectURL.mock.calls[0][0] as Blob;
+      const text = await readBlobAsText(blob);
+
+      // Should include recurring rule
+      expect(text).toContain('RRULE');
+      expect(text).toContain('FREQ=DAILY');
+      expect(text).toContain('INTERVAL=2');
+    });
+
+    it('should filter out empty tags', async () => {
+      const eventWithEmptyTags: CalendarEvent[] = [
+        {
+          id: 'task-empty-tags',
+          title: 'Task with empty tags',
+          start: new Date('2025-10-20T10:00:00.000Z'),
+          end: new Date('2025-10-20T10:00:00.000Z'),
+          resource: {
+            taskId: 'task-empty-tags',
+            status: 'TO_DO',
+            priority: 5,
+            isCompleted: false,
+            isStarted: false,
+            isOverdue: false,
+            description: 'Task with some empty tags',
+            createdAt: new Date('2025-10-15T00:00:00.000Z'),
+            departmentName: 'Engineering',
+            ownerName: 'John Doe',
+            ownerEmail: 'john@example.com',
+            assigneeDetails: [],
+            tags: ['valid-tag', '', '  ', 'another-tag'], // Mix of valid and empty
+            recurringInterval: null,
+            parentTaskId: null,
+          },
+        },
+      ];
+
+      exportToICal(eventWithEmptyTags);
+
+      const blob = mockCreateObjectURL.mock.calls[0][0] as Blob;
+      const text = await readBlobAsText(blob);
+
+      // Should only include non-empty tags
+      expect(text).toContain('valid-tag');
+      expect(text).toContain('another-tag');
+    });
+
+    it('should not add categories when all tags are empty', async () => {
+      const eventWithOnlyEmptyTags: CalendarEvent[] = [
+        {
+          id: 'task-only-empty-tags',
+          title: 'Task with only empty tags',
+          start: new Date('2025-10-20T10:00:00.000Z'),
+          end: new Date('2025-10-20T10:00:00.000Z'),
+          resource: {
+            taskId: 'task-only-empty-tags',
+            status: 'TO_DO',
+            priority: 5,
+            isCompleted: false,
+            isStarted: false,
+            isOverdue: false,
+            description: 'Task with only empty tags',
+            createdAt: new Date('2025-10-15T00:00:00.000Z'),
+            departmentName: 'Engineering',
+            ownerName: 'John Doe',
+            ownerEmail: 'john@example.com',
+            assigneeDetails: [],
+            tags: ['', '  ', '   '], // All empty/whitespace
+            recurringInterval: null,
+            parentTaskId: null,
+          },
+        },
+      ];
+
+      exportToICal(eventWithOnlyEmptyTags);
+
+      const blob = mockCreateObjectURL.mock.calls[0][0] as Blob;
+      const text = await readBlobAsText(blob);
+
+      // Should not include CATEGORIES since all tags are empty
+      const categoriesMatch = text.match(/CATEGORIES:/g);
+      expect(categoriesMatch).toBeNull();
+    });
+  });
 });

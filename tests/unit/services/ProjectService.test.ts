@@ -424,4 +424,272 @@ describe('ProjectService', () => {
       });
     });
   });
+
+  describe('Query Methods', () => {
+    describe('getByDepartment', () => {
+      it('should get projects by department ID', async () => {
+        const mockProjects = [
+          {
+            id: 'proj1',
+            name: 'Project 1',
+            departmentId: 'dept1',
+            status: 'ACTIVE',
+            isArchived: false,
+          },
+        ];
+
+        (mockPrisma.project.findMany as jest.Mock).mockResolvedValue(
+          mockProjects
+        );
+
+        const result = await service.getByDepartment('dept1');
+
+        expect(mockPrisma.project.findMany).toHaveBeenCalledWith({
+          where: {
+            departmentId: 'dept1',
+            creatorId: undefined,
+            status: undefined,
+            isArchived: false,
+          },
+          include: expect.any(Object),
+          orderBy: { createdAt: 'desc' },
+        });
+
+        expect(result).toHaveLength(1);
+        expect(result![0].departmentId).toBe('dept1');
+      });
+
+      it('should throw error for invalid department ID', async () => {
+        await expect(service.getByDepartment('')).rejects.toThrow();
+      });
+    });
+
+    describe('getByCreator', () => {
+      it('should get projects by creator ID', async () => {
+        const mockProjects = [
+          {
+            id: 'proj1',
+            name: 'Project 1',
+            creatorId: 'user1',
+            status: 'ACTIVE',
+            isArchived: false,
+          },
+        ];
+
+        (mockPrisma.project.findMany as jest.Mock).mockResolvedValue(
+          mockProjects
+        );
+
+        const result = await service.getByCreator('user1');
+
+        expect(mockPrisma.project.findMany).toHaveBeenCalledWith({
+          where: {
+            departmentId: undefined,
+            creatorId: 'user1',
+            status: undefined,
+            isArchived: false,
+          },
+          include: expect.any(Object),
+          orderBy: { createdAt: 'desc' },
+        });
+
+        expect(result).toHaveLength(1);
+        expect(result![0].creatorId).toBe('user1');
+      });
+
+      it('should throw error for invalid creator ID', async () => {
+        await expect(service.getByCreator('')).rejects.toThrow();
+      });
+    });
+
+    describe('getAll with isArchived filter', () => {
+      it('should get archived projects when filter is true', async () => {
+        const mockProjects = [
+          {
+            id: 'proj1',
+            name: 'Archived Project',
+            isArchived: true,
+          },
+        ];
+
+        (mockPrisma.project.findMany as jest.Mock).mockResolvedValue(
+          mockProjects
+        );
+
+        await service.getAll({ isArchived: true });
+
+        expect(mockPrisma.project.findMany).toHaveBeenCalledWith({
+          where: {
+            departmentId: undefined,
+            creatorId: undefined,
+            status: undefined,
+            isArchived: true,
+          },
+          include: expect.any(Object),
+          orderBy: { createdAt: 'desc' },
+        });
+      });
+
+      it('should get active projects by default', async () => {
+        const mockProjects = [
+          {
+            id: 'proj1',
+            name: 'Active Project',
+            isArchived: false,
+          },
+        ];
+
+        (mockPrisma.project.findMany as jest.Mock).mockResolvedValue(
+          mockProjects
+        );
+
+        await service.getAll();
+
+        expect(mockPrisma.project.findMany).toHaveBeenCalledWith({
+          where: expect.objectContaining({
+            isArchived: false,
+          }),
+          include: expect.any(Object),
+          orderBy: { createdAt: 'desc' },
+        });
+      });
+    });
+  });
+
+  describe('Error Handling', () => {
+    it('should handle getAll errors gracefully', async () => {
+      (mockPrisma.project.findMany as jest.Mock).mockRejectedValue(
+        new Error('Database error')
+      );
+
+      await expect(service.getAll()).rejects.toThrow();
+    });
+
+    it('should handle getById errors gracefully', async () => {
+      (mockPrisma.project.findUnique as jest.Mock).mockRejectedValue(
+        new Error('Database error')
+      );
+
+      await expect(service.getById('proj1')).rejects.toThrow();
+    });
+
+    it('should handle getByStatus errors gracefully', async () => {
+      (mockPrisma.project.findMany as jest.Mock).mockRejectedValue(
+        new Error('Database error')
+      );
+
+      await expect(service.getByStatus('ACTIVE')).rejects.toThrow();
+    });
+
+    it('should handle create errors gracefully', async () => {
+      (mockPrisma.department.findUnique as jest.Mock).mockResolvedValue({
+        id: 'dept1',
+      });
+
+      (mockPrisma.userProfile.findUnique as jest.Mock).mockResolvedValue({
+        id: 'user1',
+        isActive: true,
+      });
+
+      (mockPrisma.project.create as jest.Mock).mockRejectedValue(
+        new Error('Database error')
+      );
+
+      await expect(
+        service.create({
+          name: 'Project',
+          departmentId: 'dept1',
+          creatorId: 'user1',
+        })
+      ).rejects.toThrow();
+    });
+
+    it('should handle update errors gracefully', async () => {
+      (mockPrisma.project.findUnique as jest.Mock).mockResolvedValue({
+        id: 'proj1',
+      });
+
+      (mockPrisma.project.update as jest.Mock).mockRejectedValue(
+        new Error('Database error')
+      );
+
+      await expect(
+        service.update('proj1', { name: 'New Name' })
+      ).rejects.toThrow();
+    });
+
+    it('should handle updateStatus errors gracefully', async () => {
+      (mockPrisma.project.findUnique as jest.Mock).mockResolvedValue({
+        id: 'proj1',
+      });
+
+      (mockPrisma.project.update as jest.Mock).mockRejectedValue(
+        new Error('Database error')
+      );
+
+      await expect(
+        service.updateStatus('proj1', 'COMPLETED')
+      ).rejects.toThrow();
+    });
+
+    it('should handle archive errors gracefully', async () => {
+      (mockPrisma.project.findUnique as jest.Mock).mockResolvedValue({
+        id: 'proj1',
+      });
+
+      (mockPrisma.project.update as jest.Mock).mockRejectedValue(
+        new Error('Database error')
+      );
+
+      await expect(service.archive('proj1')).rejects.toThrow();
+    });
+
+    it('should handle unarchive errors gracefully', async () => {
+      (mockPrisma.project.findUnique as jest.Mock).mockResolvedValue({
+        id: 'proj1',
+      });
+
+      (mockPrisma.project.update as jest.Mock).mockRejectedValue(
+        new Error('Database error')
+      );
+
+      await expect(service.unarchive('proj1')).rejects.toThrow();
+    });
+
+    it('should handle delete errors gracefully', async () => {
+      (mockPrisma.task.findMany as jest.Mock).mockResolvedValue([]);
+
+      (mockPrisma.project.delete as jest.Mock).mockRejectedValue(
+        new Error('Database error')
+      );
+
+      await expect(service.delete('proj1')).rejects.toThrow();
+    });
+  });
+
+  describe('Validation', () => {
+    it('should throw error when getById receives empty ID', async () => {
+      await expect(service.getById('')).rejects.toThrow();
+    });
+
+    it('should throw error when update receives empty ID', async () => {
+      await expect(service.update('', { name: 'New' })).rejects.toThrow();
+    });
+
+    it('should throw error when updateStatus receives empty ID', async () => {
+      await expect(service.updateStatus('', 'ACTIVE')).rejects.toThrow();
+    });
+
+    it('should throw error when archive receives empty ID', async () => {
+      await expect(service.archive('')).rejects.toThrow();
+    });
+
+    it('should throw error when unarchive receives empty ID', async () => {
+      await expect(service.unarchive('')).rejects.toThrow();
+    });
+
+    it('should throw error when delete receives empty ID', async () => {
+      await expect(service.delete('')).rejects.toThrow();
+    });
+  });
 });

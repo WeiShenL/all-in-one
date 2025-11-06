@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
+// import Link from 'next/link';
 import { useAuth } from '@/lib/supabase/auth-context';
 
 function LoginForm() {
@@ -436,7 +436,7 @@ function LoginForm() {
           </button>
         </div>
 
-        <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+        {/* <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
           <Link
             href='/'
             style={{
@@ -448,7 +448,7 @@ function LoginForm() {
           >
             ← Back to Home
           </Link>
-        </div>
+        </div> */}
       </div>
     </div>
   );
