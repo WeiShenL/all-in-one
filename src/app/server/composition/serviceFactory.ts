@@ -27,8 +27,8 @@ export function buildServices(ctx: Context) {
   function getDashboardTaskService() {
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const mod = require('../services/TaskService');
-      const Cls = mod.DashboardTaskService ?? mod.TaskService ?? mod.default;
+      const mod = require('../services/DashboardTaskService');
+      const Cls = mod.DashboardTaskService ?? mod.default;
       return new Cls(ctx.prisma);
     } catch {
       return {

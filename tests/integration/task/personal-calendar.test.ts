@@ -16,7 +16,7 @@
  */
 
 import { Client } from 'pg';
-import { DashboardTaskService as TaskService } from '@/app/server/services/TaskService';
+import { DashboardTaskService as TaskService } from '@/app/server/services/DashboardTaskService';
 import { PrismaClient } from '@prisma/client';
 
 describe('Integration Tests - Personal Calendar', () => {

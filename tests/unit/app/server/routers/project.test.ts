@@ -12,8 +12,8 @@ import { ProjectStatus } from '@prisma/client';
 // Mock dependencies
 jest.mock('@/repositories/PrismaProjectRepository');
 jest.mock('@/services/project/ProjectService');
-jest.mock('@/app/server/services/TaskService', () => ({
-  TaskService: jest.fn().mockImplementation(() => ({
+jest.mock('@/app/server/services/DashboardTaskService', () => ({
+  DashboardTaskService: jest.fn().mockImplementation(() => ({
     getSubordinateDepartments: jest.fn().mockResolvedValue([]),
   })),
 }));
