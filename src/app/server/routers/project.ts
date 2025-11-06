@@ -1,8 +1,7 @@
 import { router, publicProcedure, protectedProcedure, Context } from '../trpc';
 import { z } from 'zod';
-import { PrismaProjectRepository } from '@/repositories/PrismaProjectRepository';
-import { ProjectService } from '@/services/project/ProjectService';
-import { ProjectStatus } from '@prisma/client';
+import { buildServices } from '../composition/serviceFactory';
+import { ProjectStatus } from '@/domain/project/Project';
 
 async function getUserContext(ctx: Context) {
   if (!ctx.userId) {
@@ -49,9 +48,8 @@ export const projectRouter = router({
         .optional()
     )
     .query(async ({ ctx, input }) => {
-      const repo = new PrismaProjectRepository(ctx.prisma);
-      const service = new ProjectService(repo);
-      return service.getAllProjects(input);
+      const { projectService } = buildServices(ctx);
+      return projectService.getAllProjects(input);
     }),
 
   /**
@@ -60,9 +58,8 @@ export const projectRouter = router({
   getById: publicProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
-      const repo = new PrismaProjectRepository(ctx.prisma);
-      const service = new ProjectService(repo);
-      return service.getProjectById(input.id);
+      const { projectService } = buildServices(ctx);
+      return projectService.getProjectById(input.id);
     }),
 
   /**
@@ -71,9 +68,10 @@ export const projectRouter = router({
   getByDepartment: publicProcedure
     .input(z.object({ departmentId: z.string() }))
     .query(async ({ ctx, input }) => {
-      const repo = new PrismaProjectRepository(ctx.prisma);
-      const service = new ProjectService(repo);
-      return service.getAllProjects({ departmentId: input.departmentId });
+      const { projectService } = buildServices(ctx);
+      return projectService.getAllProjects({
+        departmentId: input.departmentId,
+      });
     }),
 
   /**
@@ -82,9 +80,8 @@ export const projectRouter = router({
   getByCreator: publicProcedure
     .input(z.object({ creatorId: z.string() }))
     .query(async ({ ctx, input }) => {
-      const repo = new PrismaProjectRepository(ctx.prisma);
-      const service = new ProjectService(repo);
-      return service.getProjectsByCreator(input.creatorId);
+      const { projectService } = buildServices(ctx);
+      return projectService.getProjectsByCreator(input.creatorId);
     }),
 
   /**
@@ -93,9 +90,8 @@ export const projectRouter = router({
   getByStatus: publicProcedure
     .input(z.object({ status: z.nativeEnum(ProjectStatus) }))
     .query(async ({ ctx, input }) => {
-      const repo = new PrismaProjectRepository(ctx.prisma);
-      const service = new ProjectService(repo);
-      return service.getProjectsByStatus(input.status);
+      const { projectService } = buildServices(ctx);
+      return projectService.getProjectsByStatus(input.status);
     }),
 
   /**
@@ -110,19 +106,15 @@ export const projectRouter = router({
         .optional()
     )
     .query(async ({ ctx, input }) => {
-      const repo = new PrismaProjectRepository(ctx.prisma);
-      const service = new ProjectService(repo);
+      const { projectService, getDashboardTaskService } = buildServices(ctx);
       const user = await getUserContext(ctx);
+      const dashboardTaskService = getDashboardTaskService();
 
-      // Reuse department hierarchy logic from TaskService via ctx-bound helper
-      const { TaskService } = await import('../services/TaskService');
-      const taskService = new TaskService(ctx.prisma);
-
-      return service.getVisibleProjectsForUser(
+      return projectService.getVisibleProjectsForUser(
         user,
         {
           getSubordinateDepartments: (id: string) =>
-            taskService.getSubordinateDepartments(id),
+            dashboardTaskService.getSubordinateDepartments(id),
         },
         { isArchived: input?.isArchived }
       );
@@ -145,11 +137,10 @@ export const projectRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const repo = new PrismaProjectRepository(ctx.prisma);
-      const service = new ProjectService(repo);
+      const { projectService } = buildServices(ctx);
       const user = await getUserContext(ctx);
 
-      const result = await service.createProject(
+      const result = await projectService.createProject(
         {
           name: input.name,
           description: input.description,
@@ -179,12 +170,11 @@ export const projectRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const repo = new PrismaProjectRepository(ctx.prisma);
-      const service = new ProjectService(repo);
+      const { projectService } = buildServices(ctx);
       const user = await getUserContext(ctx);
 
       const { id, ...data } = input;
-      await service.updateProject(id, data, user);
+      await projectService.updateProject(id, data, user);
 
       return { success: true };
     }),
@@ -200,11 +190,14 @@ export const projectRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const repo = new PrismaProjectRepository(ctx.prisma);
-      const service = new ProjectService(repo);
+      const { projectService } = buildServices(ctx);
       const user = await getUserContext(ctx);
 
-      await service.updateProject(input.id, { status: input.status }, user);
+      await projectService.updateProject(
+        input.id,
+        { status: input.status },
+        user
+      );
 
       return { success: true };
     }),
@@ -215,10 +208,9 @@ export const projectRouter = router({
   archive: publicProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const repo = new PrismaProjectRepository(ctx.prisma);
-      const service = new ProjectService(repo);
+      const { projectService } = buildServices(ctx);
 
-      await service.archiveProject(input.id);
+      await projectService.archiveProject(input.id);
 
       return { success: true };
     }),
@@ -229,10 +221,9 @@ export const projectRouter = router({
   unarchive: publicProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const repo = new PrismaProjectRepository(ctx.prisma);
-      const service = new ProjectService(repo);
+      const { projectService } = buildServices(ctx);
 
-      await service.unarchiveProject(input.id);
+      await projectService.unarchiveProject(input.id);
 
       return { success: true };
     }),
@@ -243,10 +234,9 @@ export const projectRouter = router({
   delete: publicProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const repo = new PrismaProjectRepository(ctx.prisma);
-      const service = new ProjectService(repo);
+      const { projectService } = buildServices(ctx);
 
-      await service.deleteProject(input.id);
+      await projectService.deleteProject(input.id);
 
       return { success: true };
     }),

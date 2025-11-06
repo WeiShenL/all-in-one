@@ -7,15 +7,18 @@ import { projectRouter } from '@/app/server/routers/project';
 import { PrismaProjectRepository } from '@/repositories/PrismaProjectRepository';
 import { ProjectService } from '@/services/project/ProjectService';
 import type { PrismaClient } from '@prisma/client';
-import { ProjectStatus } from '@prisma/client';
+import { ProjectStatus } from '@/domain/project/Project';
 
 // Mock dependencies
 jest.mock('@/repositories/PrismaProjectRepository');
 jest.mock('@/services/project/ProjectService');
-jest.mock('@/app/server/services/TaskService', () => ({
-  TaskService: jest.fn().mockImplementation(() => ({
+jest.mock('@/app/server/services/DashboardTaskService', () => ({
+  DashboardTaskService: jest.fn().mockImplementation(() => ({
     getSubordinateDepartments: jest.fn().mockResolvedValue([]),
   })),
+}));
+jest.mock('@/app/server/composition/serviceFactory', () => ({
+  buildServices: jest.fn(),
 }));
 
 const MockPrismaProjectRepository = PrismaProjectRepository as jest.MockedClass<
@@ -29,6 +32,7 @@ describe('Project Router', () => {
   let mockPrisma: jest.Mocked<PrismaClient>;
   let mockProjectService: jest.Mocked<ProjectService>;
   let mockRepo: jest.Mocked<PrismaProjectRepository>;
+  let mockBuildServices: jest.Mock;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -62,6 +66,24 @@ describe('Project Router', () => {
     } as any;
 
     mockRepo = {} as any;
+
+    // Mock buildServices
+    mockBuildServices = jest.fn().mockReturnValue({
+      projectService: mockProjectService,
+      taskService: {
+        // Add minimal taskService mock if needed
+      },
+      subtaskService: {
+        // Add minimal subtaskService mock if needed
+      },
+      getDashboardTaskService: jest.fn().mockReturnValue({
+        getSubordinateDepartments: jest.fn().mockResolvedValue([]),
+      }),
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const serviceFactory = require('@/app/server/composition/serviceFactory');
+    serviceFactory.buildServices = mockBuildServices;
 
     MockPrismaProjectRepository.mockImplementation(() => mockRepo);
     MockProjectService.mockImplementation(() => mockProjectService);
@@ -433,6 +455,74 @@ describe('Project Router', () => {
           priority: 11,
         })
       ).rejects.toThrow();
+    });
+  });
+  describe('delete', () => {
+    it('should delete a project', async () => {
+      mockProjectService.deleteProject.mockResolvedValue(undefined);
+
+      const caller = projectRouter.createCaller({
+        prisma: mockPrisma,
+        userId: undefined,
+      });
+
+      const result = await caller.delete({ id: 'proj-1' });
+
+      expect(result).toEqual({ success: true });
+      expect(mockProjectService.deleteProject).toHaveBeenCalledWith('proj-1');
+    });
+
+    it('should handle deleting multiple projects', async () => {
+      mockProjectService.deleteProject.mockResolvedValue(undefined);
+
+      const caller = projectRouter.createCaller({
+        prisma: mockPrisma,
+        userId: undefined,
+      });
+
+      await caller.delete({ id: 'proj-1' });
+      await caller.delete({ id: 'proj-2' });
+
+      expect(mockProjectService.deleteProject).toHaveBeenCalledTimes(2);
+      expect(mockProjectService.deleteProject).toHaveBeenCalledWith('proj-1');
+      expect(mockProjectService.deleteProject).toHaveBeenCalledWith('proj-2');
+    });
+  });
+  describe('unarchive', () => {
+    it('should unarchive a project', async () => {
+      mockProjectService.unarchiveProject.mockResolvedValue(undefined);
+
+      const caller = projectRouter.createCaller({
+        prisma: mockPrisma,
+        userId: undefined,
+      });
+
+      const result = await caller.unarchive({ id: 'proj-1' });
+
+      expect(result).toEqual({ success: true });
+      expect(mockProjectService.unarchiveProject).toHaveBeenCalledWith(
+        'proj-1'
+      );
+    });
+
+    it('should handle unarchiving multiple projects', async () => {
+      mockProjectService.unarchiveProject.mockResolvedValue(undefined);
+
+      const caller = projectRouter.createCaller({
+        prisma: mockPrisma,
+        userId: undefined,
+      });
+
+      await caller.unarchive({ id: 'proj-1' });
+      await caller.unarchive({ id: 'proj-2' });
+
+      expect(mockProjectService.unarchiveProject).toHaveBeenCalledTimes(2);
+      expect(mockProjectService.unarchiveProject).toHaveBeenCalledWith(
+        'proj-1'
+      );
+      expect(mockProjectService.unarchiveProject).toHaveBeenCalledWith(
+        'proj-2'
+      );
     });
   });
 });

@@ -20,75 +20,104 @@ const customJestConfig = {
   // Coverage configuration
   collectCoverageFrom: [
     'src/**/*.{js,jsx,ts,tsx}',
-    // Exclude type definition files
+
+    // ============================================
+    // TYPE DEFINITIONS
+    // ============================================
     '!src/**/*.d.ts',
 
-    // Exclude Next.js framework files
+    // ============================================
+    // NEXT.JS FRAMEWORK FILES
+    // ============================================
     '!src/app/layout.tsx',
     '!src/app/page.tsx',
     '!src/middleware.ts',
 
-    // Exclude API route handlers (thin wrappers)
-    '!src/app/api/**/route.ts',
+    // ============================================
+    // API ROUTES
+    // ============================================
+    // Exclude only the tRPC wrapper (thin adapter)
+    '!src/app/api/trpc/**/route.ts',
+    // NOTE: Cron route is NOT excluded - it has auth + error handling logic
 
-    // Exclude UI/Presentation pages (tested via E2E)
+    // ============================================
+    // PAGE COMPONENTS (E2E TESTED)
+    // ============================================
+    // Auth pages
     '!src/app/auth/callback/page.tsx',
     '!src/app/auth/reset-password/page.tsx',
     '!src/app/auth/signup/page.tsx',
+    '!src/app/auth/login/page.tsx',
+
+    // Dashboard pages (extensively E2E tested)
     '!src/app/dashboard/page.tsx',
+    '!src/app/dashboard/personal/page.tsx',
     '!src/app/dashboard/company/page.tsx',
+    '!src/app/dashboard/projects/page.tsx',
+
+    // Other pages
     '!src/app/notifications/page.tsx',
     '!src/app/projects/page.tsx',
 
-    // Exclude configuration/setup files
-    '!src/app/lib/trpc.ts',
-    '!src/lib/supabase/middleware.ts',
-    '!src/lib/supabase/server.ts',
-    '!src/lib/context/DashboardContext.tsx', // UI state context, E2E tested
-    '!src/app/components/TRPCProvider.tsx',
+    // ============================================
+    // CONFIGURATION & SETUP FILES
+    // ============================================
+    '!src/app/lib/trpc.ts', // tRPC client config
+    '!src/lib/supabase/middleware.ts', // Supabase auth middleware
+    '!src/lib/supabase/server.ts', // Supabase server client
+    '!src/lib/context/DashboardContext.tsx', // UI state context (E2E tested)
+    '!src/app/components/TRPCProvider.tsx', // tRPC React provider
 
-    // Exclude simple presentational components Its in E2E
+    // ============================================
+    // UI COMPONENTS (E2E TESTED)
+    // ============================================
+    // Small utility components
     '!src/app/components/Toast.tsx',
     '!src/app/components/ToastContainer.tsx',
     '!src/app/components/UserSelectOption.tsx',
-    '!src/app/auth/components/DepartmentSelect.tsx', // Auth UI component, E2E tested
+    '!src/app/auth/components/DepartmentSelect.tsx',
 
-    // Exclude large UI components (E2E tested)
+    // Task management components
     '!src/app/components/TaskCard.tsx',
     '!src/app/components/TaskCreateModal.tsx',
-    '!src/app/components/Navbar.tsx',
-    '!src/app/components/ConnectedTasks.tsx',
     '!src/app/components/TaskTable/TaskTable.tsx',
     '!src/app/components/TaskTable/TaskRow.tsx',
+    '!src/app/components/ConnectedTasks.tsx',
+    '!src/app/components/TaskFileUpload.tsx',
+    '!src/app/components/TaskComments.tsx',
 
-    // Exclude dashboard UI components (E2E tested)
+    // Dashboard components
+    '!src/app/components/Navbar.tsx',
     '!src/app/components/CompanyDashboard.tsx',
     '!src/app/components/DepartmentDashboard.tsx',
     '!src/app/components/PersonalDashboard.tsx',
+    '!src/app/components/UnifiedDashboard.tsx',
+    '!src/app/components/ProjectDashboard.tsx',
     '!src/app/components/DashboardTabs.tsx',
 
-    // Exclude calendar view components (E2E tested)
+    // Calendar components
     '!src/app/components/Calendar/views/AgendaView.tsx',
     '!src/app/components/Calendar/views/DayView.tsx',
+    '!src/app/components/Calendar/TaskCalendar.tsx',
 
     // Exclude other UI components (E2E tested)
     '!src/app/components/LogItem.tsx',
     '!src/app/components/ProjectCreateModal.tsx',
     '!src/app/components/NotificationModal.tsx',
     '!src/app/components/ProjectReport/ProjectReportExportButton.tsx',
-    '!src/app/components/UnifiedDashboard.tsx',
-    '!src/app/components/TaskFileUpload.tsx',
-    '!src/app/components/ProjectDashboard.tsx',
-    '!src/app/components/Calendar/TaskCalendar.tsx',
-    '!src/app/components/TaskComments.tsx',
-    '!src/app/auth/login/page.tsx',
 
-    // Exclude tRPC routers (thin orchestration layers - business logic in services)
-    '!src/app/server/routers/department.ts',
-    '!src/app/server/routers/userProfile.ts',
-    '!src/app/server/routers/_app.ts',
+    // ============================================
+    // tRPC ROUTERS (THIN SERVICE WRAPPERS)
+    // ============================================
+    '!src/app/server/routers/department.ts', // Pure delegation to DepartmentService
+    '!src/app/server/routers/userProfile.ts', // Pure delegation to UserProfileService
+    '!src/app/server/routers/_app.ts', // Router composition only
 
-    // Exclude simple barrel exports
+    // NOTE: task.ts, notification.ts, project.ts, taskFile.ts are NOT excluded
+
+    // ============================================
+    // BARREL EXPORTS & STYLE FILES
+    // ============================================
     '!src/**/index.ts',
     '!src/**/styles.ts',
   ],

@@ -10,7 +10,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import { TaskService as DashboardTaskService } from '@/app/server/services/TaskService';
+import { DashboardTaskService } from '@/app/server/services/DashboardTaskService';
 
 // Mock PrismaClient
 jest.mock('@prisma/client', () => {

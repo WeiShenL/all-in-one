@@ -659,6 +659,26 @@ export default function Navbar() {
             <Link
               href={getDashboardRoute()}
               style={getMobileLinkStyles(getDashboardRoute())}
+              onMouseEnter={e => {
+                // Prefetch personal tasks on hover
+                prefetchPersonalTasks();
+
+                if (!isActive('personal')) {
+                  e.currentTarget.style.backgroundColor = '#e3f2fd';
+                  e.currentTarget.style.color = '#1976d2';
+                  e.currentTarget.style.transform = 'translateX(4px)';
+                  e.currentTarget.style.boxShadow =
+                    '0 2px 8px rgba(25, 118, 210, 0.15)';
+                }
+              }}
+              onMouseLeave={e => {
+                if (!isActive('personal')) {
+                  e.currentTarget.style.backgroundColor = '#fff';
+                  e.currentTarget.style.color = '#495057';
+                  e.currentTarget.style.transform = 'translateX(0)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }
+              }}
             >
               <span
                 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
@@ -670,6 +690,26 @@ export default function Navbar() {
             <Link
               href='/dashboard/department'
               style={getMobileLinkStyles('/dashboard/department')}
+              onMouseEnter={e => {
+                // Prefetch department tasks on hover
+                prefetchDepartmentTasks();
+
+                if (!isActive('department')) {
+                  e.currentTarget.style.backgroundColor = '#e3f2fd';
+                  e.currentTarget.style.color = '#1976d2';
+                  e.currentTarget.style.transform = 'translateX(4px)';
+                  e.currentTarget.style.boxShadow =
+                    '0 2px 8px rgba(25, 118, 210, 0.15)';
+                }
+              }}
+              onMouseLeave={e => {
+                if (!isActive('department')) {
+                  e.currentTarget.style.backgroundColor = '#fff';
+                  e.currentTarget.style.color = '#495057';
+                  e.currentTarget.style.transform = 'translateX(0)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }
+              }}
             >
               <span
                 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
@@ -684,6 +724,26 @@ export default function Navbar() {
                   <Link
                     href='/dashboard/company'
                     style={getMobileLinkStyles('/dashboard/company')}
+                    onMouseEnter={e => {
+                      // Prefetch company tasks on hover
+                      prefetchCompanyTasks();
+
+                      if (!isActive('company')) {
+                        e.currentTarget.style.backgroundColor = '#e3f2fd';
+                        e.currentTarget.style.color = '#1976d2';
+                        e.currentTarget.style.transform = 'translateX(4px)';
+                        e.currentTarget.style.boxShadow =
+                          '0 2px 8px rgba(25, 118, 210, 0.15)';
+                      }
+                    }}
+                    onMouseLeave={e => {
+                      if (!isActive('company')) {
+                        e.currentTarget.style.backgroundColor = '#fff';
+                        e.currentTarget.style.color = '#495057';
+                        e.currentTarget.style.transform = 'translateX(0)';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }
+                    }}
                   >
                     <span
                       style={{
@@ -699,6 +759,23 @@ export default function Navbar() {
                   <Link
                     href='/dashboard/hr'
                     style={getMobileLinkStyles('/dashboard/hr')}
+                    onMouseEnter={e => {
+                      if (!isActive('/dashboard/hr')) {
+                        e.currentTarget.style.backgroundColor = '#e3f2fd';
+                        e.currentTarget.style.color = '#1976d2';
+                        e.currentTarget.style.transform = 'translateX(4px)';
+                        e.currentTarget.style.boxShadow =
+                          '0 2px 8px rgba(25, 118, 210, 0.15)';
+                      }
+                    }}
+                    onMouseLeave={e => {
+                      if (!isActive('/dashboard/hr')) {
+                        e.currentTarget.style.backgroundColor = '#fff';
+                        e.currentTarget.style.color = '#495057';
+                        e.currentTarget.style.transform = 'translateX(0)';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }
+                    }}
                   >
                     <span
                       style={{
@@ -713,23 +790,27 @@ export default function Navbar() {
                   </Link>
                 </>
               )}
+
+            {/* Project Selection (Mobile) */}
             <div
               style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.5rem',
+                marginTop: '0.5rem',
+                padding: '0.5rem',
+                backgroundColor: '#fff',
+                borderRadius: '4px',
+                border: '1px solid #dee2e6',
+              }}
+            >
+              <ProjectSelection />
+            </div>
+            <div
+              style={{
                 padding: '0.75rem',
                 backgroundColor: '#fff',
                 borderRadius: '4px',
                 border: '1px solid #dee2e6',
               }}
-              onClick={() => setIsUserModalOpen(true)}
-              role='button'
-              aria-label='Open user details'
             >
-              <span style={{ color: '#6c757d', fontSize: '0.875rem' }}>
-                {userProfile?.name || user?.email}
-              </span>
               <button
                 onClick={handleSecureLogout}
                 disabled={isLoggingOut}
@@ -743,6 +824,7 @@ export default function Navbar() {
                   fontSize: '0.875rem',
                   fontWeight: '500',
                   opacity: isLoggingOut ? 0.7 : 1,
+                  width: '100%',
                 }}
               >
                 {isLoggingOut ? 'Signing Out...' : 'Sign Out'}

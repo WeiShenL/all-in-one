@@ -840,19 +840,27 @@ describe('HR/Admin Company Dashboard - Integration Tests', () => {
         });
 
         // Assert on YOUR specific tasks only
-        expect(resultWithArchived.some(t => t.id === archivedIds[0])).toBe(
-          true
-        );
-        expect(resultWithArchived.some(t => t.id === archivedIds[1])).toBe(
-          true
-        );
+        expect(
+          resultWithArchived.some(
+            (t: { id: string }) => t.id === archivedIds[0]
+          )
+        ).toBe(true);
+        expect(
+          resultWithArchived.some(
+            (t: { id: string }) => t.id === archivedIds[1]
+          )
+        ).toBe(true);
 
-        expect(resultWithoutArchived.some(t => t.id === archivedIds[0])).toBe(
-          false
-        );
-        expect(resultWithoutArchived.some(t => t.id === archivedIds[1])).toBe(
-          false
-        );
+        expect(
+          resultWithoutArchived.some(
+            (t: { id: string }) => t.id === archivedIds[0]
+          )
+        ).toBe(false);
+        expect(
+          resultWithoutArchived.some(
+            (t: { id: string }) => t.id === archivedIds[1]
+          )
+        ).toBe(false);
       } finally {
         // Clean up your tasks
         await prisma.task.deleteMany({
