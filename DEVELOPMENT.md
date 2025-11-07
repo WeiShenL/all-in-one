@@ -2275,5 +2275,3 @@ This project uses a **hybrid architectural patterns** based on domain complexity
 - **Pattern**: Clean architecture with rich domain model
 
 For complete architecture details, implementation guide, and examples, see [OOP.md](./OOP.md).
-
-You can start editing by modifying `src/app/page.tsx`. The page auto-updates as you edit.

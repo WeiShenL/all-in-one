@@ -1,6 +1,6 @@
 # all-in-one
 
-A Next.js application with Supabase backend, designed for local development with Docker.
+A Smart Task Management System, developed for All-In-One, a leading digital transformation company.
 
 ## 🚀 Quick Start
 
@@ -93,15 +93,75 @@ npm run type-check        # TypeScript type checking
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: Next.js 15 with TypeScript, App Router, Tailwind CSS 4
-- **Backend**: Supabase (PostgreSQL, Auth, Storage, Realtime)
-- **API Layer**: tRPC 11 with Hybrid Architecture (OOP + DDD)
-- **Database ORM**: Prisma 6
-- **Email**: Resend API
-- **File Storage**: Supabase Storage
-- **Development**: Docker, Docker Compose
-- **Code Quality**: ESLint 9, Prettier 3, Husky pre-commit hooks
-- **Testing**: Jest 30, React Testing Library 16, Playwright
+<p align="center"><strong>UI</strong></p>
+<p align="center">
+<a href="https://react.dev/"><img src="https://upload.wikimedia.org/wikipedia/commons/a/a7/React-icon.svg" alt="React" height="50" width="50"/></a>&nbsp;&nbsp;
+<a href="https://www.typescriptlang.org"><img src="https://upload.wikimedia.org/wikipedia/commons/4/4c/Typescript_logo_2020.svg" alt="Typescript" height="50" width="50"/></a>&nbsp;&nbsp;
+<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript"><img src="https://upload.wikimedia.org/wikipedia/commons/6/6a/JavaScript-logo.png" alt="JavaScript" height="50" width="50"/></a>&nbsp;&nbsp;
+<a href="https://tailwindcss.com"><img src="https://upload.wikimedia.org/wikipedia/commons/d/d5/Tailwind_CSS_Logo.svg" alt="Tailwind" height="50" width="50"/></a>&nbsp;&nbsp;
+<a href="https://nextjs.org"><img src="https://www.svgrepo.com/show/354113/nextjs-icon.svg" alt="Next.js" height="50" width="50"/></a>&nbsp;&nbsp;
+<a href="https://nextjs.org/docs/app/api-reference/turbopack"><img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTAnox03Lsj1FgQTzP1Wfg5qpH7ZoImCSUc7g&s" alt="Next.js" height="50" width="50"/></a>&nbsp;&nbsp;
+<a href="https://supabase.com/"><img src="https://www.vectorlogo.zone/logos/supabase/supabase-icon.svg" alt="Supabase" height="50" width="50"/></a>&nbsp;&nbsp;
+<br>
+<i>React · Typescript · JavaScript · Tailwind CSS · Next.js · Turbopack · Supabase Auth</i>
+</p>
+<br>
+
+<p align="center"><strong>API Layer</strong></p>
+<p align="center">
+<a href="https://trpc.io"><img src="https://trpc.io/img/logo.svg" alt="tRPC" height="50" width="50"/></a>&nbsp;&nbsp;
+<br>
+<i>tRPC</i>
+</p>
+<br>
+
+<p align="center"><strong>Database</strong></p>
+<p align="center">
+<a href="https://www.prisma.io"><img src="https://raw.githubusercontent.com/prisma/presskit/main/Assets/Preview-Prisma-LightLogo.png" alt="Prisma" height="50"/></a>&nbsp;&nbsp;
+<a href="https://supabase.com/"><img src="https://www.vectorlogo.zone/logos/supabase/supabase-icon.svg" alt="Supabase" height="50" width="50" /></a>&nbsp;&nbsp;
+<br>
+<i>Prisma ORM · Supabase</i>
+</p>
+<br>
+
+<p align="center"><strong>DevSecOps</strong></p>
+<p align="center">
+<a href="https://github.com/features/actions"><img src="https://avatars.githubusercontent.com/u/44036562?s=200&v=4" alt="GitHub Actions" height="50" width="50" /></a>&nbsp;&nbsp;
+<a href="https://codeql.github.com"><img src="https://avatars.githubusercontent.com/u/87730430?s=200&v=4" alt="GitHub CodeQL" height="50" width="50" /></a>&nbsp;&nbsp;
+<a href="https://vercel.com"><img src="https://www.svgrepo.com/show/354513/vercel-icon.svg" alt="Vercel Deployment" height="50" width="50" /></a>&nbsp;&nbsp;
+<a href="https://gitleaks.io"><img src="https://gitleaks.io/logo.png" alt="Git Leaks" height="50" width="50" /></a>&nbsp;&nbsp;
+<a href="https://eslint.org"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/ESLint_logo.svg/1200px-ESLint_logo.svg.png" alt="ESLint 8" height="50" width="50" /></a>&nbsp;&nbsp;
+
+<br>
+<i>GitHub Actions · GitHub CodeQL · Vercel Deployment · GitLeaks · ESLint 8</i>
+</p>
+<br>
+
+<p align="center"><strong>Testing Frameworks</strong></p>
+<p align="center">
+<a href="https://jestjs.io"><img src="https://e7.pngegg.com/pngimages/755/519/png-clipart-jest-logo-tech-companies-thumbnail.png" alt="Jest" height="50" width="50" /></a>&nbsp;&nbsp;
+<a href="https://playwright.dev"><img src="https://playwright.dev/img/playwright-logo.svg" alt="Playwright" height="50" /></a>&nbsp;&nbsp;
+<br>
+<i>Jest · Playwright</i>
+</p>
+<br>
+
+<p align="center"><strong>External API</strong></p>
+<p align="center">
+<a href="https://resend.com"><img src="https://avatars.githubusercontent.com/u/109384852?s=280&v=4" alt="Resend" height="50" width="50"/></a>&nbsp;&nbsp;
+<br>
+<i>Resend API</i>
+</p>
+<br>
+
+<p align="center"><strong>Other Technologies</strong></p>
+<p align="center">
+<a href="https://www.docker.com/"><img src="https://upload.wikimedia.org/wikipedia/commons/4/4e/Docker_%28container_engine%29_logo.svg" alt="Docker" height="50" /></a>&nbsp;&nbsp;
+<a href="https://supabase.com/"><img src="https://www.vectorlogo.zone/logos/supabase/supabase-icon.svg" alt="Supabase" height="50" width="50" /></a>&nbsp;&nbsp;
+<br>
+<i>Docker Compose · Supabase Realtime</i>
+</p>
+<br>
 
 ## 🏗️ Architecture
 
