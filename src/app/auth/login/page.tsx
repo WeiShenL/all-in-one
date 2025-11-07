@@ -92,14 +92,6 @@ function LoginForm() {
     }
   };
 
-  const handleCreateAccount = () => {
-    router.push('/auth/signup');
-  };
-
-  const handlePasswordReset = () => {
-    router.push('/auth/reset-password');
-  };
-
   if (authLoading) {
     return (
       <div
@@ -353,102 +345,6 @@ function LoginForm() {
             {loading ? 'Signing In...' : 'Sign In'}
           </button>
         </form>
-
-        {/* Divider */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            margin: '1.5rem 0',
-          }}
-        >
-          <div
-            style={{ flex: 1, height: '1px', backgroundColor: '#e2e8f0' }}
-          ></div>
-          <span
-            style={{
-              padding: '0 0.75rem',
-              color: '#a0aec0',
-              fontSize: '0.875rem',
-            }}
-          >
-            or
-          </span>
-          <div
-            style={{ flex: 1, height: '1px', backgroundColor: '#e2e8f0' }}
-          ></div>
-        </div>
-
-        {/* Action Buttons */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.75rem',
-          }}
-        >
-          <button
-            onClick={handleCreateAccount}
-            style={{
-              width: '100%',
-              padding: '0.75rem',
-              backgroundColor: '#48bb78',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '0.875rem',
-              fontWeight: '600',
-              cursor: 'pointer',
-              transition: 'background-color 0.2s',
-            }}
-            onMouseEnter={e =>
-              (e.currentTarget.style.backgroundColor = '#38a169')
-            }
-            onMouseLeave={e =>
-              (e.currentTarget.style.backgroundColor = '#48bb78')
-            }
-          >
-            Create Account
-          </button>
-
-          <button
-            onClick={handlePasswordReset}
-            style={{
-              width: '100%',
-              padding: '0.75rem',
-              backgroundColor: 'transparent',
-              color: '#3182ce',
-              border: '1px solid #3182ce',
-              borderRadius: '8px',
-              fontSize: '0.875rem',
-              fontWeight: '600',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.backgroundColor = '#ebf8ff';
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-            }}
-          >
-            Reset Password
-          </button>
-        </div>
-
-        {/* <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
-          <Link
-            href='/'
-            style={{
-              color: '#3182ce',
-              textDecoration: 'none',
-              fontSize: '0.875rem',
-              fontWeight: '500',
-            }}
-          >
-            ← Back to Home
-          </Link>
-        </div> */}
       </div>
     </div>
   );
