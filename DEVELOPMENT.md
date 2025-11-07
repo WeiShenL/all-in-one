@@ -168,6 +168,14 @@ tests/
 
 ### Running Tests
 
+Note: Remember to run setup command with docker running first. (if using local deployment)
+
+```bash
+npm run dev:setup
+```
+
+Here are the commands:
+
 ```bash
 # Run ALL tests sequentially (Jest unit + integration + Playwright E2E)
 npm test

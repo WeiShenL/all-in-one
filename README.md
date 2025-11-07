@@ -189,6 +189,44 @@ This project uses a **Hybrid Backend Architecture** combining two patterns based
 
 For detailed architecture documentation, patterns, and implementation guide, see [OOP.md](./OOP.md).
 
+## 🧪 Testing
+
+This project uses a comprehensive testing strategy:
+
+- **Unit Tests** (Jest) - Fast, isolated component and utility tests
+- **Integration Tests** (Jest) - Database and API tests
+- **E2E Tests** (Playwright) - Full user flow tests
+
+### Quick Start
+
+Note: Remember to run setup command with docker running first. (if using local deployment)
+
+```bash
+npm run dev:setup
+```
+
+Here are the commands:
+
+```bash
+# Run ALL tests sequentially (unit → integration → E2E)
+npm test
+
+# Run only unit tests (fast, no database required)
+npm run test:unit
+
+# Run only integration tests (requires database)
+npm run test:integration
+
+# Run only E2E tests (requires database)
+npm run test:e2e
+npm run test:e2e:headed
+npm run test:e2e:ui
+npm run test:e2e:debug
+
+# Run tests with coverage
+npm run test:coverage
+```
+
 **For detailed information:**
 
 - Test structure and organization
