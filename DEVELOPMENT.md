@@ -99,6 +99,7 @@ Sample data is organized in `prisma/data/` directory:
 - `7_task_tags.json` - Task-tag relationships
 - `8_comments.json` - Sample comments on tasks
 - `9_task_logs.json` - Task activity logs
+- `10_project_collaborator.json` - Project collaborator relationships
 
 #### Running the Seed
 
@@ -122,21 +123,58 @@ Tests are organized in a dedicated `tests/` directory with clear separation:
 
 ```
 tests/
-├── unit/                    # Unit tests (fast, isolated)
-│   ├── components/         # React component tests
-│   │   └── auth/
-│   ├── lib/               # Utility function tests
-│   ├── hooks/             # React hooks tests
-│   └── services/          # Service class tests
-├── integration/           # Integration tests (database, API)
-│   ├── auth/              # Auth flow integration tests
-│   ├── database/          # Database operation tests
-│   └── realtime/          # Real-time notification tests
-└── e2e/                   # End-to-end tests (Playwright)
-    └── auth-flow.spec.ts  # Full authentication flow
+├── helpers/                          # Test utility functions
+│   └── taskTestHelpers.ts
+├── unit/                             # unit tests (fast, isolated)
+│   ├── app/                          # API & tRPC router tests
+│   │   ├── api/cron/                # Cron job endpoint tests
+│   │   └── server/
+│   │       ├── routers/             # tRPC router logic tests
+│   │       └── trpc/                # tRPC configuration tests
+│   ├── components/                   # React component tests
+│   │   ├── auth/                    # Authentication UI (EmailInput, PasswordInput, etc.)
+│   │   ├── Calendar/                # Calendar component + utilities
+│   │   │   └── utils/               # calendarHelpers, exportToICal, generateRecurringEvents
+│   │   ├── ProjectReport/           # Report generation components
+│   │   │   └── utils/               # exportProjectToPDF
+│   │   └── TaskTable/               # Task table components + utilities
+│   ├── context/                      # React Context providers
+│   ├── domain/                       # DDD Domain entity tests
+│   │   ├── project/                 # Project entity tests
+│   │   └── task/                    # Task entity tests (create, update, validation)
+│   ├── hooks/                        # Custom React hooks
+│   ├── lib/                          # Utility function tests
+│   │   ├── hooks/                   # Hook utilities
+│   │   └── supabase/                # Supabase integration
+│   ├── pages/                        # Page component tests
+│   ├── repositories/                 # Repository layer tests
+│   ├── services/                     # Service layer tests
+│   └── AuthorizationService.test.ts  # Root-level authorization tests
+├── integration/                      # integration tests (DB + API)
+│   ├── helpers/                      # Integration test utilities (dbSetup, trpcTestClient)
+│   ├── auth/                         # Authentication flow tests
+│   ├── database/                     # Database operation tests
+│   ├── notification/                 # Notification system tests
+│   ├── realtime/                     # Real-time features
+│   ├── task/                         # Task integration tests
+│   └── (root level)                  # Cross-cutting tests
+└── e2e/                              # E2E tests (full user flows)
+    ├── calendar/                     # Calendar feature tests
+    ├── hr-reports/                   # HR reporting tests
+    ├── task-creation/                # Task creation flows
+    ├── task-management/              # Task management flows
+    └── (root level)                  # Core flow tests
 ```
 
 ### Running Tests
+
+Note: Remember to run setup command with docker running first. (if using local deployment)
+
+```bash
+npm run dev:setup
+```
+
+Here are the commands:
 
 ```bash
 # Run ALL tests sequentially (Jest unit + integration + Playwright E2E)
@@ -2193,8 +2231,13 @@ all-in-one/
 │   │   │   ├── services/ # OOP Service Classes (simpler domains)
 │   │   │   ├── routers/  # tRPC routers (thin wrappers)
 │   │   │   ├── types/    # Shared TypeScript types
+│   │   │   ├── composition/ # Service Factory Pattern
 │   │   │   └── trpc.ts   # tRPC configuration
 │   │   └── ...           # Next.js app directory
+│   ├── lib/               # Utility Layer
+│   │   ├── context/      # React Context providers
+│   │   ├── hooks/        # Custom React hooks
+│   │   └── supabase/     # Supabase integration
 │   ├── domain/           # DDD Domain Layer (complex domains)
 │   │   └── task/         # Task domain (rich entities)
 │   │       ├── Task.ts            # Aggregate Root
@@ -2215,19 +2258,18 @@ all-in-one/
 │   ├── integration/      # Integration tests (database + services)
 │   └── e2e/              # End-to-end tests (Playwright)
 ├── supabase/             # Supabase Docker configuration
-├── OOP.md                # OOP & DDD Architecture documentation
 └── .env.example          # Environment template
 ```
 
 ### Backend Architecture (Hybrid: OOP + DDD)
 
-This project uses **two architectural patterns** based on domain complexity:
+This project uses a **hybrid architectural patterns** based on domain complexity:
 
 #### OOP Service Layer (Simpler Domains)
 
 - **Service Layer** (`src/app/server/services/`): TypeScript classes for business logic
 - **Router Layer** (`src/app/server/routers/`): Thin tRPC wrappers delegating to services
-- **Used for**: Department, UserProfile, Team, Project, Comment, Notification
+- **Used for**: Department, UserProfile, Team, Project, Comment, Notification, DashboardTaskService
 - **Pattern**: Anemic domain model with service layer orchestration
 
 #### Domain-Driven Design (Complex Domains)
@@ -2238,7 +2280,3 @@ This project uses **two architectural patterns** based on domain complexity:
 - **Presentation Layer** (`src/app/server/routers/`): tRPC API endpoints
 - **Used for**: Task Management (complex rules, rich behavior)
 - **Pattern**: Clean architecture with rich domain model
-
-For complete architecture details, implementation guide, and examples, see [OOP.md](./OOP.md).
-
-You can start editing by modifying `src/app/page.tsx`. The page auto-updates as you edit.
