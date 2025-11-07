@@ -2258,7 +2258,6 @@ all-in-one/
 │   ├── integration/      # Integration tests (database + services)
 │   └── e2e/              # End-to-end tests (Playwright)
 ├── supabase/             # Supabase Docker configuration
-├── OOP.md                # OOP & DDD Architecture documentation
 └── .env.example          # Environment template
 ```
 
@@ -2281,5 +2280,3 @@ This project uses a **hybrid architectural patterns** based on domain complexity
 - **Presentation Layer** (`src/app/server/routers/`): tRPC API endpoints
 - **Used for**: Task Management (complex rules, rich behavior)
 - **Pattern**: Clean architecture with rich domain model
-
-For complete architecture details, implementation guide, and examples, see [OOP.md](./OOP.md).

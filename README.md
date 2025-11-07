@@ -187,8 +187,6 @@ This project uses a **Hybrid Backend Architecture** combining two patterns based
 - **Type Safety**: Full TypeScript support across all layers
 - **Flexibility**: Choose architecture pattern based on domain complexity
 
-For detailed architecture documentation, patterns, and implementation guide, see [OOP.md](./OOP.md).
-
 ## 🧪 Testing
 
 This project uses a comprehensive testing strategy:
