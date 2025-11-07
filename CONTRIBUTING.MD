@@ -18,6 +18,46 @@ When submitting a pull request (PR), please adhere to the following guidelines:
 - If applicable, add tests to cover your changes.
 - PRs should not contain unnecessary commits. Squash commits where necessary.
 
+## Branching Strategy
+
+This project uses **GitHub Flow (feature-branching medium lived)**, a simple and effective branching strategy designed for continuous deployment.
+
+### Overview
+
+- **Main branch**: The `main` branch is the primary branch and should always be in a deployable state.
+- **Feature branches**: All new work is done in medium-lived feature branches created from `main`. Each branch has a sole focus. E.g. a user story, a bug fix ...
+- **Pull requests**: Changes are merged back to `main` via pull requests after manual review, DoD and CI/CD checks pass.
+
+### Workflow
+
+1. **Create a feature branch** from `main`:
+   ```bash
+   git checkout main
+   git pull origin main
+   git checkout -b SCRUM-42-feat-user-authentication
+   ```
+
+2. **Work on your feature** and commit changes following our [Semantic Commit Messages](#semantic-commit-messages) guidelines.
+
+3. **Keep your branch updated** by regularly rebasing or merging from `main`:
+   ```bash
+   git checkout main
+   git pull origin main
+   git checkout SCRUM-42-feat-user-authentication
+   git rebase main  # or git merge main
+   ```
+
+4. **Open a pull request** targeting `main` when your feature is ready for review.
+
+5. **After approval**, merge the PR into `main`. The branch can then be deleted.
+
+### Best Practices
+
+- Keep branches focused on a single feature, improvement, or bug fix.
+- Rebase frequently to minimize merge conflicts and keep history clean.
+- Delete branches after they've been merged to keep the repository tidy.
+- Never commit directly to `main` - all changes must go through pull requests, pass CICD checks, DOD and manual approval.
+
 ## Semantic Commit Messages
 
 We follow a structured commit message convention to maintain a clean and understandable commit history.
