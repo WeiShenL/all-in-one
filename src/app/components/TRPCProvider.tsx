@@ -25,9 +25,9 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
         defaultOptions: {
           queries: {
             // Cache configuration for optimal performance
-            staleTime: 30_000, // Data is fresh for 30 seconds
-            gcTime: 5 * 60_000, // Keep unused data in cache for 5 minutes (formerly cacheTime)
-            refetchOnWindowFocus: true, // Refetch when user returns to tab
+            staleTime: 5 * 60_000, // Data is fresh for 5 minutes
+            gcTime: 10 * 60_000, // Keep unused data in cache for 10 minutes (formerly cacheTime)
+            refetchOnWindowFocus: false, // Disable aggressive refetching
             refetchOnReconnect: true, // Refetch when internet reconnects
             retry: 1, // Retry failed requests once
             retryDelay: 1000, // Wait 1s before retry

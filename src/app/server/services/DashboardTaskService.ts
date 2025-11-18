@@ -1186,7 +1186,10 @@ export class DashboardTaskService extends BaseService {
    * @param managerId - Manager's user ID
    * @returns Dashboard data with tasks and metrics
    */
-  async getManagerDashboardTasks(managerId: string): Promise<DashboardData> {
+  async getManagerDashboardTasks(
+    managerId: string,
+    options?: { limit?: number; offset?: number }
+  ): Promise<DashboardData> {
     try {
       this.validateId(managerId, 'Manager ID');
 
@@ -1231,6 +1234,8 @@ export class DashboardTaskService extends BaseService {
             },
           ],
         },
+        take: options?.limit ?? 100,
+        skip: options?.offset ?? 0,
         select: {
           id: true,
           title: true,
@@ -1264,9 +1269,10 @@ export class DashboardTaskService extends BaseService {
             },
           },
         },
-        orderBy: {
-          dueDate: 'asc',
-        },
+        orderBy: [
+          { priority: 'desc' },
+          { dueDate: 'asc' },
+        ],
       });
 
       // Add canEdit field - all tasks are editable by managers (backward compatibility)
@@ -1296,7 +1302,10 @@ export class DashboardTaskService extends BaseService {
    * @param userId - User's ID
    * @returns Array of tasks with canEdit field
    */
-  async getDepartmentTasksForUser(userId: string) {
+  async getDepartmentTasksForUser(
+    userId: string,
+    options?: { limit?: number; offset?: number }
+  ) {
     try {
       this.validateId(userId, 'User ID');
 
@@ -1360,6 +1369,8 @@ export class DashboardTaskService extends BaseService {
             },
           ],
         },
+        take: options?.limit ?? 100,
+        skip: options?.offset ?? 0,
         include: {
           assignments: {
             select: {
@@ -1409,6 +1420,10 @@ export class DashboardTaskService extends BaseService {
               createdAt: true,
               updatedAt: true,
             },
+            orderBy: {
+              createdAt: 'desc',
+            },
+            take: 5,
           },
           owner: {
             select: {
@@ -1471,6 +1486,10 @@ export class DashboardTaskService extends BaseService {
                   createdAt: true,
                   updatedAt: true,
                 },
+                orderBy: {
+                  createdAt: 'desc',
+                },
+                take: 5,
               },
               owner: {
                 select: {
@@ -1482,9 +1501,10 @@ export class DashboardTaskService extends BaseService {
             },
           },
         },
-        orderBy: {
-          dueDate: 'asc',
-        },
+        orderBy: [
+          { priority: 'desc' },
+          { dueDate: 'asc' },
+        ],
       });
 
       // Use AuthorizationService to calculate canEdit for each task and subtask
@@ -1722,7 +1742,11 @@ export class DashboardTaskService extends BaseService {
    * Applies the same visibility rules as the department dashboard but
    * additionally filters by the provided projectId.
    */
-  async getProjectTasksForUser(userId: string, projectId: string) {
+  async getProjectTasksForUser(
+    userId: string,
+    projectId: string,
+    options?: { limit?: number; offset?: number }
+  ) {
     try {
       this.validateId(userId, 'User ID');
 
@@ -1758,6 +1782,8 @@ export class DashboardTaskService extends BaseService {
             },
           ],
         },
+        take: options?.limit ?? 100,
+        skip: options?.offset ?? 0,
         include: {
           assignments: {
             select: {
@@ -1791,6 +1817,10 @@ export class DashboardTaskService extends BaseService {
               createdAt: true,
               updatedAt: true,
             },
+            orderBy: {
+              createdAt: 'desc',
+            },
+            take: 5,
           },
           subtasks: {
             where: { isArchived: false },
@@ -1827,11 +1857,18 @@ export class DashboardTaskService extends BaseService {
                   createdAt: true,
                   updatedAt: true,
                 },
+                orderBy: {
+                  createdAt: 'desc',
+                },
+                take: 5,
               },
             },
           },
         },
-        orderBy: { dueDate: 'asc' },
+        orderBy: [
+          { priority: 'desc' },
+          { dueDate: 'asc' },
+        ],
       });
 
       // Calculate canEdit using AuthorizationService (same as department)
@@ -2050,6 +2087,8 @@ export class DashboardTaskService extends BaseService {
       assigneeId?: string;
       status?: 'TO_DO' | 'IN_PROGRESS' | 'COMPLETED' | 'BLOCKED';
       includeArchived?: boolean;
+      limit?: number;
+      offset?: number;
     }
   ) {
     this.validateId(userId, 'User ID');
@@ -2115,6 +2154,8 @@ export class DashboardTaskService extends BaseService {
     // Fetch all parent tasks matching filters
     const parentTasks = await this.prisma.task.findMany({
       where: whereClause,
+      take: filters?.limit ?? 100,
+      skip: filters?.offset ?? 0,
       include: {
         assignments: {
           select: {
@@ -2147,7 +2188,13 @@ export class DashboardTaskService extends BaseService {
             name: true,
           },
         },
-        owner: true,
+        owner: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
         tags: {
           include: {
             tag: {
@@ -2165,6 +2212,10 @@ export class DashboardTaskService extends BaseService {
             createdAt: true,
             updatedAt: true,
           },
+          orderBy: {
+            createdAt: 'desc',
+          },
+          take: 5,
         },
         // Fetch subtasks with full details
         subtasks: {
@@ -2227,13 +2278,18 @@ export class DashboardTaskService extends BaseService {
                 createdAt: true,
                 updatedAt: true,
               },
+              orderBy: {
+                createdAt: 'desc',
+              },
+              take: 5,
             },
           },
         },
       },
-      orderBy: {
-        dueDate: 'asc',
-      },
+      orderBy: [
+        { priority: 'desc' },
+        { dueDate: 'asc' },
+      ],
     });
 
     // Use AuthorizationService to calculate canEdit for each task

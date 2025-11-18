@@ -1,10 +1,11 @@
 'use client';
 
 import { useMemo, useState, useRef, memo } from 'react';
-import { Calendar, dateFnsLocalizer, View } from 'react-big-calendar';
+import dynamic from 'next/dynamic';
+import type { View } from 'react-big-calendar';
+import { dateFnsLocalizer } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { enUS } from 'date-fns/locale/en-US';
-import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { Task } from '../TaskTable/types';
 import { CalendarEvent } from './types';
 import { taskToEvent } from './utils/taskToEvent';
@@ -18,6 +19,19 @@ import {
   getPriorityColor,
   getOriginalTaskId,
 } from './utils/calendarHelpers';
+
+// Lazy load react-big-calendar Calendar component to reduce initial bundle size
+const Calendar = dynamic(() =>
+  import('react-big-calendar').then(mod => {
+    // Import CSS when loading the component
+    import('react-big-calendar/lib/css/react-big-calendar.css');
+    return mod.Calendar;
+  }),
+  {
+    loading: () => <div style={{ padding: '2rem', textAlign: 'center' }}>Loading calendar...</div>,
+    ssr: false,
+  }
+);
 
 const locales = {
   'en-US': enUS,

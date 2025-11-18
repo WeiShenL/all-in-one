@@ -3,6 +3,7 @@
  *
  * Exports project report data to Excel format using exceljs
  * Creates multi-sheet workbook with comprehensive project data
+ * Lazy loads ExcelJS to reduce initial bundle size
  *
  * Sheets:
  * 1. Overview - Project details
@@ -11,7 +12,6 @@
  * 4. Collaborators - Project collaborators
  */
 
-import ExcelJS from 'exceljs';
 import type { ProjectReportData } from '@/services/project/ProjectReportService';
 
 /**
@@ -46,6 +46,9 @@ export async function exportProjectToXLSX(
   data: ProjectReportData,
   filename?: string
 ): Promise<void> {
+  // Lazy load ExcelJS to reduce initial bundle size
+  const { default: ExcelJS } = await import('exceljs');
+
   // Create new workbook
   const workbook = new ExcelJS.Workbook();
 

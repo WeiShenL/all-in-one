@@ -6,10 +6,9 @@
  * Features:
  * - Barebones details now to show minimal implementation details
  * - Project overview with basic information
+ * - Lazy loads jsPDF and autoTable to reduce initial bundle size
  */
 
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import type { ProjectReportData } from '@/services/project/ProjectReportService';
 
 /**
@@ -380,10 +379,16 @@ function renderTaskSections(
  * @param data - Project report data from ProjectReportService
  * @param filename - Optional custom filename (default: ProjectName_Report.pdf)
  */
-export function exportProjectToPDF(
+export async function exportProjectToPDF(
   data: ProjectReportData,
   filename?: string
-): void {
+): Promise<void> {
+  // Lazy load jsPDF and autoTable to reduce initial bundle size
+  const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+    import('jspdf'),
+    import('jspdf-autotable'),
+  ]);
+
   // Create PDF document (A4, portrait)
   const doc = new jsPDF();
 
@@ -509,7 +514,13 @@ export function exportProjectToPDF(
  * Build a PDF Blob for preview (no auto-download)
  * Reuses the same content structure as exportProjectToPDF.
  */
-export function buildProjectReportPDFBlob(data: ProjectReportData): Blob {
+export async function buildProjectReportPDFBlob(data: ProjectReportData): Promise<Blob> {
+  // Lazy load jsPDF and autoTable
+  const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+    import('jspdf'),
+    import('jspdf-autotable'),
+  ]);
+
   const doc = new jsPDF();
 
   const pageWidth = doc.internal.pageSize.getWidth();

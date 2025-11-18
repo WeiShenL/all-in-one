@@ -1032,6 +1032,7 @@ export const taskRouter = router({
       const users = await ctx.prisma.userProfile.findMany({
         where: { id: { in: Array.from(allUserIds) } },
         select: { id: true, name: true, email: true, departmentId: true },
+        take: 500, // Reasonable limit for user lookups
       });
 
       // Get all unique department IDs (from tasks and from assignees)
@@ -1049,6 +1050,7 @@ export const taskRouter = router({
       const departments = await ctx.prisma.department.findMany({
         where: { id: { in: Array.from(departmentIds) } },
         select: { id: true, name: true },
+        take: 200, // Reasonable limit for department lookups
       });
       const userMap = new Map(users.map(u => [u.id, u]));
       const departmentMap = new Map(departments.map(d => [d.id, d]));
@@ -1066,6 +1068,7 @@ export const taskRouter = router({
       const projects = await ctx.prisma.project.findMany({
         where: { id: { in: Array.from(projectIds) } },
         select: { id: true, name: true },
+        take: 200, // Reasonable limit for project lookups
       });
 
       const projectMap = new Map(projects.map(p => [p.id, p]));

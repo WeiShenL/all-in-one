@@ -206,6 +206,11 @@ model Task {
   @@index([isArchived])
   @@index([createdAt])
   @@index([startDate])
+  // Composite indexes for common query patterns
+  @@index([isArchived, departmentId])
+  @@index([isArchived, status])
+  @@index([departmentId, status, isArchived])
+  @@index([isArchived, dueDate])
   @@map("task")
 }
 
@@ -222,6 +227,8 @@ model TaskAssignment {
 
   @@id([taskId, userId])
   @@index([assignedById])
+  @@index([userId])
+  @@index([userId, taskId])
   @@map("task_assignment")
 }
 

@@ -1,11 +1,25 @@
 'use client';
 
 import { useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { useAuth } from '@/lib/supabase/auth-context';
 import { useDashboard } from '@/lib/context/DashboardContext';
-import { PersonalDashboard } from './PersonalDashboard';
-import { DepartmentDashboard } from './DepartmentDashboard';
-import { CompanyDashboard } from './CompanyDashboard';
+
+// Lazy load dashboard components for better performance
+const PersonalDashboard = dynamic(
+  () => import('./PersonalDashboard').then(mod => ({ default: mod.PersonalDashboard })),
+  { loading: () => <div style={{ padding: '2rem', textAlign: 'center' }}>Loading dashboard...</div> }
+);
+
+const DepartmentDashboard = dynamic(
+  () => import('./DepartmentDashboard').then(mod => ({ default: mod.DepartmentDashboard })),
+  { loading: () => <div style={{ padding: '2rem', textAlign: 'center' }}>Loading dashboard...</div> }
+);
+
+const CompanyDashboard = dynamic(
+  () => import('./CompanyDashboard').then(mod => ({ default: mod.CompanyDashboard })),
+  { loading: () => <div style={{ padding: '2rem', textAlign: 'center' }}>Loading dashboard...</div> }
+);
 
 export function UnifiedDashboard() {
   const { user, userProfile } = useAuth();
