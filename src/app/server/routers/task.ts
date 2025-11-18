@@ -67,6 +67,124 @@ function serializeTask(task: Task) {
   };
 }
 
+/**
+ * Helper function to fetch task assignment details with departments and calculate permissions
+ * Combines user profile fetching into a single query to eliminate N+1 queries
+ * Shared between getById and getTaskEditingData
+ */
+async function getTaskAssignmentDetails(
+  ctx: Context,
+  task: Task,
+  user: UserContext,
+  departmentIds: string[]
+) {
+  const assigneeIds = Array.from(task.getAssignees());
+
+  // Single combined query to fetch all user profile data (fixes N+1 issue)
+  const userProfiles = await ctx.prisma.userProfile.findMany({
+    where: { id: { in: assigneeIds } },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      departmentId: true,
+      department: { select: { id: true, name: true } },
+    },
+  });
+
+  // Build maps for efficient lookup
+  const userMap = new Map(userProfiles.map(u => [u.id, u]));
+  const assignmentsWithDetails = assigneeIds.map(userId => ({
+    userId,
+    user: userMap.get(userId) || { id: userId, name: null, email: null },
+  }));
+
+  // Get unique department IDs from all assignees for permission check
+  const assigneeDepartmentIds = [
+    ...new Set(
+      userProfiles
+        .map(up => up.departmentId)
+        .filter((deptId): deptId is string => deptId !== null)
+    ),
+  ];
+
+  // Import AuthorizationService
+  const { AuthorizationService } = await import('../services/AuthorizationService');
+  const authService = new AuthorizationService();
+
+  // Calculate canEdit permission with assignee department IDs
+  const canEdit = authService.canEditTask(
+    {
+      departmentId: task.getDepartmentId(),
+      assignments: assigneeIds.map(userId => ({ userId })),
+    },
+    {
+      userId: user.userId,
+      role: user.role,
+      departmentId: user.departmentId,
+    },
+    departmentIds,
+    assigneeDepartmentIds
+  );
+
+  // Build involvedDepartments - unique departments from assignees with parent first
+  let taskDeptId: string | null = task.getDepartmentId();
+
+  // If task has no department, try to get it from the task's project
+  if (!taskDeptId) {
+    const taskWithProject = await ctx.prisma.task.findUnique({
+      where: { id: task.getId() },
+      select: {
+        projectId: true,
+        project: { select: { departmentId: true } },
+      },
+    });
+    taskDeptId = taskWithProject?.project?.departmentId ?? null;
+  }
+
+  const deptMap = new Map<
+    string,
+    { id: string; name: string; isActive?: boolean }
+  >();
+
+  // Check if parent department has any actual assignees
+  const hasParentAssignee = userProfiles.some(
+    up => up.departmentId === taskDeptId
+  );
+
+  // Always include parent department if task has one, mark as inactive if no assignees
+  if (taskDeptId) {
+    const parentDept = await ctx.prisma.department.findUnique({
+      where: { id: taskDeptId },
+      select: { id: true, name: true },
+    });
+    if (parentDept) {
+      deptMap.set(taskDeptId, {
+        ...parentDept,
+        isActive: hasParentAssignee,
+      });
+    }
+  }
+
+  // Add all other unique departments from assignees (all active)
+  for (const up of userProfiles) {
+    if (up.department && !deptMap.has(up.department.id)) {
+      deptMap.set(up.department.id, {
+        ...up.department,
+        isActive: true,
+      });
+    }
+  }
+
+  const involvedDepartments = Array.from(deptMap.values());
+
+  return {
+    assignmentsWithDetails,
+    involvedDepartments,
+    canEdit,
+  };
+}
+
 // Input validation schemas
 const updateTitleSchema = z.object({
   taskId: z.string().uuid(),
@@ -583,110 +701,9 @@ export const taskRouter = router({
       const departmentIds =
         await dashboardTaskService.getSubordinateDepartments(user.departmentId);
 
-      // Fetch user details for assignments
-      const assigneeIds = Array.from(task.getAssignees());
-      const users = await ctx.prisma.userProfile.findMany({
-        where: { id: { in: assigneeIds } },
-        select: { id: true, name: true, email: true },
-      });
-
-      const userMap = new Map(users.map(u => [u.id, u]));
-      const assignmentsWithDetails = assigneeIds.map(userId => ({
-        userId,
-        user: userMap.get(userId) || { id: userId, name: null, email: null },
-      }));
-
-      // Fetch user profiles with department info in a single query
-      const userProfiles = await ctx.prisma.userProfile.findMany({
-        where: { id: { in: assigneeIds } },
-        select: {
-          id: true,
-          departmentId: true,
-          department: { select: { id: true, name: true } },
-        },
-      });
-
-      // Get unique department IDs from all assignees for permission check
-      const assigneeDepartmentIds = [
-        ...new Set(
-          userProfiles
-            .map(up => up.departmentId)
-            .filter((deptId): deptId is string => deptId !== null)
-        ),
-      ];
-
-      // Import AuthorizationService
-      const { AuthorizationService } = await import(
-        '../services/AuthorizationService'
-      );
-      const authService = new AuthorizationService();
-
-      // Calculate canEdit permission with assignee department IDs
-      const canEdit = authService.canEditTask(
-        {
-          departmentId: task.getDepartmentId(),
-          assignments: Array.from(task.getAssignees()).map(userId => ({
-            userId,
-          })),
-        },
-        {
-          userId: user.userId,
-          role: user.role,
-          departmentId: user.departmentId,
-        },
-        departmentIds,
-        assigneeDepartmentIds // Pass assignee departments for accurate permission check
-      );
-
-      // Build involvedDepartments - unique departments from assignees with parent first
-      let taskDeptId: string | null = task.getDepartmentId();
-
-      // If task has no department, try to get it from the task's project
-      if (!taskDeptId) {
-        const taskWithProject = await ctx.prisma.task.findUnique({
-          where: { id: input.taskId },
-          select: {
-            projectId: true,
-            project: { select: { departmentId: true } },
-          },
-        });
-        taskDeptId = taskWithProject?.project?.departmentId ?? null;
-      }
-
-      const deptMap = new Map<
-        string,
-        { id: string; name: string; isActive?: boolean }
-      >();
-
-      // Check if parent department has any actual assignees (before adding fake profile)
-      const hasParentAssignee = userProfiles.some(
-        up => up.departmentId === taskDeptId
-      );
-
-      // Always include parent department if task has one, mark as inactive if no assignees
-      if (taskDeptId) {
-        const parentDept = await ctx.prisma.department.findUnique({
-          where: { id: taskDeptId },
-          select: { id: true, name: true },
-        });
-        if (parentDept) {
-          deptMap.set(taskDeptId, {
-            ...parentDept,
-            isActive: hasParentAssignee,
-          });
-        }
-      }
-
-      // Add all other unique departments from assignees (all active)
-      for (const up of userProfiles) {
-        if (up.department && !deptMap.has(up.department.id)) {
-          deptMap.set(up.department.id, {
-            ...up.department,
-            isActive: true,
-          });
-        }
-      }
-      const involvedDepartments = Array.from(deptMap.values());
+      // Use shared helper to get assignment details (fixes N+1 query)
+      const { assignmentsWithDetails, involvedDepartments, canEdit } =
+        await getTaskAssignmentDetails(ctx, task, user, departmentIds);
 
       return {
         ...serializeTask(task),
@@ -708,7 +725,7 @@ export const taskRouter = router({
         buildServices(ctx);
       const dashboardTaskService = getDashboardTaskService();
 
-      // 1. Get task details (reuse existing logic from getById)
+      // 1. Get task details
       const task = await service.getTaskById(input.taskId, user);
       if (!task) {
         return null;
@@ -718,110 +735,9 @@ export const taskRouter = router({
       const departmentIds =
         await dashboardTaskService.getSubordinateDepartments(user.departmentId);
 
-      // Fetch user details for assignments
-      const assigneeIds = Array.from(task.getAssignees());
-      const users = await ctx.prisma.userProfile.findMany({
-        where: { id: { in: assigneeIds } },
-        select: { id: true, name: true, email: true },
-      });
-
-      const userMap = new Map(users.map(u => [u.id, u]));
-      const assignmentsWithDetails = assigneeIds.map(userId => ({
-        userId,
-        user: userMap.get(userId) || { id: userId, name: null, email: null },
-      }));
-
-      // Fetch user profiles with department info in a single query
-      const userProfiles = await ctx.prisma.userProfile.findMany({
-        where: { id: { in: assigneeIds } },
-        select: {
-          id: true,
-          departmentId: true,
-          department: { select: { id: true, name: true } },
-        },
-      });
-
-      // Get unique department IDs from all assignees for permission check
-      const assigneeDepartmentIds = [
-        ...new Set(
-          userProfiles
-            .map(up => up.departmentId)
-            .filter((deptId): deptId is string => deptId !== null)
-        ),
-      ];
-
-      // Import AuthorizationService
-      const { AuthorizationService } = await import(
-        '../services/AuthorizationService'
-      );
-      const authService = new AuthorizationService();
-
-      // Calculate canEdit permission with assignee department IDs
-      const canEdit = authService.canEditTask(
-        {
-          departmentId: task.getDepartmentId(),
-          assignments: Array.from(task.getAssignees()).map(userId => ({
-            userId,
-          })),
-        },
-        {
-          userId: user.userId,
-          role: user.role,
-          departmentId: user.departmentId,
-        },
-        departmentIds,
-        assigneeDepartmentIds // Pass assignee departments for accurate permission check
-      );
-
-      // Build involvedDepartments - unique departments from assignees with parent first
-      let taskDeptId: string | null = task.getDepartmentId();
-
-      // If task has no department, try to get it from the task's project
-      if (!taskDeptId) {
-        const taskWithProject = await ctx.prisma.task.findUnique({
-          where: { id: input.taskId },
-          select: {
-            projectId: true,
-            project: { select: { departmentId: true } },
-          },
-        });
-        taskDeptId = taskWithProject?.project?.departmentId ?? null;
-      }
-
-      const deptMap = new Map<
-        string,
-        { id: string; name: string; isActive?: boolean }
-      >();
-
-      // Check if parent department has any actual assignees (before adding fake profile)
-      const hasParentAssignee = userProfiles.some(
-        up => up.departmentId === taskDeptId
-      );
-
-      // Always include parent department if task has one, mark as inactive if no assignees
-      if (taskDeptId) {
-        const parentDept = await ctx.prisma.department.findUnique({
-          where: { id: taskDeptId },
-          select: { id: true, name: true },
-        });
-        if (parentDept) {
-          deptMap.set(taskDeptId, {
-            ...parentDept,
-            isActive: hasParentAssignee,
-          });
-        }
-      }
-
-      // Add all other unique departments from assignees (all active)
-      for (const up of userProfiles) {
-        if (up.department && !deptMap.has(up.department.id)) {
-          deptMap.set(up.department.id, {
-            ...up.department,
-            isActive: true,
-          });
-        }
-      }
-      const involvedDepartments = Array.from(deptMap.values());
+      // Use shared helper to get assignment details (fixes N+1 query and code duplication)
+      const { assignmentsWithDetails, involvedDepartments, canEdit } =
+        await getTaskAssignmentDetails(ctx, task, user, departmentIds);
 
       const taskData = {
         ...serializeTask(task),
@@ -1361,13 +1277,22 @@ export const taskRouter = router({
    * Returns tasks with canEdit field based on user role and assignment
    * For Department Dashboard
    */
-  getDepartmentTasksForUser: protectedProcedure.query(async ({ ctx }) => {
-    // ctx.session.user.id is available from authenticated session
-    const userId = ctx.session.user.id;
-    const { getDashboardTaskService } = buildServices(ctx);
-    const dashboardTaskService = getDashboardTaskService();
-    return await dashboardTaskService.getDepartmentTasksForUser(userId);
-  }),
+  getDepartmentTasksForUser: protectedProcedure
+    .input(
+      z
+        .object({
+          limit: z.number().min(1).max(500).optional().default(100),
+          offset: z.number().min(0).optional().default(0),
+        })
+        .optional()
+    )
+    .query(async ({ ctx, input }) => {
+      // ctx.session.user.id is available from authenticated session
+      const userId = ctx.session.user.id;
+      const { getDashboardTaskService } = buildServices(ctx);
+      const dashboardTaskService = getDashboardTaskService();
+      return await dashboardTaskService.getDepartmentTasksForUser(userId, input);
+    }),
 
   /**
    * Get available parent tasks for task creation
@@ -1428,6 +1353,8 @@ export const taskRouter = router({
           .enum(['TO_DO', 'IN_PROGRESS', 'COMPLETED', 'BLOCKED'])
           .optional(),
         includeArchived: z.boolean().optional().default(false),
+        limit: z.number().min(1).max(500).optional().default(100),
+        offset: z.number().min(0).optional().default(0),
       })
     )
     .query(async ({ ctx, input }) => {
