@@ -77,11 +77,6 @@ export function taskToEvent(task: TaskFromAPI): CalendarEvent {
   const dueDate = new Date(task.dueDate);
   const startDate = task.startDate ? new Date(task.startDate) : null;
 
-  // console.log('📅 [CALENDAR] taskToEvent:', task.title);
-  // console.log('📅 [CALENDAR] Due date string from API:', task.dueDate);
-  // console.log('📅 [CALENDAR] Due date as Date object:', dueDate);
-  // console.log('📅 [CALENDAR] Due date local string:', dueDate.toLocaleString('en-SG', { timeZone: 'Asia/Singapore' }));
-
   // Handle overdue tasks (started after deadline)
   let displayStart: Date;
   let displayEnd: Date;

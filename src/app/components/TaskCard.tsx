@@ -416,8 +416,6 @@ export function TaskCard({
       return; // All user details already available
     }
 
-    // console.log('Fetching user details for:', missingUserIds);
-
     // Fetch details for each missing user using the existing getById endpoint
     const newUserMap = new Map(userDetailsMap);
 
@@ -435,7 +433,6 @@ export function TaskCard({
 
           if (response.ok) {
             const data = await response.json();
-            // console.log(`User details for ${userId}:`, data);
             if (data.result?.data) {
               newUserMap.set(userId, {
                 name: data.result.data.name,
@@ -444,7 +441,6 @@ export function TaskCard({
                 isHrAdmin: data.result.data.isHrAdmin,
                 department: data.result.data.department,
               });
-              //   console.log(`Successfully loaded user: ${data.result.data.name} (${data.result.data.email})`);
               break; // Success, exit retry loop
             } else {
               console.warn(`No data returned for user ${userId}:`, data);

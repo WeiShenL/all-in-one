@@ -33,6 +33,18 @@ export function useSessionTimeout({
   const warningShownRef = useRef<boolean>(false);
   const lastActivityRef = useRef<number>(Date.now());
 
+  // Use refs to avoid excessive re-renders and memory leaks
+  const addNotificationRef = useRef(addNotification);
+  const dismissNotificationRef = useRef(dismissNotification);
+  const notificationsRef = useRef(notifications);
+
+  // Keep refs in sync
+  useEffect(() => {
+    addNotificationRef.current = addNotification;
+    dismissNotificationRef.current = dismissNotification;
+    notificationsRef.current = notifications;
+  }, [addNotification, dismissNotification, notifications]);
+
   const clearTimers = useCallback(() => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
@@ -67,9 +79,9 @@ export function useSessionTimeout({
     // Clear warning notification if user became active
     if (warningShownRef.current) {
       // Dismiss all warning notifications with animation
-      notifications.forEach(notification => {
+      notificationsRef.current.forEach(notification => {
         if (notification.type === 'warning') {
-          dismissNotification(notification.id);
+          dismissNotificationRef.current(notification.id);
         }
       });
       warningShownRef.current = false;
@@ -85,20 +97,13 @@ export function useSessionTimeout({
     // Set warning timeout (1 minute before logout)
     warningRef.current = setTimeout(() => {
       warningShownRef.current = true;
-      addNotification(
+      addNotificationRef.current(
         'warning',
         'Inactivity Warning',
         'Your session will expire soon due to inactivity. Move your mouse or press a key to stay logged in.'
       );
     }, WARNING_TIMEOUT);
-  }, [
-    enabled,
-    handleLogout,
-    clearTimers,
-    addNotification,
-    notifications,
-    dismissNotification,
-  ]);
+  }, [enabled, handleLogout, clearTimers]);
 
   useEffect(() => {
     if (!enabled) {
@@ -142,7 +147,7 @@ export function useSessionTimeout({
       // Set warning timeout (1 minute before logout)
       warningRef.current = setTimeout(() => {
         warningShownRef.current = true;
-        addNotification(
+        addNotificationRef.current(
           'warning',
           'Inactivity Warning',
           'Your session will expire soon due to inactivity. Move your mouse or press a key to stay logged in.'

@@ -51,17 +51,12 @@ export function generateRecurringEvents(
   // ⚠️ FIX: Don't generate forecast occurrences for COMPLETED tasks
   // Completed tasks already created their next instance via backend
   if (baseEvent.resource.status === 'COMPLETED') {
-    // console.log('🔄 [FORECAST] Skipping forecasts for completed task:', baseEvent.title);
     return [baseEvent]; // Only show the completed task itself, no forecasts
   }
 
   // Generate recurring events (capped at 2 total instances)
   // Shows original + 1 forecast to keep calendar clean
   const events: CalendarEvent[] = [];
-
-  // console.log('🔄 [FORECAST] Task:', baseEvent.title);
-  // console.log('🔄 [FORECAST] Original: start =', baseEvent.start.toISOString(), ', end =', baseEvent.end.toISOString());
-  // console.log('🔄 [FORECAST] Interval:', recurringInterval, 'days');
 
   let i = 0;
   const continueGenerating = true;
@@ -74,12 +69,6 @@ export function generateRecurringEvents(
 
     // First occurrence keeps original ID, subsequent ones get unique IDs
     const eventId = i === 0 ? baseEvent.id : `${baseEvent.id}-recur-${i}`;
-
-    if (i === 0) {
-      // console.log('🔄 [FORECAST] #0 Real task:', newStart.toISOString(), '→', newEnd.toISOString());
-    } else {
-      // console.log('🔄 [FORECAST] #' + i + ' Forecast:', newStart.toISOString(), '→', newEnd.toISOString());
-    }
 
     events.push({
       id: eventId,
@@ -94,6 +83,5 @@ export function generateRecurringEvents(
     i++;
   }
 
-  // console.log('🔄 [FORECAST] Total events generated:', events.length);
   return events;
 }

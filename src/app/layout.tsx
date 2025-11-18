@@ -4,6 +4,7 @@ import { TRPCProvider } from './components/TRPCProvider';
 import { AuthProvider } from '../lib/supabase/auth-context';
 import { NotificationProvider } from '../lib/context/NotificationContext';
 import { ToastContainer } from './components/ToastContainer';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -42,14 +43,16 @@ export default function RootLayout({
         />
       </head>
       <body className={inter.className} style={{ margin: 0, padding: 0 }}>
-        <AuthProvider>
-          <TRPCProvider>
-            <NotificationProvider autoRemoveDelay={60000}>
-              {children}
-              <ToastContainer />
-            </NotificationProvider>
-          </TRPCProvider>
-        </AuthProvider>
+        <ErrorBoundary>
+          <AuthProvider>
+            <TRPCProvider>
+              <NotificationProvider autoRemoveDelay={60000}>
+                {children}
+                <ToastContainer />
+              </NotificationProvider>
+            </TRPCProvider>
+          </AuthProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );
