@@ -265,6 +265,12 @@ test.describe('Project Report Export - Download Functionality', () => {
       page.getByRole('heading', { name: /HR Admin Dashboard/i })
     ).toBeVisible({ timeout: 65000 });
 
+    // Click System Reports button to show project selection
+    const reportsButton = page.getByText('System Reports');
+    await expect(reportsButton).toBeVisible({ timeout: 65000 });
+    await reportsButton.click();
+    await page.waitForTimeout(1000);
+
     // Find and select the test project
     const projectDropdown = page.getByTestId('project-select-dropdown');
     await expect(projectDropdown).toBeVisible({ timeout: 65000 });
@@ -337,6 +343,12 @@ test.describe('Project Report Export - Download Functionality', () => {
     await expect(
       page.getByRole('heading', { name: /HR Admin Dashboard/i })
     ).toBeVisible({ timeout: 65000 });
+
+    // Click System Reports button to show project selection
+    const reportsButton = page.getByText('System Reports');
+    await expect(reportsButton).toBeVisible({ timeout: 65000 });
+    await reportsButton.click();
+    await page.waitForTimeout(1000);
 
     // Find and select the test project
     const projectDropdown = page.getByTestId('project-select-dropdown');

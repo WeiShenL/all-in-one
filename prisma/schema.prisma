@@ -211,6 +211,10 @@ model Task {
   @@index([isArchived, status])
   @@index([departmentId, status, isArchived])
   @@index([isArchived, dueDate])
+  // NEW: Optimized indexes for dashboard queries
+  @@index([isArchived, parentTaskId, departmentId]) // getDepartmentTasksForUser filter
+  @@index([parentTaskId, isArchived, status]) // Company dashboard with status filter
+  @@index([projectId, isArchived, status]) // Project dashboard queries
   @@map("task")
 }
 

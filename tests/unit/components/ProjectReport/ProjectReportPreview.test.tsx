@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { ProjectReportPreview } from '@/app/components/ProjectReport/ProjectReportPreview';
 
 // Mock PDF builder to avoid heavy work
@@ -54,14 +54,17 @@ describe('ProjectReportPreview', () => {
     });
   });
 
-  it('renders header and iframe when data is loaded', () => {
+  it('renders header and iframe when data is loaded', async () => {
     render(<ProjectReportPreview projectId='p1' />);
 
     expect(screen.getByText('Report Preview')).toBeInTheDocument();
-    // We cannot easily assert blob URL, but iframe should exist
-    expect(
-      document.querySelector('iframe[title="Project Report Preview"]')
-    ).toBeTruthy();
+
+    // Wait for async PDF generation to complete
+    await waitFor(() => {
+      expect(
+        document.querySelector('iframe[title="Project Report Preview"]')
+      ).toBeInTheDocument();
+    });
   });
 
   it('shows loading state', () => {

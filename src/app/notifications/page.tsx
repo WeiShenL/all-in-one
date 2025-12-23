@@ -20,8 +20,8 @@ export default function NotificationsPage() {
     { userId: user?.id || '' },
     {
       enabled: !!user?.id,
-      refetchInterval: 10000, // Refetch every 10 seconds
-      refetchOnWindowFocus: true,
+      // Remove aggressive polling - realtime handles updates
+      refetchOnWindowFocus: false,
     }
   );
 

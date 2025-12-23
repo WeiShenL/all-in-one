@@ -87,8 +87,9 @@ describe('useUnreadNotificationCount', () => {
         { userId: 'user-123' },
         expect.objectContaining({
           enabled: true,
-          refetchInterval: 30000,
-          refetchOnWindowFocus: true,
+          staleTime: Infinity,
+          refetchOnWindowFocus: false,
+          refetchOnMount: false,
         })
       );
     });
@@ -200,8 +201,19 @@ describe('useUnreadNotificationCount', () => {
 
   describe('Realtime Notification Integration', () => {
     it('should refetch when new notification arrives', () => {
-      const { rerender } = renderHook(() => useUnreadNotificationCount());
+      // Start with count of 5
+      mockUseQuery.mockReturnValue({
+        data: { count: 5 },
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+      });
 
+      const { result, rerender } = renderHook(() =>
+        useUnreadNotificationCount()
+      );
+
+      expect(result.current.count).toBe(5);
       expect(mockRefetch).not.toHaveBeenCalled();
 
       // Simulate new notification
@@ -219,7 +231,9 @@ describe('useUnreadNotificationCount', () => {
 
       rerender();
 
-      expect(mockRefetch).toHaveBeenCalled();
+      // New behavior: count increments locally, no DB refetch
+      expect(result.current.count).toBe(6);
+      expect(mockRefetch).not.toHaveBeenCalled();
     });
 
     it('should not refetch when lastNotificationTime is 0', () => {
@@ -241,7 +255,19 @@ describe('useUnreadNotificationCount', () => {
     });
 
     it('should refetch on multiple notification updates', () => {
-      const { rerender } = renderHook(() => useUnreadNotificationCount());
+      // Start with count of 5
+      mockUseQuery.mockReturnValue({
+        data: { count: 5 },
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+      });
+
+      const { result, rerender } = renderHook(() =>
+        useUnreadNotificationCount()
+      );
+
+      expect(result.current.count).toBe(5);
 
       // First notification
       mockUseNotifications.mockReturnValue({
@@ -257,7 +283,9 @@ describe('useUnreadNotificationCount', () => {
       });
       rerender();
 
-      expect(mockRefetch).toHaveBeenCalledTimes(1);
+      // New behavior: count increments locally, no DB refetch
+      expect(result.current.count).toBe(6);
+      expect(mockRefetch).not.toHaveBeenCalled();
 
       // Second notification
       mockUseNotifications.mockReturnValue({
@@ -273,7 +301,9 @@ describe('useUnreadNotificationCount', () => {
       });
       rerender();
 
-      expect(mockRefetch).toHaveBeenCalledTimes(2);
+      // Count should increment again (6 -> 7), no DB refetch
+      expect(result.current.count).toBe(7);
+      expect(mockRefetch).not.toHaveBeenCalled();
     });
   });
 
@@ -315,13 +345,16 @@ describe('useUnreadNotificationCount', () => {
     });
 
     it('should refetch count from database after reset', () => {
+      const setItemSpy = jest.spyOn(Storage.prototype, 'setItem');
       const { result } = renderHook(() => useUnreadNotificationCount());
 
       act(() => {
         result.current.resetCount();
       });
 
-      expect(mockRefetch).toHaveBeenCalled();
+      // New behavior: resetCount sets to 0 locally, no DB refetch
+      expect(setItemSpy).toHaveBeenCalledWith('unreadNotificationCount', '0');
+      setItemSpy.mockRestore();
     });
 
     it('should maintain stable resetCount reference', () => {
@@ -439,24 +472,25 @@ describe('useUnreadNotificationCount', () => {
   });
 
   describe('Query Configuration', () => {
-    it('should refetch every 30 seconds', () => {
+    it('should use infinite stale time (no polling)', () => {
       renderHook(() => useUnreadNotificationCount());
 
       expect(mockUseQuery).toHaveBeenCalledWith(
         expect.any(Object),
         expect.objectContaining({
-          refetchInterval: 30000,
+          staleTime: Infinity,
+          refetchOnMount: false,
         })
       );
     });
 
-    it('should refetch on window focus', () => {
+    it('should not refetch on window focus (performance optimization)', () => {
       renderHook(() => useUnreadNotificationCount());
 
       expect(mockUseQuery).toHaveBeenCalledWith(
         expect.any(Object),
         expect.objectContaining({
-          refetchOnWindowFocus: true,
+          refetchOnWindowFocus: false,
         })
       );
     });

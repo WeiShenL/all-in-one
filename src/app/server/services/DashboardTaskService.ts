@@ -1401,7 +1401,7 @@ export class DashboardTaskService extends BaseService {
             },
           },
           tags: {
-            include: {
+            select: {
               tag: {
                 select: {
                   name: true,
@@ -1409,19 +1409,8 @@ export class DashboardTaskService extends BaseService {
               },
             },
           },
-          comments: {
-            select: {
-              id: true,
-              content: true,
-              userId: true,
-              createdAt: true,
-              updatedAt: true,
-            },
-            orderBy: {
-              createdAt: 'desc',
-            },
-            take: 5,
-          },
+          // Remove comments - not displayed in dashboard table view
+          // comments can be fetched when task detail modal opens
           owner: {
             select: {
               id: true,
@@ -1429,65 +1418,33 @@ export class DashboardTaskService extends BaseService {
               email: true,
             },
           },
-          // Fetch subtasks with full details
+          // Simplified subtasks - only count and basic status
           subtasks: {
             where: {
               isArchived: false,
             },
-            include: {
+            select: {
+              id: true,
+              title: true,
+              status: true,
+              dueDate: true,
+              priority: true,
+              departmentId: true,
+              ownerId: true,
+              recurringInterval: true,
+              startDate: true,
+              // Minimal assignment data for canEdit calculation
               assignments: {
                 select: {
                   userId: true,
                   user: {
                     select: {
-                      id: true,
-                      name: true,
-                      email: true,
                       departmentId: true,
-                      department: {
-                        select: {
-                          id: true,
-                          name: true,
-                        },
-                      },
                     },
                   },
                 },
               },
-              department: {
-                select: {
-                  id: true,
-                  name: true,
-                },
-              },
-              project: {
-                select: {
-                  id: true,
-                  name: true,
-                },
-              },
-              tags: {
-                include: {
-                  tag: {
-                    select: {
-                      name: true,
-                    },
-                  },
-                },
-              },
-              comments: {
-                select: {
-                  id: true,
-                  content: true,
-                  userId: true,
-                  createdAt: true,
-                  updatedAt: true,
-                },
-                orderBy: {
-                  createdAt: 'desc',
-                },
-                take: 5,
-              },
+              // Essential relations but no deep nesting
               owner: {
                 select: {
                   id: true,
@@ -1495,6 +1452,19 @@ export class DashboardTaskService extends BaseService {
                   email: true,
                 },
               },
+              tags: {
+                select: {
+                  tag: {
+                    select: {
+                      name: true,
+                    },
+                  },
+                },
+              },
+              // No comments for subtasks in list view
+            },
+            orderBy: {
+              createdAt: 'asc',
             },
           },
         },
@@ -1556,13 +1526,7 @@ export class DashboardTaskService extends BaseService {
           return {
             ...subtask,
             tags: subtask.tags.map(t => t.tag.name),
-            comments: subtask.comments.map(c => ({
-              id: c.id,
-              content: c.content,
-              authorId: c.userId,
-              createdAt: c.createdAt,
-              updatedAt: c.updatedAt,
-            })),
+            comments: [], // No comments loaded for subtasks in list view
             owner: subtask.owner || {
               id: subtask.ownerId,
               name: null,
@@ -1578,13 +1542,7 @@ export class DashboardTaskService extends BaseService {
         return {
           ...task,
           tags: task.tags.map(t => t.tag.name),
-          comments: task.comments.map(c => ({
-            id: c.id,
-            content: c.content,
-            authorId: c.userId,
-            createdAt: c.createdAt,
-            updatedAt: c.updatedAt,
-          })),
+          comments: [], // No comments loaded in list view - fetch when detail modal opens
           owner: task.owner || {
             id: task.ownerId,
             name: null,
@@ -2187,7 +2145,7 @@ export class DashboardTaskService extends BaseService {
           },
         },
         tags: {
-          include: {
+          select: {
             tag: {
               select: {
                 name: true,
@@ -2195,54 +2153,31 @@ export class DashboardTaskService extends BaseService {
             },
           },
         },
-        comments: {
-          select: {
-            id: true,
-            content: true,
-            userId: true,
-            createdAt: true,
-            updatedAt: true,
-          },
-          orderBy: {
-            createdAt: 'desc',
-          },
-          take: 5,
-        },
-        // Fetch subtasks with full details
+        // Remove comments from list view - fetch when detail modal opens
+        // Simplified subtasks - only essential info for dashboard
         subtasks: {
           where: {
             isArchived: filters?.includeArchived === true ? undefined : false,
           },
-          include: {
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            dueDate: true,
+            priority: true,
+            departmentId: true,
+            ownerId: true,
+            recurringInterval: true,
+            startDate: true,
+            // Minimal assignment data for canEdit calculation
             assignments: {
               select: {
                 userId: true,
                 user: {
                   select: {
-                    id: true,
-                    name: true,
-                    email: true,
                     departmentId: true,
-                    department: {
-                      select: {
-                        id: true,
-                        name: true,
-                      },
-                    },
                   },
                 },
-              },
-            },
-            department: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-            project: {
-              select: {
-                id: true,
-                name: true,
               },
             },
             owner: {
@@ -2253,7 +2188,7 @@ export class DashboardTaskService extends BaseService {
               },
             },
             tags: {
-              include: {
+              select: {
                 tag: {
                   select: {
                     name: true,
@@ -2261,19 +2196,9 @@ export class DashboardTaskService extends BaseService {
                 },
               },
             },
-            comments: {
-              select: {
-                id: true,
-                content: true,
-                userId: true,
-                createdAt: true,
-                updatedAt: true,
-              },
-              orderBy: {
-                createdAt: 'desc',
-              },
-              take: 5,
-            },
+          },
+          orderBy: {
+            createdAt: 'asc',
           },
         },
       },
@@ -2375,13 +2300,7 @@ export class DashboardTaskService extends BaseService {
         return {
           ...subtask,
           tags: subtask.tags.map(t => t.tag.name),
-          comments: subtask.comments.map(c => ({
-            id: c.id,
-            content: c.content,
-            authorId: c.userId,
-            createdAt: c.createdAt,
-            updatedAt: c.updatedAt,
-          })),
+          comments: [], // No comments loaded for subtasks in list view
           priorityBucket: subtask.priority,
           isRecurring: subtask.recurringInterval !== null,
           canEdit: subtaskCanEdit,
@@ -2391,13 +2310,7 @@ export class DashboardTaskService extends BaseService {
       return {
         ...task,
         tags: task.tags.map(t => t.tag.name),
-        comments: task.comments.map(c => ({
-          id: c.id,
-          content: c.content,
-          authorId: c.userId,
-          createdAt: c.createdAt,
-          updatedAt: c.updatedAt,
-        })),
+        comments: [], // No comments loaded in list view - fetch when detail modal opens
         priorityBucket: task.priority,
         isRecurring: task.recurringInterval !== null,
         canEdit: taskCanEdit,

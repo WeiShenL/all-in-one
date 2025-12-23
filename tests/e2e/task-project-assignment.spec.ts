@@ -233,6 +233,10 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
     // Wait for redirect to dashboard
     await page.waitForURL(/\/dashboard/, { timeout: 60000 });
 
+    // Navigate explicitly to personal dashboard where Create Task button is
+    await page.goto('/dashboard/personal', { timeout: 60000 });
+    await page.waitForLoadState('networkidle', { timeout: 60000 });
+
     // 2. Navigate to task creation page/modal
     // Look for "Create Task" button (exact text: "+ Create Task")
     const createTaskButton = page
@@ -483,6 +487,10 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
     await page.fill('input[type="password"]', testPassword);
     await page.click('button[type="submit"]');
     await page.waitForURL(/\/dashboard/, { timeout: 60000 });
+
+    // Navigate explicitly to personal dashboard
+    await page.goto('/dashboard/personal', { timeout: 60000 });
+    await page.waitForLoadState('networkidle', { timeout: 60000 });
 
     // 2. Create parent task with project
     const createTaskButton = page
