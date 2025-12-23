@@ -71,7 +71,6 @@ class Logger {
    * Logs warnings that need attention
    */
   warn(message: string, context?: LogContext): void {
-    // eslint-disable-next-line no-console
     console.warn(this.format('warn', message, context));
   }
 

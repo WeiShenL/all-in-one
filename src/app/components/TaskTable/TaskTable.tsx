@@ -67,7 +67,18 @@ export function TaskTable({
   isLoading = false,
   error = null,
   projectId,
+  enablePagination = false,
+  paginationMode = 'client',
+  onFetchPage,
+  pageSize = 100,
 }: TaskTableProps) {
+  // Pagination state managed internally by TaskTable
+  const [currentPage, setCurrentPage] = useState(0);
+
+  // Reset to page 0 when tasks change (e.g., after task creation/update)
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [onTaskCreated, onTaskUpdated]);
   const [filters, setFilters] = useState<Filters>({
     title: '',
     status: [],
@@ -84,6 +95,35 @@ export function TaskTable({
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
   const [archiveTaskId, setArchiveTaskId] = useState<string | null>(null);
   const modalContentRef = useRef<HTMLDivElement>(null);
+
+  // Handle pagination for both client-side and server-side modes
+  const displayedTasks = useMemo(() => {
+    if (!enablePagination) {
+      return tasks; // No pagination, show all tasks
+    }
+
+    if (paginationMode === 'client') {
+      // Client-side pagination: slice the tasks array
+      const start = currentPage * pageSize;
+      const end = start + pageSize;
+      return tasks.slice(start, end);
+    } else {
+      // Server-side pagination: tasks are already paginated from backend
+      return tasks;
+    }
+  }, [tasks, enablePagination, paginationMode, currentPage, pageSize]);
+
+  const totalCount = tasks.length; // Total tasks (for display)
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+
+    if (paginationMode === 'server' && onFetchPage) {
+      // Server-side: trigger fetch for new page
+      onFetchPage(newPage, pageSize);
+    }
+    // Client-side: just update state, displayedTasks will re-compute
+  };
 
   // Get all unique user IDs from task assignments
   const allUserIds = useMemo(() => {
@@ -250,10 +290,10 @@ export function TaskTable({
   };
 
   const filteredAndSortedTasks = useMemo(() => {
-    if (!tasks) {
+    if (!displayedTasks) {
       return [];
     }
-    const processedTasks = [...tasks].filter(task => {
+    const processedTasks = [...displayedTasks].filter(task => {
       const titleMatch = task.title
         .toLowerCase()
         .includes(filters.title.toLowerCase());
@@ -317,7 +357,7 @@ export function TaskTable({
       // Tasks are flat, organize hierarchically
       return organizeTasksHierarchically(processedTasks);
     }
-  }, [tasks, filters, userSort, userHasSorted]);
+  }, [displayedTasks, filters, userSort, userHasSorted]);
 
   const handleFilterChange = (filterName: keyof Filters, value: string) => {
     if (filterName === 'title') {
@@ -920,6 +960,85 @@ export function TaskTable({
           </div>
         </div>
       )}
+
+      {/* Pagination Controls */}
+      {enablePagination &&
+        !isLoading &&
+        displayedTasks &&
+        displayedTasks.length > 0 && (
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '1rem',
+              marginTop: '1rem',
+              borderTop: '1px solid #e2e8f0',
+            }}
+          >
+            <div style={{ color: '#718096', fontSize: '0.875rem' }}>
+              {paginationMode === 'client'
+                ? `Showing ${displayedTasks.length} of ${totalCount} tasks (page ${currentPage + 1})`
+                : `Showing ${displayedTasks.length} tasks (page ${currentPage + 1})`}
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 0}
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: currentPage === 0 ? '#e2e8f0' : '#3b82f6',
+                  color: currentPage === 0 ? '#a0aec0' : '#ffffff',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  cursor: currentPage === 0 ? 'not-allowed' : 'pointer',
+                  fontSize: '0.875rem',
+                  fontWeight: '500',
+                }}
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={
+                  paginationMode === 'client'
+                    ? (currentPage + 1) * pageSize >= totalCount
+                    : displayedTasks.length < pageSize
+                }
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: (
+                    paginationMode === 'client'
+                      ? (currentPage + 1) * pageSize >= totalCount
+                      : displayedTasks.length < pageSize
+                  )
+                    ? '#e2e8f0'
+                    : '#3b82f6',
+                  color: (
+                    paginationMode === 'client'
+                      ? (currentPage + 1) * pageSize >= totalCount
+                      : displayedTasks.length < pageSize
+                  )
+                    ? '#a0aec0'
+                    : '#ffffff',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  cursor: (
+                    paginationMode === 'client'
+                      ? (currentPage + 1) * pageSize >= totalCount
+                      : displayedTasks.length < pageSize
+                  )
+                    ? 'not-allowed'
+                    : 'pointer',
+                  fontSize: '0.875rem',
+                  fontWeight: '500',
+                }}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
     </div>
   );
 }

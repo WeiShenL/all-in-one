@@ -109,7 +109,9 @@ async function getTaskAssignmentDetails(
   ];
 
   // Import AuthorizationService
-  const { AuthorizationService } = await import('../services/AuthorizationService');
+  const { AuthorizationService } = await import(
+    '../services/AuthorizationService'
+  );
   const authService = new AuthorizationService();
 
   // Calculate canEdit permission with assignee department IDs
@@ -1291,7 +1293,10 @@ export const taskRouter = router({
       const userId = ctx.session.user.id;
       const { getDashboardTaskService } = buildServices(ctx);
       const dashboardTaskService = getDashboardTaskService();
-      return await dashboardTaskService.getDepartmentTasksForUser(userId, input);
+      return await dashboardTaskService.getDepartmentTasksForUser(
+        userId,
+        input
+      );
     }),
 
   /**

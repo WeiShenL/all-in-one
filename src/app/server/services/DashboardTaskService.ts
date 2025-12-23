@@ -1269,10 +1269,7 @@ export class DashboardTaskService extends BaseService {
             },
           },
         },
-        orderBy: [
-          { priority: 'desc' },
-          { dueDate: 'asc' },
-        ],
+        orderBy: [{ priority: 'desc' }, { dueDate: 'asc' }],
       });
 
       // Add canEdit field - all tasks are editable by managers (backward compatibility)
@@ -1501,10 +1498,7 @@ export class DashboardTaskService extends BaseService {
             },
           },
         },
-        orderBy: [
-          { priority: 'desc' },
-          { dueDate: 'asc' },
-        ],
+        orderBy: [{ priority: 'desc' }, { dueDate: 'asc' }],
       });
 
       // Use AuthorizationService to calculate canEdit for each task and subtask
@@ -1865,10 +1859,7 @@ export class DashboardTaskService extends BaseService {
             },
           },
         },
-        orderBy: [
-          { priority: 'desc' },
-          { dueDate: 'asc' },
-        ],
+        orderBy: [{ priority: 'desc' }, { dueDate: 'asc' }],
       });
 
       // Calculate canEdit using AuthorizationService (same as department)
@@ -2286,10 +2277,7 @@ export class DashboardTaskService extends BaseService {
           },
         },
       },
-      orderBy: [
-        { priority: 'desc' },
-        { dueDate: 'asc' },
-      ],
+      orderBy: [{ priority: 'desc' }, { dueDate: 'asc' }],
     });
 
     // Use AuthorizationService to calculate canEdit for each task

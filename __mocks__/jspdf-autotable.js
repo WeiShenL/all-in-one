@@ -1,5 +1,5 @@
 // Manual mock for jspdf-autotable
-const autoTableFn = jest.fn((doc, options) => {
+const autoTableFn = jest.fn((doc, _options) => {
   // Mock autoTable implementation - just update doc.lastAutoTable
   if (doc) {
     doc.lastAutoTable = { finalY: 100 };

@@ -10,7 +10,9 @@ const jsPDFMock = jest.fn().mockImplementation(() => ({
   getTextWidth: jest.fn(() => 50),
   addPage: jest.fn(),
   save: jest.fn(),
-  output: jest.fn(() => new Blob(['mock-pdf-content'], { type: 'application/pdf' })),
+  output: jest.fn(
+    () => new Blob(['mock-pdf-content'], { type: 'application/pdf' })
+  ),
   internal: {
     pageSize: {
       getWidth: () => 210,

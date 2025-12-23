@@ -1,8 +1,9 @@
 'use client';
 
+import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { useMemo, useState, useRef, memo } from 'react';
 import dynamic from 'next/dynamic';
-import type { View } from 'react-big-calendar';
+import type { View, Calendar as CalendarType } from 'react-big-calendar';
 import { dateFnsLocalizer } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { enUS } from 'date-fns/locale/en-US';
@@ -21,17 +22,20 @@ import {
 } from './utils/calendarHelpers';
 
 // Lazy load react-big-calendar Calendar component to reduce initial bundle size
-const Calendar = dynamic(() =>
-  import('react-big-calendar').then(mod => {
-    // Import CSS when loading the component
-    import('react-big-calendar/lib/css/react-big-calendar.css');
-    return mod.Calendar;
-  }),
+const Calendar = dynamic(
+  () =>
+    import('react-big-calendar').then(mod => {
+      return mod.Calendar;
+    }),
   {
-    loading: () => <div style={{ padding: '2rem', textAlign: 'center' }}>Loading calendar...</div>,
+    loading: () => (
+      <div style={{ padding: '2rem', textAlign: 'center' }}>
+        Loading calendar...
+      </div>
+    ),
     ssr: false,
   }
-);
+) as typeof CalendarType;
 
 const locales = {
   'en-US': enUS,
@@ -700,9 +704,9 @@ const TaskCalendarComponent: React.FC<TaskCalendarProps> = ({
       <div style={styles.calendarWrapper}>
         <Calendar
           localizer={localizer}
-          events={events as any}
-          startAccessor='start'
-          endAccessor='end'
+          events={events}
+          startAccessor={(event: CalendarEvent) => event.start}
+          endAccessor={(event: CalendarEvent) => event.end}
           style={styles.calendar}
           eventPropGetter={eventStyleGetter as any}
           views={{

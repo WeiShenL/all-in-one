@@ -35,9 +35,7 @@ const envSchema = z.object({
   NEXT_PUBLIC_API_EXTERNAL_URL: z
     .string()
     .url('NEXT_PUBLIC_API_EXTERNAL_URL must be a valid URL'),
-  NEXT_PUBLIC_ANON_KEY: z
-    .string()
-    .min(1, 'NEXT_PUBLIC_ANON_KEY is required'),
+  NEXT_PUBLIC_ANON_KEY: z.string().min(1, 'NEXT_PUBLIC_ANON_KEY is required'),
   SERVICE_ROLE_KEY: z.string().min(1, 'SERVICE_ROLE_KEY is required'),
 
   // Site Configuration (Required)

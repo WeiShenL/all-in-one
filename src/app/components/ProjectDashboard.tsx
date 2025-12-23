@@ -32,7 +32,6 @@ export function ProjectDashboard({
   }, [utils, projectId]);
 
   // Refetch tasks when a real-time notification is received
-  // (notifications are sent when tasks are assigned/updated)
   useEffect(() => {
     if (lastNotificationTime > 0) {
       refetch();
@@ -49,7 +48,6 @@ export function ProjectDashboard({
   );
 
   // Memoize views to prevent remounting when parent re-renders
-  // This preserves calendar filter state when notifications trigger refetch
   const tableView = useMemo(
     () => (
       <TaskTable
@@ -63,6 +61,8 @@ export function ProjectDashboard({
         isLoading={isLoading}
         error={error ? new Error(error.message) : null}
         projectId={projectId}
+        enablePagination={true}
+        paginationMode='client'
       />
     ),
     [

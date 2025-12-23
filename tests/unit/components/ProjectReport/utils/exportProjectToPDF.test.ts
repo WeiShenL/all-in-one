@@ -510,7 +510,9 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
         collaborators: [],
       };
 
-      await expect(exportProjectToPDF(dataWithoutCollabs)).resolves.not.toThrow();
+      await expect(
+        exportProjectToPDF(dataWithoutCollabs)
+      ).resolves.not.toThrow();
     });
 
     it('should handle long project names', async () => {
@@ -534,7 +536,9 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
         },
       };
 
-      await expect(exportProjectToPDF(dataWithSpecialChars)).resolves.not.toThrow();
+      await expect(
+        exportProjectToPDF(dataWithSpecialChars)
+      ).resolves.not.toThrow();
     });
 
     it('should handle tasks with null dates', async () => {
@@ -559,7 +563,9 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
         ],
       };
 
-      await expect(exportProjectToPDF(dataWithNullDates)).resolves.not.toThrow();
+      await expect(
+        exportProjectToPDF(dataWithNullDates)
+      ).resolves.not.toThrow();
     });
 
     it('should handle tasks with empty arrays', async () => {
@@ -584,7 +590,9 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
         ],
       };
 
-      await expect(exportProjectToPDF(dataWithEmptyArrays)).resolves.not.toThrow();
+      await expect(
+        exportProjectToPDF(dataWithEmptyArrays)
+      ).resolves.not.toThrow();
     });
 
     it('should handle tasks with very long titles', async () => {
@@ -610,7 +618,9 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
         ],
       };
 
-      await expect(exportProjectToPDF(dataWithLongTitle)).resolves.not.toThrow();
+      await expect(
+        exportProjectToPDF(dataWithLongTitle)
+      ).resolves.not.toThrow();
     });
 
     it('should handle multiple tasks across all statuses', async () => {
@@ -705,7 +715,9 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
         ],
       };
 
-      await expect(exportProjectToPDF(dataWithMultiples)).resolves.not.toThrow();
+      await expect(
+        exportProjectToPDF(dataWithMultiples)
+      ).resolves.not.toThrow();
     });
 
     it('should handle empty project name gracefully', async () => {
@@ -717,7 +729,9 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
         },
       };
 
-      await expect(exportProjectToPDF(dataWithEmptyName)).resolves.not.toThrow();
+      await expect(
+        exportProjectToPDF(dataWithEmptyName)
+      ).resolves.not.toThrow();
     });
 
     it('should handle project with all statuses ACTIVE', async () => {
@@ -729,7 +743,9 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
         },
       };
 
-      await expect(exportProjectToPDF(dataWithActiveStatus)).resolves.not.toThrow();
+      await expect(
+        exportProjectToPDF(dataWithActiveStatus)
+      ).resolves.not.toThrow();
     });
 
     it('should handle project with COMPLETED status', async () => {
@@ -741,7 +757,9 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
         },
       };
 
-      await expect(exportProjectToPDF(dataWithCompletedStatus)).resolves.not.toThrow();
+      await expect(
+        exportProjectToPDF(dataWithCompletedStatus)
+      ).resolves.not.toThrow();
     });
 
     it('should handle collaborators with long names', async () => {
@@ -757,7 +775,9 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
         ],
       };
 
-      await expect(exportProjectToPDF(dataWithLongCollabName)).resolves.not.toThrow();
+      await expect(
+        exportProjectToPDF(dataWithLongCollabName)
+      ).resolves.not.toThrow();
     });
 
     it('should sanitize filename with multiple special characters', async () => {
@@ -805,7 +825,9 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
       };
 
       // Should not throw and use default gray color
-      await expect(exportProjectToPDF(dataWithUnknownStatus)).resolves.not.toThrow();
+      await expect(
+        exportProjectToPDF(dataWithUnknownStatus)
+      ).resolves.not.toThrow();
     });
 
     it('should handle tasks with unknown status in task list', async () => {
@@ -819,7 +841,9 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
         ],
       };
 
-      await expect(exportProjectToPDF(dataWithUnknownTaskStatus)).resolves.not.toThrow();
+      await expect(
+        exportProjectToPDF(dataWithUnknownTaskStatus)
+      ).resolves.not.toThrow();
     });
 
     it('should handle empty/null text in content', async () => {
@@ -838,7 +862,9 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
         ],
       };
 
-      await expect(exportProjectToPDF(dataWithEmptyFields)).resolves.not.toThrow();
+      await expect(
+        exportProjectToPDF(dataWithEmptyFields)
+      ).resolves.not.toThrow();
     });
 
     it('should handle tasks with very long titles for text wrapping', async () => {
@@ -853,7 +879,9 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
         ],
       };
 
-      await expect(exportProjectToPDF(dataWithLongTitle)).resolves.not.toThrow();
+      await expect(
+        exportProjectToPDF(dataWithLongTitle)
+      ).resolves.not.toThrow();
     });
   });
 

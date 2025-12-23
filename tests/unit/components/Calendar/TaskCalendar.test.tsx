@@ -66,10 +66,11 @@ jest.mock('react-big-calendar', () => {
 
 // Mock next/dynamic to return components synchronously in tests
 jest.mock('next/dynamic', () => {
-  return jest.fn((fn: () => Promise<any>) => {
+  return jest.fn((_fn: () => Promise<any>) => {
     // Return a functional component that uses the mocked Calendar directly
     const DynamicComponent = (props: any) => {
-      // Require the mocked module at runtime (not at mock definition time)
+      // Import the mocked module at runtime (not at mock definition time)
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const mockModule = require('react-big-calendar');
       const Component = mockModule.Calendar;
       return <Component {...props} />;

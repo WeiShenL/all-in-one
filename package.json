@@ -24,6 +24,7 @@
     "db:clear-auth": "node scripts/clear-auth.mjs",
     "db:deploy": "npm run db:migrate && npm run db:setup-storage",
     "db:reset": "npx prisma migrate reset --force --skip-seed && npm run db:clear-auth && npm run db:setup-storage && npx prisma db seed",
+    "db:down": "cd supabase && docker compose --env-file ../.env down && cd ..",
     "test": "npm run test:unit && npm run test:integration && npm run test:e2e",
     "test:jest": "jest",
     "test:unit": "jest tests/unit --maxWorkers=4",

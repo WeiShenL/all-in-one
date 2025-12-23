@@ -486,6 +486,12 @@ export async function exportProjectToPDF(
   // DOWNLOAD: Blob Pattern (from exportToICal)
   // ============================================
   const pdfBlob = doc.output('blob');
+
+  // Validate blob before creating object URL
+  if (!(pdfBlob instanceof Blob)) {
+    throw new Error('Failed to generate PDF blob');
+  }
+
   const url = window.URL.createObjectURL(pdfBlob);
 
   // Create temporary link for download
@@ -509,7 +515,9 @@ export async function exportProjectToPDF(
  * Build a PDF Blob for preview (no auto-download)
  * Reuses the same content structure as exportProjectToPDF.
  */
-export async function buildProjectReportPDFBlob(data: ProjectReportData): Promise<Blob> {
+export async function buildProjectReportPDFBlob(
+  data: ProjectReportData
+): Promise<Blob> {
   const doc = new jsPDF();
 
   const pageWidth = doc.internal.pageSize.getWidth();

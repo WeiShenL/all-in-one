@@ -377,6 +377,11 @@ export async function exportProjectToXLSX(
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   });
 
+  // Validate blob before creating object URL
+  if (!(blob instanceof Blob)) {
+    throw new Error('Failed to generate Excel blob');
+  }
+
   // Create object URL
   const url = window.URL.createObjectURL(blob);
 

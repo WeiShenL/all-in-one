@@ -7,18 +7,45 @@ import { useDashboard } from '@/lib/context/DashboardContext';
 
 // Lazy load dashboard components for better performance
 const PersonalDashboard = dynamic(
-  () => import('./PersonalDashboard').then(mod => ({ default: mod.PersonalDashboard })),
-  { loading: () => <div style={{ padding: '2rem', textAlign: 'center' }}>Loading dashboard...</div> }
+  () =>
+    import('./PersonalDashboard').then(mod => ({
+      default: mod.PersonalDashboard,
+    })),
+  {
+    loading: () => (
+      <div style={{ padding: '2rem', textAlign: 'center' }}>
+        Loading dashboard...
+      </div>
+    ),
+  }
 );
 
 const DepartmentDashboard = dynamic(
-  () => import('./DepartmentDashboard').then(mod => ({ default: mod.DepartmentDashboard })),
-  { loading: () => <div style={{ padding: '2rem', textAlign: 'center' }}>Loading dashboard...</div> }
+  () =>
+    import('./DepartmentDashboard').then(mod => ({
+      default: mod.DepartmentDashboard,
+    })),
+  {
+    loading: () => (
+      <div style={{ padding: '2rem', textAlign: 'center' }}>
+        Loading dashboard...
+      </div>
+    ),
+  }
 );
 
 const CompanyDashboard = dynamic(
-  () => import('./CompanyDashboard').then(mod => ({ default: mod.CompanyDashboard })),
-  { loading: () => <div style={{ padding: '2rem', textAlign: 'center' }}>Loading dashboard...</div> }
+  () =>
+    import('./CompanyDashboard').then(mod => ({
+      default: mod.CompanyDashboard,
+    })),
+  {
+    loading: () => (
+      <div style={{ padding: '2rem', textAlign: 'center' }}>
+        Loading dashboard...
+      </div>
+    ),
+  }
 );
 
 export function UnifiedDashboard() {
