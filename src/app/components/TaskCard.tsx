@@ -84,6 +84,7 @@ export function TaskCard({
   const [editingProject, setEditingProject] = useState(false);
   const [projectValue, setProjectValue] = useState<string>('');
   const [newTag, setNewTag] = useState('');
+  const [isUpdating, setIsUpdating] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editCommentValue, setEditCommentValue] = useState('');
@@ -329,7 +330,12 @@ export function TaskCard({
       const response = await fetch(
         `/api/trpc/task.getById?input=${encodeURIComponent(
           JSON.stringify({ taskId })
-        )}`
+        )}`,
+        {
+          headers: {
+            'cache-control': 'no-cache',
+          },
+        }
       );
       const data = await response.json();
 
@@ -524,6 +530,7 @@ export function TaskCard({
       return;
     }
 
+    setIsUpdating(true);
     try {
       const response = await fetch(`/api/trpc/task.${endpoint}`, {
         method: 'POST',
@@ -551,6 +558,8 @@ export function TaskCard({
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Update failed');
       setTimeout(() => setError(null), 5000);
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -2163,16 +2172,17 @@ export function TaskCard({
             <button
               data-testid='add-tag-button'
               onClick={handleAddTag}
+              disabled={isUpdating}
               style={{
                 padding: '6px 12px',
-                backgroundColor: '#1976d2',
+                backgroundColor: isUpdating ? '#cbd5e0' : '#1976d2',
                 color: 'white',
                 border: 'none',
                 borderRadius: '4px',
-                cursor: 'pointer',
+                cursor: isUpdating ? 'not-allowed' : 'pointer',
               }}
             >
-              Add Tag
+              {isUpdating ? 'Adding...' : 'Add Tag'}
             </button>
           </div>
         )}

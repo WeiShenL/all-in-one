@@ -1,19 +1,27 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Geist, Geist_Mono } from 'next/font/google';
+import { Analytics } from '@vercel/analytics/react';
 import { TRPCProvider } from './components/TRPCProvider';
 import { AuthProvider } from '../lib/supabase/auth-context';
 import { NotificationProvider } from '../lib/context/NotificationContext';
 import { ToastContainer } from './components/ToastContainer';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import './globals.css';
 
-const inter = Inter({
+const geist = Geist({
   subsets: ['latin'],
-  display: 'swap',
+  variable: '--font-geist-sans',
+});
+
+const geistMono = Geist_Mono({
+  subsets: ['latin'],
+  variable: '--font-geist-mono',
 });
 
 export const metadata: Metadata = {
-  title: 'All-in-One Project',
-  description: 'Team project built with Next.js',
+  title: 'All In One - Smart Task Management System',
+  description:
+    'Empower your team to stay productive with flexible work arrangements. Organize tasks, collaborate seamlessly, and track performance.',
 };
 
 export default function RootLayout({
@@ -22,27 +30,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang='en' style={{ margin: 0, padding: 0 }}>
-      <head>
-        <style
-          dangerouslySetInnerHTML={{
-            __html: `
-            * {
-              margin: 0;
-              padding: 0;
-              box-sizing: border-box;
-            }
-            html, body {
-              margin: 0 !important;
-              padding: 0 !important;
-              width: 100%;
-              height: 100%;
-            }
-          `,
-          }}
-        />
-      </head>
-      <body className={inter.className} style={{ margin: 0, padding: 0 }}>
+    <html lang='en' className={`${geist.variable} ${geistMono.variable}`}>
+      <body className='font-sans antialiased'>
         <ErrorBoundary>
           <AuthProvider>
             <TRPCProvider>
@@ -53,6 +42,7 @@ export default function RootLayout({
             </TRPCProvider>
           </AuthProvider>
         </ErrorBoundary>
+        <Analytics />
       </body>
     </html>
   );

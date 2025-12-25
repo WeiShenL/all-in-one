@@ -453,7 +453,7 @@ test.describe('Recurring Task Creation - Isolated E2E Tests', () => {
     await expect(
       page.getByRole('heading', { name: /personal dashboard/i })
     ).toBeVisible({ timeout: 65000 });
-    await page.waitForTimeout(8000);
+    await page.waitForTimeout(15000); // Increased wait for data to fully load
 
     // Query database to verify a NEW task instance WAS created
     const taskCount = await pgClient.query(

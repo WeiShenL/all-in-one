@@ -25,12 +25,12 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
         defaultOptions: {
           queries: {
             // OPTIMIZED: Cache configuration for better performance
-            // 30-60s caching is acceptable per requirements
-            staleTime: 30 * 1000, // Data is fresh for 30 seconds
+            // Short staleTime ensures data is refetched on mount/reload
+            staleTime: 0, // Always consider data stale to ensure fresh data on reload
             gcTime: 5 * 60 * 1000, // Keep unused data in cache for 5 minutes
             refetchOnWindowFocus: false, // Disable aggressive refetching
             refetchOnReconnect: true, // Refetch when internet reconnects
-            refetchOnMount: false, // Don't refetch if data is still fresh
+            refetchOnMount: true, // Always refetch on mount to ensure fresh data
             retry: 2, // Retry failed requests twice
             retryDelay: attemptIndex =>
               Math.min(1000 * 2 ** attemptIndex, 3000), // Exponential backoff
@@ -49,6 +49,11 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
           url: `${getBaseUrl()}/api/trpc`,
           // Batch requests within 10ms window for better performance
           maxURLLength: 2083,
+          headers() {
+            return {
+              'cache-control': 'no-cache',
+            };
+          },
         }),
       ],
     })

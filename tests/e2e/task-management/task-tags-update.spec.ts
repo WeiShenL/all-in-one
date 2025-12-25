@@ -255,6 +255,9 @@ test.describe('Task Tags Update - Isolated E2E Tests', () => {
     await tagInput.clear();
     await tagInput.fill('e2e-test-tag-frontend');
     await page.waitForTimeout(2000);
+
+    // Wait for button to be enabled after first tag operation
+    await expect(addTagButton).toBeEnabled({ timeout: 65000 });
     await addTagButton.click();
 
     // Wait for second tag operation to complete

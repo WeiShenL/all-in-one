@@ -669,8 +669,20 @@ export class DashboardTaskService extends BaseService {
         newDueDate.getUTCDate() + completedTask.recurringInterval
       );
 
-      // Extract assignee IDs
+      // Extract assignee IDs and ensure owner is always included
       const assigneeIds = completedTask.assignments.map(a => a.userId);
+      if (!assigneeIds.includes(completedTask.ownerId)) {
+        assigneeIds.push(completedTask.ownerId);
+      }
+
+      // If no assignees, something is wrong - log and return
+      if (!assigneeIds || assigneeIds.length === 0) {
+        console.error('Cannot generate recurring task: no assignees found', {
+          taskId: completedTask.id,
+          title: completedTask.title,
+        });
+        return;
+      }
 
       // Extract tag names if tags exist
       let tagNames: string[] = [];

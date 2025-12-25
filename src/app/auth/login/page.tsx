@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-// import Link from 'next/link';
+import Link from 'next/link';
 import { useAuth } from '@/lib/supabase/auth-context';
 
 function LoginForm() {
@@ -134,12 +134,49 @@ function LoginForm() {
           backgroundColor: '#ffffff',
           borderRadius: '12px',
           boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+          position: 'relative',
         }}
       >
+        <Link
+          href='/'
+          style={{
+            position: 'absolute',
+            top: '1.5rem',
+            left: '1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.5rem 0.75rem',
+            backgroundColor: '#f7fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: '8px',
+            color: '#1a202c',
+            fontSize: '0.875rem',
+            fontWeight: '500',
+            textDecoration: 'none',
+            transition: 'all 0.2s',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.backgroundColor = '#3182ce';
+            e.currentTarget.style.color = '#ffffff';
+            e.currentTarget.style.borderColor = '#3182ce';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.backgroundColor = '#f7fafc';
+            e.currentTarget.style.color = '#1a202c';
+            e.currentTarget.style.borderColor = '#e2e8f0';
+          }}
+        >
+          <svg width='16' height='16' viewBox='0 0 16 16' fill='currentColor'>
+            <path d='M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z' />
+          </svg>
+          Home
+        </Link>
         <h1
           style={{
             textAlign: 'center',
             marginBottom: '0.5rem',
+            marginTop: '1rem',
             color: '#1a202c',
             fontSize: '1.875rem',
             fontWeight: '700',
