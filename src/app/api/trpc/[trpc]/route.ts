@@ -9,7 +9,7 @@ import { prisma } from '@/app/lib/prisma';
 import { createClient } from '@/lib/supabase/server';
 
 const handler = async (req: Request) => {
-  return fetchRequestHandler({
+  const response = await fetchRequestHandler({
     endpoint: '/api/trpc',
     router: appRouter,
     req,
@@ -30,6 +30,17 @@ const handler = async (req: Request) => {
       };
     },
   });
+
+  // Add cache headers for better performance
+  // Cache for 30s at CDN/browser, stale-while-revalidate for 60s
+  if (req.method === 'GET') {
+    response.headers.set(
+      'Cache-Control',
+      'public, s-maxage=30, stale-while-revalidate=60'
+    );
+  }
+
+  return response;
 };
 
 export { handler as GET, handler as POST };

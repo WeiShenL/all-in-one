@@ -916,6 +916,7 @@ export const taskRouter = router({
   /**
    * Get user's assigned tasks (with canEdit field)
    * For Personal Dashboard - all tasks have canEdit=true
+   * OPTIMIZED: Uses single query from repository with all related data pre-loaded
    */
   getUserTasks: publicProcedure
     .input(
@@ -926,92 +927,29 @@ export const taskRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const repository = new PrismaTaskRepository(ctx.prisma);
-      const service = new TaskService(repository);
 
-      const tasks = await service.getUserTasks(
+      // Get raw task data with all relations pre-loaded (single query)
+      const rawTasks = await repository.getUserTasks(
         input.userId,
         input.includeArchived
       );
 
-      // Get all unique user IDs from assignments
-      const userIds = new Set<string>();
-      tasks.forEach(task => {
-        task.getAssignees().forEach(userId => userIds.add(userId));
-      });
-
-      // Get all unique owner IDs
-      const ownerIds = new Set<string>();
-      tasks.forEach(task => {
-        ownerIds.add(task.getOwnerId());
-      });
-
-      // Fetch user details for all assignees and owners (combine sets)
-      const allUserIds = new Set([...userIds, ...ownerIds]);
-      const users = await ctx.prisma.userProfile.findMany({
-        where: { id: { in: Array.from(allUserIds) } },
-        select: { id: true, name: true, email: true, departmentId: true },
-        take: 500, // Reasonable limit for user lookups
-      });
-
-      // Get all unique department IDs (from tasks and from assignees)
-      const departmentIds = new Set<string>();
-      tasks.forEach(task => {
-        departmentIds.add(task.getDepartmentId());
-      });
-      users.forEach(user => {
-        if (user.departmentId) {
-          departmentIds.add(user.departmentId);
-        }
-      });
-
-      // Fetch department details for all departments
-      const departments = await ctx.prisma.department.findMany({
-        where: { id: { in: Array.from(departmentIds) } },
-        select: { id: true, name: true },
-        take: 200, // Reasonable limit for department lookups
-      });
-      const userMap = new Map(users.map(u => [u.id, u]));
-      const departmentMap = new Map(departments.map(d => [d.id, d]));
-
-      // Get all unique project IDs
-      const projectIds = new Set<string>();
-      tasks.forEach(task => {
-        const projectId = task.getProjectId();
-        if (projectId) {
-          projectIds.add(projectId);
-        }
-      });
-
-      // Fetch project details for all projects
-      const projects = await ctx.prisma.project.findMany({
-        where: { id: { in: Array.from(projectIds) } },
-        select: { id: true, name: true },
-        take: 200, // Reasonable limit for project lookups
-      });
-
-      const projectMap = new Map(projects.map(p => [p.id, p]));
-
-      // Add canEdit=true and full user details to all personal tasks
-      return tasks.map(task => {
-        const serialized = serializeTask(task);
-        // Convert assignments from string[] to full objects with user details
-        const assignmentsWithDetails = Array.from(task.getAssignees()).map(
-          userId => ({
-            userId,
-            user: userMap.get(userId) || {
-              id: userId,
+      // Transform raw Prisma data to API response format
+      return rawTasks.map((rawTask: any) => {
+        // Build assignments with user details (already loaded)
+        const assignmentsWithDetails = rawTask.assignments.map(
+          (assignment: any) => ({
+            userId: assignment.userId,
+            user: assignment.user || {
+              id: assignment.userId,
               name: null,
               email: null,
             },
           })
         );
 
-        // Add project details if available
-        const projectId = task.getProjectId();
-        const project = projectId ? projectMap.get(projectId) : null;
-
-        // Build involvedDepartments from assignees
-        const taskDeptId = task.getDepartmentId();
+        // Build involvedDepartments from assignees (already loaded)
+        const taskDeptId = rawTask.departmentId;
         const deptMap = new Map<
           string,
           { id: string; name: string; isActive?: boolean }
@@ -1019,55 +957,77 @@ export const taskRouter = router({
 
         // Get unique department IDs from assignees
         const assigneeDepartmentIds = new Set<string>();
-        assignmentsWithDetails.forEach(assignment => {
-          const user = assignment.user;
-          if (user && 'departmentId' in user && user.departmentId) {
-            assigneeDepartmentIds.add(user.departmentId);
+        assignmentsWithDetails.forEach(
+          (assignment: {
+            userId: string;
+            user: {
+              id: string;
+              name: string | null;
+              email: string | null;
+              departmentId?: string;
+              department?: { id: string; name: string };
+            };
+          }) => {
+            const user = assignment.user;
+            if (user && user.departmentId) {
+              assigneeDepartmentIds.add(user.departmentId);
+              // Add assignee's department if not already added
+              if (user.department && !deptMap.has(user.departmentId)) {
+                deptMap.set(user.departmentId, {
+                  id: user.department.id,
+                  name: user.department.name,
+                  isActive: true,
+                });
+              }
+            }
           }
-        });
+        );
 
         // Check if parent department has any assignees
         const hasParentAssignee = assigneeDepartmentIds.has(taskDeptId);
 
         // Always include parent department if task has one, mark as inactive if no assignees
-        if (taskDeptId) {
-          const parentDept = departmentMap.get(taskDeptId);
-          if (parentDept) {
-            deptMap.set(taskDeptId, {
-              ...parentDept,
-              isActive: hasParentAssignee,
-            });
-          }
+        if (taskDeptId && rawTask.department) {
+          deptMap.set(taskDeptId, {
+            id: rawTask.department.id,
+            name: rawTask.department.name,
+            isActive: hasParentAssignee,
+          });
         }
-
-        // Add all other unique departments from assignees (all active)
-        assigneeDepartmentIds.forEach(deptId => {
-          if (!deptMap.has(deptId)) {
-            const dept = departmentMap.get(deptId);
-            if (dept) {
-              deptMap.set(deptId, {
-                ...dept,
-                isActive: true,
-              });
-            }
-          }
-        });
 
         const involvedDepartments = Array.from(deptMap.values());
 
+        // Serialize task data
         return {
-          ...serialized,
-          owner: userMap.get(task.getOwnerId()) || {
-            id: task.getOwnerId(),
+          id: rawTask.id,
+          title: rawTask.title,
+          description: rawTask.description,
+          priorityBucket: rawTask.priority,
+          dueDate: rawTask.dueDate,
+          status: rawTask.status,
+          ownerId: rawTask.ownerId,
+          departmentId: rawTask.departmentId,
+          projectId: rawTask.projectId,
+          parentTaskId: rawTask.parentTaskId,
+          isRecurring: !!rawTask.recurringInterval,
+          recurringInterval: rawTask.recurringInterval,
+          isArchived: rawTask.isArchived,
+          createdAt: rawTask.createdAt,
+          startDate: rawTask.startDate,
+          updatedAt: rawTask.updatedAt,
+          tags: rawTask.tags.map((t: any) => t.tag.name),
+          comments: rawTask.comments,
+          owner: rawTask.owner || {
+            id: rawTask.ownerId,
             name: null,
             email: null,
           },
-          department: departmentMap.get(task.getDepartmentId()) || {
-            id: task.getDepartmentId(),
+          department: rawTask.department || {
+            id: rawTask.departmentId,
             name: 'Unknown Department',
           },
           assignments: assignmentsWithDetails,
-          project: project || null,
+          project: rawTask.project || null,
           canEdit: true,
           involvedDepartments,
         };
