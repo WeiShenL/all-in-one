@@ -1307,6 +1307,7 @@ export class DashboardTaskService extends BaseService {
           id: true,
           departmentId: true,
           role: true,
+          isHrAdmin: true,
         },
       });
 
@@ -1509,6 +1510,7 @@ export class DashboardTaskService extends BaseService {
             userId: user.id,
             role: user.role as 'STAFF' | 'MANAGER' | 'HR_ADMIN',
             departmentId: user.departmentId,
+            isHrAdmin: user.isHrAdmin,
           },
           departmentIds,
           taskAssigneeDepartmentIds
@@ -1534,6 +1536,7 @@ export class DashboardTaskService extends BaseService {
               userId: user.id,
               role: user.role as 'STAFF' | 'MANAGER' | 'HR_ADMIN',
               departmentId: user.departmentId,
+              isHrAdmin: user.isHrAdmin,
             },
             departmentIds,
             subtaskAssigneeDepartmentIds
@@ -1729,7 +1732,7 @@ export class DashboardTaskService extends BaseService {
       // Get user's profile
       const user = await this.prisma.userProfile.findUnique({
         where: { id: userId, isActive: true },
-        select: { id: true, departmentId: true, role: true },
+        select: { id: true, departmentId: true, role: true, isHrAdmin: true },
       });
 
       if (!user) {
@@ -1896,6 +1899,7 @@ export class DashboardTaskService extends BaseService {
             userId: user.id,
             role: user.role as 'STAFF' | 'MANAGER' | 'HR_ADMIN',
             departmentId: user.departmentId,
+            isHrAdmin: user.isHrAdmin,
           },
           departmentIds,
           taskAssigneeDepartmentIds
@@ -1920,6 +1924,7 @@ export class DashboardTaskService extends BaseService {
               userId: user.id,
               role: user.role as 'STAFF' | 'MANAGER' | 'HR_ADMIN',
               departmentId: user.departmentId,
+              isHrAdmin: user.isHrAdmin,
             },
             departmentIds,
             subtaskAssigneeDepartmentIds

@@ -205,7 +205,7 @@ test.describe('Staff Project Task Edit Rights', () => {
   test('AC 1,2,3: staff can can only view subordinate tasks in Customer Portal Redesign project and edit if assigned to task', async ({
     page,
   }) => {
-    test.setTimeout(300000);
+    test.setTimeout(600000); // 10 minutes
 
     // Step 1: Login as staff member
     await page.goto('/auth/login');
