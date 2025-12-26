@@ -30,7 +30,7 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
             gcTime: 5 * 60 * 1000, // Keep unused data in cache for 5 minutes
             refetchOnWindowFocus: false, // Disable aggressive refetching
             refetchOnReconnect: true, // Refetch when internet reconnects
-            refetchOnMount: 'always', // Force refetch on every mount, even if loading
+            refetchOnMount: true, // Refetch on mount to ensure fresh data
             retry: 2, // Retry failed requests twice
             retryDelay: attemptIndex =>
               Math.min(1000 * 2 ** attemptIndex, 3000), // Exponential backoff

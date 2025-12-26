@@ -244,9 +244,13 @@ test.describe('Staff Project Task Edit Rights', () => {
       timeout: 60000,
     });
 
-    // Step 5: Wait for task table to load
+    // Step 5: Wait for task table to load and permissions to be calculated
     const taskTable = page.locator('table').first();
     await expect(taskTable).toBeVisible({ timeout: 60000 });
+
+    // Wait additional time for React Query to fetch fresh data with correct permissions
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(2000); // Additional buffer for permission calculation
 
     // Step 6: Verify edit button visibility based on task assignment
     const taskRows = page.locator('tbody tr');
