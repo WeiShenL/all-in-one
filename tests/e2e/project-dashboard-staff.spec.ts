@@ -279,7 +279,9 @@ test.describe('Staff Project Task Edit Rights', () => {
           const rowText = row.textContent || '';
           if (rowText.includes(`Task assigned to staff member ${testNs}`)) {
             // Found the assigned task row - check if edit button exists
-            const editButton = row.querySelector('button[data-testid^="edit-task-button"]');
+            const editButton = row.querySelector(
+              'button[data-testid^="edit-task-button"]'
+            );
             if (editButton) {
               return true; // Permission calculation is complete
             }
