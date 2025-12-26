@@ -1732,7 +1732,12 @@ export class DashboardTaskService extends BaseService {
       // Get user's profile
       const user = await this.prisma.userProfile.findUnique({
         where: { id: userId, isActive: true },
-        select: { id: true, departmentId: true, role: true, isHrAdmin: true },
+        select: {
+          id: true,
+          departmentId: true,
+          role: true,
+          isHrAdmin: true,
+        },
       });
 
       if (!user) {
