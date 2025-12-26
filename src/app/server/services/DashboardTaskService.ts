@@ -1736,26 +1736,18 @@ export class DashboardTaskService extends BaseService {
         projectId,
       };
 
-      if (user.role === 'MANAGER' || user.role === 'HR_ADMIN') {
-        // Managers and HR_ADMIN can see all tasks in their hierarchy
-        whereClause.OR = [
-          { departmentId: { in: departmentIds } },
-          {
-            assignments: {
-              some: {
-                user: { departmentId: { in: departmentIds }, isActive: true },
-              },
+      // All roles (STAFF, MANAGER, HR_ADMIN) can see tasks in their department hierarchy
+      // The difference is in edit permissions, not visibility
+      whereClause.OR = [
+        { departmentId: { in: departmentIds } },
+        {
+          assignments: {
+            some: {
+              user: { departmentId: { in: departmentIds }, isActive: true },
             },
           },
-        ];
-      } else {
-        // STAFF can only see tasks they are assigned to
-        whereClause.assignments = {
-          some: {
-            userId: user.id,
-          },
-        };
-      }
+        },
+      ];
 
       // Fetch all parent tasks for this project based on role permissions
       const parentTasks = await this.prisma.task.findMany({
