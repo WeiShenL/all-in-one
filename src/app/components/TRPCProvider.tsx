@@ -30,7 +30,7 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
             gcTime: 5 * 60 * 1000, // Keep unused data in cache for 5 minutes
             refetchOnWindowFocus: false, // Disable aggressive refetching
             refetchOnReconnect: true, // Refetch when internet reconnects
-            refetchOnMount: true, // Always refetch on mount to ensure fresh data
+            refetchOnMount: 'always', // Force refetch on every mount, even if loading
             retry: 2, // Retry failed requests twice
             retryDelay: attemptIndex =>
               Math.min(1000 * 2 ** attemptIndex, 3000), // Exponential backoff
@@ -51,7 +51,9 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
           maxURLLength: 2083,
           headers() {
             return {
-              'cache-control': 'no-cache',
+              'cache-control': 'no-cache, no-store, must-revalidate',
+              pragma: 'no-cache',
+              expires: '0',
             };
           },
         }),

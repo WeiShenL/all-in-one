@@ -449,11 +449,17 @@ test.describe('Recurring Task Creation - Isolated E2E Tests', () => {
     await page.waitForTimeout(2000);
 
     // Reload the page to see the new auto-generated task
-    await page.reload();
+    // Use waitUntil: 'networkidle' to ensure all network requests complete
+    await page.reload({ waitUntil: 'networkidle' });
     await expect(
       page.getByRole('heading', { name: /personal dashboard/i })
     ).toBeVisible({ timeout: 65000 });
-    await page.waitForTimeout(15000); // Increased wait for data to fully load
+
+    // Wait for tasks to load - look for either task count or table
+    await page.waitForTimeout(5000);
+    // Wait for the task table to stabilize
+    await page.locator('table').waitFor({ state: 'visible', timeout: 65000 });
+    await page.waitForTimeout(5000); // Additional time for data to render
 
     // Query database to verify a NEW task instance WAS created
     const taskCount = await pgClient.query(

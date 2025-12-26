@@ -333,7 +333,9 @@ export function TaskCard({
         )}`,
         {
           headers: {
-            'cache-control': 'no-cache',
+            'cache-control': 'no-cache, no-store, must-revalidate',
+            pragma: 'no-cache',
+            expires: '0',
           },
         }
       );
