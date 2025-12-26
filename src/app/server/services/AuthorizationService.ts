@@ -69,12 +69,23 @@ export class AuthorizationService {
       return taskInHierarchy;
     }
 
-    // STAFF: Can edit if assigned to the task (regardless of hierarchy)
+    // STAFF: Can edit ONLY if explicitly assigned to the task
     // This allows staff assigned to tasks in other departments to edit them
+    // but DENIES edit access to all other tasks, even in their own department
     if (user.role === 'STAFF') {
-      return task.assignments.some(
-        assignment => assignment.userId === user.userId
-      );
+      // Defensive check: ensure assignments is a valid array
+      if (!Array.isArray(task.assignments)) {
+        console.warn('[AuthService] Invalid assignments array for STAFF check');
+        return false;
+      }
+
+      // Check if user ID exists in task assignments
+      const canEdit = task.assignments.some(assignment => {
+        // Strict equality check with type validation
+        return assignment && assignment.userId && assignment.userId === user.userId;
+      });
+      
+      return canEdit;
     }
 
     return false;
