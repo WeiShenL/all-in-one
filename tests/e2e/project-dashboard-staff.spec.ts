@@ -316,31 +316,9 @@ test.describe('Staff Project Task Edit Rights', () => {
       .filter({ hasText: /edit/i });
     await expect(assignedTaskEditButton).toBeVisible({ timeout: 60000 });
 
-    // CRITICAL: Wait for permissions to be fully calculated on ALL rows
-    // In CI, the first row may briefly show an edit button before permissions load
-    // We wait for the FIRST non-assigned row to NOT have an edit button as a signal
-    await page.waitForFunction(
-      testNs => {
-        const rows = document.querySelectorAll('tbody tr');
-        // Find first row that is NOT our assigned task
-        for (const row of rows) {
-          const rowText = row.textContent || '';
-          if (!rowText.includes(`Task assigned to staff member ${testNs}`)) {
-            // This is a non-assigned task - check it does NOT have an edit button
-            const editButton = row.querySelector(
-              'button[data-testid^="edit-task-button"]'
-            );
-            return !editButton; // Return true when edit button is gone (permissions loaded)
-          }
-        }
-        return false;
-      },
-      testNamespace,
-      { timeout: 120000 }
-    );
-
-    // Extra stabilization after permission check
-    await page.waitForTimeout(2000);
+    // CRITICAL: Permission calculation takes time - give extra stabilization
+    // Rather than complex waitForFunction, use a simpler approach with longer wait
+    await page.waitForTimeout(10000);
 
     // Check that all other tasks (seed data tasks) do NOT have edit buttons
     for (let i = 0; i < rowCount; i++) {

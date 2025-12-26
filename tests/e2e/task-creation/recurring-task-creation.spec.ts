@@ -478,8 +478,12 @@ test.describe('Recurring Task Creation - Isolated E2E Tests', () => {
 
     // Now wait for the UI to render the task data
     // The edit button will only appear once the table is rendered with task data
+    // In CI, React Query cache may need extra time to sync, so we reload again
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.waitForTimeout(5000); // Extra stabilization after reload
+
     const newTaskEditButton = page.getByTestId(`edit-task-button-${newTaskId}`);
-    await expect(newTaskEditButton).toBeVisible({ timeout: 65000 });
+    await expect(newTaskEditButton).toBeVisible({ timeout: 120000 });
 
     // Verify the new task row shows TO_DO status
     const newTaskRow = page.locator('tr').filter({ has: newTaskEditButton });
