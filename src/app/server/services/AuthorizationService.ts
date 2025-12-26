@@ -72,9 +72,17 @@ export class AuthorizationService {
     // STAFF: Can edit if assigned to the task (regardless of hierarchy)
     // This allows staff assigned to tasks in other departments to edit them
     if (user.role === 'STAFF') {
-      return task.assignments.some(
+      const canEdit = task.assignments.some(
         assignment => assignment.userId === user.userId
       );
+      
+      // Log for debugging purposes (only in non-production)
+      if (process.env.NODE_ENV !== 'production' && !canEdit && task.assignments.length > 0) {
+        // Log when STAFF cannot edit a task with assignments (to help debug test failures)
+        console.log(`[AuthService] STAFF user ${user.userId} cannot edit task with assignments: [${task.assignments.map(a => a.userId).join(', ')}]`);
+      }
+      
+      return canEdit;
     }
 
     return false;
