@@ -223,6 +223,14 @@ test.describe('Staff Project Task Edit Rights', () => {
       page.getByRole('heading', { name: /personal dashboard/i })
     ).toBeVisible({ timeout: 60000 });
 
+    // Force hard reload to clear React Query cache in CI
+    await page.reload({ waitUntil: 'networkidle' });
+
+    // Verify dashboard is still loaded after reload
+    await expect(
+      page.getByRole('heading', { name: /personal dashboard/i })
+    ).toBeVisible({ timeout: 60000 });
+
     // Step 2: Wait for projects to load in navbar/sidebar, specifically Customer Portal Redesign
     await page.waitForTimeout(5000); // Give extra time for projects to load
 
@@ -233,8 +241,11 @@ test.describe('Staff Project Task Edit Rights', () => {
     await expect(projectSpan).toBeVisible({ timeout: 60000 });
     await projectSpan.click();
 
-    // Step 3: Verify project title shows "Customer Portal Redesign"
+    // Wait for navigation and all network requests to complete
     await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
+
+    // Step 3: Verify project title shows "Customer Portal Redesign"
     await expect(
       page.getByRole('heading', { name: 'Customer Portal Redesign', level: 1 })
     ).toBeVisible({ timeout: 60000 });
@@ -244,13 +255,21 @@ test.describe('Staff Project Task Edit Rights', () => {
       timeout: 60000,
     });
 
-    // Step 5: Wait for task table to load and permissions to be calculated
+    // Step 5: Wait for task table to load with all 8 rows
     const taskTable = page.locator('table').first();
     await expect(taskTable).toBeVisible({ timeout: 60000 });
 
-    // Wait additional time for React Query to fetch fresh data with correct permissions
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000); // Additional buffer for permission calculation
+    // Wait for all task rows to be rendered (8 expected)
+    await page.waitForFunction(
+      () => {
+        const rows = document.querySelectorAll('tbody tr');
+        return rows.length >= 8;
+      },
+      { timeout: 10000 }
+    );
+
+    // Additional wait to ensure permissions have been calculated
+    await page.waitForTimeout(2000);
 
     // Step 6: Verify edit button visibility based on task assignment
     const taskRows = page.locator('tbody tr');
