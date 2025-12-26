@@ -455,13 +455,8 @@ test.describe('Recurring Task Creation - Isolated E2E Tests', () => {
       page.getByRole('heading', { name: /personal dashboard/i })
     ).toBeVisible({ timeout: 65000 });
 
-    // Wait for tasks to load - look for either task count or table
-    await page.waitForTimeout(5000);
-    // Wait for the task table to stabilize
-    await page.locator('table').waitFor({ state: 'visible', timeout: 65000 });
-    await page.waitForTimeout(5000); // Additional time for data to render
-
-    // Query database to verify a NEW task instance WAS created
+    // First, verify in database that the new task was created
+    // This ensures the recurring task generation completed before checking UI
     const taskCount = await pgClient.query(
       'SELECT COUNT(*) as count FROM "task" WHERE title = $1 AND "ownerId" = $2',
       [`Recurring Instance ${testNamespace}`, testUserId]
@@ -481,7 +476,8 @@ test.describe('Recurring Task Creation - Isolated E2E Tests', () => {
     expect(newTaskId).toBeDefined();
     expect(newTask.rows[0].recurringInterval).toBe(7); // New task has same recurring settings
 
-    // Verify the new task appears in the UI using its data-testid
+    // Now wait for the UI to render the task data
+    // The edit button will only appear once the table is rendered with task data
     const newTaskEditButton = page.getByTestId(`edit-task-button-${newTaskId}`);
     await expect(newTaskEditButton).toBeVisible({ timeout: 65000 });
 
