@@ -241,9 +241,9 @@ test.describe('Task Tags Update - Isolated E2E Tests', () => {
     await addTagButton.click();
 
     // Wait for tag operation to complete by checking button state
-    // Button shows "Adding..." while operation is in progress, then returns to "Add Tag"
-    await expect(addTagButton).toHaveText('Adding...', { timeout: 5000 });
-    await expect(addTagButton).toHaveText('Add Tag', { timeout: 65000 });
+    // Button becomes disabled while operation is in progress, then becomes enabled again
+    await expect(addTagButton).toBeDisabled({ timeout: 5000 });
+    await expect(addTagButton).toBeEnabled({ timeout: 65000 });
 
     // Verify tag appears - should be immediate now that operation is complete
     await expect(
@@ -261,8 +261,9 @@ test.describe('Task Tags Update - Isolated E2E Tests', () => {
     await addTagButton.click();
 
     // Wait for tag operation to complete by checking button state
-    await expect(addTagButton).toHaveText('Adding...', { timeout: 5000 });
-    await expect(addTagButton).toHaveText('Add Tag', { timeout: 65000 });
+    // Button becomes disabled while operation is in progress, then becomes enabled again
+    await expect(addTagButton).toBeDisabled({ timeout: 5000 });
+    await expect(addTagButton).toBeEnabled({ timeout: 65000 });
 
     // Verify tag appears - should be immediate now that operation is complete
     await expect(
@@ -274,10 +275,10 @@ test.describe('Task Tags Update - Isolated E2E Tests', () => {
     // Remove first tag using data-testid
     await page.getByTestId('remove-tag-e2e-test-tag-urgent').click();
 
-    // Wait for tag removal to complete - wait for "Adding..." state during removal
-    // The same isUpdating state is used for all operations
-    await expect(addTagButton).toHaveText('Adding...', { timeout: 5000 });
-    await expect(addTagButton).toHaveText('Add Tag', { timeout: 65000 });
+    // Wait for tag removal to complete by checking button state
+    // The same isUpdating state is used for all operations (add/remove)
+    await expect(addTagButton).toBeDisabled({ timeout: 5000 });
+    await expect(addTagButton).toBeEnabled({ timeout: 65000 });
 
     // Verify tag is gone - should be immediate now that operation is complete
     await expect(
