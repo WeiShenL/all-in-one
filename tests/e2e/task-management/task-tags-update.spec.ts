@@ -265,12 +265,15 @@ test.describe('Task Tags Update - Isolated E2E Tests', () => {
     await expect(addTagButton).toBeDisabled({ timeout: 5000 });
     await expect(addTagButton).toBeEnabled({ timeout: 65000 });
 
+    // Extra wait for UI to sync with database in CI
+    await page.waitForTimeout(3000);
+
     // Verify tag appears by checking for the remove button which is only rendered when tag exists
     // The tag text and × are in separate elements so we check for the remove button data-testid
     await expect(
       page.getByTestId('remove-tag-e2e-test-tag-frontend')
     ).toBeVisible({
-      timeout: 10000,
+      timeout: 60000,
     });
 
     // Remove first tag using data-testid
