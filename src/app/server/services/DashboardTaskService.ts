@@ -1729,23 +1729,37 @@ export class DashboardTaskService extends BaseService {
         user.departmentId
       );
 
-      // Fetch all parent tasks for this project within the user's hierarchy
-      const parentTasks = await this.prisma.task.findMany({
-        where: {
-          isArchived: false,
-          parentTaskId: null,
-          projectId,
-          OR: [
-            { departmentId: { in: departmentIds } },
-            {
-              assignments: {
-                some: {
-                  user: { departmentId: { in: departmentIds }, isActive: true },
-                },
+      // Build where clause based on user role
+      const whereClause: any = {
+        isArchived: false,
+        parentTaskId: null,
+        projectId,
+      };
+
+      if (user.role === 'MANAGER' || user.role === 'HR_ADMIN') {
+        // Managers and HR_ADMIN can see all tasks in their hierarchy
+        whereClause.OR = [
+          { departmentId: { in: departmentIds } },
+          {
+            assignments: {
+              some: {
+                user: { departmentId: { in: departmentIds }, isActive: true },
               },
             },
-          ],
-        },
+          },
+        ];
+      } else {
+        // STAFF can only see tasks they are assigned to
+        whereClause.assignments = {
+          some: {
+            userId: user.id,
+          },
+        };
+      }
+
+      // Fetch all parent tasks for this project based on role permissions
+      const parentTasks = await this.prisma.task.findMany({
+        where: whereClause,
         take: options?.limit ?? 100,
         skip: options?.offset ?? 0,
         include: {
