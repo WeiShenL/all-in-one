@@ -24,6 +24,7 @@
     "db:clear-auth": "node scripts/clear-auth.mjs",
     "db:deploy": "npm run db:migrate && npm run db:setup-storage",
     "db:reset": "npx prisma migrate reset --force --skip-seed && npm run db:clear-auth && npm run db:setup-storage && npx prisma db seed",
+    "db:down": "cd supabase && docker compose --env-file ../.env down && cd ..",
     "test": "npm run test:unit && npm run test:integration && npm run test:e2e",
     "test:jest": "jest",
     "test:unit": "jest tests/unit --maxWorkers=4",
@@ -47,6 +48,7 @@
   },
   "dependencies": {
     "@prisma/client": "^6.17.1",
+    "@radix-ui/react-slot": "^1.2.4",
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.57.4",
     "@tanstack/react-query": "^5.89.0",
@@ -54,6 +56,9 @@
     "@trpc/next": "^11.5.1",
     "@trpc/react-query": "^11.5.1",
     "@trpc/server": "^11.5.1",
+    "@vercel/analytics": "^1.6.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.2",
     "exceljs": "^4.4.0",
@@ -68,6 +73,8 @@
     "react-dom": "19.1.0",
     "resend": "^6.1.2",
     "superjson": "^2.2.2",
+    "tailwind-merge": "^3.4.0",
+    "tailwindcss-animate": "^1.0.7",
     "zod": "^4.1.9"
   },
   "lint-staged": {

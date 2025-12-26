@@ -8,6 +8,7 @@
 export { BaseService } from './BaseService';
 export { DepartmentService } from './DepartmentService';
 export { UserProfileService } from './UserProfileService';
+export { UserManagementService } from './UserManagementService';
 export { TeamService } from './TeamService';
 export { ProjectService } from '@/services/project/ProjectService';
 export { CommentService } from './CommentService';

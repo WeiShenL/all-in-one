@@ -35,7 +35,9 @@ test.describe('HR/Admin Company Dashboard - Happy Path', () => {
     await pgClient.end();
   });
 
-  test('HR/Admin can access company dashboard and view all tasks', async ({
+  // NOTE: HR/Admin signup checkbox removed to prevent email address exposure (security fix)
+  // This test is no longer valid since users can't sign up as HR/Admin via the UI
+  test.skip('HR/Admin can access company dashboard and view all tasks', async ({
     page,
   }) => {
     // Create and login as HR/Admin user

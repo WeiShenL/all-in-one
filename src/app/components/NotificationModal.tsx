@@ -4,6 +4,7 @@ import React, { useEffect } from 'react';
 import { trpc } from '@/app/lib/trpc';
 import { useAuth } from '@/lib/supabase/auth-context';
 import { useNotifications } from '@/lib/context/NotificationContext';
+import { useUnreadNotificationCount } from '@/lib/hooks/useUnreadNotificationCount';
 
 interface NotificationModalProps {
   isOpen: boolean;
@@ -16,7 +17,7 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
 }) => {
   const { user } = useAuth();
   const { lastNotificationTime } = useNotifications();
-  const utils = trpc.useUtils();
+  const { resetCount } = useUnreadNotificationCount();
   const {
     data: notifications,
     isLoading,
@@ -32,9 +33,13 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
   );
 
   const markAsReadMutation = trpc.notification.markAsRead.useMutation({
-    onSuccess: () => {
-      // Invalidate count query to refetch and update badge
-      utils.notification.getUnreadCount.invalidate();
+    onSuccess: data => {
+      // Reset the unread count in the badge (no DB query needed)
+      if (data.count > 0) {
+        resetCount();
+      }
+      // Refetch the notification list to update UI
+      refetch();
     },
   });
 

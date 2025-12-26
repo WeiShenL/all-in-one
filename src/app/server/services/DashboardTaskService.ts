@@ -669,8 +669,20 @@ export class DashboardTaskService extends BaseService {
         newDueDate.getUTCDate() + completedTask.recurringInterval
       );
 
-      // Extract assignee IDs
+      // Extract assignee IDs and ensure owner is always included
       const assigneeIds = completedTask.assignments.map(a => a.userId);
+      if (!assigneeIds.includes(completedTask.ownerId)) {
+        assigneeIds.push(completedTask.ownerId);
+      }
+
+      // If no assignees, something is wrong - log and return
+      if (!assigneeIds || assigneeIds.length === 0) {
+        console.error('Cannot generate recurring task: no assignees found', {
+          taskId: completedTask.id,
+          title: completedTask.title,
+        });
+        return;
+      }
 
       // Extract tag names if tags exist
       let tagNames: string[] = [];
@@ -1186,7 +1198,10 @@ export class DashboardTaskService extends BaseService {
    * @param managerId - Manager's user ID
    * @returns Dashboard data with tasks and metrics
    */
-  async getManagerDashboardTasks(managerId: string): Promise<DashboardData> {
+  async getManagerDashboardTasks(
+    managerId: string,
+    options?: { limit?: number; offset?: number }
+  ): Promise<DashboardData> {
     try {
       this.validateId(managerId, 'Manager ID');
 
@@ -1231,6 +1246,8 @@ export class DashboardTaskService extends BaseService {
             },
           ],
         },
+        take: options?.limit ?? 100,
+        skip: options?.offset ?? 0,
         select: {
           id: true,
           title: true,
@@ -1264,9 +1281,7 @@ export class DashboardTaskService extends BaseService {
             },
           },
         },
-        orderBy: {
-          dueDate: 'asc',
-        },
+        orderBy: [{ priority: 'desc' }, { dueDate: 'asc' }],
       });
 
       // Add canEdit field - all tasks are editable by managers (backward compatibility)
@@ -1296,7 +1311,10 @@ export class DashboardTaskService extends BaseService {
    * @param userId - User's ID
    * @returns Array of tasks with canEdit field
    */
-  async getDepartmentTasksForUser(userId: string) {
+  async getDepartmentTasksForUser(
+    userId: string,
+    options?: { limit?: number; offset?: number }
+  ) {
     try {
       this.validateId(userId, 'User ID');
 
@@ -1360,6 +1378,8 @@ export class DashboardTaskService extends BaseService {
             },
           ],
         },
+        take: options?.limit ?? 100,
+        skip: options?.offset ?? 0,
         include: {
           assignments: {
             select: {
@@ -1393,7 +1413,7 @@ export class DashboardTaskService extends BaseService {
             },
           },
           tags: {
-            include: {
+            select: {
               tag: {
                 select: {
                   name: true,
@@ -1401,15 +1421,8 @@ export class DashboardTaskService extends BaseService {
               },
             },
           },
-          comments: {
-            select: {
-              id: true,
-              content: true,
-              userId: true,
-              createdAt: true,
-              updatedAt: true,
-            },
-          },
+          // Remove comments - not displayed in dashboard table view
+          // comments can be fetched when task detail modal opens
           owner: {
             select: {
               id: true,
@@ -1417,61 +1430,33 @@ export class DashboardTaskService extends BaseService {
               email: true,
             },
           },
-          // Fetch subtasks with full details
+          // Simplified subtasks - only count and basic status
           subtasks: {
             where: {
               isArchived: false,
             },
-            include: {
+            select: {
+              id: true,
+              title: true,
+              status: true,
+              dueDate: true,
+              priority: true,
+              departmentId: true,
+              ownerId: true,
+              recurringInterval: true,
+              startDate: true,
+              // Minimal assignment data for canEdit calculation
               assignments: {
                 select: {
                   userId: true,
                   user: {
                     select: {
-                      id: true,
-                      name: true,
-                      email: true,
                       departmentId: true,
-                      department: {
-                        select: {
-                          id: true,
-                          name: true,
-                        },
-                      },
                     },
                   },
                 },
               },
-              department: {
-                select: {
-                  id: true,
-                  name: true,
-                },
-              },
-              project: {
-                select: {
-                  id: true,
-                  name: true,
-                },
-              },
-              tags: {
-                include: {
-                  tag: {
-                    select: {
-                      name: true,
-                    },
-                  },
-                },
-              },
-              comments: {
-                select: {
-                  id: true,
-                  content: true,
-                  userId: true,
-                  createdAt: true,
-                  updatedAt: true,
-                },
-              },
+              // Essential relations but no deep nesting
               owner: {
                 select: {
                   id: true,
@@ -1479,12 +1464,23 @@ export class DashboardTaskService extends BaseService {
                   email: true,
                 },
               },
+              tags: {
+                select: {
+                  tag: {
+                    select: {
+                      name: true,
+                    },
+                  },
+                },
+              },
+              // No comments for subtasks in list view
+            },
+            orderBy: {
+              createdAt: 'asc',
             },
           },
         },
-        orderBy: {
-          dueDate: 'asc',
-        },
+        orderBy: [{ priority: 'desc' }, { dueDate: 'asc' }],
       });
 
       // Use AuthorizationService to calculate canEdit for each task and subtask
@@ -1542,13 +1538,7 @@ export class DashboardTaskService extends BaseService {
           return {
             ...subtask,
             tags: subtask.tags.map(t => t.tag.name),
-            comments: subtask.comments.map(c => ({
-              id: c.id,
-              content: c.content,
-              authorId: c.userId,
-              createdAt: c.createdAt,
-              updatedAt: c.updatedAt,
-            })),
+            comments: [], // No comments loaded for subtasks in list view
             owner: subtask.owner || {
               id: subtask.ownerId,
               name: null,
@@ -1564,13 +1554,7 @@ export class DashboardTaskService extends BaseService {
         return {
           ...task,
           tags: task.tags.map(t => t.tag.name),
-          comments: task.comments.map(c => ({
-            id: c.id,
-            content: c.content,
-            authorId: c.userId,
-            createdAt: c.createdAt,
-            updatedAt: c.updatedAt,
-          })),
+          comments: [], // No comments loaded in list view - fetch when detail modal opens
           owner: task.owner || {
             id: task.ownerId,
             name: null,
@@ -1722,7 +1706,11 @@ export class DashboardTaskService extends BaseService {
    * Applies the same visibility rules as the department dashboard but
    * additionally filters by the provided projectId.
    */
-  async getProjectTasksForUser(userId: string, projectId: string) {
+  async getProjectTasksForUser(
+    userId: string,
+    projectId: string,
+    options?: { limit?: number; offset?: number }
+  ) {
     try {
       this.validateId(userId, 'User ID');
 
@@ -1741,23 +1729,31 @@ export class DashboardTaskService extends BaseService {
         user.departmentId
       );
 
-      // Fetch all parent tasks for this project within the user's hierarchy
-      const parentTasks = await this.prisma.task.findMany({
-        where: {
-          isArchived: false,
-          parentTaskId: null,
-          projectId,
-          OR: [
-            { departmentId: { in: departmentIds } },
-            {
-              assignments: {
-                some: {
-                  user: { departmentId: { in: departmentIds }, isActive: true },
-                },
-              },
+      // Build where clause based on user role
+      const whereClause: any = {
+        isArchived: false,
+        parentTaskId: null,
+        projectId,
+      };
+
+      // All roles (STAFF, MANAGER, HR_ADMIN) can see tasks in their department hierarchy
+      // The difference is in edit permissions, not visibility
+      whereClause.OR = [
+        { departmentId: { in: departmentIds } },
+        {
+          assignments: {
+            some: {
+              user: { departmentId: { in: departmentIds }, isActive: true },
             },
-          ],
+          },
         },
+      ];
+
+      // Fetch all parent tasks for this project based on role permissions
+      const parentTasks = await this.prisma.task.findMany({
+        where: whereClause,
+        take: options?.limit ?? 100,
+        skip: options?.offset ?? 0,
         include: {
           assignments: {
             select: {
@@ -1791,6 +1787,10 @@ export class DashboardTaskService extends BaseService {
               createdAt: true,
               updatedAt: true,
             },
+            orderBy: {
+              createdAt: 'desc',
+            },
+            take: 5,
           },
           subtasks: {
             where: { isArchived: false },
@@ -1827,11 +1827,15 @@ export class DashboardTaskService extends BaseService {
                   createdAt: true,
                   updatedAt: true,
                 },
+                orderBy: {
+                  createdAt: 'desc',
+                },
+                take: 5,
               },
             },
           },
         },
-        orderBy: { dueDate: 'asc' },
+        orderBy: [{ priority: 'desc' }, { dueDate: 'asc' }],
       });
 
       // Calculate canEdit using AuthorizationService (same as department)
@@ -2050,6 +2054,8 @@ export class DashboardTaskService extends BaseService {
       assigneeId?: string;
       status?: 'TO_DO' | 'IN_PROGRESS' | 'COMPLETED' | 'BLOCKED';
       includeArchived?: boolean;
+      limit?: number;
+      offset?: number;
     }
   ) {
     this.validateId(userId, 'User ID');
@@ -2115,6 +2121,8 @@ export class DashboardTaskService extends BaseService {
     // Fetch all parent tasks matching filters
     const parentTasks = await this.prisma.task.findMany({
       where: whereClause,
+      take: filters?.limit ?? 100,
+      skip: filters?.offset ?? 0,
       include: {
         assignments: {
           select: {
@@ -2147,9 +2155,15 @@ export class DashboardTaskService extends BaseService {
             name: true,
           },
         },
-        owner: true,
+        owner: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
         tags: {
-          include: {
+          select: {
             tag: {
               select: {
                 name: true,
@@ -2157,50 +2171,31 @@ export class DashboardTaskService extends BaseService {
             },
           },
         },
-        comments: {
-          select: {
-            id: true,
-            content: true,
-            userId: true,
-            createdAt: true,
-            updatedAt: true,
-          },
-        },
-        // Fetch subtasks with full details
+        // Remove comments from list view - fetch when detail modal opens
+        // Simplified subtasks - only essential info for dashboard
         subtasks: {
           where: {
             isArchived: filters?.includeArchived === true ? undefined : false,
           },
-          include: {
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            dueDate: true,
+            priority: true,
+            departmentId: true,
+            ownerId: true,
+            recurringInterval: true,
+            startDate: true,
+            // Minimal assignment data for canEdit calculation
             assignments: {
               select: {
                 userId: true,
                 user: {
                   select: {
-                    id: true,
-                    name: true,
-                    email: true,
                     departmentId: true,
-                    department: {
-                      select: {
-                        id: true,
-                        name: true,
-                      },
-                    },
                   },
                 },
-              },
-            },
-            department: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-            project: {
-              select: {
-                id: true,
-                name: true,
               },
             },
             owner: {
@@ -2211,7 +2206,7 @@ export class DashboardTaskService extends BaseService {
               },
             },
             tags: {
-              include: {
+              select: {
                 tag: {
                   select: {
                     name: true,
@@ -2219,21 +2214,13 @@ export class DashboardTaskService extends BaseService {
                 },
               },
             },
-            comments: {
-              select: {
-                id: true,
-                content: true,
-                userId: true,
-                createdAt: true,
-                updatedAt: true,
-              },
-            },
+          },
+          orderBy: {
+            createdAt: 'asc',
           },
         },
       },
-      orderBy: {
-        dueDate: 'asc',
-      },
+      orderBy: [{ priority: 'desc' }, { dueDate: 'asc' }],
     });
 
     // Use AuthorizationService to calculate canEdit for each task
@@ -2331,13 +2318,7 @@ export class DashboardTaskService extends BaseService {
         return {
           ...subtask,
           tags: subtask.tags.map(t => t.tag.name),
-          comments: subtask.comments.map(c => ({
-            id: c.id,
-            content: c.content,
-            authorId: c.userId,
-            createdAt: c.createdAt,
-            updatedAt: c.updatedAt,
-          })),
+          comments: [], // No comments loaded for subtasks in list view
           priorityBucket: subtask.priority,
           isRecurring: subtask.recurringInterval !== null,
           canEdit: subtaskCanEdit,
@@ -2347,13 +2328,7 @@ export class DashboardTaskService extends BaseService {
       return {
         ...task,
         tags: task.tags.map(t => t.tag.name),
-        comments: task.comments.map(c => ({
-          id: c.id,
-          content: c.content,
-          authorId: c.userId,
-          createdAt: c.createdAt,
-          updatedAt: c.updatedAt,
-        })),
+        comments: [], // No comments loaded in list view - fetch when detail modal opens
         priorityBucket: task.priority,
         isRecurring: task.recurringInterval !== null,
         canEdit: taskCanEdit,

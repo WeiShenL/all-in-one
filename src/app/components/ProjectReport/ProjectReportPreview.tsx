@@ -44,15 +44,45 @@ export function ProjectReportPreview({ projectId }: Props) {
     if (!reportDataWithDates || reportQuery.isLoading) {
       return;
     }
-    const blob = buildProjectReportPDFBlob(reportDataWithDates as any);
-    const url = window.URL.createObjectURL(blob);
-    if (previewUrl) {
-      window.URL.revokeObjectURL(previewUrl);
-    }
-    setPreviewUrl(url);
+
+    let cancelled = false;
+
+    const generatePreview = async () => {
+      try {
+        const blob = await buildProjectReportPDFBlob(
+          reportDataWithDates as any
+        );
+
+        if (cancelled) {
+          return;
+        }
+
+        // Validate blob
+        if (!(blob instanceof Blob)) {
+          console.error(
+            'buildProjectReportPDFBlob did not return a valid Blob'
+          );
+          return;
+        }
+
+        const url = window.URL.createObjectURL(blob);
+
+        if (previewUrl) {
+          window.URL.revokeObjectURL(previewUrl);
+        }
+
+        setPreviewUrl(url);
+      } catch (error) {
+        console.error('Failed to generate PDF preview:', error);
+      }
+    };
+
+    generatePreview();
+
     return () => {
-      if (url) {
-        window.URL.revokeObjectURL(url);
+      cancelled = true;
+      if (previewUrl) {
+        window.URL.revokeObjectURL(previewUrl);
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

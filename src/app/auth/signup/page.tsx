@@ -318,7 +318,8 @@ export default function SignupPage() {
             </div>
           </div>
 
-          <div style={{ marginBottom: '1rem' }}>
+          {/* HR/Admin checkbox commented out to prevent email address exposure */}
+          {/* <div style={{ marginBottom: '1rem' }}>
             <label
               style={{
                 display: 'flex',
@@ -377,7 +378,7 @@ export default function SignupPage() {
                 </p>
               </div>
             </label>
-          </div>
+          </div> */}
 
           <div style={{ marginBottom: '1rem' }}>
             <label

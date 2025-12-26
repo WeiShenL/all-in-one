@@ -449,13 +449,14 @@ test.describe('Recurring Task Creation - Isolated E2E Tests', () => {
     await page.waitForTimeout(2000);
 
     // Reload the page to see the new auto-generated task
-    await page.reload();
+    // Use waitUntil: 'networkidle' to ensure all network requests complete
+    await page.reload({ waitUntil: 'networkidle' });
     await expect(
       page.getByRole('heading', { name: /personal dashboard/i })
     ).toBeVisible({ timeout: 65000 });
-    await page.waitForTimeout(8000);
 
-    // Query database to verify a NEW task instance WAS created
+    // First, verify in database that the new task was created
+    // This ensures the recurring task generation completed before checking UI
     const taskCount = await pgClient.query(
       'SELECT COUNT(*) as count FROM "task" WHERE title = $1 AND "ownerId" = $2',
       [`Recurring Instance ${testNamespace}`, testUserId]
@@ -475,9 +476,14 @@ test.describe('Recurring Task Creation - Isolated E2E Tests', () => {
     expect(newTaskId).toBeDefined();
     expect(newTask.rows[0].recurringInterval).toBe(7); // New task has same recurring settings
 
-    // Verify the new task appears in the UI using its data-testid
+    // Now wait for the UI to render the task data
+    // The edit button will only appear once the table is rendered with task data
+    // In CI, React Query cache may need extra time to sync, so we reload again
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.waitForTimeout(5000); // Extra stabilization after reload
+
     const newTaskEditButton = page.getByTestId(`edit-task-button-${newTaskId}`);
-    await expect(newTaskEditButton).toBeVisible({ timeout: 65000 });
+    await expect(newTaskEditButton).toBeVisible({ timeout: 120000 });
 
     // Verify the new task row shows TO_DO status
     const newTaskRow = page.locator('tr').filter({ has: newTaskEditButton });

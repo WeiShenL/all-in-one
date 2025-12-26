@@ -90,4 +90,9 @@ export interface TaskTableProps {
   isLoading?: boolean;
   error?: Error | null;
   projectId?: string;
+  // Pagination props - TaskTable manages pagination internally
+  enablePagination?: boolean; // Whether to show pagination controls
+  paginationMode?: 'client' | 'server'; // Client-side (slice array) or server-side (fetch pages)
+  onFetchPage?: (page: number, limit: number) => void; // Callback for server-side pagination
+  pageSize?: number; // Items per page (default: 100)
 }

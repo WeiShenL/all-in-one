@@ -651,12 +651,6 @@ export class TaskService {
       throw new Error('Task not found');
     }
 
-    // console.log('📝 [STATUS UPDATE] Task:', taskId);
-    // console.log('📝 [STATUS UPDATE] Current status:', task.getStatus(), '→', newStatus);
-    // console.log('📝 [STATUS UPDATE] Is recurring:', task.isTaskRecurring());
-    // console.log('📝 [STATUS UPDATE] Recurring interval:', task.getRecurringInterval());
-    // console.log('📝 [STATUS UPDATE] Current due date:', task.getDueDate().toISOString());
-
     // Capture old values before updating
     const oldStatus = task.getStatus();
     const oldStartDate = task.getStartDate();
@@ -730,11 +724,7 @@ export class TaskService {
     user: UserContext
   ): Promise<void> {
     const recurringInterval = completedTask.getRecurringInterval();
-    // console.log('🔄 [RECURRING] Starting generation for task:', completedTask.getId());
-    // console.log('🔄 [RECURRING] Recurring interval:', recurringInterval);
-
     if (!recurringInterval) {
-      // console.log('🔄 [RECURRING] No recurring interval, skipping');
       return;
     }
 
@@ -742,9 +732,6 @@ export class TaskService {
     // This maintains predictable cadence for teams and matches calendar forecasts
     const originalDueDate = completedTask.getDueDate();
     const now = new Date();
-
-    // console.log('🔄 [RECURRING] Original due date:', originalDueDate.toISOString());
-    // console.log('🔄 [RECURRING] Completion time (now):', now.toISOString());
 
     // Calculate next occurrence from original due date
     const nextDueDate = new Date(originalDueDate);
@@ -755,10 +742,6 @@ export class TaskService {
     while (nextDueDate <= now) {
       nextDueDate.setUTCDate(nextDueDate.getUTCDate() + recurringInterval);
     }
-
-    // console.log('🔄 [RECURRING] Next due date:', nextDueDate.toISOString());
-    // console.log('🔄 [RECURRING] Skipped occurrences:', skippedCount);
-    // console.log('🔄 [RECURRING] Days from original due date:', recurringInterval * (1 + skippedCount));
 
     // Validate assignees still exist and are active
     const assigneeIds = Array.from(completedTask.getAssignees());
@@ -789,10 +772,6 @@ export class TaskService {
     });
 
     // Persist next instance (createdAt will default to NOW)
-    // console.log('🔄 [RECURRING] Creating next task:');
-    // console.log('🔄 [RECURRING]   dueDate:', nextTask.getDueDate().toISOString());
-    // console.log('🔄 [RECURRING]   New task ID:', nextTask.getId());
-
     await this.taskRepository.createTask({
       id: nextTask.getId(),
       title: nextTask.getTitle(),
@@ -808,8 +787,6 @@ export class TaskService {
       tags: Array.from(nextTask.getTags()),
       recurringInterval: nextTask.getRecurringInterval() ?? undefined,
     });
-
-    // console.log('🔄 [RECURRING] ✅ Next task created successfully');
 
     // Log the recurring task generation
     await this.taskRepository.logTaskAction(

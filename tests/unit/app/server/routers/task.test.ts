@@ -208,7 +208,55 @@ describe('Task Router', () => {
     const serviceFactory = require('@/app/server/composition/serviceFactory');
     serviceFactory.buildServices = mockBuildServices;
 
-    MockPrismaTaskRepository.mockImplementation(() => ({}) as any);
+    MockPrismaTaskRepository.mockImplementation(
+      () =>
+        ({
+          getUserTasks: jest.fn().mockResolvedValue([
+            {
+              id: '550e8400-e29b-41d4-a716-446655440000',
+              title: 'Test Task',
+              description: 'Test Description',
+              priorityBucket: 5,
+              dueDate: new Date('2025-12-31'),
+              status: 'TO_DO',
+              ownerId: '550e8400-e29b-41d4-a716-446655440004',
+              departmentId: '550e8400-e29b-41d4-a716-446655440005',
+              projectId: null,
+              parentTaskId: null,
+              isTaskRecurring: false,
+              recurringInterval: null,
+              isArchived: false,
+              createdAt: new Date('2025-01-01'),
+              startDate: null,
+              updatedAt: new Date('2025-01-01'),
+              assignments: [
+                {
+                  userId: '550e8400-e29b-41d4-a716-446655440002',
+                  user: {
+                    id: '550e8400-e29b-41d4-a716-446655440002',
+                    name: 'Test User',
+                    email: 'test@example.com',
+                    departmentId: '550e8400-e29b-41d4-a716-446655440005',
+                  },
+                },
+              ],
+              owner: {
+                id: '550e8400-e29b-41d4-a716-446655440004',
+                name: 'Owner User',
+                email: 'owner@example.com',
+                departmentId: '550e8400-e29b-41d4-a716-446655440005',
+              },
+              department: {
+                id: '550e8400-e29b-41d4-a716-446655440005',
+                name: 'Test Department',
+              },
+              project: null,
+              tags: [],
+              comments: [],
+            },
+          ]),
+        }) as any
+    );
     MockTaskService.mockImplementation(() => mockTaskService);
     MockSubtaskService.mockImplementation(() => mockSubtaskService);
   });
@@ -1322,10 +1370,10 @@ describe('Task Router', () => {
       });
 
       expect(Array.isArray(result)).toBe(true);
-      expect(mockTaskService.getUserTasks).toHaveBeenCalledWith(
-        '550e8400-e29b-41d4-a716-446655440002',
-        false
-      );
+      expect(result.length).toBeGreaterThan(0);
+      // Now uses repository directly instead of service
+      expect(result[0]).toHaveProperty('id');
+      expect(result[0]).toHaveProperty('title');
     });
 
     it('should return tasks with canEdit=true for personal tasks', async () => {

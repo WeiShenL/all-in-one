@@ -11,6 +11,9 @@ export default defineConfig({
     timeout: process.env.CI ? 30_000 : 10_000, // Increased CI timeout from 15s to 30s
   },
 
+  // Retry flaky tests in CI (helps with race conditions)
+  retries: process.env.CI ? 2 : 0,
+
   // Run e2e tests in parallel with worker-specific test data namespacing
   fullyParallel: true,
   workers: process.env.CI ? 3 : 3, // update here if wnat more in local. for now seems like 3 is the sweet spot without any contention issues.

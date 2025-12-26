@@ -58,7 +58,6 @@
     "email": "sally.loh@allinone.com",
     "name": "Sally Loh",
     "role": "MANAGER",
-    "isHrAdmin": true,
     "departmentId": "60e6fc6e-b46c-4b78-9687-40e45546599f",
     "createdAt": "2025-01-01T00:00:00.000Z",
     "updatedAt": "2025-01-01T00:00:00.000Z"

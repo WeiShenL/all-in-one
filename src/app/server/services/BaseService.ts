@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { createLogger } from '@/lib/logger';
 
 /**
  * Abstract Base Service Class
@@ -12,9 +13,11 @@ import { PrismaClient } from '@prisma/client';
  */
 export abstract class BaseService {
   protected prisma: PrismaClient;
+  protected logger: ReturnType<typeof createLogger>;
 
   constructor(prisma: PrismaClient) {
     this.prisma = prisma;
+    this.logger = createLogger(this.constructor.name);
   }
 
   /**
@@ -27,7 +30,7 @@ export abstract class BaseService {
     context: string,
     shouldThrow: boolean = true
   ): void {
-    console.error(`[${this.constructor.name}] Error in ${context}:`, error);
+    this.logger.error(`Error in ${context}`, error);
 
     if (shouldThrow) {
       if (error instanceof Error) {

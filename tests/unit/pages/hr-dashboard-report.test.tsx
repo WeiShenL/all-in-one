@@ -35,6 +35,75 @@ jest.mock('@/app/lib/trpc', () => ({
         useQuery: jest.fn(),
       },
     },
+    userManagement: {
+      createUser: {
+        useMutation: jest.fn(() => ({
+          mutate: jest.fn(),
+          isLoading: false,
+        })),
+      },
+      updateUser: {
+        useMutation: jest.fn(() => ({
+          mutate: jest.fn(),
+          isLoading: false,
+        })),
+      },
+      deactivateUser: {
+        useMutation: jest.fn(() => ({
+          mutate: jest.fn(),
+          isLoading: false,
+        })),
+      },
+      reactivateUser: {
+        useMutation: jest.fn(() => ({
+          mutate: jest.fn(),
+          isLoading: false,
+        })),
+      },
+      resetUserPassword: {
+        useMutation: jest.fn(() => ({
+          mutate: jest.fn(),
+          isLoading: false,
+        })),
+      },
+      getAllUsers: {
+        useQuery: jest.fn(() => ({ data: [], isLoading: false })),
+      },
+    },
+    department: {
+      getAll: {
+        useQuery: jest.fn(() => ({ data: [], isLoading: false })),
+      },
+      create: {
+        useMutation: jest.fn(() => ({
+          mutate: jest.fn(),
+          isLoading: false,
+        })),
+      },
+      update: {
+        useMutation: jest.fn(() => ({
+          mutate: jest.fn(),
+          isLoading: false,
+        })),
+      },
+      delete: {
+        useMutation: jest.fn(() => ({
+          mutate: jest.fn(),
+          isLoading: false,
+        })),
+      },
+    },
+    userProfile: {
+      getAll: {
+        useQuery: jest.fn(() => ({ data: [], isLoading: false })),
+      },
+      update: {
+        useMutation: jest.fn(() => ({
+          mutate: jest.fn(),
+          isLoading: false,
+        })),
+      },
+    },
   },
 }));
 
@@ -90,6 +159,10 @@ describe('HR Dashboard - Project report project source', () => {
 
   it('populates dropdown with all projects and enables export after selection', () => {
     render(<HRDashboard />);
+
+    // Click "System Reports" button to show project selection
+    const reportsButton = screen.getByText('System Reports');
+    fireEvent.click(reportsButton);
 
     const select = screen.getByTestId(
       'project-select-dropdown'

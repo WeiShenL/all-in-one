@@ -327,8 +327,8 @@ export const TaskRow = ({
   userRole,
   isSubtask = false,
 }: TaskRowProps) => {
-  // Check if user can edit - defaults to true if not specified (backward compatibility)
-  const canEdit = task.canEdit !== undefined ? task.canEdit : true;
+  // Check if user can edit - defaults to false until permissions are loaded (prevents flashing edit buttons)
+  const canEdit = task.canEdit !== undefined ? task.canEdit : false;
 
   // Manager can archive tasks they have access to (same as canEdit permission)
   const canArchive = userRole === 'MANAGER' && canEdit;

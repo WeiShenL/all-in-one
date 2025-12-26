@@ -61,7 +61,16 @@ jest.mock('@/app/lib/trpc', () => {
       },
       userProfile: {
         getAll: {
-          useQuery: jest.fn(),
+          useQuery: jest.fn(() => ({
+            data: [],
+            isLoading: false,
+          })),
+        },
+        update: {
+          useMutation: jest.fn(() => ({
+            mutate: jest.fn(),
+            isLoading: false,
+          })),
         },
       },
       notification: {
@@ -82,6 +91,68 @@ jest.mock('@/app/lib/trpc', () => {
         getById: {
           useQuery: jest.fn(() => ({
             data: { id: 'dep-1', name: 'Engineering' },
+            isLoading: false,
+          })),
+        },
+        getAll: {
+          useQuery: jest.fn(() => ({
+            data: [],
+            isLoading: false,
+          })),
+        },
+        create: {
+          useMutation: jest.fn(() => ({
+            mutate: jest.fn(),
+            isLoading: false,
+          })),
+        },
+        update: {
+          useMutation: jest.fn(() => ({
+            mutate: jest.fn(),
+            isLoading: false,
+          })),
+        },
+        delete: {
+          useMutation: jest.fn(() => ({
+            mutate: jest.fn(),
+            isLoading: false,
+          })),
+        },
+      },
+      userManagement: {
+        createUser: {
+          useMutation: jest.fn(() => ({
+            mutate: jest.fn(),
+            isLoading: false,
+          })),
+        },
+        updateUser: {
+          useMutation: jest.fn(() => ({
+            mutate: jest.fn(),
+            isLoading: false,
+          })),
+        },
+        deactivateUser: {
+          useMutation: jest.fn(() => ({
+            mutate: jest.fn(),
+            isLoading: false,
+          })),
+        },
+        reactivateUser: {
+          useMutation: jest.fn(() => ({
+            mutate: jest.fn(),
+            isLoading: false,
+          })),
+        },
+        resetUserPassword: {
+          useMutation: jest.fn(() => ({
+            mutate: jest.fn(),
+            isLoading: false,
+          })),
+        },
+        getAllUsers: {
+          useQuery: jest.fn(() => ({
+            data: [],
             isLoading: false,
           })),
         },

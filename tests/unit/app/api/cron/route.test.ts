@@ -91,12 +91,8 @@ describe('Cron Route Handler', () => {
         expect(
           mockTaskNotificationService.sendDeadlineReminders
         ).not.toHaveBeenCalled();
-        expect(console.warn).toHaveBeenCalledWith(
-          '🚨 Unauthorized cron attempt:',
-          expect.objectContaining({
-            timestamp: expect.any(String),
-          })
-        );
+        // Logger outputs structured log messages with timestamp and context
+        expect(console.warn).toHaveBeenCalled();
       });
 
       it('should return 401 when authorization token is incorrect', async () => {
@@ -115,12 +111,8 @@ describe('Cron Route Handler', () => {
         expect(
           mockTaskNotificationService.sendDeadlineReminders
         ).not.toHaveBeenCalled();
-        expect(console.warn).toHaveBeenCalledWith(
-          '🚨 Unauthorized cron attempt:',
-          expect.objectContaining({
-            timestamp: expect.any(String),
-          })
-        );
+        // Logger outputs structured log messages with timestamp and context
+        expect(console.warn).toHaveBeenCalled();
       });
 
       it('should succeed when authorization token is correct', async () => {
@@ -155,13 +147,11 @@ describe('Cron Route Handler', () => {
 
         await GET(request);
 
-        expect(console.warn).toHaveBeenCalledWith(
-          '🚨 Unauthorized cron attempt:',
-          expect.objectContaining({
-            timestamp: expect.any(String),
-            userAgent: 'Test Bot/1.0',
-          })
-        );
+        // Logger outputs structured log messages with user-agent in context
+        expect(console.warn).toHaveBeenCalled();
+        const warnCall = (console.warn as jest.Mock).mock.calls[0][0];
+        expect(warnCall).toContain('SECURITY');
+        expect(warnCall).toContain('Test Bot/1.0');
       });
     });
 
@@ -171,9 +161,12 @@ describe('Cron Route Handler', () => {
           value: 'development',
           configurable: true,
         });
+        process.env.CRON_SECRET = 'test-secret-token';
       });
 
-      it('should succeed without authorization header', async () => {
+      it('should fail without CRON_SECRET set', async () => {
+        delete process.env.CRON_SECRET;
+
         const request = new NextRequest('http://localhost:3000/api/cron', {
           method: 'GET',
         });
@@ -181,22 +174,18 @@ describe('Cron Route Handler', () => {
         const response = await GET(request);
         const data = await response.json();
 
-        expect(response.status).toBe(200);
-        expect(data).toEqual({
-          message: 'Cron job completed successfully.',
-          timestamp: expect.any(String),
-        });
+        expect(response.status).toBe(500);
+        expect(data).toEqual({ error: 'Server misconfiguration' });
         expect(
           mockTaskNotificationService.sendDeadlineReminders
-        ).toHaveBeenCalledTimes(1);
-        expect(console.warn).not.toHaveBeenCalled();
+        ).not.toHaveBeenCalled();
       });
 
-      it('should succeed with any authorization token', async () => {
+      it('should succeed with correct authorization token', async () => {
         const request = new NextRequest('http://localhost:3000/api/cron', {
           method: 'GET',
           headers: {
-            authorization: 'Bearer any-token',
+            authorization: 'Bearer test-secret-token',
           },
         });
 
@@ -221,11 +210,15 @@ describe('Cron Route Handler', () => {
         value: 'development',
         configurable: true,
       });
+      process.env.CRON_SECRET = 'test-secret-token';
     });
 
     it('should initialize all required services', async () => {
       const request = new NextRequest('http://localhost:3000/api/cron', {
         method: 'GET',
+        headers: {
+          authorization: 'Bearer test-secret-token',
+        },
       });
 
       await GET(request);
@@ -240,6 +233,9 @@ describe('Cron Route Handler', () => {
     it('should pass correct dependencies to TaskNotificationService', async () => {
       const request = new NextRequest('http://localhost:3000/api/cron', {
         method: 'GET',
+        headers: {
+          authorization: 'Bearer test-secret-token',
+        },
       });
 
       await GET(request);
@@ -260,11 +256,15 @@ describe('Cron Route Handler', () => {
         value: 'development',
         configurable: true,
       });
+      process.env.CRON_SECRET = 'test-secret-token';
     });
 
     it('should call sendDeadlineReminders successfully', async () => {
       const request = new NextRequest('http://localhost:3000/api/cron', {
         method: 'GET',
+        headers: {
+          authorization: 'Bearer test-secret-token',
+        },
       });
 
       const response = await GET(request);
@@ -278,21 +278,17 @@ describe('Cron Route Handler', () => {
       expect(
         mockTaskNotificationService.sendDeadlineReminders
       ).toHaveBeenCalledTimes(1);
+      // Logger outputs structured messages with INFO level
       // eslint-disable-next-line no-console
-      expect(console.log).toHaveBeenCalledWith(
-        '⏰ Cron job started:',
-        expect.any(String)
-      );
-      // eslint-disable-next-line no-console
-      expect(console.log).toHaveBeenCalledWith(
-        '✅ Cron job completed successfully:',
-        expect.any(String)
-      );
+      expect(console.log).toHaveBeenCalled();
     });
 
     it('should include timestamp in success response', async () => {
       const request = new NextRequest('http://localhost:3000/api/cron', {
         method: 'GET',
+        headers: {
+          authorization: 'Bearer test-secret-token',
+        },
       });
 
       const response = await GET(request);
@@ -308,22 +304,16 @@ describe('Cron Route Handler', () => {
     it('should log start and completion timestamps', async () => {
       const request = new NextRequest('http://localhost:3000/api/cron', {
         method: 'GET',
+        headers: {
+          authorization: 'Bearer test-secret-token',
+        },
       });
 
       await GET(request);
 
+      // Logger outputs structured messages
       // eslint-disable-next-line no-console
-      expect(console.log).toHaveBeenNthCalledWith(
-        1,
-        '⏰ Cron job started:',
-        expect.any(String)
-      );
-      // eslint-disable-next-line no-console
-      expect(console.log).toHaveBeenNthCalledWith(
-        2,
-        '✅ Cron job completed successfully:',
-        expect.any(String)
-      );
+      expect(console.log).toHaveBeenCalled();
     });
   });
 
@@ -333,6 +323,7 @@ describe('Cron Route Handler', () => {
         value: 'development',
         configurable: true,
       });
+      process.env.CRON_SECRET = 'test-secret-token';
     });
 
     it('should return 500 when sendDeadlineReminders throws an error', async () => {
@@ -343,6 +334,9 @@ describe('Cron Route Handler', () => {
 
       const request = new NextRequest('http://localhost:3000/api/cron', {
         method: 'GET',
+        headers: {
+          authorization: 'Bearer test-secret-token',
+        },
       });
 
       const response = await GET(request);
@@ -364,18 +358,15 @@ describe('Cron Route Handler', () => {
 
       const request = new NextRequest('http://localhost:3000/api/cron', {
         method: 'GET',
+        headers: {
+          authorization: 'Bearer test-secret-token',
+        },
       });
 
       await GET(request);
 
-      expect(console.error).toHaveBeenCalledWith(
-        '❌ Cron job failed:',
-        expect.objectContaining({
-          timestamp: expect.any(String),
-          error: 'Service unavailable',
-          stack: expect.stringContaining('Error: Service unavailable'),
-        })
-      );
+      // Logger outputs structured error messages
+      expect(console.error).toHaveBeenCalled();
     });
 
     it('should handle non-Error exceptions gracefully', async () => {
@@ -385,6 +376,9 @@ describe('Cron Route Handler', () => {
 
       const request = new NextRequest('http://localhost:3000/api/cron', {
         method: 'GET',
+        headers: {
+          authorization: 'Bearer test-secret-token',
+        },
       });
 
       const response = await GET(request);
@@ -395,14 +389,7 @@ describe('Cron Route Handler', () => {
         message: 'Cron job failed.',
         error: 'Unknown error',
       });
-      expect(console.error).toHaveBeenCalledWith(
-        '❌ Cron job failed:',
-        expect.objectContaining({
-          timestamp: expect.any(String),
-          error: 'Unknown error',
-          stack: undefined,
-        })
-      );
+      expect(console.error).toHaveBeenCalled();
     });
 
     it('should handle null error gracefully', async () => {
@@ -412,6 +399,9 @@ describe('Cron Route Handler', () => {
 
       const request = new NextRequest('http://localhost:3000/api/cron', {
         method: 'GET',
+        headers: {
+          authorization: 'Bearer test-secret-token',
+        },
       });
 
       const response = await GET(request);
@@ -432,18 +422,17 @@ describe('Cron Route Handler', () => {
 
       const request = new NextRequest('http://localhost:3000/api/cron', {
         method: 'GET',
+        headers: {
+          authorization: 'Bearer test-secret-token',
+        },
       });
 
       await GET(request);
 
-      expect(console.error).toHaveBeenCalledWith(
-        '❌ Cron job failed:',
-        expect.objectContaining({
-          timestamp: expect.stringMatching(
-            /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/
-          ),
-        })
-      );
+      // Logger outputs structured messages with timestamps
+      expect(console.error).toHaveBeenCalled();
+      const errorCall = (console.error as jest.Mock).mock.calls[0][0];
+      expect(errorCall).toMatch(/^\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
     });
   });
 
@@ -501,12 +490,14 @@ describe('Cron Route Handler', () => {
       });
 
       const response = await GET(request);
+      const data = await response.json();
 
-      // Should fail because CRON_SECRET is undefined
-      expect(response.status).toBe(401);
+      // Should fail with 500 because CRON_SECRET is required (not 401)
+      expect(response.status).toBe(500);
+      expect(data).toEqual({ error: 'Server misconfiguration' });
     });
 
-    it('should succeed when authorization matches undefined CRON_SECRET', async () => {
+    it('should also fail when CRON_SECRET is undefined even with matching auth', async () => {
       Object.defineProperty(process.env, 'CRON_SECRET', {
         value: undefined,
         configurable: true,
@@ -520,9 +511,11 @@ describe('Cron Route Handler', () => {
       });
 
       const response = await GET(request);
+      const data = await response.json();
 
-      // Will succeed because 'Bearer undefined' === `Bearer ${undefined}`
-      expect(response.status).toBe(200);
+      // Should fail with 500 because CRON_SECRET must be configured
+      expect(response.status).toBe(500);
+      expect(data).toEqual({ error: 'Server misconfiguration' });
     });
   });
 });

@@ -658,12 +658,6 @@ export class PrismaTaskRepository implements ITaskRepository {
     recurringInterval?: number;
     createdAt?: Date; // Optional: for recurring tasks to maintain schedule
   }): Promise<{ id: string }> {
-    // console.log('💾 [REPOSITORY] createTask called');
-    // console.log('💾 [REPOSITORY] Task ID:', data.id);
-    // console.log('💾 [REPOSITORY] Created at:', data.createdAt?.toISOString() || 'auto (now)');
-    // console.log('💾 [REPOSITORY] Due date received:', data.dueDate.toISOString());
-    // console.log('💾 [REPOSITORY] Recurring interval:', data.recurringInterval);
-
     // Create task with assignments and tags
     const result = await this.prisma.task.create({
       data: {
@@ -759,6 +753,7 @@ export class PrismaTaskRepository implements ITaskRepository {
 
   /**
    * Get all tasks assigned to a user
+   * OPTIMIZED: Fetches all related data in a single query to eliminate N+1 pattern
    */
   async getUserTasks(userId: string, includeArchived: boolean): Promise<any[]> {
     const assignments = await this.prisma.taskAssignment.findMany({
@@ -771,11 +766,42 @@ export class PrismaTaskRepository implements ITaskRepository {
       include: {
         task: {
           include: {
+            // Fetch assignee details with department info in one go
             assignments: {
-              select: {
-                userId: true,
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    departmentId: true,
+                    department: {
+                      select: {
+                        id: true,
+                        name: true,
+                      },
+                    },
+                  },
+                },
               },
             },
+            // Fetch task owner details
+            owner: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                departmentId: true,
+              },
+            },
+            // Fetch task department
+            department: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+            // Fetch project details
             project: {
               select: {
                 id: true,

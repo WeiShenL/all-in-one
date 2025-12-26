@@ -12,18 +12,21 @@ export function useUnreadNotificationCount() {
   const { user } = useAuth();
   const { lastNotificationTime } = useNotifications();
 
-  // Fetch actual unread count from database (just the count, not the full notifications)
+  // Fetch actual unread count from database ONLY on initial load
   const { data: unreadCountData, refetch } =
     trpc.notification.getUnreadCount.useQuery(
       { userId: user?.id ?? '' },
       {
         enabled: !!user?.id,
-        refetchInterval: 30000, // Refetch every 30 seconds
-        refetchOnWindowFocus: true,
+        staleTime: Infinity, // Never auto-refetch - we manage count manually
+        gcTime: Infinity, // Keep in cache forever (until logout)
+        refetchOnWindowFocus: false,
+        refetchOnMount: false, // Only fetch once
+        refetchOnReconnect: false,
       }
     );
 
-  // Update count when database count changes - this is the source of truth
+  // Initialize count from DB (first load only)
   useEffect(() => {
     if (unreadCountData) {
       setCount(unreadCountData.count);
@@ -31,20 +34,29 @@ export function useUnreadNotificationCount() {
     }
   }, [unreadCountData]);
 
-  // Refetch count when new realtime notification arrives
+  // Increment count when realtime notification arrives (NO DB QUERY)
   useEffect(() => {
     if (lastNotificationTime > 0) {
-      refetch();
+      setCount(prev => {
+        const newCount = prev + 1;
+        localStorage.setItem(STORAGE_KEY, String(newCount));
+        return newCount;
+      });
     }
-  }, [lastNotificationTime, refetch]);
+  }, [lastNotificationTime]);
 
+  // Reset count (called when user views notifications)
   const resetCount = useCallback(() => {
     setCount(0);
     localStorage.setItem(STORAGE_KEY, '0');
-    // Refetch to get updated count from database
+  }, []);
+
+  // Manual refetch from DB (for explicit sync, e.g., after error)
+  const syncFromDatabase = useCallback(() => {
     refetch();
   }, [refetch]);
 
+  // Sync count across browser tabs
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY && e.newValue !== null) {
@@ -56,5 +68,5 @@ export function useUnreadNotificationCount() {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  return { count, resetCount };
+  return { count, resetCount, syncFromDatabase };
 }

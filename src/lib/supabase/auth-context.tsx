@@ -48,13 +48,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           `/api/trpc/userProfile.getById?input=${encodeURIComponent(JSON.stringify({ id: userId }))}`
         );
         if (!response.ok) {
-          // console.error('Failed to fetch user profile');
           throw new Error('Failed to fetch user profile');
         }
         const data = await response.json();
         return data.result.data;
       } catch {
-        // console.error('Error fetching user profile:', error);
         return null;
       }
     },
@@ -89,7 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setSession(initialSession);
         }
       } catch {
-        // console.error('[Auth Context] Error initializing auth:', error);
+        // Silently handle errors during initialization
       } finally {
         setLoading(false);
       }
@@ -101,18 +99,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(
       async (event: AuthChangeEvent, session: Session | null) => {
-        // console.warn(
-        //   '🔍 [Auth Context] Auth state changed:',
-        //   event,
-        //   'Session:',
-        //   session?.user?.id
-        // );
         setSession(session);
 
         if (session?.user) {
-          // console.warn(
-          //   '🔍 [Auth Context] User authenticated, fetching profile...'
-          // );
           const profile = await fetchUserProfile(session.user.id);
           const userWithProfile: AuthUser = {
             ...session.user,
@@ -122,9 +111,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(userWithProfile);
           setUserProfile(profile);
           setUserRole(profile?.role || null);
-          // console.warn('🔍 [Auth Context] Profile loaded:', profile?.role);
         } else {
-          // console.warn('🔍 [Auth Context] No session, clearing user data');
           setUser(null);
           setUserProfile(null);
           setUserRole(null);
@@ -205,7 +192,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Session timeout - automatically logs out after 15 minutes of inactivity
   useSessionTimeout({
     onTimeout: async () => {
-      // console.warn('🕐 Session timeout due to inactivity');
       await signOut();
     },
     enabled: !!user && !!session, // Only enable when user is logged in
