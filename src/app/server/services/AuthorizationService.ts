@@ -82,9 +82,11 @@ export class AuthorizationService {
       // Check if user ID exists in task assignments
       const canEdit = task.assignments.some(assignment => {
         // Strict equality check with type validation
-        return assignment && assignment.userId && assignment.userId === user.userId;
+        return (
+          assignment && assignment.userId && assignment.userId === user.userId
+        );
       });
-      
+
       return canEdit;
     }
 
