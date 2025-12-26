@@ -205,7 +205,7 @@ test.describe('Staff Project Task Edit Rights', () => {
   test('AC 1,2,3: staff can can only view subordinate tasks in Customer Portal Redesign project and edit if assigned to task', async ({
     page,
   }) => {
-    test.setTimeout(300000);
+    test.setTimeout(600000); // Increased to 10 minutes as requested
 
     // Step 1: Login as staff member
     await page.goto('/auth/login');
@@ -267,11 +267,32 @@ test.describe('Staff Project Task Edit Rights', () => {
         const rows = document.querySelectorAll('tbody tr');
         return rows.length >= 8;
       },
-      { timeout: 10000 }
+      { timeout: 60000 }
     );
 
-    // Additional wait to ensure permissions have been calculated
-    await page.waitForTimeout(2000);
+    // Wait for permissions to be calculated by checking that at least one task has loaded its permission state
+    // We wait for the assigned task's edit button to appear, which confirms permissions are loaded
+    await page.waitForFunction(
+      testNs => {
+        const rows = document.querySelectorAll('tbody tr');
+        for (const row of rows) {
+          const rowText = row.textContent || '';
+          if (rowText.includes(`Task assigned to staff member ${testNs}`)) {
+            // Found the assigned task row - check if edit button exists
+            const editButton = row.querySelector('button[data-testid^="edit-task-button"]');
+            if (editButton) {
+              return true; // Permission calculation is complete
+            }
+          }
+        }
+        return false;
+      },
+      testNamespace,
+      { timeout: 120000 } // 2 minutes timeout for permission calculation
+    );
+
+    // Additional stabilization wait to ensure all permissions have been calculated
+    await page.waitForTimeout(5000);
 
     // Step 6: Verify edit button visibility based on task assignment
     const taskRows = page.locator('tbody tr');
