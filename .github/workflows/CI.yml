@@ -166,7 +166,9 @@ jobs:
           NEXT_PUBLIC_API_EXTERNAL_URL: ${{ secrets.NEXT_PUBLIC_API_EXTERNAL_URL }}
           NEXT_PUBLIC_ANON_KEY: ${{ secrets.NEXT_PUBLIC_ANON_KEY }}
           SERVICE_ROLE_KEY: ${{ secrets.SERVICE_ROLE_KEY }}
+          # Use direct connection (port 5432) for migrations - required by Prisma
           DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.STAGING_DATABASE_URL }}
         run: npm run db:reset
 
   integration-tests:
@@ -202,7 +204,9 @@ jobs:
           NEXT_PUBLIC_API_EXTERNAL_URL: ${{ secrets.NEXT_PUBLIC_API_EXTERNAL_URL }}
           NEXT_PUBLIC_ANON_KEY: ${{ secrets.NEXT_PUBLIC_ANON_KEY }}
           SERVICE_ROLE_KEY: ${{ secrets.SERVICE_ROLE_KEY }}
+          # Use pooled connection (port 6543) for queries - faster
           DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL_POOLED }}
+          DIRECT_URL: ${{ secrets.STAGING_DATABASE_URL }}
         run: npm run test:integration -- --shard=${{ matrix.shard }}/${{ matrix.shards }} --maxWorkers=4 --coverage --coverageDirectory=coverage/integration
 
       - name: Upload Integration Coverage Artifact
@@ -321,6 +325,7 @@ jobs:
           PLAYWRIGHT_BASE_URL: ${{ needs.vercel-preview.outputs.vercel_url }}
           # Staging database for cleanup and verification (use pooled connection)
           DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL_POOLED }}
+          DIRECT_URL: ${{ secrets.STAGING_DATABASE_URL }}
           # Supabase env for client auth in tests
           NEXT_PUBLIC_API_EXTERNAL_URL: ${{ secrets.NEXT_PUBLIC_API_EXTERNAL_URL }}
           NEXT_PUBLIC_ANON_KEY: ${{ secrets.NEXT_PUBLIC_ANON_KEY }}

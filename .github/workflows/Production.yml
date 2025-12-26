@@ -36,6 +36,7 @@ jobs:
       - name: Run database migration to production
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DATABASE_URL }}
         run: npx prisma migrate deploy
 
       - name: Deploy to Vercel Production
