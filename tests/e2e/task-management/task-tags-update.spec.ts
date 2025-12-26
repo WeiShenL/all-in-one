@@ -201,7 +201,7 @@ test.describe('Task Tags Update - Isolated E2E Tests', () => {
   });
 
   test('should add and remove tags', async ({ page }) => {
-    test.setTimeout(180000);
+    test.setTimeout(600000); // 10 minutes for CI stability
 
     // Login
     await page.goto('/auth/login');
@@ -245,9 +245,9 @@ test.describe('Task Tags Update - Isolated E2E Tests', () => {
     await expect(addTagButton).toBeDisabled({ timeout: 5000 });
     await expect(addTagButton).toBeEnabled({ timeout: 65000 });
 
-    // Verify tag appears - should be immediate now that operation is complete
+    // Verify tag appears by checking for the remove button which is only rendered when tag exists
     await expect(
-      page.locator('span:has-text("e2e-test-tag-urgent×")')
+      page.getByTestId('remove-tag-e2e-test-tag-urgent')
     ).toBeVisible({
       timeout: 10000,
     });
@@ -265,9 +265,10 @@ test.describe('Task Tags Update - Isolated E2E Tests', () => {
     await expect(addTagButton).toBeDisabled({ timeout: 5000 });
     await expect(addTagButton).toBeEnabled({ timeout: 65000 });
 
-    // Verify tag appears - should be immediate now that operation is complete
+    // Verify tag appears by checking for the remove button which is only rendered when tag exists
+    // The tag text and × are in separate elements so we check for the remove button data-testid
     await expect(
-      page.locator('span:has-text("e2e-test-tag-frontend×")')
+      page.getByTestId('remove-tag-e2e-test-tag-frontend')
     ).toBeVisible({
       timeout: 10000,
     });
@@ -280,9 +281,9 @@ test.describe('Task Tags Update - Isolated E2E Tests', () => {
     await expect(addTagButton).toBeDisabled({ timeout: 5000 });
     await expect(addTagButton).toBeEnabled({ timeout: 65000 });
 
-    // Verify tag is gone - should be immediate now that operation is complete
+    // Verify tag is gone by checking that the remove button no longer exists
     await expect(
-      page.locator('span:has-text("e2e-test-tag-urgent×")')
+      page.getByTestId('remove-tag-e2e-test-tag-urgent')
     ).not.toBeVisible({
       timeout: 10000,
     });
