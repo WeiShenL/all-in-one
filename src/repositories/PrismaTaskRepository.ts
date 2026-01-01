@@ -948,23 +948,26 @@ export class PrismaTaskRepository implements ITaskRepository {
 
   /**
    * Remove tag from task
+   * Uses transaction to ensure atomicity with PgBouncer transaction pooling
    */
   async removeTaskTag(taskId: string, tagName: string): Promise<void> {
-    // First find the tag
-    const tag = await this.prisma.tag.findUnique({
-      where: { name: tagName },
-    });
-
-    if (tag) {
-      await this.prisma.taskTag.delete({
-        where: {
-          taskId_tagId: {
-            taskId,
-            tagId: tag.id,
-          },
-        },
+    await this.prisma.$transaction(async tx => {
+      // First find the tag
+      const tag = await tx.tag.findUnique({
+        where: { name: tagName },
       });
-    }
+
+      if (tag) {
+        await tx.taskTag.delete({
+          where: {
+            taskId_tagId: {
+              taskId,
+              tagId: tag.id,
+            },
+          },
+        });
+      }
+    });
   }
 
   /**
