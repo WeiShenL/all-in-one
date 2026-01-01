@@ -68,6 +68,10 @@ jest.mock('@prisma/client', () => {
       delete: jest.fn(),
       findUnique: jest.fn(),
     },
+    $transaction: jest.fn(callback => {
+      // Execute the callback with the mock client itself
+      return callback(mockPrismaClient);
+    }),
   };
   return {
     PrismaClient: jest.fn(() => mockPrismaClient),
@@ -80,6 +84,10 @@ describe('PrismaTaskRepository', () => {
 
   beforeEach(() => {
     mockPrisma = new PrismaClient();
+    // Ensure $transaction is available and properly mocked
+    if (!mockPrisma.$transaction) {
+      mockPrisma.$transaction = jest.fn(callback => callback(mockPrisma));
+    }
     repository = new PrismaTaskRepository(mockPrisma);
     jest.clearAllMocks();
   });
@@ -749,7 +757,7 @@ describe('PrismaTaskRepository', () => {
   });
 
   describe('removeTaskTag', () => {
-    it('should remove a tag from task', async () => {
+    it('should remove a tag from task using transaction', async () => {
       mockPrisma.tag.findUnique.mockResolvedValue({
         id: 'tag-1',
         name: 'urgent',
@@ -758,6 +766,7 @@ describe('PrismaTaskRepository', () => {
 
       await repository.removeTaskTag('task-1', 'urgent');
 
+      expect(mockPrisma.$transaction).toHaveBeenCalled();
       expect(mockPrisma.tag.findUnique).toHaveBeenCalledWith({
         where: { name: 'urgent' },
       });
@@ -771,11 +780,12 @@ describe('PrismaTaskRepository', () => {
       });
     });
 
-    it('should handle removing non-existent tag gracefully', async () => {
+    it('should handle removing non-existent tag gracefully in transaction', async () => {
       mockPrisma.tag.findUnique.mockResolvedValue(null);
 
       await repository.removeTaskTag('task-1', 'non-existent');
 
+      expect(mockPrisma.$transaction).toHaveBeenCalled();
       expect(mockPrisma.taskTag.delete).not.toHaveBeenCalled();
     });
   });
