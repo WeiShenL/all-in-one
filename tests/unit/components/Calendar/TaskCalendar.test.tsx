@@ -18,7 +18,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { TaskCalendar } from '@/app/components/Calendar/TaskCalendar';
 import { Task } from '@/app/components/TaskTable/types';
 
-// Mock react-big-calendar
+// Mock react-big-calendar FIRST (before next/dynamic mock needs it)
 jest.mock('react-big-calendar', () => {
   const actual = jest.requireActual('react-big-calendar');
   return {
@@ -62,6 +62,23 @@ jest.mock('react-big-calendar', () => {
       );
     },
   };
+});
+
+// Mock next/dynamic to return components synchronously in tests
+jest.mock('next/dynamic', () => {
+  return jest.fn((_fn: () => Promise<any>) => {
+    // Return a functional component that uses the mocked Calendar directly
+    const DynamicComponent = (props: any) => {
+      // Import the mocked module at runtime (not at mock definition time)
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const mockModule = require('react-big-calendar');
+      const Component = mockModule.Calendar;
+      return <Component {...props} />;
+    };
+
+    DynamicComponent.displayName = 'DynamicCalendar';
+    return DynamicComponent;
+  });
 });
 
 // Mock TaskCard modal component

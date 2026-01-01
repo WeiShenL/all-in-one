@@ -8,9 +8,9 @@
  * - Project overview with basic information
  */
 
+import type { ProjectReportData } from '@/services/project/ProjectReportService';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import type { ProjectReportData } from '@/services/project/ProjectReportService';
 
 /**
  * Sanitize filename - remove special characters and replace spaces
@@ -380,10 +380,10 @@ function renderTaskSections(
  * @param data - Project report data from ProjectReportService
  * @param filename - Optional custom filename (default: ProjectName_Report.pdf)
  */
-export function exportProjectToPDF(
+export async function exportProjectToPDF(
   data: ProjectReportData,
   filename?: string
-): void {
+): Promise<void> {
   // Create PDF document (A4, portrait)
   const doc = new jsPDF();
 
@@ -486,6 +486,12 @@ export function exportProjectToPDF(
   // DOWNLOAD: Blob Pattern (from exportToICal)
   // ============================================
   const pdfBlob = doc.output('blob');
+
+  // Validate blob before creating object URL
+  if (!(pdfBlob instanceof Blob)) {
+    throw new Error('Failed to generate PDF blob');
+  }
+
   const url = window.URL.createObjectURL(pdfBlob);
 
   // Create temporary link for download
@@ -509,7 +515,9 @@ export function exportProjectToPDF(
  * Build a PDF Blob for preview (no auto-download)
  * Reuses the same content structure as exportProjectToPDF.
  */
-export function buildProjectReportPDFBlob(data: ProjectReportData): Blob {
+export async function buildProjectReportPDFBlob(
+  data: ProjectReportData
+): Promise<Blob> {
   const doc = new jsPDF();
 
   const pageWidth = doc.internal.pageSize.getWidth();

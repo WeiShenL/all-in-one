@@ -233,6 +233,10 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
     // Wait for redirect to dashboard
     await page.waitForURL(/\/dashboard/, { timeout: 60000 });
 
+    // Navigate explicitly to personal dashboard where Create Task button is
+    await page.goto('/dashboard/personal', { timeout: 60000 });
+    await page.waitForLoadState('networkidle', { timeout: 60000 });
+
     // 2. Navigate to task creation page/modal
     // Look for "Create Task" button (exact text: "+ Create Task")
     const createTaskButton = page
@@ -287,6 +291,7 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
 
     // The modal has a select for project (after "🗂️ Project (Optional)" label)
     // Wait for projects to load and select the test project
+    // Increased timeout for slow Vercel free tier with transaction pooling
     await page.waitForFunction(
       projectName => {
         const forms = Array.from(document.querySelectorAll('form'));
@@ -311,12 +316,12 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
         return options.some(opt => opt.text.includes(projectName));
       },
       testProjectName,
-      { timeout: 60000 }
+      { timeout: 120000 }
     );
 
     // Select project using data-testid (more reliable)
     const projectSelect = page.locator('[data-testid="project-select"]');
-    await projectSelect.waitFor({ state: 'visible', timeout: 60000 });
+    await projectSelect.waitFor({ state: 'visible', timeout: 120000 });
 
     // Wait for projects to load
     await page.waitForFunction(
@@ -331,7 +336,7 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
         return options.some(opt => opt.text.includes(projectName as string));
       },
       testProjectName,
-      { timeout: 60000 }
+      { timeout: 120000 }
     );
 
     await projectSelect.selectOption({ label: testProjectName });
@@ -484,6 +489,10 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
     await page.click('button[type="submit"]');
     await page.waitForURL(/\/dashboard/, { timeout: 60000 });
 
+    // Navigate explicitly to personal dashboard
+    await page.goto('/dashboard/personal', { timeout: 60000 });
+    await page.waitForLoadState('networkidle', { timeout: 60000 });
+
     // 2. Create parent task with project
     const createTaskButton = page
       .locator('button', {
@@ -530,9 +539,10 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
 
     // Select project using data-testid
     const projectSelect = page.locator('[data-testid="project-select"]');
-    await projectSelect.waitFor({ state: 'visible', timeout: 60000 });
+    await projectSelect.waitFor({ state: 'visible', timeout: 120000 });
 
     // Wait for projects to load
+    // Increased timeout for slow Vercel free tier with transaction pooling
     await page.waitForFunction(
       projectName => {
         const select = document.querySelector(
@@ -545,7 +555,7 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
         return options.some(opt => opt.text.includes(projectName as string));
       },
       testProjectName,
-      { timeout: 60000 }
+      { timeout: 120000 }
     );
 
     await projectSelect.selectOption({ label: testProjectName });

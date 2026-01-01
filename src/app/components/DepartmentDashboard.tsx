@@ -6,24 +6,28 @@ import { DashboardTabs } from './DashboardTabs';
 import { trpc } from '../lib/trpc';
 import { useAuth } from '@/lib/supabase/auth-context';
 import { useNotifications } from '@/lib/context/NotificationContext';
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 
 /**
  * Department Dashboard Component
  * Shows tasks from user's department hierarchy with role-based edit permissions
- * Matches structure of Personal Dashboard (StaffDashboard)
  * Supports both Table and Calendar views via tabs
+ * Table view has server-side pagination managed by TaskTable
  */
 export function DepartmentDashboard() {
   const { userProfile } = useAuth();
   const { lastNotificationTime } = useNotifications();
   const utils = trpc.useUtils();
+  const [page, setPage] = useState(0);
+  const limit = 100;
 
   const { data, isLoading, error, refetch } =
-    trpc.task.getDepartmentTasksForUser.useQuery();
+    trpc.task.getDepartmentTasksForUser.useQuery({
+      limit,
+      offset: page * limit,
+    });
 
   // Refetch tasks when a real-time notification is received
-  // (notifications are sent when tasks are assigned/updated)
   useEffect(() => {
     if (lastNotificationTime > 0) {
       refetch();
@@ -32,9 +36,12 @@ export function DepartmentDashboard() {
 
   // Memoize handleTaskUpdated to prevent unnecessary re-renders
   const handleTaskUpdated = useCallback(() => {
-    // Invalidate the query to trigger a refetch
     utils.task.getDepartmentTasksForUser.invalidate();
   }, [utils]);
+
+  const handleFetchPage = useCallback((newPage: number, _pageSize: number) => {
+    setPage(newPage);
+  }, []);
 
   const emptyStateConfig = {
     icon: '📁',
@@ -44,33 +51,39 @@ export function DepartmentDashboard() {
   };
 
   return (
-    <DashboardTabs
-      tableView={
-        <TaskTable
-          tasks={data || []}
-          title='All Tasks'
-          showCreateButton={true}
-          emptyStateConfig={emptyStateConfig}
-          isLoading={isLoading}
-          error={error ? new Error(error.message) : null}
-          onTaskCreated={handleTaskUpdated}
-          onTaskUpdated={handleTaskUpdated}
-          userRole={userProfile?.role}
-        />
-      }
-      calendarView={
-        <TaskCalendar
-          key='department-calendar'
-          tasks={data || []}
-          title='Department Task Calendar'
-          emptyStateConfig={emptyStateConfig}
-          isLoading={isLoading}
-          error={error ? new Error(error.message) : null}
-          onTaskUpdated={handleTaskUpdated}
-          showDepartmentFilter={userProfile?.role === 'MANAGER'}
-        />
-      }
-      defaultTab='table'
-    />
+    <div>
+      <DashboardTabs
+        tableView={
+          <TaskTable
+            tasks={data || []}
+            title='All Tasks'
+            showCreateButton={true}
+            emptyStateConfig={emptyStateConfig}
+            isLoading={isLoading}
+            error={error ? new Error(error.message) : null}
+            onTaskCreated={handleTaskUpdated}
+            onTaskUpdated={handleTaskUpdated}
+            userRole={userProfile?.role}
+            enablePagination={true}
+            paginationMode='server'
+            onFetchPage={handleFetchPage}
+            pageSize={limit}
+          />
+        }
+        calendarView={
+          <TaskCalendar
+            key='department-calendar'
+            tasks={data || []}
+            title='Department Task Calendar'
+            emptyStateConfig={emptyStateConfig}
+            isLoading={isLoading}
+            error={error ? new Error(error.message) : null}
+            onTaskUpdated={handleTaskUpdated}
+            showDepartmentFilter={userProfile?.role === 'MANAGER'}
+          />
+        }
+        defaultTab='table'
+      />
+    </div>
   );
 }

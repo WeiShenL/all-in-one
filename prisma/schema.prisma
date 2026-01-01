@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")  // Transaction pooled connection (port 6543) for queries
+  directUrl = env("DIRECT_URL")    // Direct connection (port 5432) for migrations
 }
 
 enum UserRole {
@@ -206,6 +207,15 @@ model Task {
   @@index([isArchived])
   @@index([createdAt])
   @@index([startDate])
+  // Composite indexes for common query patterns
+  @@index([isArchived, departmentId])
+  @@index([isArchived, status])
+  @@index([departmentId, status, isArchived])
+  @@index([isArchived, dueDate])
+  // NEW: Optimized indexes for dashboard queries
+  @@index([isArchived, parentTaskId, departmentId]) // getDepartmentTasksForUser filter
+  @@index([parentTaskId, isArchived, status]) // Company dashboard with status filter
+  @@index([projectId, isArchived, status]) // Project dashboard queries
   @@map("task")
 }
 
@@ -222,6 +232,8 @@ model TaskAssignment {
 
   @@id([taskId, userId])
   @@index([assignedById])
+  @@index([userId])
+  @@index([userId, taskId])
   @@map("task_assignment")
 }
 

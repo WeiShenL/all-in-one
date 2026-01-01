@@ -201,7 +201,7 @@ test.describe('Task Tags Update - Isolated E2E Tests', () => {
   });
 
   test('should add and remove tags', async ({ page }) => {
-    test.setTimeout(180000);
+    test.setTimeout(600000); // 10 minutes for CI stability
 
     // Login
     await page.goto('/auth/login');
@@ -240,43 +240,53 @@ test.describe('Task Tags Update - Isolated E2E Tests', () => {
     await expect(addTagButton).toBeEnabled({ timeout: 65000 });
     await addTagButton.click();
 
-    // Verify success message - increased timeout as video shows 15s delay
-    await expect(page.getByText(/tag added/i)).toBeVisible({
-      timeout: 65000,
-    });
+    // Wait for tag operation to complete by checking button state
+    // Button becomes disabled while operation is in progress, then becomes enabled again
+    await expect(addTagButton).toBeDisabled({ timeout: 5000 });
+    await expect(addTagButton).toBeEnabled({ timeout: 65000 });
 
-    // Verify tag appears (longer timeout for CI/CD)
+    // Verify tag appears by checking for the remove button which is only rendered when tag exists
     await expect(
-      page.locator('span:has-text("e2e-test-tag-urgent×")')
+      page.getByTestId('remove-tag-e2e-test-tag-urgent')
     ).toBeVisible({
-      timeout: 65000,
+      timeout: 10000,
     });
 
-    // Add second tag - wait for input to be ready again
-    await page.waitForTimeout(2000);
+    // Add second tag - clear input and fill
     await tagInput.clear();
     await tagInput.fill('e2e-test-tag-frontend');
-    await page.waitForTimeout(2000);
+
+    // Wait for button to be enabled and click
+    await expect(addTagButton).toBeEnabled({ timeout: 65000 });
     await addTagButton.click();
 
-    await expect(page.getByText(/tag added/i)).toBeVisible({
-      timeout: 65000,
-    });
+    // Wait for tag operation to complete by checking button state
+    // Button becomes disabled while operation is in progress, then becomes enabled again
+    await expect(addTagButton).toBeDisabled({ timeout: 5000 });
+    await expect(addTagButton).toBeEnabled({ timeout: 65000 });
+
+    // Verify tag appears by checking for the remove button which is only rendered when tag exists
+    // The tag text and × are in separate elements so we check for the remove button data-testid
+    // Increased timeout due to PgBouncer transaction pooling delay in CI
     await expect(
-      page.locator('span:has-text("e2e-test-tag-frontend×")')
+      page.getByTestId('remove-tag-e2e-test-tag-frontend')
     ).toBeVisible({
-      timeout: 65000,
+      timeout: 30000,
     });
 
     // Remove first tag using data-testid
     await page.getByTestId('remove-tag-e2e-test-tag-urgent').click();
 
-    // Wait for tag removal to complete and verify tag is gone
-    await page.waitForTimeout(2000); // Give time for removal to process
+    // Wait for tag removal to complete by checking button state
+    // The same isUpdating state is used for all operations (add/remove)
+    await expect(addTagButton).toBeDisabled({ timeout: 5000 });
+    await expect(addTagButton).toBeEnabled({ timeout: 65000 });
+
+    // Verify tag is gone by checking that the remove button no longer exists
     await expect(
-      page.locator('span:has-text("e2e-test-tag-urgent×")')
+      page.getByTestId('remove-tag-e2e-test-tag-urgent')
     ).not.toBeVisible({
-      timeout: 65000,
+      timeout: 10000,
     });
   });
 });

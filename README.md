@@ -2,6 +2,8 @@
 
 A Smart Task Management System, developed for All-In-One, a leading digital transformation company.
 
+![Website Demo](DEMO.gif)
+
 ## 🚀 Quick Start
 
 ### Prerequisites

@@ -84,6 +84,7 @@ export function TaskCard({
   const [editingProject, setEditingProject] = useState(false);
   const [projectValue, setProjectValue] = useState<string>('');
   const [newTag, setNewTag] = useState('');
+  const [isUpdating, setIsUpdating] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editCommentValue, setEditCommentValue] = useState('');
@@ -329,7 +330,14 @@ export function TaskCard({
       const response = await fetch(
         `/api/trpc/task.getById?input=${encodeURIComponent(
           JSON.stringify({ taskId })
-        )}`
+        )}`,
+        {
+          headers: {
+            'cache-control': 'no-cache, no-store, must-revalidate',
+            pragma: 'no-cache',
+            expires: '0',
+          },
+        }
       );
       const data = await response.json();
 
@@ -416,8 +424,6 @@ export function TaskCard({
       return; // All user details already available
     }
 
-    // console.log('Fetching user details for:', missingUserIds);
-
     // Fetch details for each missing user using the existing getById endpoint
     const newUserMap = new Map(userDetailsMap);
 
@@ -435,7 +441,6 @@ export function TaskCard({
 
           if (response.ok) {
             const data = await response.json();
-            // console.log(`User details for ${userId}:`, data);
             if (data.result?.data) {
               newUserMap.set(userId, {
                 name: data.result.data.name,
@@ -444,7 +449,6 @@ export function TaskCard({
                 isHrAdmin: data.result.data.isHrAdmin,
                 department: data.result.data.department,
               });
-              //   console.log(`Successfully loaded user: ${data.result.data.name} (${data.result.data.email})`);
               break; // Success, exit retry loop
             } else {
               console.warn(`No data returned for user ${userId}:`, data);
@@ -528,6 +532,7 @@ export function TaskCard({
       return;
     }
 
+    setIsUpdating(true);
     try {
       const response = await fetch(`/api/trpc/task.${endpoint}`, {
         method: 'POST',
@@ -539,6 +544,11 @@ export function TaskCard({
         const errorData = await response.json();
         throw new Error(errorData.error?.message || 'Update failed');
       }
+
+      // CRITICAL: Wait for database transaction to commit with PgBouncer transaction pooling
+      // Without this delay, fetchTask() may read from a different connection that hasn't
+      // seen the committed write yet, causing stale data in CI environments
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
       await fetchTask();
       await fetchTaskLogs();
@@ -555,6 +565,8 @@ export function TaskCard({
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Update failed');
       setTimeout(() => setError(null), 5000);
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -2167,16 +2179,17 @@ export function TaskCard({
             <button
               data-testid='add-tag-button'
               onClick={handleAddTag}
+              disabled={isUpdating}
               style={{
                 padding: '6px 12px',
-                backgroundColor: '#1976d2',
+                backgroundColor: isUpdating ? '#cbd5e0' : '#1976d2',
                 color: 'white',
                 border: 'none',
                 borderRadius: '4px',
-                cursor: 'pointer',
+                cursor: isUpdating ? 'not-allowed' : 'pointer',
               }}
             >
-              Add Tag
+              {isUpdating ? 'Adding...' : 'Add Tag'}
             </button>
           </div>
         )}

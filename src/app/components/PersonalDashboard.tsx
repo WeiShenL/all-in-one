@@ -9,9 +9,10 @@ import { trpc } from '../lib/trpc';
 import { useEffect, useMemo, useCallback } from 'react';
 
 /**
- * Personal Dashboard Component (Personal Dashboard)
+ * Personal Dashboard Component
  * Shows only tasks assigned to the current user with full edit permissions
  * Supports both Table and Calendar views via tabs
+ * Table view has client-side pagination managed by TaskTable
  */
 export function PersonalDashboard() {
   const { user, userProfile } = useAuth();
@@ -24,7 +25,6 @@ export function PersonalDashboard() {
   );
 
   // Refetch tasks when a real-time notification is received
-  // (notifications are sent when tasks are assigned/updated)
   useEffect(() => {
     if (lastNotificationTime > 0) {
       refetch();
@@ -33,7 +33,6 @@ export function PersonalDashboard() {
 
   // Memoize handleTaskUpdated to prevent unnecessary re-renders
   const handleTaskUpdated = useCallback(() => {
-    // Invalidate the query to trigger a refetch
     utils.task.getUserTasks.invalidate();
   }, [utils]);
 
@@ -48,7 +47,6 @@ export function PersonalDashboard() {
   );
 
   // Memoize views to prevent remounting when parent re-renders
-  // This preserves calendar filter state when notifications trigger refetch
   const tableView = useMemo(
     () => (
       <TaskTable
@@ -61,6 +59,8 @@ export function PersonalDashboard() {
         onTaskCreated={handleTaskUpdated}
         onTaskUpdated={handleTaskUpdated}
         userRole={userProfile?.role}
+        enablePagination={true}
+        paginationMode='client'
       />
     ),
     [

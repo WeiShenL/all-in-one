@@ -47,7 +47,7 @@ jest.mock('jspdf', () => {
   };
 });
 
-jest.mock('jspdf-autotable', () => jest.fn());
+jest.mock('jspdf-autotable');
 
 describe('exportProjectToPDF - Export Capability Tests', () => {
   let mockCreateObjectURL: jest.SpyInstance;
@@ -138,22 +138,22 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
   });
 
   describe('Core Export Capability', () => {
-    it('should successfully generate and download PDF', () => {
-      expect(() => exportProjectToPDF(mockProjectData)).not.toThrow();
+    it('should successfully generate and download PDF', async () => {
+      await expect(exportProjectToPDF(mockProjectData)).resolves.not.toThrow();
 
       // Verify download was triggered
       expect(mockCreateObjectURL).toHaveBeenCalled();
       expect(document.createElement).toHaveBeenCalledWith('a');
     });
 
-    it('should create PDF with jsPDF library', () => {
-      exportProjectToPDF(mockProjectData);
+    it('should create PDF with jsPDF library', async () => {
+      await exportProjectToPDF(mockProjectData);
 
       // Verify jsPDF instance was created (i.e., PDF generation attempted)
       expect(jsPDF).toHaveBeenCalled();
     });
 
-    it('should generate blob with content', () => {
+    it('should generate blob with content', async () => {
       const mockOutput = jest.fn(
         () => new Blob(['pdf-content'], { type: 'application/pdf' })
       );
@@ -181,12 +181,12 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
         lastAutoTable: { finalY: 100 },
       }));
 
-      exportProjectToPDF(mockProjectData);
+      await exportProjectToPDF(mockProjectData);
 
       expect(mockOutput).toHaveBeenCalledWith('blob');
     });
 
-    it('should use project name as filename', () => {
+    it('should use project name as filename', async () => {
       const mockLink = {
         href: '',
         download: '',
@@ -201,13 +201,13 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
         return {} as any;
       });
 
-      exportProjectToPDF(mockProjectData);
+      await exportProjectToPDF(mockProjectData);
 
       expect(mockLink.download).toContain('Website_Redesign');
       expect(mockLink.download).toContain('.pdf');
     });
 
-    it('should accept custom filename', () => {
+    it('should accept custom filename', async () => {
       const mockLink = {
         href: '',
         download: '',
@@ -222,20 +222,20 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
         return {} as any;
       });
 
-      exportProjectToPDF(mockProjectData, 'custom-report.pdf');
+      await exportProjectToPDF(mockProjectData, 'custom-report.pdf');
 
       expect(mockLink.download).toBe('custom-report.pdf');
     });
 
-    it('should clean up blob URL after download', () => {
-      exportProjectToPDF(mockProjectData);
+    it('should clean up blob URL after download', async () => {
+      await exportProjectToPDF(mockProjectData);
 
       expect(mockRevokeObjectURL).toHaveBeenCalledWith('blob:mock-pdf-url');
     });
   });
 
   describe('Report Content - Sections and Columns', () => {
-    it('renders section tables with Tags and Departments with comma+newline separation', () => {
+    it('renders section tables with Tags and Departments with comma+newline separation', async () => {
       // Arrange: a dataset with one task in IN_PROGRESS with multiple values
       const data: ProjectReportData = {
         project: mockProjectData.project,
@@ -260,7 +260,7 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
 
       // Act
       (autoTable as jest.Mock).mockClear();
-      exportProjectToPDF(data);
+      await exportProjectToPDF(data);
 
       // Assert: there should be 1 overview table + 4 section tables
       const calls = (autoTable as jest.Mock).mock.calls as Array<any[]>;
@@ -301,7 +301,7 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
       expect(bodyRow[5]).toContain(',\n');
     });
 
-    it('renders schedule section with time buckets and Status column', () => {
+    it('renders schedule section with time buckets and Status column', async () => {
       // Arrange: tasks with different due dates to test time buckets
       const now = new Date('2025-10-20T12:00:00Z');
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -384,7 +384,7 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
       try {
         // Act
         (autoTable as jest.Mock).mockClear();
-        exportProjectToPDF(data);
+        await exportProjectToPDF(data);
 
         // Assert: should have overview table + 4 status sections + 4 schedule buckets
         const calls = (autoTable as jest.Mock).mock.calls as Array<any[]>;
@@ -483,7 +483,7 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
   });
 
   describe('Edge Cases - Export Robustness', () => {
-    it('should handle project with null description', () => {
+    it('should handle project with null description', async () => {
       const dataWithoutDesc: ProjectReportData = {
         ...mockProjectData,
         project: {
@@ -492,28 +492,30 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
         },
       };
 
-      expect(() => exportProjectToPDF(dataWithoutDesc)).not.toThrow();
+      await expect(exportProjectToPDF(dataWithoutDesc)).resolves.not.toThrow();
     });
 
-    it('should handle project with empty tasks array', () => {
+    it('should handle project with empty tasks array', async () => {
       const dataWithoutTasks: ProjectReportData = {
         ...mockProjectData,
         tasks: [],
       };
 
-      expect(() => exportProjectToPDF(dataWithoutTasks)).not.toThrow();
+      await expect(exportProjectToPDF(dataWithoutTasks)).resolves.not.toThrow();
     });
 
-    it('should handle project with empty collaborators array', () => {
+    it('should handle project with empty collaborators array', async () => {
       const dataWithoutCollabs: ProjectReportData = {
         ...mockProjectData,
         collaborators: [],
       };
 
-      expect(() => exportProjectToPDF(dataWithoutCollabs)).not.toThrow();
+      await expect(
+        exportProjectToPDF(dataWithoutCollabs)
+      ).resolves.not.toThrow();
     });
 
-    it('should handle long project names', () => {
+    it('should handle long project names', async () => {
       const dataWithLongName: ProjectReportData = {
         ...mockProjectData,
         project: {
@@ -522,10 +524,10 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
         },
       };
 
-      expect(() => exportProjectToPDF(dataWithLongName)).not.toThrow();
+      await expect(exportProjectToPDF(dataWithLongName)).resolves.not.toThrow();
     });
 
-    it('should handle special characters in project name', () => {
+    it('should handle special characters in project name', async () => {
       const dataWithSpecialChars: ProjectReportData = {
         ...mockProjectData,
         project: {
@@ -534,10 +536,12 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
         },
       };
 
-      expect(() => exportProjectToPDF(dataWithSpecialChars)).not.toThrow();
+      await expect(
+        exportProjectToPDF(dataWithSpecialChars)
+      ).resolves.not.toThrow();
     });
 
-    it('should handle tasks with null dates', () => {
+    it('should handle tasks with null dates', async () => {
       const dataWithNullDates: ProjectReportData = {
         ...mockProjectData,
         tasks: [
@@ -559,10 +563,12 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
         ],
       };
 
-      expect(() => exportProjectToPDF(dataWithNullDates)).not.toThrow();
+      await expect(
+        exportProjectToPDF(dataWithNullDates)
+      ).resolves.not.toThrow();
     });
 
-    it('should handle tasks with empty arrays', () => {
+    it('should handle tasks with empty arrays', async () => {
       const dataWithEmptyArrays: ProjectReportData = {
         ...mockProjectData,
         tasks: [
@@ -584,10 +590,12 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
         ],
       };
 
-      expect(() => exportProjectToPDF(dataWithEmptyArrays)).not.toThrow();
+      await expect(
+        exportProjectToPDF(dataWithEmptyArrays)
+      ).resolves.not.toThrow();
     });
 
-    it('should handle tasks with very long titles', () => {
+    it('should handle tasks with very long titles', async () => {
       const longTitle = 'A'.repeat(200);
       const dataWithLongTitle: ProjectReportData = {
         ...mockProjectData,
@@ -610,10 +618,12 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
         ],
       };
 
-      expect(() => exportProjectToPDF(dataWithLongTitle)).not.toThrow();
+      await expect(
+        exportProjectToPDF(dataWithLongTitle)
+      ).resolves.not.toThrow();
     });
 
-    it('should handle multiple tasks across all statuses', () => {
+    it('should handle multiple tasks across all statuses', async () => {
       const multiStatusData: ProjectReportData = {
         ...mockProjectData,
         tasks: [
@@ -680,10 +690,10 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
         ],
       };
 
-      expect(() => exportProjectToPDF(multiStatusData)).not.toThrow();
+      await expect(exportProjectToPDF(multiStatusData)).resolves.not.toThrow();
     });
 
-    it('should handle tasks with multiple assignees, tags, and departments', () => {
+    it('should handle tasks with multiple assignees, tags, and departments', async () => {
       const dataWithMultiples: ProjectReportData = {
         ...mockProjectData,
         tasks: [
@@ -705,10 +715,12 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
         ],
       };
 
-      expect(() => exportProjectToPDF(dataWithMultiples)).not.toThrow();
+      await expect(
+        exportProjectToPDF(dataWithMultiples)
+      ).resolves.not.toThrow();
     });
 
-    it('should handle empty project name gracefully', () => {
+    it('should handle empty project name gracefully', async () => {
       const dataWithEmptyName: ProjectReportData = {
         ...mockProjectData,
         project: {
@@ -717,10 +729,12 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
         },
       };
 
-      expect(() => exportProjectToPDF(dataWithEmptyName)).not.toThrow();
+      await expect(
+        exportProjectToPDF(dataWithEmptyName)
+      ).resolves.not.toThrow();
     });
 
-    it('should handle project with all statuses ACTIVE', () => {
+    it('should handle project with all statuses ACTIVE', async () => {
       const dataWithActiveStatus: ProjectReportData = {
         ...mockProjectData,
         project: {
@@ -729,10 +743,12 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
         },
       };
 
-      expect(() => exportProjectToPDF(dataWithActiveStatus)).not.toThrow();
+      await expect(
+        exportProjectToPDF(dataWithActiveStatus)
+      ).resolves.not.toThrow();
     });
 
-    it('should handle project with COMPLETED status', () => {
+    it('should handle project with COMPLETED status', async () => {
       const dataWithCompletedStatus: ProjectReportData = {
         ...mockProjectData,
         project: {
@@ -741,10 +757,12 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
         },
       };
 
-      expect(() => exportProjectToPDF(dataWithCompletedStatus)).not.toThrow();
+      await expect(
+        exportProjectToPDF(dataWithCompletedStatus)
+      ).resolves.not.toThrow();
     });
 
-    it('should handle collaborators with long names', () => {
+    it('should handle collaborators with long names', async () => {
       const dataWithLongCollabName: ProjectReportData = {
         ...mockProjectData,
         collaborators: [
@@ -757,10 +775,12 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
         ],
       };
 
-      expect(() => exportProjectToPDF(dataWithLongCollabName)).not.toThrow();
+      await expect(
+        exportProjectToPDF(dataWithLongCollabName)
+      ).resolves.not.toThrow();
     });
 
-    it('should sanitize filename with multiple special characters', () => {
+    it('should sanitize filename with multiple special characters', async () => {
       const mockLink = {
         href: '',
         download: '',
@@ -783,7 +803,7 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
         },
       };
 
-      exportProjectToPDF(dataWithSpecialChars);
+      await exportProjectToPDF(dataWithSpecialChars);
 
       // Should remove/replace special characters in filename
       expect(mockLink.download).not.toContain(':');
@@ -795,7 +815,7 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
   });
 
   describe('Edge Cases and Helper Functions', () => {
-    it('should handle status with default color case', () => {
+    it('should handle status with default color case', async () => {
       const dataWithUnknownStatus: ProjectReportData = {
         ...mockProjectData,
         project: {
@@ -805,10 +825,12 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
       };
 
       // Should not throw and use default gray color
-      expect(() => exportProjectToPDF(dataWithUnknownStatus)).not.toThrow();
+      await expect(
+        exportProjectToPDF(dataWithUnknownStatus)
+      ).resolves.not.toThrow();
     });
 
-    it('should handle tasks with unknown status in task list', () => {
+    it('should handle tasks with unknown status in task list', async () => {
       const dataWithUnknownTaskStatus: ProjectReportData = {
         ...mockProjectData,
         tasks: [
@@ -819,10 +841,12 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
         ],
       };
 
-      expect(() => exportProjectToPDF(dataWithUnknownTaskStatus)).not.toThrow();
+      await expect(
+        exportProjectToPDF(dataWithUnknownTaskStatus)
+      ).resolves.not.toThrow();
     });
 
-    it('should handle empty/null text in content', () => {
+    it('should handle empty/null text in content', async () => {
       const dataWithEmptyFields: ProjectReportData = {
         ...mockProjectData,
         project: {
@@ -838,10 +862,12 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
         ],
       };
 
-      expect(() => exportProjectToPDF(dataWithEmptyFields)).not.toThrow();
+      await expect(
+        exportProjectToPDF(dataWithEmptyFields)
+      ).resolves.not.toThrow();
     });
 
-    it('should handle tasks with very long titles for text wrapping', () => {
+    it('should handle tasks with very long titles for text wrapping', async () => {
       const dataWithLongTitle: ProjectReportData = {
         ...mockProjectData,
         tasks: [
@@ -853,28 +879,30 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
         ],
       };
 
-      expect(() => exportProjectToPDF(dataWithLongTitle)).not.toThrow();
+      await expect(
+        exportProjectToPDF(dataWithLongTitle)
+      ).resolves.not.toThrow();
     });
   });
 
   describe('buildProjectReportPDFBlob', () => {
-    it('should generate a PDF blob without triggering download', () => {
-      const blob = buildProjectReportPDFBlob(mockProjectData);
+    it('should generate a PDF blob without triggering download', async () => {
+      const blob = await buildProjectReportPDFBlob(mockProjectData);
 
       expect(blob).toBeDefined();
       expect(blob).toBeInstanceOf(Blob);
       expect(blob.type).toBe('application/pdf');
     });
 
-    it('should generate blob with project title and status', () => {
-      const blob = buildProjectReportPDFBlob(mockProjectData);
+    it('should generate blob with project title and status', async () => {
+      const blob = await buildProjectReportPDFBlob(mockProjectData);
 
       // Should create jsPDF instance
       expect(jsPDF).toHaveBeenCalled();
       expect(blob).toBeDefined();
     });
 
-    it('should generate blob with all project statuses', () => {
+    it('should generate blob with all project statuses', async () => {
       const statuses = [
         'ACTIVE',
         'COMPLETED',
@@ -883,7 +911,7 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
         'TO_DO',
       ];
 
-      statuses.forEach(status => {
+      for (const status of statuses) {
         const dataWithStatus: ProjectReportData = {
           ...mockProjectData,
           project: {
@@ -892,15 +920,15 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
           },
         };
 
-        const blob = buildProjectReportPDFBlob(dataWithStatus);
+        const blob = await buildProjectReportPDFBlob(dataWithStatus);
         expect(blob).toBeInstanceOf(Blob);
-      });
+      }
     });
 
-    it('should generate blob with project overview table', () => {
+    it('should generate blob with project overview table', async () => {
       (autoTable as jest.Mock).mockClear();
 
-      buildProjectReportPDFBlob(mockProjectData);
+      await buildProjectReportPDFBlob(mockProjectData);
 
       // Should call autoTable for overview
       expect(autoTable).toHaveBeenCalled();
@@ -914,7 +942,7 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
       expect(overviewCall).toBeDefined();
     });
 
-    it('should generate blob with task sections', () => {
+    it('should generate blob with task sections', async () => {
       const dataWithMultipleTasks: ProjectReportData = {
         ...mockProjectData,
         tasks: [
@@ -937,11 +965,11 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
         ] as any,
       };
 
-      const blob = buildProjectReportPDFBlob(dataWithMultipleTasks);
+      const blob = await buildProjectReportPDFBlob(dataWithMultipleTasks);
       expect(blob).toBeInstanceOf(Blob);
     });
 
-    it('should generate blob with schedule timeline', () => {
+    it('should generate blob with schedule timeline', async () => {
       const dataWithDatedTasks: ProjectReportData = {
         ...mockProjectData,
         tasks: [
@@ -960,21 +988,21 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
         ] as any,
       };
 
-      const blob = buildProjectReportPDFBlob(dataWithDatedTasks);
+      const blob = await buildProjectReportPDFBlob(dataWithDatedTasks);
       expect(blob).toBeInstanceOf(Blob);
     });
 
-    it('should generate blob with empty tasks array', () => {
+    it('should generate blob with empty tasks array', async () => {
       const dataWithNoTasks: ProjectReportData = {
         ...mockProjectData,
         tasks: [],
       };
 
-      const blob = buildProjectReportPDFBlob(dataWithNoTasks);
+      const blob = await buildProjectReportPDFBlob(dataWithNoTasks);
       expect(blob).toBeInstanceOf(Blob);
     });
 
-    it('should not trigger download when generating blob', () => {
+    it('should not trigger download when generating blob', async () => {
       const mockClick = jest.fn();
       jest.spyOn(document, 'createElement').mockImplementation(tagName => {
         if (tagName === 'a') {
@@ -988,13 +1016,13 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
         return {} as any;
       });
 
-      buildProjectReportPDFBlob(mockProjectData);
+      await buildProjectReportPDFBlob(mockProjectData);
 
       // Click should NOT be called (no download)
       expect(mockClick).not.toHaveBeenCalled();
     });
 
-    it('should handle project with all field types filled', () => {
+    it('should handle project with all field types filled', async () => {
       const completeData: ProjectReportData = {
         project: {
           id: 'proj-complete',
@@ -1035,7 +1063,7 @@ describe('exportProjectToPDF - Export Capability Tests', () => {
         ],
       };
 
-      const blob = buildProjectReportPDFBlob(completeData);
+      const blob = await buildProjectReportPDFBlob(completeData);
       expect(blob).toBeInstanceOf(Blob);
       expect(blob.size).toBeGreaterThan(0);
     });
