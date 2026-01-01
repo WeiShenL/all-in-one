@@ -545,6 +545,11 @@ export function TaskCard({
         throw new Error(errorData.error?.message || 'Update failed');
       }
 
+      // CRITICAL: Wait for database transaction to commit with PgBouncer transaction pooling
+      // Without this delay, fetchTask() may read from a different connection that hasn't
+      // seen the committed write yet, causing stale data in CI environments
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
       await fetchTask();
       await fetchTaskLogs();
 
