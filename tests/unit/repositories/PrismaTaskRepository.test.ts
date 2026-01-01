@@ -11,7 +11,7 @@ import { Task, TaskStatus } from '../../../src/domain/task/Task';
 
 // Mock PrismaClient
 jest.mock('@prisma/client', () => {
-  const mockPrismaClient = {
+  const mockPrismaClient: any = {
     task: {
       upsert: jest.fn(),
       findUnique: jest.fn(),
@@ -68,7 +68,7 @@ jest.mock('@prisma/client', () => {
       delete: jest.fn(),
       findUnique: jest.fn(),
     },
-    $transaction: jest.fn(callback => {
+    $transaction: jest.fn((callback: (tx: any) => Promise<any>) => {
       // Execute the callback with the mock client itself
       return callback(mockPrismaClient);
     }),
