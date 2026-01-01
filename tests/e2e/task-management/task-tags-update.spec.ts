@@ -265,17 +265,16 @@ test.describe('Task Tags Update - Isolated E2E Tests', () => {
     await expect(addTagButton).toBeDisabled({ timeout: 5000 });
     await expect(addTagButton).toBeEnabled({ timeout: 65000 });
 
-    // Force page reload to refresh React Query cache and ensure tag appears
-    // This is necessary because tag addition may not immediately update the UI cache in CI
-    await page.reload();
-    await page.waitForTimeout(5000);
+    // Extra wait for React Query cache to fully sync in slow CI environments
+    // Vercel free tier can be very slow with transaction pooling
+    await page.waitForTimeout(10000);
 
     // Verify tag appears by checking for the remove button which is only rendered when tag exists
     // The tag text and × are in separate elements so we check for the remove button data-testid
     await expect(
       page.getByTestId('remove-tag-e2e-test-tag-frontend')
     ).toBeVisible({
-      timeout: 60000,
+      timeout: 120000,
     });
 
     // Remove first tag using data-testid

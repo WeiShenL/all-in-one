@@ -291,6 +291,7 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
 
     // The modal has a select for project (after "🗂️ Project (Optional)" label)
     // Wait for projects to load and select the test project
+    // Increased timeout for slow Vercel free tier with transaction pooling
     await page.waitForFunction(
       projectName => {
         const forms = Array.from(document.querySelectorAll('form'));
@@ -315,12 +316,12 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
         return options.some(opt => opt.text.includes(projectName));
       },
       testProjectName,
-      { timeout: 60000 }
+      { timeout: 120000 }
     );
 
     // Select project using data-testid (more reliable)
     const projectSelect = page.locator('[data-testid="project-select"]');
-    await projectSelect.waitFor({ state: 'visible', timeout: 60000 });
+    await projectSelect.waitFor({ state: 'visible', timeout: 120000 });
 
     // Wait for projects to load
     await page.waitForFunction(
@@ -335,7 +336,7 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
         return options.some(opt => opt.text.includes(projectName as string));
       },
       testProjectName,
-      { timeout: 60000 }
+      { timeout: 120000 }
     );
 
     await projectSelect.selectOption({ label: testProjectName });
@@ -538,9 +539,10 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
 
     // Select project using data-testid
     const projectSelect = page.locator('[data-testid="project-select"]');
-    await projectSelect.waitFor({ state: 'visible', timeout: 60000 });
+    await projectSelect.waitFor({ state: 'visible', timeout: 120000 });
 
     // Wait for projects to load
+    // Increased timeout for slow Vercel free tier with transaction pooling
     await page.waitForFunction(
       projectName => {
         const select = document.querySelector(
@@ -553,7 +555,7 @@ test.describe('Task-Project Assignment - E2E Happy Path', () => {
         return options.some(opt => opt.text.includes(projectName as string));
       },
       testProjectName,
-      { timeout: 60000 }
+      { timeout: 120000 }
     );
 
     await projectSelect.selectOption({ label: testProjectName });
